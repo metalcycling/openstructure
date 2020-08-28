@@ -20,9 +20,9 @@ def GetHHblitsVersionString():
     # regular expression in the form
     # HHblits, whatever except newline, x.y.z
     # where x.y.z are the version numerals
-    version_line = re.search('HHblits[^\n]+\d+\.\d+\.\d+', proc.stdout.decode())
+    version_line = re.search(r'HHblits[^\n]+\d+\.\d+\.\d+', proc.stdout.decode())
     if version_line is not None:
-        version = re.search('\d+\.\d+\.\d+', version_line.group())
+        version = re.search(r'\d+\.\d+\.\d+', version_line.group())
         if version is not None:
             version_string = version.group()
 
