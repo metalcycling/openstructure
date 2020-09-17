@@ -81,6 +81,13 @@ bool ChainBase::IsPolysaccharide() const
   
 }
 
+bool ChainBase::IsOligosaccharide() const
+{
+  this->CheckValidity();
+  return impl_->IsOligosaccharide();
+
+}
+
 bool ChainBase::IsPolypeptide() const
 {
   this->CheckValidity();

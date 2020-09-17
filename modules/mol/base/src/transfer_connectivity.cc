@@ -73,6 +73,32 @@ public:
     return false;
   }
 
+  bool CheckInsertionCode(ResidueHandle chk_res, ResidueHandle src_res,
+                          ResidueHandle dst_res) {
+    // This is a hack to make GetDestAtomForSrcAtom work with mol::alg::PDBize,
+    // maybe with insertion codes in general...
+    // Depending on the value of min_polymer_size, PDBize puts small polymers in
+    // the ligand chain called '_'. The original chain is annotated by all
+    // residues having the same residue number but different insertion codes.
+    // That can lead to the same issue described further down for branched
+    // entities. Basically the problem is that in branched entities the residues
+    // do not need to be connected with their immediate neighbours breaking the
+    // original mechanics of GetDestAtomForSrcAtom.
+    // check if residue has an insertion code
+    if (chk_res.GetNumber().GetInsCode() != '\0') {
+      // check if the original residue also had no inscode
+      if (src_res.GetNumber().GetInsCode() == '\0') {
+        // There must be another residue with the same number and since
+        // this function is only used by PDBize, that residue originates
+        // from the same chain as dst_res and may be the correct partner.
+        if (chk_res.GetNumber().GetNum() != dst_res.GetNumber().GetNum()) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   AtomHandle GetDestAtomForSrcAtom(AtomHandle src_atom, ResidueHandle src_res,
                                    ResidueHandle dst_res,
                                    const std::map<String, AtomHandle>& name_to_atom) {
@@ -87,19 +113,61 @@ public:
     j = to_from_->find(dst_res.GetPrev());
     if (j != to_from_->end()) {
       if (j->second == r) {
-        return j->first.FindAtom(src_atom.GetName());
+        if (CheckInsertionCode(
+                              j->first.FindAtom(src_atom.GetName()).GetResidue(),
+                              r, dst_res)) {
+          return j->first.FindAtom(src_atom.GetName());
+        }
       }
     }
     j = to_from_->find(dst_res.GetNext());
     if (j != to_from_->end()) {
       if (j->second == r) {
-        return j->first.FindAtom(src_atom.GetName());
+        if (CheckInsertionCode(
+                              j->first.FindAtom(src_atom.GetName()).GetResidue(),
+                              r, dst_res)) {
+            return j->first.FindAtom(src_atom.GetName());
+          }
       }
     }
     // still nothing. scan linearly through all residues.
     for ( j = to_from_->begin(); j != to_from_->end(); ++j) {
       if (j->second == r) {
-        return j->first.FindAtom(src_atom.GetName());
+        // Check that we are connecting to the same chain, otherwise we need to
+        // check that the found residue also connects outwards.
+        if (j->first.GetChain() == dst_res.GetChain()) {
+          if (CheckInsertionCode(
+                              j->first.FindAtom(src_atom.GetName()).GetResidue(),
+                              r, dst_res)) {
+            return j->first.FindAtom(src_atom.GetName());
+          }
+        }
+        // Using the found residue would mean connecting to a different chain
+        // which is unusual. So we make sure that in the residue we transfer
+        // from, there is also a bond to a different chain. Otherwise the
+        // search continues.
+        // For branched mmCIF entities where connected residues may be not
+        // direct neighbours since branched entities are non-linear, that gave
+        // a problem when a bio unit doubled an oligosaccharide and the search
+        // found the bond of the copied oligosaccharide first. In that case the
+        // copied oligosaccharide is a different chain and the residue from the
+        // same chain comes later in the list.
+        BondHandleList jbonds = src_atom.GetBondList();
+        for (BondHandleList::iterator k = jbonds.begin(), e2 = jbonds.end();
+             k !=e2; ++k) {
+          // determine which "side" the src_res sits on
+          if (k->GetFirst() == src_atom) {
+            if (src_atom.GetResidue().GetChain()
+                != k->GetSecond().GetResidue().GetChain()) {
+              return j->first.FindAtom(src_atom.GetName());
+            }
+            continue;
+          }
+          if (src_atom.GetResidue().GetChain()
+              != k->GetFirst().GetResidue().GetChain()) {
+            return j->first.FindAtom(src_atom.GetName());
+          }
+        }
       }
     }
     return AtomHandle();
@@ -117,3 +185,5 @@ void TransferConnectivity(EntityHandle dest,
 }
 
 }}
+
+//  LocalWords:  PDBize ligand

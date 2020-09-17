@@ -342,7 +342,94 @@ The Handle Classes
 
   A chain of one or more :class:`residues <ResidueHandle>`. Chains are always 
   part of an entity.
-  
+
+  .. attribute:: atoms
+
+     Get list of all atoms of this chain. To access a single atom, use
+     :meth:`FindAtom`.
+
+     This property is read-only. Also available as :meth:`GetAtomList`
+
+     :type: :class:`AtomHandleList` (list of :class:`AtomHandle`)
+
+  .. attribute:: bounds
+
+    Axis-aligned bounding box of the chain. Read-only
+
+    :type: :class:`ost.geom.AlignedCuboid`
+
+  .. attribute:: center_of_atoms
+
+    Center of atoms (not mass weighted). Also available as
+    :meth:`GetCenterOfAtoms`.
+
+    :type: :class:`~ost.geom.Vec3`
+
+  .. attribute:: center_of_mass
+
+    Center of mass. Also available as :meth:`GetCenterOfMass`
+
+    :type: :class:`~ost.geom.Vec3`
+
+  .. attribute:: description
+
+     Details about the chain. Not categorised, just text.
+
+  .. attribute:: in_sequence
+
+     Whether the residue numbers are in ascending order. For example:
+
+     .. code-block:: python
+
+       chain=ent.FindChain("A")
+       print(chain.residues) # [A.GLY1, A.GLY2, A.GLY4A, A.GLY4B]
+       print(chain.in_sequence) # prints true
+
+       chain=ent.FindChain("B")
+       print(chain.residues) # [B.GLY1, B.GLY4, B.GLY3]
+       print(chain.in_sequence) # prints false
+
+  .. attribute:: is_oligosaccharide
+
+    Indicates if the chain is an oligosaccharide, a branched, non-linear entity
+    of multiple sugars. Also available as :meth:`IsOligosaccharide`.
+
+    :type: :class:`bool`
+
+  .. attribute:: is_polymer
+
+    Indicates if a chain is a polymer. True for polypeptides, polynucleotides,
+    polysaccharides, oligosaccharides and branched chains. Also available as
+    :meth:`IsPolymer`.
+
+    :type: :class:`bool`
+
+  .. attribute:: is_polynucleotide
+
+    Indicates if a chain is a nucleic acid. Also available as
+    :meth:`IsPolynucleotide`.
+
+    :type: :class:`bool`
+
+  .. attribute:: is_polypeptide
+
+    Indicates if a chain is a protein. Also available as :meth:`IsPolypeptide`.
+
+    :type: :class:`bool`
+
+  .. attribute:: is_polysaccharide
+
+    Indicates if a chain is a polysaccharide. Also available as
+    :meth:`IsPolysaccharide()`.
+
+    :type: :class:`bool`
+
+  .. attribute:: mass
+
+    The total mass of this chain in Dalton. Also available as :meth:`GetMass`
+
+    :type: float
+
   .. attribute:: name
   
      The chain name. The name uniquely identifies the chain in the entity. In 
@@ -356,15 +443,11 @@ The Handle Classes
      
      :type: str
 
-  .. attribute:: type
+  .. attribute:: residue_count
 
-     Describes the type of the chain.
+    Number of residues. Read-only. See :meth:`GetResidueCount`.
 
-     :type: :class:`ChainType`.
-
-  .. attribute:: description
-
-     Details about the chain. Not categorised, just text.
+    :type: :class:`int`
 
   .. attribute:: residues
    
@@ -387,59 +470,11 @@ The Handle Classes
 
      :type: :class:`ResidueHandleList` (list of :class:`ResidueHandle`)
   
-  .. attribute:: in_sequence
-  
-     Whether the residue numbers are in ascending order. For example:
-     
-     .. code-block:: python
-     
-       chain=ent.FindChain("A")
-       print(chain.residues) # [A.GLY1, A.GLY2, A.GLY4A, A.GLY4B]
-       print(chain.in_sequence) # prints true
-       
-       chain=ent.FindChain("B")
-       print(chain.residues) # [B.GLY1, B.GLY4, B.GLY3]
-       print(chain.in_sequence) # prints false
+  .. attribute:: type
 
-  .. attribute:: residue_count
+     Describes the type of the chain.
 
-    Number of residues. Read-only. See :meth:`GetResidueCount`.
-
-    :type: :class:`int`
-
-  .. attribute:: atoms
-
-     Get list of all atoms of this chain. To access a single atom, use
-     :meth:`FindAtom`.
-   
-     This property is read-only. Also available as :meth:`GetAtomList`
-
-     :type: :class:`AtomHandleList` (list of :class:`AtomHandle`)
-
-  .. attribute:: bounds
-
-    Axis-aligned bounding box of the chain. Read-only
-
-    :type: :class:`ost.geom.AlignedCuboid`
-          
-  .. attribute:: mass
-  
-    The total mass of this chain in Dalton. Also available as :meth:`GetMass`
-  
-    :type: float
-
-  .. attribute:: center_of_mass
-
-    Center of mass. Also available as :meth:`GetCenterOfMass`
-  
-    :type: :class:`~ost.geom.Vec3`
-  
-  .. attribute:: center_of_atoms
-    
-    Center of atoms (not mass weighted). Also available as 
-    :meth:`GetCenterOfAtoms`.
-    
-    :type: :class:`~ost.geom.Vec3`
+     :type: :class:`ChainType`.
 
   .. attribute:: valid
 
@@ -490,6 +525,26 @@ The Handle Classes
   .. method:: GetType()
 
     See :attr:`type`
+
+  .. method:: IsOligosaccharide()
+
+    See :attr:`is_oligosaccharide`
+
+  .. method:: IsPolymer()
+
+    See :attr:`is_polymer`
+
+  .. method:: IsPolynucleotide()
+
+    See :attr:`is_polynucleotide`
+
+  .. method:: IsPolypeptide()
+
+    See :attr:`is_polypeptide`
+
+  .. method:: IsPolysaccharide()
+
+    See :attr:`is_polysaccharide`
 
   .. method:: GetDescription()
 

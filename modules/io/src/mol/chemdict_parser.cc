@@ -184,14 +184,19 @@ void ChemdictParser::InitTypeMap()
   tm_["L-PEPTIDE NH3 AMINO TERMINUS"]=mol::ChemClass(mol::ChemClass::L_PEPTIDE_LINKING);
   tm_["L-GAMMA-PEPTIDE, C-DELTA LINKING"]=mol::ChemClass(mol::ChemClass::L_PEPTIDE_LINKING);
   tm_["L-BETA-PEPTIDE, C-GAMMA LINKING"]=mol::ChemClass(mol::ChemClass::L_PEPTIDE_LINKING);
+  tm_["D-PEPTIDE COOH CARBOXY TERMINUS"]=mol::ChemClass(mol::ChemClass::D_PEPTIDE_LINKING);
   tm_["D-PEPTIDE NH3 AMINO TERMINUS"]=mol::ChemClass(mol::ChemClass::D_PEPTIDE_LINKING);
   tm_["D-BETA-PEPTIDE, C-GAMMA LINKING"]=mol::ChemClass(mol::ChemClass::D_PEPTIDE_LINKING);
   tm_["D-GAMMA-PEPTIDE, C-DELTA LINKING"]=mol::ChemClass(mol::ChemClass::D_PEPTIDE_LINKING);
   tm_["L-SACCHARIDE, ALPHA LINKING"]=mol::ChemClass(mol::ChemClass::L_SACCHARIDE);
+  tm_["L-SACCHARIDE, BETA LINKING"]=mol::ChemClass(mol::ChemClass::L_SACCHARIDE);
   tm_["L-SACCHARIDE 1,4 AND 1,4 LINKING"]=mol::ChemClass(mol::ChemClass::L_SACCHARIDE);
+  tm_["L-SACCHARIDE 1,4 AND 1,6 LINKING"]=mol::ChemClass(mol::ChemClass::L_SACCHARIDE);
   tm_["D-SACCHARIDE 1,4 AND 1,4 LINKING"]=mol::ChemClass(mol::ChemClass::D_SACCHARIDE);
   tm_["L-SACCHARIDE"]=mol::ChemClass(mol::ChemClass::L_SACCHARIDE);
   tm_["D-SACCHARIDE"]=mol::ChemClass(mol::ChemClass::D_SACCHARIDE);
+  tm_["D-SACCHARIDE, BETA LINKING"]=mol::ChemClass(mol::ChemClass::D_SACCHARIDE);
+  tm_["D-SACCHARIDE, ALPHA LINKING"]=mol::ChemClass(mol::ChemClass::D_SACCHARIDE);
   tm_["SACCHARIDE"]=mol::ChemClass(mol::ChemClass::SACCHARIDE);
   tm_["D-PEPTIDE LINKING"]=mol::ChemClass(mol::ChemClass::D_PEPTIDE_LINKING);
   tm_["L-PEPTIDE LINKING"]=mol::ChemClass(mol::ChemClass::L_PEPTIDE_LINKING);
@@ -212,6 +217,7 @@ void ChemdictParser::InitTypeMap()
   tm_["RNA OH 5 PRIME TERMINUS"]=mol::ChemClass(mol::ChemClass::RNA_LINKING);
   tm_["?"]=mol::ChemClass(mol::ChemClass::UNKNOWN);
   tm_["WATER"]=mol::ChemClass(mol::ChemClass::WATER);
+  tm_["OTHER"]=mol::ChemClass(mol::ChemClass::UNKNOWN);
 }
 
 void ChemdictParser::InitPDBXTypeMap()

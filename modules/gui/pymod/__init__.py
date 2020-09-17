@@ -18,8 +18,6 @@
 #------------------------------------------------------------------------------
 import ost.gui.trajectory_viewer
 from ._ost_gui import *
-import sip
-
 
 ## \brief Opens a DataViewer 
 # \sa \example fft_li.py "View Fourier Transform Example" \sa \ref modulate_image.py "Modulate Image Example"

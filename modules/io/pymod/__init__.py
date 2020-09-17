@@ -358,9 +358,15 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None, profile='DEFAULT'
 # arguement is the usual 'self'.
 # documentation for this function was moved to mmcif.rst,
 # MMCifInfoBioUnit.PDBize, since this function is not included in SPHINX.
-def _PDBize(biounit, asu, seqres=None, min_polymer_size=10,
-            transformation=False):
-  pdbizer = mol.alg.PDBize(min_polymer_size=min_polymer_size)
+def _PDBize(biounit, asu, seqres=None, min_polymer_size=None,
+            transformation=False, peptide_min_size=10, nucleicacid_min_size=10,
+            saccharide_min_size=10):
+  if min_polymer_size is not None:
+    pdbizer = mol.alg.PDBize(min_polymer_size=min_polymer_size)
+  else:
+    pdbizer = mol.alg.PDBize(peptide_min_size=peptide_min_size,
+                             nucleicacid_min_size=nucleicacid_min_size,
+                             saccharide_min_size=saccharide_min_size)
 
   chains = biounit.GetChainList()
   c_intvls = biounit.GetChainIntervalList()

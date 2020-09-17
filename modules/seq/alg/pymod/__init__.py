@@ -100,16 +100,29 @@ def AlignToSEQRES(chain, seqres, try_resnum_first=False, validate=True):
     return seq.CreateAlignment()
   if try_resnum_first:
     aln_seq = seq.CreateSequence('atoms', '-'*len(seqres))
+    aligned_resnums = set()
     for r1 in residues:
+      if r1.number.num in aligned_resnums:
+        LogWarning('Residue numbers must be unique. Already observed %i, ' \
+                   'cannot align %s anymore.'%(r1.number.num, r1.qualified_name))
+        try_resnum_first = False
+        break
       if r1.number.num <= len(seqres) and r1.number.num > 0:
         if IsEqual(seqres[r1.number.num - 1], r1.one_letter_code):
           aln_seq[r1.number.num - 1] = r1.one_letter_code
+          aligned_resnums.add(r1.number.num)
         else:
           LogWarning('Sequence mismatch: chain has "' + r1.one_letter_code +
                      '", while SEQRES is "' + seqres[r1.number.num - 1] +
                      '" at the corresponding position.')
           try_resnum_first = False
           break
+      else:
+        warning = 'Residue with number %i is outside of the range covered by '\
+                  'SEQRES [1, %i]'%(r1.number.num, len(seqres)) 
+        LogWarning(warning)
+        try_resnum_first = False
+        break
   if not try_resnum_first:
     fragments=[residues[0].one_letter_code]
     for r1, r2 in zip(residues[:-1], residues[1:]):

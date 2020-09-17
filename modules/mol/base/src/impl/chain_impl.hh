@@ -69,13 +69,19 @@ public:
   {
     return type_==CHAINTYPE_POLY || this->IsPolypeptide() || 
            this->IsPolynucleotide() || this->IsPolysaccharide() ||
-           type_==CHAINTYPE_POLY_PEPTIDE_DN_RN ||
-           type_==CHAINTYPE_OLIGOSACCHARIDE;
+           this->IsOligosaccharide() ||
+           type_==CHAINTYPE_POLY_PEPTIDE_DN_RN || type_==CHAINTYPE_BRANCHED;
   }
   /// \brief whether the chain is a polysaccharide
   bool IsPolysaccharide() const
   {
     return type_==CHAINTYPE_POLY_SAC_D || type_==CHAINTYPE_POLY_SAC_L;
+  }
+
+  /// \brief whether the chain is a polysaccharide
+  bool IsOligosaccharide() const
+  {
+    return type_==CHAINTYPE_OLIGOSACCHARIDE;
   }
   /// \brief whether the chain is a polypeptide
   bool IsPolypeptide() const

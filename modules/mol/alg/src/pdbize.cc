@@ -76,12 +76,19 @@ void PDBize::Add(EntityView asu, const geom::Mat4List& transforms,
          e2 =asu.GetChainList().end(); j != e2; ++j) {
       ChainView chain = *j; 
       int chain_length = chain.GetResidueCount();
-      if (chain_length < min_polymer_size_ && seqres.IsValid()) {
+      if (((chain.IsPolypeptide() && chain_length < peptide_min_size_) ||
+           (chain.IsPolynucleotide() && chain_length < nucleicacid_min_size_) ||
+           ((chain.IsOligosaccharide() || chain.IsPolysaccharide()) &&
+            chain_length < saccharide_min_size_)) &&
+          seqres.IsValid()) {
         seq::SequenceHandle s = seqres.FindSequence(chain.GetName());
         if (s.IsValid())
           chain_length = s.GetLength();
       }
-      if (chain.IsPolymer() && chain_length >= min_polymer_size_) {
+      if ((chain.IsPolypeptide() && chain_length >= peptide_min_size_) ||
+          (chain.IsPolynucleotide() && chain_length >= nucleicacid_min_size_) ||
+          ((chain.IsOligosaccharide() || chain.IsPolysaccharide()) &&
+           chain_length >= saccharide_min_size_)) {
         if (*curr_chain_name_ == 0) {
           throw std::runtime_error("running out of chain names");
         }

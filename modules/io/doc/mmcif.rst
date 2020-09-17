@@ -800,7 +800,7 @@ of the annotation available.
 
     See :attr:`operationsintervalls`
 
-  .. function:: PDBize(asu, seqres=None, min_polymer_size=10, transformation=False)
+  .. function:: PDBize(asu, seqres=None, min_polymer_size=None, transformation=False, peptide_min_size=10, nucleicacid_min_size=10, saccharide_min_size=10)
 
     Returns the biological assembly (bio unit) for an entity. The new entity
     created is well suited to be saved as a PDB file. Therefore the function
@@ -812,7 +812,8 @@ of the annotation available.
       - Each polymer gets its own chain, named A-Z 0-9 a-z.
       - The description of non-polymer chains will be put into a generic string
         property called description on the residue level.
-      - Ligands that resemble a polymer but have less than *min_polymer_size*
+      - Ligands that resemble a polymer but have less than *min_polymer_size* /
+        *peptide_min_size* / *nucleicacid_min_size* / *saccharide_min_size*
         residues are assigned the same numeric residue number. The residues are
         distinguished by insertion code.
       - Sometimes bio units exceed the coordinate system storable in a PDB file.
@@ -832,11 +833,21 @@ of the annotation available.
     :type seqres: :class:`~ost.seq.SequenceList`
     :param min_polymer_size:  The minimal number of residues a polymer needs to 
       get its own chain. Everything below that number will be sorted into the 
-      ligand chain.
+      ligand chain. Overrides *peptide_min_size*, *nucleicacid_min_size* and
+      *saccharide_min_size* if set to a value different than None.
     :type min_polymer_size: int
     :param transformation:  If set, return the transformation matrix used to
       move the bounding box of the bio unit to the lower left corner.
     :type transformation: :class:`bool`
+    :param peptide_min_size: Minimal size to get an individual chain for a
+      polypeptide. Is overridden by *min_polymer_size*.
+    :type peptide_min_size: :class:`int`
+    :param nucleicacid_min_size: Minimal size to get an individual chain for a
+      polynucleotide. Is overridden by *min_polymer_size*.
+    :type nucleicacid_min_size: :class:`int`
+    :param saccharide_min_size: Minimal size to get an individual chain for an
+      oligosaccharide or polysaccharide. Is overridden by *min_polymer_size*.
+    :type saccharide_min_size: :class:`int`
 
 .. class:: MMCifInfoStructDetails
 

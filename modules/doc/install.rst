@@ -300,13 +300,13 @@ observed for OpenMM versions 6.1 until 7.1.1 when compiling with gcc versions >=
 from source.
 
 
-**Ubuntu 18.04 LTS / Debian 10.3.0 with GUI**
+**Ubuntu 20.04 LTS / Debian 10 with GUI**
 
 All the dependencies can be installed from the package manager as follows:
 
 .. code-block:: bash
 
-  sudo apt-get install cmake g++ sip-dev libtiff-dev libfftw3-dev libeigen3-dev \
+  sudo apt-get install cmake g++ libtiff-dev libfftw3-dev libeigen3-dev \
                libpng-dev python3-all python3-pyqt5 libboost-all-dev \
                qt5-qmake qtbase5-dev libpng-dev libsqlite3-dev
 
@@ -318,11 +318,11 @@ version of OpenStructure.
 
 .. code-block:: bash
 
-  cmake . -DPYTHON_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython3.6m.so \
+  cmake . -DPYTHON_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython3.8.so \
           -DOPTIMIZE=ON
 
 Be careful at -DPYTHON_LIBRARIES, Debian 10 comes with Python 3.7 so that needs
-to be substituted.
+to be substituted (libpython3.8.so -> libpython3.7m.so).
 
 
 **macOS (Catalina) with Homebrew**

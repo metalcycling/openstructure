@@ -19,7 +19,6 @@
 
 import sys
 from ost import gui
-import sip
 from ost import gfx
 import ost
 import os

@@ -439,7 +439,10 @@ BOOST_PYTHON_MODULE(_ost_mol_alg)
 
  
   class_<mol::alg::PDBize>("PDBize",
-                           init<int>(arg("min_polymer_size")=10))
+                           init<int,int,int>((arg("peptide_min_size"),
+                                              arg("nucleicacid_min_size"),
+                                              arg("saccharide_min_size"))))
+    .def(init<int>(arg("min_polymer_size")=10))
     .def("Add", &mol::alg::PDBize::Add, 
          (arg("asu"), arg("transformations"), arg("seqres")))
     .def("Finish", &mol::alg::PDBize::Finish, arg("shift_to_fit")=true)

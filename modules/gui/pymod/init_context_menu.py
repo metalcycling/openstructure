@@ -2,8 +2,6 @@ import platform
 
 from PyQt5 import QtCore, QtWidgets
 
-import sip
-
 from ost import geom, gfx, gui, seq
 from ost import settings
 from ost import LogError, mol
