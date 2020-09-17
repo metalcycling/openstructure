@@ -111,4 +111,15 @@ seq::ProfileHandlePtr LoadSequenceProfile(const String& file_name,
   return prof;
 }
 
+seq::ProfileHandlePtr SequenceProfileFromString(const String& data,
+                                                const String& format)
+{
+  seq::ProfileHandlePtr prof(new seq::ProfileHandle);
+  String file_name = "fake." + format;
+  IOManager& m = IOManager::Instance();
+  ProfileIOHandlerPtr prof_io = m.FindProfileImportHandler(file_name, format);
+  prof_io->ImportFromString(*prof, data);
+  return prof;
+}
+
 }}

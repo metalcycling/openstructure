@@ -289,7 +289,7 @@ namespace ost { namespace mol {
       throw Error("not same numbers of CA, C, O and N atoms in the selection");
     }
     if (n_atoms<=5){
-      throw Error("At least five residues are needed to calulate an alpha helix similarity");
+      throw Error("At least five residues are needed to calculate an alpha helix similarity");
     }
     c=(*this)[indices_c[0]];
     n_next=(*this)[indices_n[1]];

@@ -33,6 +33,8 @@ class DLLEXPORT_OST_IO HhmIOHandler : public ProfileIOHandler {
 public:
   virtual void Import(seq::ProfileHandle& prof,
                       const boost::filesystem::path& loc);
+  virtual void ImportFromString(seq::ProfileHandle& prof, 
+                                const String& data);
   virtual void Export(const seq::ProfileHandle& prof,
                       const boost::filesystem::path& loc) const;         
 
@@ -43,6 +45,8 @@ public:
 
   static String GetFormatName() { return String("HHM"); }
   static String GetFormatDescription() { return String("HHM output of HHblits"); }
+private:
+  void Import(seq::ProfileHandle& prof, std::istream& in);
 };
 
 typedef ProfileIOHandlerFactory<HhmIOHandler> HhmIOHandlerFactory; 

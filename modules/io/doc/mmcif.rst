@@ -3,14 +3,14 @@ mmCIF File Format
 
 .. currentmodule:: ost.io
 
-The mmCIF file format is an alternate container for structural entities, also
-provided by the PDB. Here we describe how to load those files and how to deal
-with information provided above the common PDB format (:class:`MMCifInfo`,
+The mmCIF file format is a container for structural entities provided by the
+PDB. Here we describe how to load those files and how to deal with information
+provided above the legacy PDB format (:class:`MMCifInfo`,
 :class:`MMCifInfoCitation`, :class:`MMCifInfoTransOp`,
 :class:`MMCifInfoBioUnit`, :class:`MMCifInfoStructDetails`,
 :class:`MMCifInfoObsolete`, :class:`MMCifInfoStructRef`,
 :class:`MMCifInfoStructRefSeq`, :class:`MMCifInfoStructRefSeqDif`,
-:class:`MMCifInfoRevisions`).
+:class:`MMCifInfoRevisions`, :class:`MMCifInfoEntityBranchLink`).
 
 
 Loading mmCIF Files
@@ -50,6 +50,10 @@ The following categories of a mmCIF file are considered by the reader:
   :class:`MMCifInfoRevisions`
 * ``pdbx_audit_revision_history`` and ``pdbx_audit_revision_details``
   (mmCIF dictionary version >= 5) used to fill :class:`MMCifInfoRevisions`
+* ``pdbx_entity_branch`` and ``pdbx_entity_branch_link`` used for
+  :class:`MMCifInfoEntityBranchLink`, a list of links is available by
+  :meth:`~MMCifInfo.GetEntityBranchLinks` and
+  :meth:`~MMCifInfo.GetEntityBranchByChain`
 
 Notes:
 
@@ -302,6 +306,55 @@ of the annotation available.
   .. method:: SetObsoleteInfo()
 
     See :attr:`obsolete`
+
+  .. method:: GetEntityBranchLinks()
+
+    Get bond information for branched entities. Returns all
+    :class:`MMCifInfoEntityBranchLink` objects in one list. Chain and residue
+    information is available by the stored
+    :class:`AtomHandles <ost.mol.AtomHandle>` of each entry.
+
+    :returns: :class:`list` of :class:`MMCifInfoEntityBranchLink`
+
+  .. method:: GetEntityBranchByChain(chain_name)
+
+    Get bond information for chains with branched entities. Returns all
+    :class:`MMCifInfoEntityBranchLink` objects in one list if chain is a
+    branched entity, an empty list otherwise.
+
+    :param chain_name: Chain name to check for branch links
+    :type chain_name: :class:`str`
+    :returns: :class:`list` of :class:`MMCifInfoEntityBranchLink`
+
+  .. method:: AddEntityBranchLink(chain_name, atom1, atom2, bond_order)
+
+    Add bond information for a branched entity.
+
+    :param chain_name: Chain the bond belongs to
+    :type chain_name: :class:`str`
+    :param atom1: First atom of the bond
+    :type atom1: :class:`~ost.mol.AtomHandle`
+    :param atom2: Second atom of the bond
+    :type atom2: :class:`~ost.mol.AtomHandle`
+    :param bond_order: Bond order (e.g. 1=single, 2=double, 3=triple)
+    :type bond_order: :class:`int`
+    :returns: Nothing
+
+  .. method:: GetEntityBranchChainNames
+
+    Get a list of chain names which contain branched entities.
+
+    :returns: :class:`list` of :class:`str`
+
+  .. method:: GetEntityBranchChains
+
+    Get a list of chains which contain branched entities.
+
+    :returns: :class:`list` of :class:`~ost.mol.ChainHandle`
+
+  .. method:: ConnectBranchLinks
+
+    Establish all bonds stored for branched entities.
 
 .. class:: MMCifInfoCitation
 
@@ -745,7 +798,7 @@ of the annotation available.
 
     See :attr:`operationsintervalls`
 
-  .. function:: PDBize(asu, seqres=None, min_polymer_size=10, transformation=False)
+  .. function:: PDBize(asu, seqres=None, min_polymer_size=None, transformation=False, peptide_min_size=10, nucleicacid_min_size=10, saccharide_min_size=10)
 
     Returns the biological assembly (bio unit) for an entity. The new entity
     created is well suited to be saved as a PDB file. Therefore the function
@@ -757,7 +810,8 @@ of the annotation available.
       - Each polymer gets its own chain, named A-Z 0-9 a-z.
       - The description of non-polymer chains will be put into a generic string
         property called description on the residue level.
-      - Ligands that resemble a polymer but have less than *min_polymer_size*
+      - Ligands that resemble a polymer but have less than *min_polymer_size* /
+        *peptide_min_size* / *nucleicacid_min_size* / *saccharide_min_size*
         residues are assigned the same numeric residue number. The residues are
         distinguished by insertion code.
       - Sometimes bio units exceed the coordinate system storable in a PDB file.
@@ -777,11 +831,21 @@ of the annotation available.
     :type seqres: :class:`~ost.seq.SequenceList`
     :param min_polymer_size:  The minimal number of residues a polymer needs to 
       get its own chain. Everything below that number will be sorted into the 
-      ligand chain.
+      ligand chain. Overrides *peptide_min_size*, *nucleicacid_min_size* and
+      *saccharide_min_size* if set to a value different than None.
     :type min_polymer_size: int
     :param transformation:  If set, return the transformation matrix used to
       move the bounding box of the bio unit to the lower left corner.
     :type transformation: :class:`bool`
+    :param peptide_min_size: Minimal size to get an individual chain for a
+      polypeptide. Is overridden by *min_polymer_size*.
+    :type peptide_min_size: :class:`int`
+    :param nucleicacid_min_size: Minimal size to get an individual chain for a
+      polynucleotide. Is overridden by *min_polymer_size*.
+    :type nucleicacid_min_size: :class:`int`
+    :param saccharide_min_size: Minimal size to get an individual chain for an
+      oligosaccharide or polysaccharide. Is overridden by *min_polymer_size*.
+    :type saccharide_min_size: :class:`int`
 
 .. class:: MMCifInfoStructDetails
 
@@ -1175,15 +1239,84 @@ of the annotation available.
 
     See :attr:`first_release`
 
+.. class:: MMCifInfoEntityBranchLink
+
+  Data from ``pdbx_entity_branch``, most specifically
+  ``pdbx_entity_branch_link``. That is connectivity information for branched
+  entities, e.g. carbohydrates/ oligosaccharides.
+  :class:`Conop Processors <ost.conop.Processor>` can not easily connect them so
+  we use this information in :meth:`LoadMMCIF` to do that.
+
+  .. attribute:: atom1
+
+    The first atom of the bond. Corresponds to ``entity_branch_link.atom_id_1``,
+    ``entity_branch_link.comp_id_1`` and
+    ``entity_branch_link.entity_branch_list_num_1``. Also available via
+    :meth:`GetAtom1` and :meth:`SetAtom1`.
+
+    :type: :class:`~ost.mol.AtomHandle`
+
+  .. attribute:: atom2
+
+    The second atom of the bond. Corresponds to ``entity_branch_link.atom_id_2``,
+    ``entity_branch_link.comp_id_2`` and
+    ``entity_branch_link.entity_branch_list_num_2``. Also available via
+    :meth:`GetAtom2` and :meth:`SetAtom2`.
+
+    :type: :class:`~ost.mol.AtomHandle`
+
+  .. attribute:: bond_order
+
+    Order of a bond (e.g. 1=single, 2=double, 3=triple). Corresponds to
+    ``entity_branch_link.value_order``. Also available via :meth:`GetBondOrder`
+    and :meth:`SetBondOrder`.
+
+    :type: :class:`int`
+
+  .. method:: ConnectBranchLink(editor)
+
+    Establish a bond between :attr:`atom1` and :attr:`atom2` of a
+    :class:`MMCifInfoEntityBranchLink`.
+
+    :param editor: The editor instance to call for connecting the atoms.
+    :type editor: :class:`~ost.mol.XCSEditor`
+    :returns: Nothing
+
+  .. method:: GetAtom1
+
+    See :attr:`atom1`
+
+  .. method:: GetAtom2
+
+    See :attr:`atom2`
+
+  .. method:: GetBondOrder
+
+    See :attr:`bond_order`
+
+  .. method:: SetAtom1
+
+    See :attr:`atom1`
+
+  .. method:: SetAtom2
+
+    See :attr:`atom2`
+
+  .. method:: SetBondOrder
+
+    See :attr:`bond_order`
+
 ..  LocalWords:  cas isbn pubmed asu seqres conop ConnectAll casp COMPND OBSLTE
 ..  LocalWords:  SPRSDE pdb func autofunction exptl attr pdbx oper conf spr dif
 ..  LocalWords:  biounits biounit uniprot UNP seqs AddMMCifPDBChainTr cif asym
 ..  LocalWords:  auth GetMMCifPDBChainTr AddPDBCMMCifhainTr GetPDBMMCifChainTr
-..  LocalWords:  GetRevisions AddRevision SetRevisionsDateOriginal GetSize
+..  LocalWords:  GetRevisions AddRevision SetRevisionsDateOriginal GetSize str
 ..  LocalWords:  GetNum num GetStatus GetLastDate GetFirstRelease storable
-..  LocalWords:  cas isbn pubmed asu seqres conop casp COMPND OBSLTE
+..  LocalWords:  cas isbn pubmed asu seqres conop casp COMPND OBSLTE LoadMMCIF
 ..  LocalWords:  SetChainList MMCifInfoTransOp ChainTypes MMCifInfoStructRef
 ..  LocalWords:  MMCifInfoRevisions bool difs MMCifInfoStructRefSeqDif rnum
 ..  LocalWords:  SetDateOriginal GetDateOriginal yyyy operationsintervalls
-..  LocalWords:  chainintervalls GetChainIntervalList GetMethodDetails
-..  LocalWords:  GetOperationsIntervalList SetMethodDetails
+..  LocalWords:  chainintervalls GetChainIntervalList GetMethodDetails GetAtom
+..  LocalWords:  GetOperationsIntervalList SetMethodDetails oligosaccharides
+..  LocalWords:  SetAtom GetBondOrder SetBondOrder MMCifInfoEntityBranchLink
+..  LocalWords:  GetEntityBranchByChain param

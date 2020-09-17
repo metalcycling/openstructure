@@ -623,6 +623,56 @@ residue. It mainly contains:
 - a :attr:`~ProfileHandle.sequence` (:class:`str`) of length *N*
 - a :attr:`~ProfileHandle.null_model` to use for this profile
 
+Optionally, HMM-related information can be added. This is transition 
+probabilities between Match, Insertion or Deletion states or neff values
+(number of effective sequences, a measure of local sequence diversity).
+
+.. class:: HMMTransition
+
+  The possible HMM-transitions between Match(M), Insertion(I) and Deletion(D)
+  states. Transitions between Deletion and Insertion are disallowed:
+
+  HMM_M2M, HMM_M2I, HMM_M2D, HMM_I2M, HMM_I2I, HMM_D2M, HMM_D2D
+
+
+.. class:: HMMData
+
+  Data container for HMM-related information that can be assigned to profile 
+  columns.
+
+    .. attribute:: neff
+
+      Local diversity of all sequences that have a residue at this column of 
+      the full alignment.
+
+    .. attribute:: neff_i
+
+      Local diversity of all sequences that have an insertion at this column of 
+      the full alignment.
+
+    .. attribute:: neff_d
+
+      Same for deletion.
+
+    .. method:: GetProb(transition)
+
+      Get HMM transition probability
+
+      :param transition: The transition
+      :type transition: :class:`HMMTransition`
+
+    .. method:: SetProb(transition, prob)
+
+      Set HMM transition probability
+
+      :param transition: The transition
+      :param prob: The probablity to be set
+
+      :type transition: :class:`HMMTransition`
+      :type prob: :class:`float`
+
+
+
 .. class:: ProfileColumn
 
   .. method:: BLOSUMNullModel()
@@ -658,6 +708,20 @@ residue. It mainly contains:
     :param null_model: Null model to use for weighting.
     :type null_model:  :class:`ProfileColumn`
 
+  .. method:: SetHMMData(data)
+    
+    :param data: Data to be set
+    :type data: :class:`HMMData`
+
+
+  .. method:: GetHMMData()
+
+    Returns previously set :class:`HMMData` object.
+
+    :rtype: :class:`HMMData`
+
+    :raises: :exc:`~exceptions.Error` if data has never been set.
+
   .. attribute:: entropy
 
     Shannon entropy based on the columns amino acid frequencies
@@ -691,7 +755,8 @@ residue. It mainly contains:
     :type to:  :class:`int`
 
     :returns: sub-profile as defined by given indices
-              (:attr:`null_model` is copied)
+              (:attr:`null_model` and :attr:`neff` are copied,
+              you might want to manually reset neff)
     :rtype: :class:`ProfileHandle`
 
     :raises: :exc:`~exceptions.Error` if *to* <= *from* or
@@ -737,6 +802,13 @@ residue. It mainly contains:
     Average entropy of all the columns (read-only).
 
     :type: :class:`float`
+
+  .. attribute:: neff
+
+    Measure for sequence diversity which is defined as the average of the 
+    per-column neff values. However, this is just a convenience attribute
+    which can be set to arbitrary values but there is no guarantee that 
+    it's the actual average of the per-column values.
 
 
 .. class:: ProfileDB

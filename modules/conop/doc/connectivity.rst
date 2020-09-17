@@ -9,7 +9,7 @@ Motivation
 
 
 The connectivity of atoms is notoriously difficult to come by for biological 
-macromolecules. PDB files, the de-factor standard exchange format for structural 
+macromolecules. PDB files, the de facto standard exchange format for structural 
 information allows bonds to be specified in CONECT records. However, they are not
 mandatory. Many programs, especially the ones not requiring on connectivity of 
 atoms, do not write CONECT records. As a result, programs and structural biology 

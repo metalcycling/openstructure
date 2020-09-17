@@ -23,11 +23,11 @@
 #   CoR-Lab, Research Institute for Cognition and Robotics
 #     Bielefeld University
 
-SET(LSB_DISTRIBUTOR_ID "unkown")
-SET(LSB_RELEASE "unkown")
-SET(LSB_CODENAME "unkown")
-SET(LSB_BIT_TYPE "unkown")
-SET(LSB_ARCH_TYPE "unkown")
+SET(LSB_DISTRIBUTOR_ID "unknown")
+SET(LSB_RELEASE "unknown")
+SET(LSB_CODENAME "unknown")
+SET(LSB_BIT_TYPE "unknown")
+SET(LSB_ARCH_TYPE "unknown")
 
 # ---- (mgoettin 10/17/2011) TODO: Update this to match all OS ----
 SET(LSB_PROCESSOR_ARCH ${CMAKE_SYSTEM_PROCESSOR})

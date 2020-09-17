@@ -17,8 +17,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #------------------------------------------------------------------------------
 
-import sip
-
 from ost import gui
 from ost import gfx
 from PyQt5 import QtCore

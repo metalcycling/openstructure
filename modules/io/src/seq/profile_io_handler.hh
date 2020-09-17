@@ -41,6 +41,9 @@ public:
   virtual void Import(seq::ProfileHandle& prof,
                       const boost::filesystem::path& loc) = 0;
 
+  virtual void ImportFromString(seq::ProfileHandle& prof,
+                                const String& data) = 0;
+
   virtual void Export(const seq::ProfileHandle& prof,
                       const boost::filesystem::path& loc) const = 0;
 };

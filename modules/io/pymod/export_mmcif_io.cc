@@ -19,6 +19,7 @@
 #include <boost/python.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <boost/python/suite/indexing/map_indexing_suite.hpp>
 using namespace boost::python;
 
 #include <ost/export_helper/pair_to_tuple_conv.hh>
@@ -28,6 +29,20 @@ using namespace boost::python;
 using namespace ost;
 using namespace ost::io;
 using namespace ost::mol;
+
+template<typename T>
+boost::python::list VecToList(std::vector<T>& vec){
+  boost::python::list l;
+  for(typename std::vector<T>::iterator it=vec.begin();it!=vec.end();++it){
+    l.append(*it);
+  }
+  return l;
+}
+
+boost::python::list WrapGetNames(MMCifInfo *p){
+  std::vector<String> names = p->GetEntityBranchChainNames();
+  return VecToList<String>(names);
+}
 
 void export_mmcif_io()
 {
@@ -332,6 +347,36 @@ void export_mmcif_io()
     .add_property("first_release", &MMCifInfoRevisions::GetFirstRelease)
   ;
 
+  class_<MMCifInfoEntityBranchLink>("MMCifInfoEntityBranchLink",
+                                    init<mol::AtomHandle,
+                                    mol::AtomHandle, unsigned char>())
+    .def("GetAtom1", &MMCifInfoEntityBranchLink::GetAtom1)
+    .def("GetAtom2", &MMCifInfoEntityBranchLink::GetAtom2)
+    .def("GetBondOrder", &MMCifInfoEntityBranchLink::GetBondOrder)
+    .def("ConnectBranchLink", &MMCifInfoEntityBranchLink::ConnectBranchLink)
+    .def("SetAtom1", &MMCifInfoEntityBranchLink::SetAtom1)
+    .def("SetAtom2", &MMCifInfoEntityBranchLink::SetAtom2)
+    .def("SetBondOrder", &MMCifInfoEntityBranchLink::SetBondOrder)
+    .def(self_ns::str(self))
+    .add_property("atom1", &MMCifInfoEntityBranchLink::GetAtom1,
+                  &MMCifInfoEntityBranchLink::SetAtom1)
+    .add_property("atom2", &MMCifInfoEntityBranchLink::GetAtom2,
+                  &MMCifInfoEntityBranchLink::SetAtom2)
+    .add_property("bond_order", &MMCifInfoEntityBranchLink::GetBondOrder,
+                  &MMCifInfoEntityBranchLink::SetBondOrder)
+  ;
+
+  class_<MMCifInfoEntityBranchLinkMap>("MMCifInfoEntityBranchLinkMap", init<>())
+    .def(map_indexing_suite<MMCifInfoEntityBranchLinkMap>())
+  ;
+
+  class_<std::vector<MMCifInfoEntityBranchLink> >(
+                                                 "MMCifInfoEntityBranchLinkList",
+                                                 init<>())
+    .def(vector_indexing_suite<std::vector<MMCifInfoEntityBranchLink> >())
+    .def(self_ns::str(self))
+  ;
+
   class_<MMCifInfo>("MMCifInfo", init<>())
     .def("AddCitation", &MMCifInfo::AddCitation)
     .def("GetCitations", make_function(&MMCifInfo::GetCitations,
@@ -366,6 +411,12 @@ void export_mmcif_io()
          (arg("num"), arg("date"), arg("status"), arg("major")=-1,
           arg("minor")=-1))
     .def("GetRevisions", &MMCifInfo::GetRevisions)
+    .def("AddEntityBranchLink", &MMCifInfo::AddEntityBranchLink)
+    .def("GetEntityBranchLinks", &MMCifInfo::GetEntityBranchLinks)
+    .def("GetEntityBranchByChain", &MMCifInfo::GetEntityBranchByChain)
+    .def("ConnectBranchLinks", &MMCifInfo::ConnectBranchLinks)
+    .def("GetEntityBranchChainNames", &WrapGetNames)
+    .def("GetEntityBranchChains", &MMCifInfo::GetEntityBranchChains)
     .add_property("citations", make_function(&MMCifInfo::GetCitations,
                                    return_value_policy<copy_const_reference>()))
     .add_property("biounits", make_function(&MMCifInfo::GetBioUnits,

@@ -630,3 +630,215 @@ differences between the structures.
     :returns: A list of :meth:`GetNumResidues` lists with
               :meth:`GetNumStructures` distances.
     :rtype:   :class:`list` of :class:`list` of :class:`float`
+
+
+HMM Algorithms
+--------------------------------------------------------------------------------
+Openstructure implements basic HMM-related functionality that aims at
+calculating an HMM-HMM alignment score as described in
+Soding, Bioinformatics (2005) 21(7), 951-60. This is the score which is
+optimized in the Viterbi algorithm of the hhalign tool. 
+As a prerequisite, OpenStructure also implements adding pseudo counts to 
+:class:`ost.seq.ProfileHandle` in order to avoid zero probabilities for 
+unobserved transitions/emissions. Given these requirements, all functions
+in this section require HMM related data (transition probabilities, neff values,
+etc.) to be set, which is the case if you load a file in hhm format.
+
+.. method:: HMMScore(profile_0, profile_1, aln, s_0_idx, s_1_idx, \
+                     match_score_offset=-0.03,correl_score_weight=0.1, \
+                     del_start_penalty_factor=0.6, \
+                     del_extend_penalty_factor=0.6, \
+                     ins_start_penalty_factor=0.6, \
+                     ins_extend_penalty_factor=0.6)
+
+  Scores an HMM-HMM alignment given in *aln* between *profile_0* and 
+  *profile_1*.
+  The score is described in Soding, Bioinformatics (2005) 21(7), 951-60 and 
+  consists of three components: 
+
+    * sum of column alignment scores of all aligned columns, the 
+      *match_score_offset* is applied to each of those scores
+    * sum of transition probability scores, the prefactor of those scores can 
+      be controlled with penalty factors (*del_start_penalty_factor* etc.)
+    * correlation score which rewards conserved columns occuring in clusters,
+      *correl_score_weight* controls its contribution to the total score
+
+  You have to make sure that proper pseudo counts are already assigned before 
+  calling this function. You can find a usage example in this documentation.
+  This score is not necessarily consistent with the output generated with 
+  hhalign, i.e. you take the hhalign output alignment and directly feed it
+  into this function with the same profiles and expect an equal score. 
+  The reason is that by default, hhalign performs a re-alignment step but the 
+  output score actually relates to the initial alignment coming from the 
+  Viterbi alignment. To get consistent results, run hhalign with the 
+  -norealign flag.
+
+  :param profile_0:     First profile to be scored
+  :param profile_1:     Second profile to be scored
+  :param aln:           Alignment connecting the two profiles
+  :param s_0_idx:       Idx of sequence in *aln* that describes *profile_0*
+  :param s_1_idx:       Idx of sequence in *aln* that describes *profile_1*
+  :param match_score_offset: Offset which is applied to each column alignment 
+                             score
+  :param correl_score_weight: Prefactor to control contribution of correlation 
+                              score to total score
+  :param del_start_penalty_factor: Factor which is applied for each transition 
+                                   score starting a deletion
+  :param del_extend_penalty_factor: Factor which is applied for each transition 
+                                    score extending a deletion
+  :param ins_start_penalty_factor: Factor which is applied for each transition 
+                                   score starting an insertion
+  :param ins_extend_penalty_factor: Factor which is applied for each transition 
+                                    score extending an insertion
+
+  :type profile_0:      :class:`ost.seq.ProfileHandle`
+  :type profile_1:      :class:`ost.seq.ProfileHandle`
+  :type aln:            :class:`ost.seq.AlignmentHandle`
+  :type s_0_idx:        :class:`int`
+  :type s_1_idx:        :class:`int`
+  :type match_score_offset: :class:`float`
+  :type correl_score_weight: :class:`float`
+  :type del_start_penalty_factor: :class:`float`
+  :type del_extend_penalty_factor: :class:`float`
+  :type ins_start_penalty_factor: :class:`float`
+  :type ins_extend_penalty_factor: :class:`float`
+
+  :raises:  Exception if profiles don't have HMM information assigned or 
+            specified sequences in *aln* don't match with profile SEQRES. 
+            Potentially set sequence offsets are taken into account.
+
+
+**Example with pseudo count assignment:**
+
+.. code-block:: python
+
+  from ost import io, seq
+
+  prof_query = io.LoadSequenceProfile("query.hhm")
+  prof_tpl = io.LoadSequenceProfile("tpl.hhm")
+  aln = io.LoadAlignment("aln.fasta")
+
+  # assign pseudo counts to transition probabilities
+  seq.alg.AddTransitionPseudoCounts(prof_query)
+  seq.alg.AddTransitionPseudoCounts(prof_tpl)
+
+  # hhblits/hhalign 3 assign different pseudo counts to 
+  # query and template. The reason is computational efficiency.
+  # The more expensive Angermueller et al. pseudo counts
+  # are assigned to the query.
+  path_to_crf = "/path/to/hh-suite/data/context_data.crf"
+  lib = seq.alg.ContextProfileDB.FromCRF(path_to_crf)
+  seq.alg.AddAAPseudoCounts(prof_query, lib)
+
+  # templates are assigned the computationally cheaper pseudo
+  # counts derived from a Gonnet substitution matrix
+  seq.alg.AddAAPseudoCounts(prof_tpl)
+
+  # assign null model pseudo counts
+  # this should be done AFTER you assigned pseudo counts to emission
+  # probabilities as this affects the result
+  seq.alg.AddNullPseudoCounts(prof_query)
+  seq.alg.AddNullPseudoCounts(prof_tpl)
+
+  print("score:", seq.alg.HMMScore(prof_query, prof_tpl, aln, 0, 1))
+
+
+.. method:: AddNullPseudoCounts(profile)
+
+  Adds pseudo counts to null model in *profile* as implemented in hhalign.
+  Conceptually we're mixing the original null model with the frequencies 
+  observed in the columns of *profile*. The weight of the original null model
+  depends on the neff value of *profile*. This function should be called
+  AFTER you already assigned pseudo counts to the emission probabilities
+  as this affects the result. 
+
+  :param profile:       Profile to add pseudo counts
+  :type profile:        :class:`ost.seq.ProfileHandle`
+
+  :raises:  Exception if profile doesn't have HMM information assigned
+
+
+.. method:: AddTransitionPseudoCounts(profile, gapb=1.0, gapd=0.15, gape=1.0)
+
+  Adds pseudo counts to the transition probabilities in *profile* as implemented 
+  in hhalign with equivalent parameter naming and default parameterization.
+  The original transition probabilities are mixed with prior
+  probabilities that are controlled by *gapd* and *gape*. Priors:
+
+    * priorM2I = priorM2D = *gapd* * 0.0286
+    * priorM2M = 1.0 - priorM2D - priorM2I
+    * priorI2I = priorD2D = 1.0 * *gape* / (gape - 1.0 + 1.0/0.75)
+    * priorI2M = priorD2M = 1.0 - priorI2I
+
+  Transition probabilities of column i starting from a match state are 
+  then estimated with pM2X = (neff[i] - 1) * pM2X + *gape* * priorM2X.
+  Starting from an insertion/deletion state we have 
+  pI2X = neff_ins[i] * pI2X + *gape* * priorI2X. In the end, all
+  probabilities are normalized such that (pM2M, pM2I, pM2D) sum up to one,
+  (pI2M, pI2I) sum up to one and (pD2I, pD2D) sum up to one.
+
+  :param profile:       Profile to add pseudo counts
+  :type profile:        :class:`ost.seq.ProfileHandle`
+
+  :raises:  Exception if profile doesn't have HMM information assigned
+
+
+.. method:: AddAAPseudoCounts(profile, a=1.0, b=1.5, c=1.0)
+
+  Adds pseudo counts to the emission probabilities in *profile* by mixing in
+  probabilities from the Gonnet matrix as implemented in hhalign with equivalent 
+  parameter naming and default parameterization. We only implement the 
+  diversity-dependent mode for the mixing factor tau (default in hhalign), which
+  for column *i* depends on *neff[i]* , *a* , *b* and *c* .
+
+  :param profile:       Profile to add pseudo counts
+  :type profile:        :class:`ost.seq.ProfileHandle`
+
+  :raises:  Exception if profile doesn't have HMM information assigned
+
+
+.. class:: ContextProfileDB
+
+  Database that contains context profiles which will be used to add pseudo 
+  counts as described by 
+  Angermueller et al., Bioinformatics (2012) 28, 3240-3247. 
+
+  .. method:: FromCRF(filename)
+
+    Static load function which reads a crf file provided in an hh-suite 
+    installation. Default location: "path/to/hhsuite/data/context_data.crf"
+
+    :param filename:    Filename of CRF file
+    :type filename:     :class:`str`
+
+  .. method:: Save(filename)
+
+    Saves database in OST-internal binary format which can be loaded faster than
+    a crf file.
+
+    :param filename:    Filename to save db
+    :type filename:     :class:`str`
+
+  .. method:: Load(filename)
+
+    Static load function that loads database in OST-internal binary format.
+
+    :param filename:    Filename of db
+    :type filename:     :class:`str`
+
+
+.. method:: AddAAPseudoCounts(profile, db, a=0.9, b=4.0, c=1.0)
+
+  Adds pseudo counts to the emission probabilities in *profile* by utilizing 
+  context profiles as described in 
+  Angermueller et al., Bioinformatics (2012) 28, 3240-3247.
+  We only implement the 
+  diversity-dependent mode for the mixing factor tau (default in hhalign), which
+  for column *i* depends on *neff[i]* , *a* , *b* and *c* .
+
+  :param profile:       Profile to add pseudo counts
+  :type profile:        :class:`ost.seq.ProfileHandle`
+  :param db:            Database of context profiles
+  :type db:             :class:`ContextProfileDB`
+
+  :raises:  Exception if profile doesn't have HMM information assigned

@@ -22,6 +22,7 @@
 
 #include <ost/io/io_exception.hh>
 #include <ost/io/mol/mmcif_info.hh>
+#include <ost/mol/mol.hh>
 
 using namespace ost;
 using namespace ost::io;
@@ -278,6 +279,28 @@ BOOST_AUTO_TEST_CASE(mmcif_info_revisions)
   BOOST_TEST_MESSAGE("  done.");
 }
 
+BOOST_AUTO_TEST_CASE(mmcif_info_branch)
+{
+  BOOST_TEST_MESSAGE("  Running mmcif_info_branch tests...");
+
+  // create a dummy entity to start an editor...
+  mol::EntityHandle eh = mol::CreateEntity();
+  mol::XCSEditor editor = eh.EditXCS();
+  mol::ChainHandle ch = editor.InsertChain("A");
+  mol::ResidueHandle res1 = editor.AppendResidue(ch, "NAG");
+  mol::ResidueHandle res2 = editor.AppendResidue(ch, "NAG");
+  // create AtomHandles for testing
+  mol::AtomHandle atom1 = editor.InsertAtom(res2, "C1",geom::Vec3());
+  mol::AtomHandle atom2 = editor.InsertAtom(res1, "O4",geom::Vec3());
+
+  MMCifInfoEntityBranchLink branch1(atom1, atom2, 1);
+  BOOST_CHECK(branch1.GetAtom1().GetQualifiedName() == "A.NAG2.C1");
+  BOOST_CHECK(branch1.GetAtom2().GetQualifiedName() == "A.NAG1.O4");
+  BOOST_CHECK(branch1.GetBondOrder() == 1);
+
+  BOOST_TEST_MESSAGE("  done.");
+}
+
 BOOST_AUTO_TEST_CASE(mmcif_info)
 {
   BOOST_TEST_MESSAGE("  Running mmcif_info tests...");
@@ -310,6 +333,56 @@ BOOST_AUTO_TEST_CASE(mmcif_info)
   BOOST_CHECK("" == info.GetMMCifEntityIdTr("C"));
 
   BOOST_CHECK(info.GetRevisions().GetSize() == 0);
+
+  // simple check that we can add branch links
+  mol::EntityHandle eh = mol::CreateEntity();
+  mol::XCSEditor editor = eh.EditXCS();
+  mol::ChainHandle ch1 = editor.InsertChain("A");
+  mol::ResidueHandle res11 = editor.AppendResidue(ch1, "NAG");
+  mol::ResidueHandle res12 = editor.AppendResidue(ch1, "NAG");
+  // create AtomHandles for testing
+  mol::AtomHandle atom11 = editor.InsertAtom(res12, "C1",geom::Vec3());
+  mol::AtomHandle atom12 = editor.InsertAtom(res11, "O4",geom::Vec3());
+  mol::ChainHandle ch2 = editor.InsertChain("B");
+  mol::ResidueHandle res21 = editor.AppendResidue(ch2, "BMA");
+  mol::ResidueHandle res22 = editor.AppendResidue(ch2, "MAN");
+  // create AtomHandles for testing
+  mol::AtomHandle atom21 = editor.InsertAtom(res22, "C1",geom::Vec3());
+  mol::AtomHandle atom22 = editor.InsertAtom(res21, "O3",geom::Vec3());
+  info.AddEntityBranchLink(ch1.GetName(), atom11, atom12, 1);
+  info.AddEntityBranchLink(ch2.GetName(), atom21, atom22, 1);
+  std::vector<MMCifInfoEntityBranchLink> blinks = info.GetEntityBranchLinks();
+
+  BOOST_CHECK(blinks.size() == 2);
+  BOOST_CHECK(blinks[0].GetAtom1().GetQualifiedName() == "A.NAG2.C1");
+  BOOST_CHECK(blinks[0].GetAtom2().GetQualifiedName() == "A.NAG1.O4");
+  BOOST_CHECK(blinks[0].GetBondOrder() == 1);
+  BOOST_CHECK(blinks[1].GetAtom1().GetQualifiedName() == "B.MAN2.C1");
+  BOOST_CHECK(blinks[1].GetAtom2().GetQualifiedName() == "B.BMA1.O3");
+  BOOST_CHECK(blinks[1].GetBondOrder() == 1);
+
+  // check that branch links get bonds
+  info.ConnectBranchLinks();
+
+  BOOST_CHECK(atom11.GetBondPartners()[0] == atom12);
+  BOOST_CHECK(atom22.GetBondPartners()[0] == atom21);
+
+  // check chain(name) retrieval works
+  std::vector<String> chain_names = info.GetEntityBranchChainNames();
+  BOOST_CHECK(chain_names[0] == "A");
+  BOOST_CHECK(chain_names[1] == "B");
+
+  // check chain(handle) retrieval works
+  mol::ChainHandleList chains = info.GetEntityBranchChains();
+  BOOST_CHECK(chains[0].GetName() == "A");
+  BOOST_CHECK(chains[1].GetName() == "B");
+
+  // check retrieval of links by chain name
+  std::vector<MMCifInfoEntityBranchLink> cblinks =
+    info.GetEntityBranchByChain("A");
+  BOOST_CHECK(cblinks.size() == 1);
+  cblinks = info.GetEntityBranchByChain("C");
+  BOOST_CHECK(cblinks.size() == 0);
 
   BOOST_TEST_MESSAGE("  done.");
 }

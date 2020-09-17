@@ -61,6 +61,9 @@ SequenceFromString(const String& data, const String& format);
 seq::ProfileHandlePtr DLLEXPORT_OST_IO 
 LoadSequenceProfile(const String& file_name, const String& format="auto");
 
+seq::ProfileHandlePtr DLLEXPORT_OST_IO
+SequenceProfileFromString(const String& data, const String& format);
+
 }}
 
 #endif

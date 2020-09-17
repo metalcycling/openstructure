@@ -26,6 +26,7 @@
 #include <ost/geom/geom.hh>
 #include <ost/string_ref.hh>
 #include <ost/io/module_config.hh>
+#include <ost/mol/mol.hh>
 
 namespace ost { namespace io {
 
@@ -918,6 +919,45 @@ private:
 	String details_;
 };
 
+/// \brief Store information on branched structures (oligosaccharides)
+///
+class DLLEXPORT_OST_IO MMCifInfoEntityBranchLink {
+public:
+  MMCifInfoEntityBranchLink(mol::AtomHandle atom1,
+                            mol::AtomHandle atom2,
+                            unsigned char bond_order):
+atom1_(atom1), atom2_(atom2), bond_order_(bond_order) {}
+  mol::AtomHandle GetAtom1() const { return atom1_;}
+  mol::AtomHandle GetAtom2() const { return atom2_; }
+  unsigned char GetBondOrder() const { return bond_order_; }
+  void SetAtom1(mol::AtomHandle atom) { atom1_ = atom; }
+  void SetAtom2(mol::AtomHandle atom) { atom2_ = atom; }
+  void SetBondOrder(unsigned char bond_order) { bond_order_ = bond_order; }
+  void ConnectBranchLink(mol::XCSEditor editor) {
+    editor.Connect(atom1_, atom2_, bond_order_);
+  }
+
+  bool operator==(const MMCifInfoEntityBranchLink& eb) const {
+    if (this->atom1_ != eb.atom1_) {
+      return false;
+    }
+    if (this->atom2_ != eb.atom2_) {
+      return false;
+    }
+    return true;
+  }
+
+  bool operator!=(const MMCifInfoEntityBranchLink& eb) const {
+    return !this->operator == (eb);
+  }
+
+private:
+  mol::AtomHandle atom1_;
+  mol::AtomHandle atom2_;
+  unsigned char bond_order_;
+};
+typedef std::map<String, std::vector<MMCifInfoEntityBranchLink> > MMCifInfoEntityBranchLinkMap;
+
 /// \brief container class for additional information from MMCif files
 /// 
 /// \section mmcif annotation information
@@ -1126,6 +1166,39 @@ public:
   {
     return revisions_;
   }
+
+  /// \brief Add bond information for a branched entity
+  ///
+  /// \param chain_name chain the bond belongs to
+  /// \param atom1 first atom of the bond
+  /// \param atom2 second atom of the bond
+  void AddEntityBranchLink(String chain_name,
+                           mol::AtomHandle atom1,
+                           mol::AtomHandle atom2,
+                           unsigned char bond_order);
+
+  /// \brief Get all links for all branched entities
+  ///
+  const std::vector<MMCifInfoEntityBranchLink> GetEntityBranchLinks() const;
+
+  /// \brief Check if a chain is a branched entity and return it
+  ///
+  /// \param chain_name Name of the chain to check
+  const std::vector<MMCifInfoEntityBranchLink> GetEntityBranchByChain(
+                                                const String& chain_name) const;
+
+  /// \brief Get the names of all chains of branched entities.
+  ///
+  const std::vector<String> GetEntityBranchChainNames() const;
+
+  /// \brief Get the all chains of branched entities.
+  ///
+  const mol::ChainHandleList GetEntityBranchChains() const;
+
+  /// \brief Connect all atoms listed as links for branched entities.
+  ///
+  void ConnectBranchLinks();
+
 //protected:
 
 private:
@@ -1140,13 +1213,18 @@ private:
   std::vector<MMCifInfoCitation> citations_;  ///< list of citations
   std::vector<MMCifInfoBioUnit>  biounits_;   ///< list of biounits
   std::vector<MMCifInfoTransOpPtr> transops_;
-	MMCifInfoStructRefs            struct_refs_;
+  MMCifInfoStructRefs            struct_refs_;
   std::map<String, String> cif_2_pdb_chain_id_;
   std::map<String, String> pdb_2_cif_chain_id_;
   std::map<String, String> cif_2_entity_id_;
+  std::map<String, std::vector<MMCifInfoEntityBranchLink> > entity_branches_;
 };
 
+DLLEXPORT_OST_IO std::ostream& operator<<(std::ostream& os, 
+                                          const MMCifInfoEntityBranchLink& eb);
 
+DLLEXPORT_OST_IO std::ostream& operator<<(std::ostream& os, 
+                          const std::vector<MMCifInfoEntityBranchLink>& eb_list);
 }} // ns
 
 #endif

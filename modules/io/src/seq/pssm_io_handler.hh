@@ -33,6 +33,8 @@ class DLLEXPORT_OST_IO PssmIOHandler : public ProfileIOHandler {
 public:
   virtual void Import(seq::ProfileHandle& prof,
                       const boost::filesystem::path& loc);
+  virtual void ImportFromString(seq::ProfileHandle& prof,
+                                const String& data);
   virtual void Export(const seq::ProfileHandle& prof,
                       const boost::filesystem::path& loc) const;         
 
@@ -45,6 +47,8 @@ public:
   static String GetFormatDescription() {
     return String("ASCII Table (PSSM) output of PSI-BLAST (flag -Q)");
   }
+private:
+  void Import(seq::ProfileHandle& prof, std::istream& in);
 };
 
 typedef ProfileIOHandlerFactory<PssmIOHandler> PssmIOHandlerFactory; 

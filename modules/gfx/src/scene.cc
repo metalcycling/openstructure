@@ -539,7 +539,7 @@ void Scene::InitGL(bool full)
   }
 
   if(full) {
-    LOG_DEBUG("Scene: initalizing textures");
+    LOG_DEBUG("Scene: initialising textures");
     glGenTextures(1,&scene_left_tex_);
     glGenTextures(1,&scene_right_tex_);
     glGenTextures(1,&bg_tex_);

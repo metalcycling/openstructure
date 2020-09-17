@@ -152,7 +152,7 @@ Bitmap import_png(const String& filename)
   channels=png_get_channels(png_ptr,info_ptr);
 
   if(channels<1 || channels>4) {
-    LOG_ERROR("error importing bitmap: " << filename << " has " << channels << " channels, excpected 1-4");
+    LOG_ERROR("error importing bitmap: " << filename << " has " << channels << " channels, expected 1-4");
     return bm;
   }
   

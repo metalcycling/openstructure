@@ -1,0 +1,80 @@
+Query         Test
+Match_columns 141
+No_of_seqs    253 out of 255
+Neff          9.40349
+Searched_HMMs 5
+Date          Thu Apr 16 22:48:40 2020
+Command       /scicore/soft/apps/HH-suite/3.2.0-foss-2018b-Boost-1.68.0-Python-3.6.6/bin/hhblits -cpu 1 -n 1 -e 0.001 -Z 10000 -B 10000 -i /scicore/home/schwede/studga00/prog/ost_dev/modules/bindings/tests/testfiles/testali.a3m -o /scratch/tmpc2d8_x_x/testali_cpu1_n1.hhr -d /scicore/home/schwede/studga00/prog/ost_dev/modules/bindings/tests/testfiles/hhblitsdb/unittestdb 
+
+ No Hit                             Prob E-value P-value  Score    SS Cols Query HMM  Template HMM
+  1 Test                           100.0 4.3E-39   9E-41  199.3  18.3  141    1-141     1-141 (141)
+  2 Test                             1.6     3.2   0.068   12.3   1.6   10    9-18    120-129 (141)
+  3 fff405e08062fd0869ae7b125b27b3   0.2      24    0.51   11.5   6.8   18   29-46    320-337 (848)
+  4 fffff7f3b4369f17341d1230f9b841   0.0      28     0.6    8.1  -1.9   13  115-127   133-145 (195)
+
+No 1
+>Test
+Probab=100.00  E-value=4.3e-39  Score=199.35  Aligned_cols=141  Identities=100%  Similarity=1.413  Sum_probs=132.9  Template_Neff=9.300
+
+Q ss_pred             CCCHHHHHHHHHHHHHHhcCchhHHHHHHHHHHhhCccccccCCCCCCCCCChhHHHHHHHHHHHHHHHHhccCCHHHHH
+Q Test              1 VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNAL   80 (141)
+Q Consensus         1 ~lt~~~~~~i~~sW~~v~~~~~~~g~~~f~~lf~~~P~~~~~F~~~~~~~~~~~~~~h~~~v~~~l~~~i~~ld~~~~~l   80 (141)
+                      +||++|+++|++||+.+.++.+++|..||.+||+.+|+++.+|+.++.+.+||.++.|+.+|+++|+.+|+++|++...+
+T Consensus         1 ~lt~~~~~~i~~sW~~v~~~~~~~g~~~~~~lf~~~P~~~~~F~~~~~~~~~~~~~~h~~~v~~~l~~~i~~ld~~~~~l   80 (141)
+T Test              1 VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNAL   80 (141)
+T ss_pred             CCCHHHHHHHHHHHHHHhcCchhHHHHHHHHHHhhCccccccCCCCCCCCCChhHHHHHHHHHHHHHHHHhccCCHHHHH
+Confidence            68999999999999999888899999999999999999999999873335778999999999999999999999998899
+
+
+Q ss_pred             HHHHHHHhhhcCCCHHHHHHHHHHHHHHHHHhcccCCCHHHHHHHHHHHHHHHHHHHhhcC
+Q Test             81 SALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR  141 (141)
+Q Consensus        81 ~~l~~~H~~~~gv~~~~f~~~~~~l~~~l~~~lg~~~~~~~~~AW~~~~~~i~~~m~~~~~  141 (141)
+                      ..+|+.|.+++||+|+||+.++++|+++|++.+|++||+++++||++++++|++.|.++|+
+T Consensus        81 ~~l~~~H~~~~gv~~~~~~~~~~~l~~~l~~~~g~~~~~~~~~AW~~~~~~i~~~m~~~y~  141 (141)
+T Test             81 SALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR  141 (141)
+T ss_pred             HHHHHHHhhhcCCCHHHHHHHHHHHHHHHHHhcccCCCHHHHHHHHHHHHHHHHHHHhhcC
+Confidence            9999999735999999999999999999999999999999999999999999999999985
+
+
+No 2
+>Test
+Probab=1.57  E-value=3.2  Score=12.26  Aligned_cols=10  Identities=30%  Similarity=0.185  Sum_probs=6.4  Template_Neff=9.300
+
+Q ss_pred             HHHHHHHHHh
+Q Test              9 NVKAAWGKVG   18 (141)
+Q Consensus         9 ~i~~sW~~v~   18 (141)
+                      .+..+|..+.
+T Consensus       120 ~~~~AW~~~~  129 (141)
+T Test            120 AVHASLDKFL  129 (141)
+T ss_pred             HHHHHHHHHH
+Confidence            3566777764
+
+
+No 3
+>fff405e08062fd0869ae7b125b27b353
+Probab=0.20  E-value=24  Score=11.45  Aligned_cols=18  Identities=6%  Similarity=0.048  Sum_probs=12.1  Template_Neff=9.500
+
+Q ss_pred             HHHHHhhCccccccCCCC
+Q Test             29 LERMFLSFPTTKTYFPHF   46 (141)
+Q Consensus        29 f~~lf~~~P~~~~~F~~~   46 (141)
+                      |.++++.+|.+...|..+
+T Consensus       320 ~~~~~~~~~~l~~rf~~i  337 (848)
+T fff405e08062fd  320 YRKHIEKDAALERRFQQV  337 (848)
+T ss_pred             HHHHHhcChhHhhcCeee
+Confidence            456666777777777654
+
+
+No 4
+>fffff7f3b4369f17341d1230f9b841ec
+Probab=0.04  E-value=28  Score=8.14  Aligned_cols=13  Identities=23%  Similarity=0.414  Sum_probs=7.6  Template_Neff=7.400
+
+Q ss_pred             cCCCHHHHHHHHH
+Q Test            115 AEFTPAVHASLDK  127 (141)
+Q Consensus       115 ~~~~~~~~~AW~~  127 (141)
+                      .+|.+.....|..
+T Consensus       133 ~~F~p~~~~~~~~  145 (195)
+T fffff7f3b4369f  133 TDFDSQTNVSQSK  145 (195)
+T ss_pred             ecCCCCCceeeec
+Confidence            4566665566643
+
+

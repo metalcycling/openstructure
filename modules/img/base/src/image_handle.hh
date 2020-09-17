@@ -126,7 +126,7 @@ public:
   //! Creates an empty, ie invalid handle
   /*!
     The default ctor is provided for e.g. using ImageHandle in STL containers. Any
-    attempt to use the interface of an emtpy ImageHandle will throw an 
+    attempt to use the interface of an empty ImageHandle will throw an 
     InvalidImageHandle exception.
   */
   ImageHandle();

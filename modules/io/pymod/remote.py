@@ -26,6 +26,19 @@ class RemoteRepository:
   """
   A remote repository represents a structural database accessible through the 
   internet, e.g. the PDB or SWISS-MODEL template library.
+
+  :param name:        Name of the repository
+  :param url_pattern: URL pattern for repository. Required format is described
+                      in :func:`URLForID`
+  :param type:        Data format to expect at resolved URL must be in 
+                      ('pdb', 'cif')
+  :param id_transform: Transformation to apply to ID before resolving URL
+                       in :func:`URLForID`. Must be in ('lower', 'upper')
+
+  :type name:         :class:`str`
+  :type url_pattern:  :class:`str`
+  :type type:         :class:`str`
+  :type id_transform: :class:`str`
   """
   def __init__(self, name, url_pattern, type, id_transform='upper'):
     self.name = name
@@ -36,6 +49,15 @@ class RemoteRepository:
     self.id_transform = id_transform
 
   def URLForID(self, id):
+    """
+    Resolves URL given *url_pattern* and *id_transform* provided at object 
+    initialization.
+    The *url_pattern* must contain substring '$ID'. Given *id*, the URL to 
+    the structure gets constructed by applying *id_transform* and inserting it
+    at the location of '$ID'. e.g. 'https://files.rcsb.org/view/$ID.pdb' given 
+    1ake as *id* and 'upper' as *id_transform* resolves to:
+    'https://files.rcsb.org/view/1AKE.pdb'
+    """
     if self.id_transform == 'upper':
       id = id.upper()
     if self.id_transform == 'lower':
@@ -43,6 +65,13 @@ class RemoteRepository:
     return self.url_pattern.replace('$ID', id)
 
   def Get(self, id):
+    """
+    Resolves URL with :func:`URLForID`, dumps the content in a temporary file 
+    and returns its path.
+    
+    :param id:          ID to resolve
+    :type id:           :class:`str`
+    """
     remote_url = self.URLForID(id)
     tmp_file_suffix = '.%s' % self.type
     if remote_url.endswith('.gz'):
@@ -65,6 +94,16 @@ class RemoteRepository:
     return tmp_file
 
   def Load(self, id):
+    """
+    Resolves URL with :func:`URLForID` and directly loads/returns the according 
+    :class:`ost.mol.EntityHandle`. Loading invokes the 
+    :func:`ost.io.LoadPDB`/:func:`ost.io.LoadMMCIF` with default parameterization. If you need
+    custom settings, you might want to consider to call :func:`Get` and do the
+    loading manually.
+    
+    :param id:          ID to resolve
+    :type id:           :class:`str`
+    """
     tmp_file = self.Get(id)
     if self.type == 'pdb':
       return LoadPDB(tmp_file.name)
@@ -83,12 +122,26 @@ REMOTE_REPOSITORIES = {
 }
 
 def RemoteGet(id, from_repo='pdb'):
+  """
+  Invokes :func:`RemoteRepository.Get` on predefined repositories 
+  ('pdb', 'smtl', 'cif', 'pdb_redo')
+
+  :param from_repo:    One of the predefined repositories
+  :type from_repo:     :class:`str`
+  """
   remote_repo = REMOTE_REPOSITORIES.get(from_repo, None) 
   if not remote_repo:
     raise ValueError('%s is not a valid repository' % from_repo)
   return remote_repo.Get(id)
 
 def RemoteLoad(id, from_repo='pdb'):
+  """
+  Invokes :func:`RemoteRepository.Load` on predefined repositories 
+  ('pdb', 'smtl', 'cif', 'pdb_redo')
+
+  :param from_repo:    One of the predefined repositories
+  :type from_repo:     :class:`str`
+  """
   remote_repo = REMOTE_REPOSITORIES.get(from_repo, None) 
   if not remote_repo:
     raise ValueError('%s is not a valid repository' % from_repo)

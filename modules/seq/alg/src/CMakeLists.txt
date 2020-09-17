@@ -19,6 +19,8 @@ subst_weight_matrix.hh
 variance_map.hh
 data/default_contact_weight_matrix.hh
 data/default_pair_subst_weight_matrix.hh
+hmm_pseudo_counts.hh
+hmm_score.hh
 )
 
 set(OST_SEQ_ALG_SOURCES
@@ -38,6 +40,8 @@ sequence_identity.cc
 sequence_similarity.cc
 subst_weight_matrix.cc
 variance_map.cc
+hmm_pseudo_counts.cc
+hmm_score.cc
 )
 
 module(NAME seq_alg HEADER_OUTPUT_DIR ost/seq/alg SOURCES ${OST_SEQ_ALG_SOURCES}

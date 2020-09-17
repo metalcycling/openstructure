@@ -267,7 +267,7 @@ mol::CoordGroupHandle load_dcd(const mol::AtomHandleList& alist, // this atom li
   bool swap_flag=false, ucell_flag=false, gap_flag=false;
   read_dcd_header(istream, header, swap_flag, ucell_flag, gap_flag, detect_swap, byte_swap);
   if(alist.size() != static_cast<size_t>(header.t_atom_count)) {
-    LOG_ERROR("LoadCHARMMTraj: atom count missmatch: " << alist.size() 
+    LOG_ERROR("LoadCHARMMTraj: atom count mismatch: " << alist.size() 
                << " in coordinate file, " << header.t_atom_count 
                << " in each traj frame");
     throw(IOException("invalid trajectory"));

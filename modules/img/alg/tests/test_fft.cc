@@ -388,7 +388,7 @@ void Test_DFT(DataType TYPE)
 
   std::ostringstream msg;
 
-  msg << "fi1 fi2 Extent missmatch: " << fi1.GetExtent() << "!=" << fi2.GetExtent();
+  msg << "fi1 fi2 Extent mismatch: " << fi1.GetExtent() << "!=" << fi2.GetExtent();
   BOOST_REQUIRE_MESSAGE(fi1.GetExtent()==fi2.GetExtent(),msg.str());
 
   for(ExtentIterator it(fi1.GetExtent());!it.AtEnd();++it) {
@@ -401,7 +401,7 @@ void Test_DFT(DataType TYPE)
   ImageHandle ri3 = fi1.Apply(alg::DFT());
 
   msg.str("");
-  msg << "ri1 ri3 Extent missmatch: " << ri3.GetExtent() << "!=" << ri1.GetExtent();
+  msg << "ri1 ri3 Extent mismatch: " << ri3.GetExtent() << "!=" << ri1.GetExtent();
   BOOST_REQUIRE_MESSAGE(ri3.GetExtent()==ri1.GetExtent(),msg.str());
 
   for(ExtentIterator it(ri3.GetExtent());!it.AtEnd();++it) {

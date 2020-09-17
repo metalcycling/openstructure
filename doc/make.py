@@ -31,7 +31,8 @@ def _RequireCopy(in_name, out_name):
 
 pattern = re.compile(r'\.\.\s+image\:\:\s+([a-zA-Z0-9_\-//]+\.png|[a-zA-Z0-9_\-//]+\.jpg)')
 def _CheckImage(in_name):
-  file = open(in_name, "r")
+  file = open(in_name, "r", encoding='utf8')
+  print("IN", in_name)
   text = file.read()
   picture_list = pattern.findall(text)
   file.close()
@@ -113,7 +114,7 @@ for builder in builders:
   Sphinx(
     srcdir='doc/source',
     confdir='doc/conf',
-    outdir='doc/build/html',
+    outdir='doc/build/%s' % builder,
     doctreedir='doc/build/html/.doctrees',
     buildername=builder,
     **extra_args).build(True)

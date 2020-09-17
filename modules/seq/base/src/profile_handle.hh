@@ -39,11 +39,127 @@ namespace ost { namespace seq {
 
 class ProfileHandle;
 class ProfileColumn;
+class HMMData;
 class ProfileDB;
 typedef boost::shared_ptr<ProfileHandle> ProfileHandlePtr;
+typedef boost::shared_ptr<HMMData> HMMDataPtr;
 typedef std::vector<ProfileHandlePtr> ProfileHandleList;
 typedef boost::shared_ptr<ProfileDB> ProfileDBPtr;
 typedef std::vector<ProfileColumn> ProfileColumnList;
+
+typedef enum {
+  HMM_M2M = 0, HMM_M2I = 1, HMM_M2D = 2,
+  HMM_I2M = 3, HMM_I2I = 4,
+  HMM_D2M = 5, HMM_D2D = 6
+} HMMTransition;
+
+class DLLEXPORT_OST_SEQ HMMData {
+public:
+  HMMData() {
+    memset(trans_, 0, 7*sizeof(Real));
+    trans_[HMM_M2M] = 1.0;
+    trans_[HMM_I2M] = 1.0;
+    trans_[HMM_D2M] = 1.0;
+    neff_ = 1.0;
+    neff_i_ = 1.0;
+    neff_d_ = 1.0;
+  }
+
+  HMMData(const HMMData& rhs) {
+    memcpy(trans_, rhs.trans_, 7*sizeof(Real));
+    neff_ = rhs.neff_;
+    neff_i_ = rhs.neff_i_;
+    neff_d_ = rhs.neff_d_;
+  }
+
+  Real GetProb(HMMTransition transition) const {
+    return trans_[transition];
+  }
+
+  void SetProb(HMMTransition transition, Real prob) {
+    trans_[transition] = prob;
+  }
+
+  Real GetNeff() const {
+    return neff_;
+  }
+
+  void SetNeff(Real neff) {
+    neff_ = neff;
+  }
+
+  Real GetNeff_I() const {
+    return neff_i_;
+  }
+
+  void SetNeff_I(Real neff) {
+    neff_i_ = neff;
+  }
+
+  Real GetNeff_D() const {
+    return neff_d_;
+  }
+
+  void SetNeff_D(Real neff) {
+    neff_d_ = neff;
+  }
+
+  bool operator==(const HMMData& rhs) const {
+    return (!memcmp(trans_, rhs.trans_, sizeof(trans_)) &&
+            neff_ == rhs.neff_ &&
+            neff_i_ == rhs.neff_i_ &&
+            neff_d_ == rhs.neff_d_);
+  }
+  bool operator!=(const HMMData& rhs) const { return !(rhs == (*this)); }
+
+  HMMData& operator=(const HMMData& rhs) {
+    memcpy(trans_, rhs.trans_, 7*sizeof(Real));
+    neff_ = rhs.neff_;
+    neff_i_ = rhs.neff_i_;
+    neff_d_ = rhs.neff_d_;
+    return *this;
+  }
+
+  friend std::ofstream& operator<<(std::ofstream& os, HMMData& dat) {
+
+    int16_t p_data[7];
+    for (uint i = 0; i < 7; ++i) {
+      p_data[i] = static_cast<int16_t>(dat.trans_[i]*10000);
+    }
+    os.write(reinterpret_cast<char*>(p_data), 7*sizeof(int16_t));
+
+    float neff_data[3];
+    neff_data[0] = dat.neff_;
+    neff_data[1] = dat.neff_i_;
+    neff_data[2] = dat.neff_d_;
+    os.write(reinterpret_cast<char*>(neff_data), 3*sizeof(float));
+
+    return os;
+  }
+
+  friend std::ifstream& operator>>(std::ifstream& is, HMMData& dat) {
+
+    int16_t p_data[7];
+    is.read(reinterpret_cast<char*>(p_data), 7*sizeof(int16_t));
+    for (uint i = 0; i < 7; ++i) {
+      dat.trans_[i] = p_data[i] * 0.0001;
+    }
+
+    float neff_data[3];
+    is.read(reinterpret_cast<char*>(neff_data), 3*sizeof(float));
+    dat.neff_ = neff_data[0];
+    dat.neff_i_ = neff_data[1];
+    dat.neff_d_ = neff_data[2];
+
+    return is;
+  }
+
+private:
+  Real trans_[7];
+  Real neff_;
+  Real neff_i_;
+  Real neff_d_;
+};
 
 /// \brief Defines profile of 20 frequencies for one residue.
 ///
@@ -59,14 +175,42 @@ public:
 
   ProfileColumn(const ProfileColumn& rhs) {
     memcpy(freq_, rhs.freq_, sizeof(freq_));
+    if(rhs.hmm_data_) {
+      // do deep copy
+      hmm_data_ = HMMDataPtr(new HMMData(*rhs.hmm_data_));
+    }
   }
   ProfileColumn& operator= (const ProfileColumn& rhs) {
     memcpy(freq_, rhs.freq_, sizeof(freq_));
+    if(rhs.hmm_data_) {
+      // do deep copy
+      hmm_data_ = HMMDataPtr(new HMMData(*rhs.hmm_data_));
+    } else if(hmm_data_) {
+      hmm_data_ = HMMDataPtr();
+    }
     return *this;
   }
 
   static ProfileColumn BLOSUMNullModel();
   static ProfileColumn HHblitsNullModel();
+
+  void SetHMMData(HMMDataPtr p) {
+    hmm_data_ = p;
+  }
+
+  HMMDataPtr GetHMMData() const{
+    if(!hmm_data_) {
+      throw Error("ProfileColumn has no HMM data set!");
+    }
+    return hmm_data_;
+  }
+
+  Real GetTransProb(HMMTransition transition) const {
+    if(!hmm_data_) {
+      throw Error("ProfileColumn has no HMM data set!");
+    }
+    return hmm_data_->GetProb(transition);    
+  }
 
   /// \brief Translate one-letter-code to index (0-indexing).
   static int GetIndex(char ch);
@@ -102,6 +246,16 @@ public:
       data[i] = static_cast<int16_t>(col.freq_[i]*10000);
     }
     os.write(reinterpret_cast<char*>(data), sizeof(data));
+ 
+    if(col.hmm_data_) {
+      bool has_hmm_data = true;
+      os.write(reinterpret_cast<char*>(&has_hmm_data), 1);
+      os << *col.hmm_data_;
+    } else {
+      bool has_hmm_data = false;
+      os.write(reinterpret_cast<char*>(&has_hmm_data), 1);      
+    }
+
     return os;
   }
 
@@ -112,11 +266,19 @@ public:
     for (uint i = 0; i < 20; ++i) {
       col.freq_[i] = data[i] * 0.0001;
     }
+
+    bool has_hmm_data;
+    is.read(reinterpret_cast<char*>(&has_hmm_data), 1);
+    if(has_hmm_data) {
+      is >> *col.hmm_data_;
+    }
+
     return is;
   }
 
 private:
   Real freq_[20];
+  HMMDataPtr hmm_data_;
 };
 
 /// \brief Provides a profile for a sequence.
@@ -129,7 +291,7 @@ private:
 class DLLEXPORT_OST_SEQ ProfileHandle { 
 public:
   /// \brief Constructs an empty profile handle (sequence = '', 0 columns).
-  ProfileHandle(): null_model_(ProfileColumn::HHblitsNullModel()) {}
+  ProfileHandle(): null_model_(ProfileColumn::HHblitsNullModel()), neff_(1.0) {}
 
   // uses compiler-generated copy- and assignment operators (work here!)
 
@@ -151,10 +313,14 @@ public:
     seq_ = seq;
   }
 
+  Real GetNeff() const { return neff_; }
+
+  void SetNeff(Real neff) { neff_ = neff; }
+
   /// \brief Extract subset of profile for columns from until to-1 (0-indexing).
   /// Null model is copied from this profile.
   /// \throw Error if to <= from or to > size().
-  ProfileHandlePtr Extract(uint from, uint to);
+  ProfileHandlePtr Extract(uint from, uint to) const;
 
   /// \brief Compute average entropy over all columns.
   Real GetAverageEntropy() const;
@@ -185,6 +351,10 @@ public:
   ProfileColumn& at(size_t index) { return columns_.at(index); }
 
   const ProfileColumn& at(size_t index) const { return columns_.at(index); }
+
+  ProfileColumn& back() { return columns_.back(); }
+
+  const ProfileColumn& back() const { return columns_.back(); }
 
   bool operator==(const ProfileHandle& other) const {
     return seq_ == other.seq_ &&
@@ -251,6 +421,7 @@ private:
   String             seq_;
   ProfileColumn      null_model_; 
   ProfileColumnList  columns_;
+  Real               neff_;
 };
 
 /// \brief Contains a DB of profiles (identified by a unique name (String)).

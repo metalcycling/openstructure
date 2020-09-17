@@ -175,19 +175,28 @@ std::map<String, mol::ChemType> ChemdictParser::xtm_=std::map<String, mol::ChemT
 
 void ChemdictParser::InitTypeMap()
 {
+  // This list is manually kept up to date to include all types appearing in PDB
+  // See doc for how to create a compound library from scratch to test this
+  // https://openstructure.org/docs/conop/compoundlib/#creating-a-compound-library
   if (!tm_.empty())
     return;
   tm_["L-PEPTIDE COOH CARBOXY TERMINUS"]=mol::ChemClass(mol::ChemClass::L_PEPTIDE_LINKING);
   tm_["L-PEPTIDE NH3 AMINO TERMINUS"]=mol::ChemClass(mol::ChemClass::L_PEPTIDE_LINKING);
   tm_["L-GAMMA-PEPTIDE, C-DELTA LINKING"]=mol::ChemClass(mol::ChemClass::L_PEPTIDE_LINKING);
   tm_["L-BETA-PEPTIDE, C-GAMMA LINKING"]=mol::ChemClass(mol::ChemClass::L_PEPTIDE_LINKING);
+  tm_["D-PEPTIDE COOH CARBOXY TERMINUS"]=mol::ChemClass(mol::ChemClass::D_PEPTIDE_LINKING);
   tm_["D-PEPTIDE NH3 AMINO TERMINUS"]=mol::ChemClass(mol::ChemClass::D_PEPTIDE_LINKING);
   tm_["D-BETA-PEPTIDE, C-GAMMA LINKING"]=mol::ChemClass(mol::ChemClass::D_PEPTIDE_LINKING);
   tm_["D-GAMMA-PEPTIDE, C-DELTA LINKING"]=mol::ChemClass(mol::ChemClass::D_PEPTIDE_LINKING);
+  tm_["L-SACCHARIDE, ALPHA LINKING"]=mol::ChemClass(mol::ChemClass::L_SACCHARIDE);
+  tm_["L-SACCHARIDE, BETA LINKING"]=mol::ChemClass(mol::ChemClass::L_SACCHARIDE);
   tm_["L-SACCHARIDE 1,4 AND 1,4 LINKING"]=mol::ChemClass(mol::ChemClass::L_SACCHARIDE);
+  tm_["L-SACCHARIDE 1,4 AND 1,6 LINKING"]=mol::ChemClass(mol::ChemClass::L_SACCHARIDE);
   tm_["D-SACCHARIDE 1,4 AND 1,4 LINKING"]=mol::ChemClass(mol::ChemClass::D_SACCHARIDE);
   tm_["L-SACCHARIDE"]=mol::ChemClass(mol::ChemClass::L_SACCHARIDE);
   tm_["D-SACCHARIDE"]=mol::ChemClass(mol::ChemClass::D_SACCHARIDE);
+  tm_["D-SACCHARIDE, BETA LINKING"]=mol::ChemClass(mol::ChemClass::D_SACCHARIDE);
+  tm_["D-SACCHARIDE, ALPHA LINKING"]=mol::ChemClass(mol::ChemClass::D_SACCHARIDE);
   tm_["SACCHARIDE"]=mol::ChemClass(mol::ChemClass::SACCHARIDE);
   tm_["D-PEPTIDE LINKING"]=mol::ChemClass(mol::ChemClass::D_PEPTIDE_LINKING);
   tm_["L-PEPTIDE LINKING"]=mol::ChemClass(mol::ChemClass::L_PEPTIDE_LINKING);
@@ -208,6 +217,7 @@ void ChemdictParser::InitTypeMap()
   tm_["RNA OH 5 PRIME TERMINUS"]=mol::ChemClass(mol::ChemClass::RNA_LINKING);
   tm_["?"]=mol::ChemClass(mol::ChemClass::UNKNOWN);
   tm_["WATER"]=mol::ChemClass(mol::ChemClass::WATER);
+  tm_["OTHER"]=mol::ChemClass(mol::ChemClass::UNKNOWN);
 }
 
 void ChemdictParser::InitPDBXTypeMap()

@@ -35,6 +35,8 @@
 #include <ost/seq/alg/clip_alignment.hh>
 #include <ost/seq/alg/distance_map.hh>
 #include <ost/seq/alg/variance_map.hh>
+#include <ost/seq/alg/hmm_pseudo_counts.hh>
+#include <ost/seq/alg/hmm_score.hh>
 
 using namespace boost::python;
 using namespace ost::seq;
@@ -76,6 +78,16 @@ list VarMapGetData(const VarianceMapPtr v_map) {
 list DistToMeanGetData(const Dist2MeanPtr d2m) {
   return GetList(*d2m, d2m->GetNumResidues(), d2m->GetNumStructures());
 }
+
+void AAPseudoCountsSimple(ProfileHandle& profile, Real a, Real b, Real c) {
+  AddAAPseudoCounts(profile, a, b, c);
+}
+
+void AAPseudoCountsAngermueller(ProfileHandle& profile, const ContextProfileDB& db,
+                                Real a, Real b, Real c) {
+  AddAAPseudoCounts(profile, db, a, b, c);
+}
+
 } // anon ns
 ////////////////////////////////////////////////////////////////////
 
@@ -223,9 +235,57 @@ void export_distance_analysis()
   ;
 }
 
+////////////////////////////////////////////////////////////////////
+// algorithms involving hmms
+void export_hmm_algorithms() {
+
+  class_<ContextProfile>("ContextProfile", init<int>())
+    .def("SetWeight",&ContextProfile::SetWeight, (arg("pos"), arg("olc"), arg("weight")))
+    .def("SetPseudoCount",&ContextProfile::SetPseudoCount, (arg("olc"), arg("count")))
+    .def("SetBias",&ContextProfile::SetBias, (arg("bias")))
+    .def("GetWeight", &ContextProfile::GetWeight, (arg("pos"), arg("olc")))
+    .def("GetPseudoCount", &ContextProfile::GetPseudoCount,(arg("olc")))
+    .def("GetBias", &ContextProfile::GetBias)
+    .def("GetLength", &ContextProfile::GetLength)
+  ;
+
+  class_<ContextProfileDB, ContextProfileDBPtr>("ContextProfileDB", init<>())
+    .def("__len__",&ContextProfileDB::size)
+    .def("__getitem__",&ContextProfileDB::at,return_value_policy<reference_existing_object>(), (arg("idx")))
+    .def("Save", &ContextProfileDB::Save, (arg("filename")))
+    .def("Load", &ContextProfileDB::Load, (arg("filename"))).staticmethod("Load")
+    .def("FromCRF", &ContextProfileDB::FromCRF, (arg("filename"))).staticmethod("FromCRF")
+    .def("AddProfile", &ContextProfileDB::AddProfile, (arg("profile")))
+  ;
+
+  def("AddAAPseudoCounts", &AAPseudoCountsSimple, (arg("profile"), 
+                                                   arg("a")=1.0,
+                                                   arg("b")=1.5,
+                                                   arg("c")=1.0));
+  def("AddAAPseudoCounts", &AAPseudoCountsAngermueller, (arg("profile"), 
+                                                         arg("context_profile_db"),
+                                                         arg("a")=0.9,
+                                                         arg("b")=4.0,
+                                                         arg("c")=1.0));
+  def("AddTransitionPseudoCounts", &AddTransitionPseudoCounts, (arg("profile"),
+                                                                arg("gapb")=1.0,
+                                                                arg("gapd")=0.15,
+                                                                arg("gape")=1.0));
+  def("AddNullPseudoCounts", &AddNullPseudoCounts, (arg("profile")));
+  def("HMMScore", &HMMScore, (arg("profile_0"), arg("profile_1"), arg("alignment"),
+                              arg("s_0_idx"), arg("s_1_idx"), 
+                              arg("match_score_offset")=-0.03,
+                              arg("correl_score_weight")=0.1,
+                              arg("del_start_penalty_factor")=0.6,
+                              arg("del_extend_penalty_factor")=0.6,
+                              arg("ins_start_penalty_factor")=0.6,
+                              arg("ins_extend_penalty_factor")=0.6));
+}
+
 BOOST_PYTHON_MODULE(_ost_seq_alg)
 {
   export_aln_alg();
   export_contact_prediction();
   export_distance_analysis();
+  export_hmm_algorithms();
 }

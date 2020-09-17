@@ -20,9 +20,7 @@
 from ost import gui
 from ost import info
 import ost
-import sip
 import re
-
 from PyQt5 import QtCore, QtGui, QtNetwork
 from ost.gui import FileLoader
 

@@ -76,12 +76,19 @@ void PDBize::Add(EntityView asu, const geom::Mat4List& transforms,
          e2 =asu.GetChainList().end(); j != e2; ++j) {
       ChainView chain = *j; 
       int chain_length = chain.GetResidueCount();
-      if (chain_length < min_polymer_size_ && seqres.IsValid()) {
+      if (((chain.IsPolypeptide() && chain_length < peptide_min_size_) ||
+           (chain.IsPolynucleotide() && chain_length < nucleicacid_min_size_) ||
+           ((chain.IsOligosaccharide() || chain.IsPolysaccharide()) &&
+            chain_length < saccharide_min_size_)) &&
+          seqres.IsValid()) {
         seq::SequenceHandle s = seqres.FindSequence(chain.GetName());
         if (s.IsValid())
           chain_length = s.GetLength();
       }
-      if (chain.IsPolymer() && chain_length >= min_polymer_size_) {
+      if ((chain.IsPolypeptide() && chain_length >= peptide_min_size_) ||
+          (chain.IsPolynucleotide() && chain_length >= nucleicacid_min_size_) ||
+          ((chain.IsOligosaccharide() || chain.IsPolysaccharide()) &&
+           chain_length >= saccharide_min_size_)) {
         if (*curr_chain_name_ == 0) {
           throw std::runtime_error("running out of chain names");
         }
@@ -134,9 +141,13 @@ void PDBize::Add(EntityView asu, const geom::Mat4List& transforms,
         last_rnum_ = 0;
       }
       char ins_code = chain.GetResidueCount()>1 ? 'A' : '\0';
-     
+
       for (ResidueViewList::const_iterator k = chain.GetResidueList().begin(),
            e3 = chain.GetResidueList().end(); k != e3; ++k) {
+        if (ins_code == 'Z'+1) {
+          ins_code = 'A';
+          last_rnum_+=1;
+        }
         ResidueHandle new_res = edi.AppendResidue(ligand_chain_, k->GetName(),
                                                   ResNum(last_rnum_+1, ins_code));
         transfer_residue_properties(*k, new_res);

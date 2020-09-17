@@ -42,7 +42,7 @@ void do_conj_ip<Complex>(image_state::ValueHolder<Complex>& vh)
   }
 }
 
-// generic case - emtpy
+// generic case - empty
 template <typename V>
 void do_conj_ip(image_state::ValueHolder<V>& vh) {}
 

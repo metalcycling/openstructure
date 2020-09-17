@@ -1,3 +1,13 @@
+Changes in Release 2.1.0
+--------------------------------------------------------------------------------
+
+ * Use the newer Voronota implementation as default in CAD-score binding
+ * Added HHblits3 support - HHblits2 still supported but considered deprecated
+ * HMMScore: HMM-HMM alignment score as it is optimized in HHblits searches
+ * Support for the new carbohydrate-extension in the mmCIF file format
+   (https://www.wwpdb.org/documentation/carbohydrate-remediation)
+ * Several minor bug fixes and improvements.
+
 Changes in Release 2.0.0
 --------------------------------------------------------------------------------
 

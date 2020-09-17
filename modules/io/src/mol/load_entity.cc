@@ -55,7 +55,7 @@ void Import(mol::EntityHandle& eh, const String& filename, const String& format)
 
 mol::EntityHandle LoadEntity(const String& filename, const String& format)
 {
-  LOG_DEBUG("creating emtpy entity");
+  LOG_DEBUG("creating empty entity");
   mol::EntityHandle eh=mol::CreateEntity();
   mol::XCSEditor xcs_lock=eh.EditXCS(mol::BUFFERED_EDIT);
   Import(eh, filename, format);

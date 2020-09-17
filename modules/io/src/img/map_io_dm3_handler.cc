@@ -320,7 +320,7 @@ void DM3Collector::check_image()
 
       image_handle_list_.push_back(ih);
     } else {
-      LOG_ERROR("missmatch in byte size of data (" 
+      LOG_ERROR("mismatch in byte size of data (" 
                 << data_size*type_sizeof(image_number_type_) << " != " 
                 << image_data_byte_size_ << "), ignoring this image entry");
     }

@@ -9,6 +9,8 @@ clustalw.py
 utils.py
 naccess.py
 hhblits.py
+hhblits2.py
+hhblits3.py
 blast.py
 cadscore.py
 kclust.py

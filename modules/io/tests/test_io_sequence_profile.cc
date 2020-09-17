@@ -29,6 +29,7 @@
 #include <ost/io/seq/load.hh>
 #include <ost/io/seq/hhm_io_handler.hh>
 #include <ost/io/seq/pssm_io_handler.hh>
+#include <ost/io/io_exception.hh>
 
 using namespace ost::seq;
 using namespace ost::io;
@@ -265,6 +266,56 @@ BOOST_AUTO_TEST_CASE(pssm_loading)
   // reload
   io_handler->Import(*prof2, "testfiles/test_pssm.pssm");
   BOOST_CHECK(*prof == *prof2);
+}
+
+BOOST_AUTO_TEST_CASE(hhm_loading_file_vs_str)
+{
+  // load from file
+  ProfileHandlePtr prof_from_file(new ProfileHandle);
+  ProfileIOHandlerPtr io_handler(new HhmIOHandler);
+  io_handler->Import(*prof_from_file, "testfiles/test_hmm.hhm");
+
+  // load from string
+  std::ifstream in("testfiles/test_hmm.hhm", std::ios::in | std::ios::binary);
+  std::string str;
+  if (in) {
+    in.seekg(0, std::ios::end);
+    str.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&str[0], str.size());
+    in.close();
+  } else {
+    throw IOException("Cannot read hhm file in unit test.");
+  }
+  ProfileHandlePtr prof_from_string(new ProfileHandle);
+  io_handler->ImportFromString(*prof_from_string, str);
+
+  compareProfiles(*prof_from_file, *prof_from_string, 1e-3);
+}
+
+BOOST_AUTO_TEST_CASE(pssm_loading_file_vs_str)
+{
+  // load from file
+  ProfileHandlePtr prof_from_file(new ProfileHandle);
+  ProfileIOHandlerPtr io_handler(new PssmIOHandler);
+  io_handler->Import(*prof_from_file, "testfiles/test_pssm.pssm");
+
+  // load from string
+  std::ifstream in("testfiles/test_pssm.pssm", std::ios::in | std::ios::binary);
+  std::string str;
+  if (in) {
+    in.seekg(0, std::ios::end);
+    str.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&str[0], str.size());
+    in.close();
+  } else {
+    throw IOException("Cannot read pssm file in unit test.");
+  }
+  ProfileHandlePtr prof_from_string(new ProfileHandle);
+  io_handler->ImportFromString(*prof_from_string, str);
+
+  compareProfiles(*prof_from_file, *prof_from_string, 1e-3);
 }
 
 BOOST_AUTO_TEST_SUITE_END();

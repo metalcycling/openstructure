@@ -151,7 +151,7 @@ template <typename T, class D>
       {
         ss << " " << (*it);
       }
-      LOG_DEBUG("exluded regions:" << ss.str());
+      LOG_DEBUG("excluded regions:" << ss.str());
     }
 
     detail::PeakCollector peak_collector(max_num_peaks_,exclusion_radius_);

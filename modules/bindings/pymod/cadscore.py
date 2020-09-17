@@ -263,7 +263,7 @@ def _MapLabels(model, cad_results, label):
                          "could not be found in model.")
     r.SetFloatProp(label, v)
 
-def CADScore(model, reference, mode = "classic", label = "localcad",
+def CADScore(model, reference, mode = "voronota", label = "localcad",
              old_regime = False, cad_bin_path = None):
   """
   Calculates global and local atom-atom (AA) CAD Scores. 

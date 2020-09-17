@@ -482,7 +482,7 @@ void MapIOSpiHandler::Import(img::MapHandle& mh, std::istream& infile,const Imag
     detail::header_filler<OST_LITTLE_ENDIAN>(infile, header);
     break;
   default:
-    throw(IOException("unkown byte order"));
+    throw(IOException("unknown byte order"));
     break;
   }
 
@@ -506,7 +506,7 @@ void MapIOSpiHandler::Import(img::MapHandle& mh, std::istream& infile,const Imag
     detail::real_filler<OST_LITTLE_ENDIAN,float>(infile,header,mh,1.0);
     break;
   default:
-    throw(IOException("unkown byte order"));
+    throw(IOException("unknown byte order"));
     break;
   }
 

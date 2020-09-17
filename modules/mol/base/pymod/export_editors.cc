@@ -123,7 +123,7 @@ void set_pos2_t(XCSEditor& e, const AtomHandleList& alist, object pyobj)
   PyArrayObject* na=reinterpret_cast<PyArrayObject*>(pyobj.ptr());
   
   if(PyArray_NDIM(na)!=2 || PyArray_DIM(na,0)!=int(acount) || PyArray_DIM(na,1)!=3) {
-    throw Error("excpected a numpy array of shape (NAtoms, 3)");
+    throw Error("expected a numpy array of shape (NAtoms, 3)");
     return;
   }
   

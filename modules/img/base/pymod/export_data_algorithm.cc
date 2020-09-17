@@ -70,7 +70,7 @@ public:
 
   virtual void Visit(ImageHandle& ih) {VisitImage(ih);}
   virtual void VisitImage(ImageHandle&) {
-    throw(Error("ModIPAlgorithm Base: VisitImage not overidden"));
+    throw(Error("ModIPAlgorithm Base: VisitImage not overridden"));
   }
 };
 
@@ -99,7 +99,7 @@ public:
 
   virtual void Visit(ImageHandle& ih) const {VisitImage(ih);}
   virtual void VisitImage(ImageHandle&) const {
-    throw(Error("ConstModIPAlgorithm Base: VisitImage not overidden"));
+    throw(Error("ConstModIPAlgorithm Base: VisitImage not overridden"));
   }
 };
 
@@ -129,7 +129,7 @@ public:
 
   virtual ImageHandle Visit(const ConstImageHandle& ih) {return VisitImage(ih);}
   virtual ImageHandle VisitImage(const ConstImageHandle& ih) {
-    throw(Error("ModOPAlgorithm Base: VisitImage not overidden"));
+    throw(Error("ModOPAlgorithm Base: VisitImage not overridden"));
   }
 };
 
@@ -158,7 +158,7 @@ public:
 
   virtual ImageHandle Visit(const ConstImageHandle& ih) const {return VisitImage(ih);}
   virtual ImageHandle VisitImage(const ConstImageHandle& ih) const {
-    throw(Error("ConstModOPAlgorithm Base: VisitImage not overidden"));
+    throw(Error("ConstModOPAlgorithm Base: VisitImage not overridden"));
   }
 };
 

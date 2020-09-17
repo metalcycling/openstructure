@@ -36,7 +36,7 @@ namespace ost { namespace img {
 class DLLEXPORT InvalidObserver: public Error {
 public:
   InvalidObserver(const String& s = String("unknown")):
-    Error(String("InvalidObserver exception occured: ") + s)
+    Error(String("InvalidObserver exception occurred: ") + s)
   {}
 };
 

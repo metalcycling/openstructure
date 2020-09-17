@@ -120,7 +120,8 @@ void export_Molck()
     .def_readwrite("assign_elem", &MolckSettings::assign_elem);
 
   def("MapNonStandardResidues", &MapNonStandardResidues, (arg("ent"),
-                                                          arg("lib")));
+                                                          arg("lib"),
+                                                          arg("log_diags")=false));
 
   def("RemoveAtoms", &RemoveAtoms, (arg("ent"),
                                     arg("lib"),

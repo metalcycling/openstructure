@@ -629,7 +629,7 @@ void MapIOTiffHandler::load_image_data(TIFF* tfile, img::ImageHandle& image,  co
   buf = _TIFFmalloc(stripsize);
 
   if(image.GetType()==img::WORD) {
-    LOG_INFO("I/O Tiff: " << "reseting target image to WORD " << image_extent);
+    LOG_INFO("I/O Tiff: " << "resetting target image to WORD " << image_extent);
     image.Reset(image_extent, img::WORD, img::SPATIAL);
 
     img::image_state::WordSpatialImageState *is =
@@ -676,14 +676,14 @@ void MapIOTiffHandler::load_image_data(TIFF* tfile, img::ImageHandle& image,  co
     img::image_state::RealSpatialImageState *isr=0;
     img::image_state::ComplexSpatialImageState *isc=0;
     if(fmt==SAMPLEFORMAT_COMPLEXINT || fmt==SAMPLEFORMAT_COMPLEXIEEEFP){
-      LOG_INFO("I/O Tiff: " << "reseting target image to complex spatial " << image_extent);
+      LOG_INFO("I/O Tiff: " << "resetting target image to complex spatial " << image_extent);
       image.Reset(image_extent,img::COMPLEX,img::SPATIAL);
       isc = dynamic_cast<img::image_state::ComplexSpatialImageState*>(image.ImageStatePtr().get());
       if(!isc) {
         throw IOException("unexpected failure of dynamic_cast in tiff io");
       }
     }else{
-      LOG_INFO("I/O Tiff: " << "reseting target image to Real img::SPATIAL" << image_extent);
+      LOG_INFO("I/O Tiff: " << "resetting target image to Real img::SPATIAL" << image_extent);
       image.Reset(image_extent, img::REAL, img::SPATIAL);
 
       isr= dynamic_cast<img::image_state::RealSpatialImageState*>(image.ImageStatePtr().get());

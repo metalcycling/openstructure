@@ -32,7 +32,7 @@ test:centos7.3:
     - module load Boost/1.68.0-foss-2018b-Python-3.6.6
     - module load LibTIFF/.4.0.9-GCCcore-7.3.0
     - module load libpng/.1.6.34-GCCcore-7.3.0
-    - module load HH-suite/2.0.16-foss-2018b
+    - module load HH-suite/3.2.0-foss-2018b-Boost-1.68.0-Python-3.6.6
     - module load Perl/5.28.0-GCCcore-7.3.0
     - module load OpenMM/7.1.1-foss-2018b-Python-3.6.6
     - module load SQLite/3.24.0-GCCcore-7.3.0

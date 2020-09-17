@@ -44,10 +44,30 @@ boost::python::list wrap_get_names(ProfileDBPtr db) {
 
 void export_profile_handle() 
 {
+
+  enum_<HMMTransition>("HMMTransition")
+    .value("HMM_M2M", HMM_M2M)
+    .value("HMM_M2I", HMM_M2I)
+    .value("HMM_M2D", HMM_M2D)
+    .value("HMM_I2M", HMM_I2M)
+    .value("HMM_I2I", HMM_I2I) 
+    .value("HMM_D2M", HMM_D2M)
+    .value("HMM_D2D", HMM_D2D)
+  ;
+
+  class_<HMMData>("HMMData", init<>())
+    .add_property("neff", &HMMData::GetNeff, &HMMData::SetNeff)
+    .add_property("neff_i", &HMMData::GetNeff_I, &HMMData::SetNeff_I)
+    .add_property("neff_d", &HMMData::GetNeff_D, &HMMData::SetNeff_D)
+    .def("GetProb", &HMMData::GetProb, (arg("transition")))
+    .def("SetProb", &HMMData::SetProb, (arg("transition"), arg("prob")))
+  ;
+
   class_<ProfileColumn>("ProfileColumn", init<>())
     .add_property("entropy", &ProfileColumn::GetEntropy)
     .def("GetFreq", &ProfileColumn::GetFreq, (arg("aa")))
     .def("SetFreq", &ProfileColumn::SetFreq, (arg("aa"), arg("freq")))
+    .add_property("hmm_data", &ProfileColumn::GetHMMData, &ProfileColumn::SetHMMData)
     .def("GetScore", &ProfileColumn::GetScore,
          (arg("other"), arg("null_model")))
     .def("BLOSUMNullModel", &ProfileColumn::BLOSUMNullModel)
@@ -76,6 +96,8 @@ void export_profile_handle()
     .add_property("avg_entropy", &ProfileHandle::GetAverageEntropy)
     .add_property("sequence", &ProfileHandle::GetSequence,
                               &ProfileHandle::SetSequence)
+    .add_property("neff", &ProfileHandle::GetNeff,
+                          &ProfileHandle::SetNeff)
   ;
 
   class_<ProfileDB, ProfileDBPtr>("ProfileDB", init<>())

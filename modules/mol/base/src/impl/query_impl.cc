@@ -797,7 +797,7 @@ Node* QueryImpl::ParseParenSubExpr(QueryLexer& lexer) {
     QueryToken end_paren=lexer.CurrentToken();
     if (end_paren.GetType()!=tok::RightParen) {
       delete n;      
-      error_desc_.msg="unmatched paranthesis in query string";
+      error_desc_.msg="unmatched parenthesis in query string";
       error_desc_.range=paren_token.GetRange();
       return NULL;
     } else {

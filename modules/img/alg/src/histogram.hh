@@ -36,7 +36,7 @@ namespace ost { namespace img { namespace alg {
 class DLLEXPORT HistogramError: public Error {
 public:
     HistogramError(const String& s):
-    Error(String("A histogram error occured: ") + s)
+    Error(String("A histogram error occurred: ") + s)
   {}
 };
 

@@ -544,7 +544,7 @@ void EntityImpl::TraceDirectionality()
 {
   fragment_list_.clear();
   Profile profile_trace("trace directionality");
-  // some reseting on the atom level
+  // some resetting on the atom level
   for(AtomImplMap::iterator it=atom_map_.begin();it!=atom_map_.end();++it) {
     it->second->ClearDirectionality();
     it->second->SetVisited(false);

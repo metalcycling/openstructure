@@ -45,7 +45,7 @@ public:
   //! Get error description.
   const String& GetMessage()const throw();
   
-  // Get range of where the error occured
+  // Get range of where the error occurred
   const Range& GetRange() const;
 
   //! Get nicely formatted error message

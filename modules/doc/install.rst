@@ -79,10 +79,9 @@ The above command will clone OpenStructure into the directory specified by
 
 .. note::
 
-  Some versions of curl have have trouble with the certificate of the 
-  OpenStructure git server and fail to clone the repository. To work around 
-  this, disable the SSL certificate verification by setting the following
-  environment variable:
+  Some versions of curl have trouble with the certificate of the OpenStructure
+  git server and fail to clone the repository. To work around this, disable the
+  SSL certificate verification by setting the following environment variable:
   
   .. code-block:: bash
 
@@ -92,7 +91,7 @@ The above command will clone OpenStructure into the directory specified by
 Picking the right branch
 --------------------------------------------------------------------------------
 
-By default you are checking out the master branch. Master is, by definition a
+By default you are checking out the master branch. Master is by definition a
 stable branch. It always points to the latest release. However, there are
 several other branches at your disposal. The main development is happening in
 the develop branch. It contains the newest features and bug fixes. However, we
@@ -301,13 +300,13 @@ observed for OpenMM versions 6.1 until 7.1.1 when compiling with gcc versions >=
 from source.
 
 
-**Ubuntu 18.04 LTS / Debian 10.3.0 with GUI**
+**Ubuntu 20.04 LTS / Debian 10 with GUI**
 
 All the dependencies can be installed from the package manager as follows:
 
 .. code-block:: bash
 
-  sudo apt-get install cmake g++ sip-dev libtiff-dev libfftw3-dev libeigen3-dev \
+  sudo apt-get install cmake g++ libtiff-dev libfftw3-dev libeigen3-dev \
                libpng-dev python3-all python3-pyqt5 libboost-all-dev \
                qt5-qmake qtbase5-dev libpng-dev libsqlite3-dev
 
@@ -319,19 +318,29 @@ version of OpenStructure.
 
 .. code-block:: bash
 
-  cmake . -DPYTHON_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython3.6m.so \
+  cmake . -DPYTHON_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython3.8.so \
           -DOPTIMIZE=ON
 
 Be careful at -DPYTHON_LIBRARIES, Debian 10 comes with Python 3.7 so that needs
-to be substituted.
-          
+to be substituted (libpython3.8.so -> libpython3.7m.so).
+
+
 **macOS (Catalina) with Homebrew**
+
+.. note::
+
+  When switching the Qt version used to compile OST with support for the
+  graphical user interface, dng may start behaving weird. Symptoms are that the
+  user interface starts being unresponsive to mouse clicks. An easy solution
+  may be to close dng and remove
+  $HOME/Library/Preferences/org.openstructure.dng.plist and start dng again.
 
 `Homebrew <https://brew.sh/>`_ can be used to conveniently install all
 dependencies. The current Python version, as of writing these instructions, is
-3.7.6 but works so far. Boost comes as 1.72.0 which seems to be OK. Do not
-forget to also install `boost-python3`. Eigen and SQLite also seem to be
-unproblematic concerning higher version numbers.
+3.8.5 but works so far. Boost comes as 1.72.0 which seems to be OK. Do not
+forget to also install `boost-python3` (your system may have a lower version of
+Python than 3.8.5 but it seems like `boost-python` was compiled for 3.8.5).
+Eigen and SQLite also seem to be unproblematic concerning higher version numbers.
 
 If you want to build the info module or the graphical user interface, make sure
 you have the Xcode app installed. Just the Xcode command line tools which are
@@ -360,15 +369,15 @@ C flags:
 
 .. code-block:: bash
 
-  cmake . -DPYTHON_INCLUDE_PATH=/usr/local/Cellar/python3/3.7.6_1/\
-  Frameworks/Python.framework/Versions/Current/include/python3.7m \
-           -DPYTHON_LIBRARIES=/usr/local/Cellar/python3/3.7.6_1/\
-  Frameworks/Python.framework/Versions/Current/lib/libpython3.7m.dylib \
-           -DPYTHON_ROOT=/usr/local/ \
-           -DBOOST_ROOT=/usr/local \
-           -DSYS_ROOT=/usr/local \
-           -DOPTIMIZE=ON \
-           -DCMAKE_C_FLAGS="-isystem /Applications/Xcode.app/Contents/\
+  cmake . -DPYTHON_INCLUDE_PATH=/usr/local/opt/python@3.8/Frameworks/\
+  Python.framework/Versions/Current/include/python3.8/ \
+          -DPYTHON_LIBRARIES=/usr/local/opt/python@3.8/Frameworks/\
+  Python.framework/Versions/Current/lib/libpython3.8.dylib \
+          -DPYTHON_ROOT=/usr/local/opt/python@3.8/ \
+          -DBOOST_ROOT=/usr/local \
+          -DSYS_ROOT=/usr/local \
+          -DOPTIMIZE=ON \
+          -DCMAKE_C_FLAGS="-isystem /Applications/Xcode.app/Contents/\
   Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/\
   Library/Frameworks/OpenGL.framework/Headers/ -isystem /usr/local/opt/\
   qt/lib/QtCore.framework/Headers/ -isystem /usr/local/opt/qt/lib/\
@@ -376,7 +385,7 @@ C flags:
   Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/\
   MacOSX.sdk/System/Library/Frameworks/Security.framework/ \
   -isystem /usr/local/opt/qt/lib/QtGui.framework/Headers/" \
-           -DCMAKE_CXX_FLAGS="-isystem /Applications/Xcode.app/Contents/\
+          -DCMAKE_CXX_FLAGS="-isystem /Applications/Xcode.app/Contents/\
   Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/\
   Library/Frameworks/OpenGL.framework/Headers/ -isystem /usr/local/opt/\
   qt/lib/QtCore.framework/Headers/ -isystem /usr/local/opt/qt/lib/\

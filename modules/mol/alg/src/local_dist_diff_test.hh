@@ -214,7 +214,7 @@ GlobalRDMap DLLEXPORT_OST_MOL_ALG CreateDistanceList(const EntityView& ref,Real 
 ///
 /// If a distance between two atoms is shorter than the inclusion radius in all structures in which the two atoms are 
 /// present, it is included in the list. However, if the distance is longer than the inclusion radius in at least one 
-/// of the structures, it is not be considered a local interaction and is exluded from the list
+/// of the structures, it is not be considered a local interaction and is excluded from the list
 ///
 /// The function takes care of residues with ambigous symmetric sidechains. To decide which naming convention to use, the functions
 /// computes a local distance score of each reference structure with the first reference structure in the list, using only non ambigously-named atoms. 

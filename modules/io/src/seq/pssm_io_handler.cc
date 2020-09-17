@@ -36,7 +36,7 @@
 namespace ost { namespace io {
 
 void PssmIOHandler::Import(seq::ProfileHandle& prof,
-                          const boost::filesystem::path& loc) {
+                           const boost::filesystem::path& loc) {
   // open it up
   boost::iostreams::filtering_stream<boost::iostreams::input> in;
   boost::filesystem::ifstream stream(loc);
@@ -48,6 +48,45 @@ void PssmIOHandler::Import(seq::ProfileHandle& prof,
     in.push(boost::iostreams::gzip_decompressor());
   }
   in.push(stream);
+
+  this->Import(prof, in);
+}
+
+void PssmIOHandler::ImportFromString(seq::ProfileHandle& prof,
+                                     const String& data) {
+  std::stringstream ss(data);
+  this->Import(prof, ss);
+}
+
+void PssmIOHandler::Export(const seq::ProfileHandle& prof,
+                          const boost::filesystem::path& loc) const {
+  throw IOException("Cannot write pssm files.");
+}
+
+bool PssmIOHandler::ProvidesImport(const boost::filesystem::path& loc, 
+                                  const String& format) {
+  if (format=="auto") {
+    String match_suf_string = loc.string();
+    std::transform(match_suf_string.begin(), match_suf_string.end(),
+                   match_suf_string.begin(), tolower);
+    if (   detail::FilenameEndsWith(match_suf_string,".pssm")
+        || detail::FilenameEndsWith(match_suf_string,".pssm.gz")) {
+      return true;
+    }
+  } else if (format == "pssm") {
+    return true;
+  }
+  return false;
+}
+
+bool PssmIOHandler::ProvidesExport(const boost::filesystem::path& loc, 
+                                  const String& format) {
+  // no writers here
+  return false;
+}
+
+void PssmIOHandler::Import(seq::ProfileHandle& prof,
+                           std::istream& in) {
 
   // reset profile
   prof.clear();
@@ -85,7 +124,7 @@ void PssmIOHandler::Import(seq::ProfileHandle& prof,
     }
   }
   if (!table_found) {
-    throw IOException("No ASCII table found in file " + loc.string());
+    throw IOException("No ASCII table found in input");
   }
 
   // parse table (assume: index olc 20xscore 20xfreq)
@@ -101,8 +140,7 @@ void PssmIOHandler::Import(seq::ProfileHandle& prof,
     for (uint i = 22; i < 42; ++i) {
       std::pair<bool, int> pbi = chunks[i].to_int();
       if (!pbi.first) {
-        throw IOException("Badly formatted line\n" + line + "\n in "
-                          + loc.string());
+        throw IOException("Badly formatted line\n" + line);
       }
       sum_freq += pbi.second;
       freqs[i-22] = pbi.second;
@@ -114,33 +152,6 @@ void PssmIOHandler::Import(seq::ProfileHandle& prof,
     }
     prof.AddColumn(pc, olc);
   }
-}
-
-void PssmIOHandler::Export(const seq::ProfileHandle& prof,
-                          const boost::filesystem::path& loc) const {
-  throw IOException("Cannot write pssm files.");
-}
-
-bool PssmIOHandler::ProvidesImport(const boost::filesystem::path& loc, 
-                                  const String& format) {
-  if (format=="auto") {
-    String match_suf_string = loc.string();
-    std::transform(match_suf_string.begin(), match_suf_string.end(),
-                   match_suf_string.begin(), tolower);
-    if (   detail::FilenameEndsWith(match_suf_string,".pssm")
-        || detail::FilenameEndsWith(match_suf_string,".pssm.gz")) {
-      return true;
-    }
-  } else if (format == "pssm") {
-    return true;
-  }
-  return false;
-}
-
-bool PssmIOHandler::ProvidesExport(const boost::filesystem::path& loc, 
-                                  const String& format) {
-  // no writers here
-  return false;
 }
 
 }}

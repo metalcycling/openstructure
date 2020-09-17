@@ -104,6 +104,8 @@ BOOST_PYTHON_MODULE(_ost_io)
   
   def("LoadSequenceProfile", &LoadSequenceProfile,
       (arg("filename"), arg("format")="auto"));
+  def("SequenceProfileFromString", &SequenceProfileFromString,
+      (arg("data"), arg("format")));
 
   def("LoadSurface",LoadSurface,load_surface_ov());
   def("LoadManagedSurface",LoadManagedSurface,load_msurface_ov());

@@ -82,7 +82,10 @@ public:
   
   /// \brief whether the chain is a polysaccharide
   bool IsPolysaccharide() const;
-  
+
+  /// \brief whether the chain is an oligsaccharide (branched mmCIF entity)
+  bool IsOligosaccharide() const;
+
   /// \brief whether the chain is a polypeptide
   bool IsPolypeptide() const;
   

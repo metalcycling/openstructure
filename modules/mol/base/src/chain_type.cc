@@ -34,6 +34,8 @@ ChainType ChainTypeFromString(StringRef identifier)
     return CHAINTYPE_WATER;
   } else if (StringRef("macrolide", 9) == identifier) {
     return CHAINTYPE_MACROLIDE;
+  } else if (StringRef("branched", 8) == identifier) {
+    return CHAINTYPE_BRANCHED;
   // chain types as found in the entity_poly category of a mmcif file
   } else if (StringRef("polypeptide(D)", 14) == identifier) {
     return CHAINTYPE_POLY_PEPTIDE_D;
@@ -54,6 +56,8 @@ ChainType ChainTypeFromString(StringRef identifier)
     return CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE;
   } else if (StringRef("peptide nucleic acid", 20) == identifier) {
     return CHAINTYPE_POLY_PEPTIDE_DN_RN;
+  } else if (StringRef("oligosaccharide", 15) == identifier) {
+    return CHAINTYPE_OLIGOSACCHARIDE;
   } else if (StringRef("other", 5) == identifier) {
     return CHAINTYPE_UNKNOWN;
   }
@@ -79,6 +83,8 @@ String StringFromChainType(ChainType type)
     return "water";
   } else if (CHAINTYPE_MACROLIDE == type) {
     return "macrolide";
+  } else if (CHAINTYPE_BRANCHED == type) {
+    return "branched";
   // chain types as found in the entity_poly category of a mmcif file
   } else if (CHAINTYPE_POLY_PEPTIDE_D == type) {
     return "polypeptide(D)";
@@ -98,6 +104,8 @@ String StringFromChainType(ChainType type)
     return "cyclic-pseudo-peptide";
   } else if (CHAINTYPE_POLY_PEPTIDE_DN_RN == type) {
     return "peptide nucleic acid";
+  } else if (CHAINTYPE_OLIGOSACCHARIDE == type) {
+    return "oligosaccharide";
   } else if (CHAINTYPE_UNKNOWN == type) {
     return "other";
   }

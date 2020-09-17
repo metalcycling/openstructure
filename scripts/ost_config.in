@@ -69,7 +69,7 @@ if [ -n "$DNG_PROFILE" ]; then
     echo "Profiling activated using cProfile"
     pyexec="$pyexec#-m#cProfile#-s#cumulative#--"
   else 
-    echo "Profiling deactivated due to unkown profiler"
+    echo "Profiling deactivated due to unknown profiler"
   fi
 fi
 

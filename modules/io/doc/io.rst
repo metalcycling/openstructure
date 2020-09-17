@@ -89,12 +89,37 @@ behaviour.
   To get an entity equivalent to one loaded with :func:`LoadPDB`, set the
   `profile` and `process` arguments as follows:
 
+  .. code-block:: python
+
+    with open('protein.pdb') as pdb_fd:
+        pdb_str = pdb.read()
+        ent = io.PDBStrToEntity(pdb_str, ost.io.profiles['DEFAULT'], True)
+
+Loading Molecular Structures From Remote Repositories
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`LoadPDB` already provides access to selected structural databases in 
+the internet when enabling the *remote* flag. Predefined 
+:class:`ost.io.remote.RemoteRepository` objects are available as
+
 .. code-block:: python
 
-  with open('protein.pdb') as pdb_fd:
-      pdb_str = pdb.read()
-      ent = io.PDBStrToEntity(pdb_str, ost.io.profiles['DEFAULT'], True)
+  from ost.io import remote
+  repo_name = 'smtl'
+  repo = remote.REMOTE_REPOSITORIES.get(repo_name)
 
+  # url for entry with id 1ake.1
+  print(repo.URLForID('1ake.1'))
+
+where *repo_name* can be one of ['pdb', 'cif', 'pdb_redo', 'smtl'].
+Instead of explicit access, you can directly fetch data using:
+
+.. autofunction:: ost.io.remote.RemoteGet
+ 
+.. autofunction:: ost.io.remote.RemoteLoad
+
+.. autoclass:: ost.io.remote.RemoteRepository
+  :members:
 
 Saving Molecular Structures
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -297,6 +322,19 @@ Loading sequence or alignment files
   :param format: Name of the format
   :type  format: string
   :rtype: :class:`~ost.seq.SequenceList`
+
+.. function:: SequenceProfileFromString(data, format)
+
+  Load sequence profile from string.
+
+  The format argument is mandatory.
+
+  :param data: String containing the data you would read from a file with
+               specified format.
+  :type  data: string
+  :param format: Name of the format. Can either be "hhm" or "pssm".
+  :type  format: string
+  :rtype: :class:`~ost.seq.ProfileHandle`
 
 Saving Sequence Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

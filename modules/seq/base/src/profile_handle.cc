@@ -137,7 +137,7 @@ Real ProfileColumn::GetScore(const ProfileColumn& other,
 // ProfileHandle
 //////////////////////////////////////////////////////////////////////////////
 
-ProfileHandlePtr ProfileHandle::Extract(uint from, uint to) {
+ProfileHandlePtr ProfileHandle::Extract(uint from, uint to) const {
   // check
   if (to <= from) {
     throw Error("Second index must be bigger than first one!");
@@ -149,6 +149,7 @@ ProfileHandlePtr ProfileHandle::Extract(uint from, uint to) {
   // get subset to return
   ProfileHandlePtr return_prof(new ProfileHandle);
   return_prof->SetNullModel(null_model_);
+  return_prof->SetNeff(neff_);
   for (uint i = from; i < to; ++i) {
     return_prof->AddColumn(columns_[i], seq_[i]);
   }
@@ -187,9 +188,16 @@ Real ProfileHandle::GetAverageScore(const ProfileHandle& other,
 // ProfileDB
 //////////////////////////////////////////////////////////////////////////////
 
+
 void ProfileDB::Save(const String& filename) const{
 
   std::ofstream out_stream(filename.c_str(), std::ios::binary);
+
+  uint32_t magic_number = 42;
+  out_stream.write(reinterpret_cast<char*>(&magic_number), sizeof(uint32_t));
+
+  uint8_t version = 1;
+  out_stream.write(reinterpret_cast<char*>(&version), sizeof(uint8_t));
 
   //write out total size
   uint32_t total_size = data_.size();
@@ -217,6 +225,26 @@ ProfileDBPtr ProfileDB::Load(const String& filename){
   }
 
   ProfileDBPtr db(new ProfileDB);
+
+  uint32_t magic_number;
+  in_stream.read(reinterpret_cast<char*>(&magic_number), sizeof(uint32_t));
+
+  if(magic_number != 42) {
+    std::stringstream ss;
+    ss << "Could not read magic number in " << filename<<". Either the file ";
+    ss << "is corrupt, does not contain a ProfileDB or is of an old version ";
+    ss << "which is not supported anymore.";
+    throw Error(ss.str());
+  }
+
+  uint8_t version;
+  in_stream.read(reinterpret_cast<char*>(&version), sizeof(uint8_t));
+  if(version != 1) {
+    std::stringstream ss;
+    ss << "ProfileDB in " << filename << " is of version " << version;
+    ss << " but only version 1 can be read.";
+    throw Error(ss.str());
+  }
 
   //read in the total size
   uint32_t total_size;

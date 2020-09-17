@@ -47,7 +47,7 @@ namespace ost { namespace img {
 struct DLLEXPORT InvalidExtentException: public Error
 {
   InvalidExtentException(const String& m= String("") ):
-    Error(String("an invalid extent occured ("+m+String(")")))
+    Error(String("an invalid extent occurred ("+m+String(")")))
   {}
 };
 

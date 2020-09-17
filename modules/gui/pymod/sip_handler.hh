@@ -37,8 +37,8 @@ namespace ost { namespace gui {
 template <class O> object get_py_qobject(O* cpp_object)
 {
   if (cpp_object != NULL){
-    static object sip_module=import("sip");
     static object pyqt5_module=import("PyQt5.QtCore");
+    static object sip_module=import("sip");
     QObject* qobject = qobject_cast<QObject*>(cpp_object);
     unsigned long addr = reinterpret_cast<unsigned long>(qobject);
     object py_qobject = pyqt5_module.attr("QObject");
@@ -55,6 +55,7 @@ template <class O> O* get_cpp_qobject(object py_object)
     if(PyObject_HasAttrString(py_object.ptr(), "qobject")){
       py_object = py_object.attr("qobject");
     }
+    static object pyqt5_module=import("PyQt5.QtCore");
     static object sip_module=import("sip");
     unsigned long addr = extract<unsigned long>(sip_module.attr("unwrapinstance")(py_object));
     if(addr){

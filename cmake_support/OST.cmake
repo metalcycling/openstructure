@@ -442,14 +442,15 @@ endmacro()
 #   ui_to_python(libname stagedir[input_file1 ...])
 # Description:
 #   Calls pyuic on every input file. The resulting python files are stored in
-#   the variable with name out_files.
+#   the variable with name out_files. Use with care. Has originally been 
+#   implemented for pyuic4 and ported to pyuic5 without testing. 
 #-------------------------------------------------------------------------------
 macro(ui_to_python LIBNAME PYMODDIR STAGEDIR)
   set(_input_files ${ARGN})
   add_custom_target("${LIBNAME}_ui" ALL)
   add_dependencies("_${LIBNAME}" "${LIBNAME}_ui")
   find_program(_PYUIC_EXECUTABLE
-    NAMES pyuic4-${PYTHON_VERSION} pyuic4 pyuic pyuic4.bat
+    NAMES pyuic5-${PYTHON_VERSION} pyuic5 pyuic pyuic5.bat
     PATHS  ENV PATH 
   )  
   if(NOT _PYUIC_EXECUTABLE)
@@ -503,7 +504,8 @@ endmacro()
 #
 # Description:
 #  Define a python module consisting of C++ type wrappers and/or code written in 
-#  Python.
+#  Python. user_interface_files are handled with ui_to_python that has blindly
+#  been ported from QT4 to QT5 without testing. Use with care.
 # NAME is the name of
 #-------------------------------------------------------------------------------
 macro(pymod)

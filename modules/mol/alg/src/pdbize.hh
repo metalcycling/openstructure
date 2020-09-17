@@ -35,7 +35,19 @@ extern const char* WATER_CHAIN_NAME;
 class DLLEXPORT_OST_MOL_ALG PDBize {
 public:
   explicit PDBize(int min_polymer_size=10):
-    min_polymer_size_(min_polymer_size), ent_(mol::CreateEntity()),
+    peptide_min_size_(min_polymer_size),
+    nucleicacid_min_size_(min_polymer_size),
+    saccharide_min_size_(min_polymer_size), ent_(mol::CreateEntity()),
+    curr_chain_name_(POLYPEPTIDE_CHAIN_NAMES), needs_adjustment_(false),
+    last_rnum_(0)
+  {}
+
+  explicit PDBize(int peptide_min_size,
+                  int nucleicacid_min_size,
+                  int saccharide_min_size):
+    peptide_min_size_(peptide_min_size),
+    nucleicacid_min_size_(nucleicacid_min_size),
+    saccharide_min_size_(saccharide_min_size), ent_(mol::CreateEntity()),
     curr_chain_name_(POLYPEPTIDE_CHAIN_NAMES), needs_adjustment_(false),
     last_rnum_(0)
   {}
@@ -45,7 +57,9 @@ public:
 
   EntityHandle Finish(bool shift_to_fit=true);
 private:
-  int                                   min_polymer_size_;
+  int                                   peptide_min_size_;
+  int                                   nucleicacid_min_size_;
+  int                                   saccharide_min_size_;
   EntityHandle                          ent_;
   ChainHandle                           ligand_chain_;
   ChainHandle                           water_chain_;
