@@ -24,6 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <limits>
 
 #include <ost/mol/mol.hh>
 
@@ -69,6 +70,59 @@ String GetJson(const T& data, uint num_rows, uint num_cols) {
   out_stream << "]";
   return out_stream.str();
 }
+
+
+void FilllDDTValues(int len, const std::vector<Real>& dist_diff,
+                    const std::vector<int>& below_15,
+                    const std::vector<std::pair<int, int> >& idx_mapping,
+                    std::vector<Real>& local_lddt) {
+
+  std::vector<int> counts(len, 0);
+  std::vector<int> total_counts(len, 0);
+
+  for(auto it = below_15.begin(); it != below_15.end(); ++it) {
+    Real diff = dist_diff[*it];
+    int fulfilled = 0;
+    fulfilled += static_cast<int>(diff < static_cast<Real>(4.0));
+    fulfilled += static_cast<int>(diff < static_cast<Real>(2.0));
+    fulfilled += static_cast<int>(diff < static_cast<Real>(1.0));
+    fulfilled += static_cast<int>(diff < static_cast<Real>(0.5));
+
+    const std::pair<int, int>& d_indices = idx_mapping[*it];
+    counts[d_indices.first] += fulfilled;
+    counts[d_indices.second] += fulfilled;
+    total_counts[d_indices.first] += 4;
+    total_counts[d_indices.second] += 4;
+  }
+
+  local_lddt.assign(len, std::numeric_limits<Real>::quiet_NaN());
+
+  for(int i = 0; i < len; ++i) {
+    if(counts[i] > 0) {
+      local_lddt[i] = static_cast<Real>(counts[i]) / total_counts[i];
+    }
+  }
+
+}
+
+
+void FilllDDTValues(int len, const std::vector<Real>& dist_one, 
+                    const std::vector<Real>& dist_two,
+                    const std::vector<int>& below_15_one, 
+                    const std::vector<int>& below_15_two, 
+                    const std::vector<std::pair<int, int> >& idx_mapping,
+                    std::vector<Real>& local_lddt_one, 
+                    std::vector<Real>& local_lddt_two) {
+
+  std::vector<Real> dist_diff(dist_one.size());
+  for(uint i = 0; i < dist_one.size(); ++i) {
+    dist_diff[i] = std::abs(dist_one[i] - dist_two[i]);
+  }
+
+  FilllDDTValues(len, dist_diff, below_15_two, idx_mapping, local_lddt_one);
+  FilllDDTValues(len, dist_diff, below_15_one, idx_mapping, local_lddt_two);
+}
+
 } // anon ns
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -141,6 +195,39 @@ String Dist2Mean::GetJsonString() {
   return GetJson(*this, num_residues_, num_structures_);
 }
 
+void MeanlDDT::ExportDat(const String& file_name) {
+  if (values_.size() == 0) throw IntegrityError("Matrix empty");
+  // dump it
+  std::ofstream out_file(file_name.c_str());
+  if (!out_file) throw Error("The file '" + file_name + "' cannot be opened.");
+  for (uint i_res = 0; i_res < num_residues_; ++i_res) {
+    out_file << (i_res+1);
+    for (uint i_str = 0; i_str < num_structures_; ++i_str) {
+      out_file << " " << this->Get(i_res, i_str);
+    }
+    out_file << std::endl;
+  }
+  out_file.close();
+}
+
+void MeanlDDT::ExportCsv(const String& file_name) {
+  if (values_.size() == 0) throw IntegrityError("Matrix empty");
+  DumpCsv(file_name, *this, num_residues_, num_structures_);
+}
+
+void MeanlDDT::ExportJson(const String& file_name) {
+  if (values_.size() == 0) throw IntegrityError("Matrix empty");
+  std::ofstream out_file(file_name.c_str());
+  if (!out_file) throw Error("The file '" + file_name + "' cannot be opened.");
+  out_file << this->GetJsonString() << std::endl;
+  out_file.close();
+}
+
+String MeanlDDT::GetJsonString() {
+  if (values_.size() == 0) throw IntegrityError("Matrix empty");
+  return GetJson(*this, num_residues_, num_structures_);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Create maps
 VarianceMapPtr CreateVarianceMap(const DistanceMapPtr dmap, Real sigma) {
@@ -192,5 +279,84 @@ Dist2MeanPtr CreateDist2Mean(const DistanceMapPtr dmap) {
   dist2mean->DivideBy(len);
   return dist2mean;
 }
+
+
+MeanlDDTPtr CreateMeanlDDTHA(const DistanceMapPtr dmap) {
+  // setup/check
+  uint nstruc = dmap->GetNumStructures();
+  uint len = dmap->GetSize();
+  if (len <= 1 || nstruc == 0) {
+    throw IntegrityError("empty distance map provided");
+  }
+
+  // the relevant pairwise distances are the ones that are off-diagonal from the
+  // pairwise distance matrices
+  uint n_off_diagonal = (len*len-len)/2;
+  std::vector<std::vector<Real> > dist_data(dmap->GetNumStructures());
+  std::vector<std::vector<int> > below_15(dmap->GetNumStructures());
+  for(uint s_idx = 0; s_idx < nstruc; ++s_idx) {
+    // the default value is simply a very large number
+    // this will trigger a distance difference above any relevant threshold
+    dist_data[s_idx].assign(n_off_diagonal, 10000000.0);
+  }
+
+  std::vector<std::pair<int,int> > off_diagonal_mapper(n_off_diagonal);
+
+  uint off_diag_idx = 0;
+  for (uint i_res = 0; i_res < len; ++i_res) {
+    for (uint j_res = i_res + 1; j_res < len; ++j_res, ++off_diag_idx) {
+      off_diagonal_mapper[off_diag_idx] = std::make_pair(i_res, j_res);
+      const Distances& di = dmap->GetDistances(i_res, j_res);
+      const uint size = di.GetDataSize();
+      for (uint k = 0; k < size; ++k) {
+        const std::pair<Real, int> ret = di.GetDataElement(k);
+        dist_data[ret.second-1][off_diag_idx] = ret.first;
+        if(ret.first <= 15.0) {
+          below_15[ret.second-1].push_back(off_diag_idx);
+        }
+      }
+    }
+  }
+
+  std::vector<std::vector<Real> > avg_lddt_values(nstruc);
+  std::vector<std::vector<int> > avg_lddt_counts(nstruc);
+
+  for(uint i = 0; i < nstruc; ++i) {
+    avg_lddt_values[i].assign(len, 0);
+    avg_lddt_counts[i].assign(len, 0);
+  }
+
+  std::vector<Real> lddt_i, lddt_j;
+  for(uint i = 0; i < nstruc; ++i) {
+    for(uint j = i+1; j < nstruc; ++j) {
+      FilllDDTValues(len, dist_data[i], dist_data[j], below_15[i], below_15[j], 
+                     off_diagonal_mapper, lddt_i, lddt_j);
+      for(uint k = 0; k < len; ++k) {
+        if(!std::isnan(lddt_i[k])) {
+          avg_lddt_values[i][k] += lddt_i[k];
+          avg_lddt_counts[i][k] += 1;
+        }
+        if(!std::isnan(lddt_j[k])) {
+          avg_lddt_values[j][k] += lddt_j[k];
+          avg_lddt_counts[j][k] += 1;
+        }
+      }
+    }
+  }
+
+  MeanlDDTPtr return_ptr(new MeanlDDT(len, nstruc));
+  for(uint struc_idx = 0; struc_idx < nstruc; ++struc_idx) {
+    for(uint res_idx = 0; res_idx < len; ++res_idx) {
+      if(avg_lddt_counts[struc_idx][res_idx] > 0) {
+        return_ptr->Set(res_idx, struc_idx, 
+                        avg_lddt_values[struc_idx][res_idx]/avg_lddt_counts[struc_idx][res_idx]);
+      }
+    }
+  }
+
+  return return_ptr;
+}
+
+
  
 }}}

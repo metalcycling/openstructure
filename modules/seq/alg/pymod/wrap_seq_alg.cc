@@ -187,6 +187,7 @@ void export_distance_analysis()
   def("CreateDistanceMap", &CreateDistanceMap, (arg("aln")));
   def("CreateVarianceMap", &CreateVarianceMap, (arg("d_map"), arg("sigma")=25));
   def("CreateDist2Mean", &CreateDist2Mean, (arg("d_map")));
+  def("CreateMeanlDDTHA", &CreateMeanlDDTHA, (arg("d_map")));
 
   class_<Distances>("Distances", no_init)
     .def("GetDataSize", &Distances::GetDataSize)
@@ -232,6 +233,16 @@ void export_distance_analysis()
     .def("ExportJson", &Dist2Mean::ExportJson, (arg("file_name")))
     .def("GetJsonString", &Dist2Mean::GetJsonString)
     .def("GetData", &DistToMeanGetData)
+  ;
+  class_<MeanlDDT, MeanlDDTPtr,
+         boost::noncopyable>("MeanlDDT", no_init)
+    .def("Get", &MeanlDDT::Get, (arg("i_res"), arg("i_str")))
+    .def("GetNumResidues", &MeanlDDT::GetNumResidues)
+    .def("GetNumStructures", &MeanlDDT::GetNumStructures)
+    .def("ExportDat", &MeanlDDT::ExportDat, (arg("file_name")))
+    .def("ExportCsv", &MeanlDDT::ExportCsv, (arg("file_name")))
+    .def("ExportJson", &MeanlDDT::ExportJson, (arg("file_name")))
+    .def("GetJsonString", &MeanlDDT::GetJsonString)
   ;
 }
 
