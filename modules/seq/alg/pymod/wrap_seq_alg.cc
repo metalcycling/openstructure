@@ -79,6 +79,10 @@ list DistToMeanGetData(const Dist2MeanPtr d2m) {
   return GetList(*d2m, d2m->GetNumResidues(), d2m->GetNumStructures());
 }
 
+list  MeanlDDTGetData(const MeanlDDTPtr ld) {
+  return GetList(*ld, ld->GetNumResidues(), ld->GetNumStructures());
+}
+
 void AAPseudoCountsSimple(ProfileHandle& profile, Real a, Real b, Real c) {
   AddAAPseudoCounts(profile, a, b, c);
 }
@@ -243,6 +247,7 @@ void export_distance_analysis()
     .def("ExportCsv", &MeanlDDT::ExportCsv, (arg("file_name")))
     .def("ExportJson", &MeanlDDT::ExportJson, (arg("file_name")))
     .def("GetJsonString", &MeanlDDT::GetJsonString)
+    .def("GetData", &MeanlDDTGetData)
   ;
 }
 
