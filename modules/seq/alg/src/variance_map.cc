@@ -103,7 +103,6 @@ void FilllDDTValues(const std::vector<Real>& dist_diff,
       local_lddt[i] = static_cast<Real>(counts[i]) / total_counts[i];
     }
   }
-
 }
 
 

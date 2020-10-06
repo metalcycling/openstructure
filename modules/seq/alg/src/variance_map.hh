@@ -149,10 +149,6 @@ public:
   uint GetNumResidues() const { return num_residues_; }
   uint GetNumStructures() const { return num_structures_; }
 
-  void Add(uint i_res, uint i_str, Real val) {
-    values_[GetIndex(i_res, i_str)] += val;
-  }
-
   void ExportDat(const String& file_name);
   void ExportCsv(const String& file_name);
   void ExportJson(const String& file_name);
@@ -169,9 +165,6 @@ private:
   uint num_structures_;
   std::vector<Real> values_;
 };
-
-
-
 
 /// \returns Variance measure for each entry in dmap.
 /// \param dmap Distance map as created with CreateDistanceMap.
