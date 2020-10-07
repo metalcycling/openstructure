@@ -31,6 +31,7 @@
 #include <ost/seq/alg/distance_map.hh>
 #include <ost/seq/alg/variance_map.hh>
 #include <ost/integrity_error.hh>
+#include <ost/mol/alg/local_dist_diff_test.hh>
 
 using namespace ost;
 using namespace ost::seq;
@@ -263,6 +264,56 @@ BOOST_AUTO_TEST_CASE(test_dist_to_mean) {
   BOOST_CHECK_EQUAL(std::count(json.begin(), json.end(), '['), 8+1);
   BOOST_CHECK_EQUAL(std::count(json.begin(), json.end(), ']'), 8+1);
   BOOST_CHECK_EQUAL(std::count(json.begin(), json.end(), ','), 1*8 + 7);
+}
+
+BOOST_AUTO_TEST_CASE(test_avg_lddt) {
+
+  // deliberately load different structures than in other tests
+  // as we need a bit a bigger structure to also test things like the 15A 
+  // threshold in lDDT. We compare the ouput of MeanlDDTHA with the classic
+  // lDDT. As there are only two structures in the alignment, there
+  // is no real average and the outputs from the two algorithms should be 
+  // consistent.
+
+  mol::EntityView calmodulin_1 = 
+  io::LoadEntity("testfiles/calmodulin_01.pdb").Select("aname=CA");
+  mol::EntityView calmodulin_2 = 
+  io::LoadEntity("testfiles/calmodulin_02.pdb").Select("aname=CA");
+
+  std::stringstream ss;
+  ost::mol::ResidueViewList r_list = calmodulin_1.GetResidueList();
+  for(auto r_it = r_list.begin(); r_it != r_list.end(); ++r_it) {
+    ss << r_it->GetOneLetterCode();
+  }
+
+  AlignmentHandle aln = CreateAlignment();
+  aln.AddSequence(CreateSequence("ref", ss.str()));
+  aln.AddSequence(CreateSequence("A",   ss.str()));
+  aln.AddSequence(CreateSequence("B",   ss.str()));
+
+  aln.AttachView(1, calmodulin_1);
+  aln.AttachView(2, calmodulin_2);
+
+  ost::mol::alg::GlobalRDMap dl_1 = mol::alg::CreateDistanceList(calmodulin_1, 15.0);
+  ost::mol::alg::GlobalRDMap dl_2 = mol::alg::CreateDistanceList(calmodulin_2, 15.0);
+
+  ost::mol::alg::LDDTHA(calmodulin_1, dl_2);
+  ost::mol::alg::LDDTHA(calmodulin_2, dl_1);
+
+  alg::DistanceMapPtr dmap = alg::CreateDistanceMap(aln);
+  alg::MeanlDDTPtr mean_lddt = alg::CreateMeanlDDTHA(dmap);
+
+  r_list = calmodulin_1.GetResidueList();
+  int r_idx = 0;
+  for(auto r_it = r_list.begin(); r_it != r_list.end(); ++r_it, ++r_idx) {
+    BOOST_CHECK_CLOSE(r_it->GetFloatProp("locallddt"), mean_lddt->Get(r_idx, 0), 1e-4);
+  }
+
+  r_list = calmodulin_2.GetResidueList();
+  r_idx = 0;
+  for(auto r_it = r_list.begin(); r_it != r_list.end(); ++r_it, ++r_idx) {
+    BOOST_CHECK_CLOSE(r_it->GetFloatProp("locallddt"), mean_lddt->Get(r_idx, 1), 1e-4);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END();
