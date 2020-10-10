@@ -401,8 +401,10 @@ void FloodLevel(char* data, int x_start, int y_start,
 
 void GetExposedAtoms(const std::vector<geom::Vec3>& atom_positions,
                      const std::vector<Real>& transfer_energies,
+                     const std::vector<Real>& asas,
                      std::vector<geom::Vec3>& exposed_atom_positions,
-                     std::vector<Real>& exposed_transfer_energies) {
+                     std::vector<Real>& exposed_transfer_energies,
+                     std::vector<Real>& exposed_asas) {
 
   // sum of approx. vdw radius of the present heavy atoms (1.8) 
   // plus 1.4 for water.
@@ -488,6 +490,7 @@ void GetExposedAtoms(const std::vector<geom::Vec3>& atom_positions,
   // all positions that lie in a cube with value 3 are considered to be exposed...
   exposed_atom_positions.clear();
   exposed_transfer_energies.clear();
+  exposed_asas.clear();
   for(uint i = 0; i < atom_positions.size(); ++i) {
     const geom::Vec3& pos = atom_positions[i];
     int x_bin = (pos[0] - min_x) * one_over_radius;
@@ -496,6 +499,7 @@ void GetExposedAtoms(const std::vector<geom::Vec3>& atom_positions,
     if(grid[z_bin*num_xbins*num_ybins + x_bin*num_ybins + y_bin] == 3) {
       exposed_atom_positions.push_back(pos);
       exposed_transfer_energies.push_back(transfer_energies[i]);
+      exposed_asas.push_back(asas[i]);
     }
   }
 
@@ -577,11 +581,13 @@ struct LMInput {
   geom::Transform initial_transform;
   std::vector<geom::Vec3> exposed_atom_positions;
   std::vector<Real> exposed_transfer_energies;
+  std::vector<Real> exposed_asas;
 };
 
 
 void SampleZ(const std::vector<geom::Vec3>& atom_pos, 
              const std::vector<Real>& transfer_energies,
+             const std::vector<Real>& asas,
              const geom::Transform& initial_transform,          
              int n_solutions, std::list<LMInput>& top_solutions) {
 
@@ -593,8 +599,10 @@ void SampleZ(const std::vector<geom::Vec3>& atom_pos,
 
   std::vector<geom::Vec3> exposed_atom_positions;
   std::vector<Real> exposed_transfer_energies;
-  GetExposedAtoms(transformed_atom_pos, transfer_energies,
-                  exposed_atom_positions, exposed_transfer_energies);
+  std::vector<Real> exposed_asas;
+  GetExposedAtoms(transformed_atom_pos, transfer_energies, asas,
+                  exposed_atom_positions, exposed_transfer_energies,
+                  exposed_asas);
 
   std::vector<Real> tilt_angles;
   std::vector<Real> rotation_angles;
@@ -645,6 +653,7 @@ void SampleZ(const std::vector<geom::Vec3>& atom_pos,
     lm_input.initial_transform = initial_transform;
     lm_input.exposed_atom_positions = exposed_atom_positions;
     lm_input.exposed_transfer_energies = exposed_transfer_energies;
+    lm_input.exposed_asas = exposed_asas;
 
     if(top_solutions.empty()) {
       top_solutions.push_back(lm_input);
@@ -721,6 +730,16 @@ ost::mol::alg::FindMemParam GetFinalSolution(const std::list<LMInput>& top_solut
   geom::Transform t = best_sol_it->initial_transform;
   mem_param.tilt_axis = t.ApplyInverse(mem_param.tilt_axis);
   mem_param.axis = t.ApplyInverse(mem_param.axis);
+
+  // in a last step we assign the membrane accessible surface
+  // we misuse our optimizer energy function for that and feed in the 
+  // exposed asa instead of the transfer energies
+  EnergyF en_f(best_sol_it->exposed_atom_positions, 
+               best_sol_it->exposed_asas, 
+               lambda, 0.0,
+               best_sol_it->mem_param.axis, 
+               best_sol_it->mem_param.tilt_axis);
+  mem_param.membrane_asa = en_f(best_lm_parameters)(0, 0);
 
   return mem_param;
 }
@@ -901,6 +920,7 @@ FindMemParam FindMembrane(ost::mol::EntityView& ent,
 
   std::vector<geom::Vec3> atom_pos;
   std::vector<Real> transfer_energies;
+  std::vector<Real> asas;
 
   atom_pos.reserve(peptide_view.GetAtomCount());
   transfer_energies.reserve(peptide_view.GetAtomCount());
@@ -921,6 +941,7 @@ FindMemParam FindMembrane(ost::mol::EntityView& ent,
     }
 
     Real asa = it->GetFloatProp("asaAtom");
+    asas.push_back(asa);
     atom_pos.push_back(it->GetPos());
 
     if(element == "S") {
@@ -988,7 +1009,7 @@ FindMemParam FindMembrane(ost::mol::EntityView& ent,
 
   for(int transformation_idx = 0; transformation_idx < n_transformations;
       ++transformation_idx) {
-    SampleZ(atom_pos, transfer_energies, transformations[transformation_idx],
+    SampleZ(atom_pos, transfer_energies, asas, transformations[transformation_idx],
             n_initial_solutions, top_solutions);
   }
 

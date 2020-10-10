@@ -1352,6 +1352,10 @@ Algorithms on Structures
 
     Pseudo energy of the implicit solvation model
 
+  .. attribute:: membrane_asa
+
+    Membrane accessible surface area
+
   .. attribute:: membrane_representation
 
     Dummy atoms that represent the membrane. This entity is only valid if

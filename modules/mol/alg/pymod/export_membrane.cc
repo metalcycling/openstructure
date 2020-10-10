@@ -46,6 +46,7 @@ void export_find_membrane() {
     .def_readonly("width", &ost::mol::alg::FindMemParam::width)
     .def_readonly("pos", &ost::mol::alg::FindMemParam::pos)
     .def_readonly("energy", &ost::mol::alg::FindMemParam::energy)
+    .def_readonly("membrane_asa", &ost::mol::alg::FindMemParam::membrane_asa)
     .def_readonly("axis", &ost::mol::alg::FindMemParam::axis)
     .def_readonly("tilt_axis", &ost::mol::alg::FindMemParam::tilt_axis)
     .def_readonly("membrane_axis", &ost::mol::alg::FindMemParam::GetMembraneAxis)

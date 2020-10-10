@@ -35,6 +35,7 @@ struct FindMemParam{
   Real width;
   Real pos;
   Real energy;
+  Real membrane_asa;
   ost::mol::EntityHandle membrane_representation;
 };
 
