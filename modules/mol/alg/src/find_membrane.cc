@@ -725,14 +725,8 @@ ost::mol::alg::FindMemParam GetFinalSolution(const std::list<LMInput>& top_solut
   mem_param.width = best_lm_parameters(2,0);
   mem_param.pos = best_lm_parameters(3,0);
 
-  // the solution is still relative to the initial transform that has
-  // been applied when calling the SampleZ funtion!
-  geom::Transform t = best_sol_it->initial_transform;
-  mem_param.tilt_axis = t.ApplyInverse(mem_param.tilt_axis);
-  mem_param.axis = t.ApplyInverse(mem_param.axis);
-
-  // in a last step we assign the membrane accessible surface
-  // we misuse our optimizer energy function for that and feed in the 
+  // assign the membrane accessible surface
+  // misuses the optimizer energy function and feeds in the 
   // exposed asa instead of the transfer energies
   EnergyF en_f(best_sol_it->exposed_atom_positions, 
                best_sol_it->exposed_asas, 
@@ -740,6 +734,12 @@ ost::mol::alg::FindMemParam GetFinalSolution(const std::list<LMInput>& top_solut
                best_sol_it->mem_param.axis, 
                best_sol_it->mem_param.tilt_axis);
   mem_param.membrane_asa = en_f(best_lm_parameters)(0, 0);
+
+  // the solution is still relative to the initial transform that has
+  // been applied when calling the SampleZ funtion!
+  geom::Transform t = best_sol_it->initial_transform;
+  mem_param.tilt_axis = t.ApplyInverse(mem_param.tilt_axis);
+  mem_param.axis = t.ApplyInverse(mem_param.axis);
 
   return mem_param;
 }
