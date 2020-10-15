@@ -383,6 +383,17 @@ class TestQSscore(unittest.TestCase):
     self.assertEqual(qs_scorer_symm.symm_2, [('A', 'B')])
 
 
+  def test_HomoCase3(self):
+    # Multiple equivalent mappings: {'B': 'A'} or {'B': 'B'}
+    ent_1 = _LoadFile('cameo_6vlp_server101_2.pdb')   # Monomer (B)
+    ent_2 = _LoadFile('cameo_6vlp_target.pdb')   # Dimer (AB)
+    qs_scorer = QSscorer(ent_1, ent_2)
+    self.assertTrue(
+        qs_scorer.chain_mapping == {'B': 'A'} or \
+        qs_scorer.chain_mapping == {'B': 'B'}
+    )
+
+
   # TEST EXTRA SCORES
   
   def test_lDDT(self):
