@@ -241,7 +241,6 @@ void GLCanvas::Export(const String& fname, unsigned int width,
 
   // setup of context, surface, fbo etc are implemented as in the QT
   // threadrenderer example
-
   gfx::Viewport old_vp = gfx::Scene::Instance().GetViewport();
 
   if(old_vp.width == static_cast<int>(width) && 
@@ -253,34 +252,36 @@ void GLCanvas::Export(const String& fname, unsigned int width,
 
   offscreen_flag_ = true;
 
-  if(offscreen_surface_ == NULL) {
-    offscreen_surface_ = new QOffscreenSurface();
-    QSurfaceFormat f = this->context()->format();
-    if(max_samples > 0) {
-      f.setSamples(max_samples);
-    } 
-    offscreen_surface_->setFormat(f);
-    offscreen_surface_->create();
-  }
-
-  if(offscreen_context_ == NULL) {
-    QOpenGLContext *current = this->context();
+  if(offscreen_context_ == NULL || offscreen_surface_ == NULL) {
     // Some GL implementations require that the currently bound context is
     // made non-current before we set up sharing, so we doneCurrent here
     // and makeCurrent down below while setting up our own context.
-    current->doneCurrent();
+    this->context()->doneCurrent();
     offscreen_context_ = new QOpenGLContext();
     QSurfaceFormat f = this->context()->format();
     if(max_samples > 0) {
       f.setSamples(max_samples);
     } 
     offscreen_context_->setFormat(f);
-    offscreen_context_->setShareContext(current);
+    offscreen_context_->setShareContext(this->context());
     offscreen_context_->create();
+
+    offscreen_surface_ = new QOffscreenSurface();
+    offscreen_surface_->setFormat(offscreen_context_->format());
+    offscreen_surface_->create();
+
     offscreen_context_->makeCurrent(offscreen_surface_);
     gfx::Scene::Instance().ContextSwitch();
     gfx::Scene::Instance().InitGL(false);
   } else {
+    this->context()->doneCurrent();
+    // The following line destroys and recreates the existing OpenGL context.
+    // This is an ugly fix to avoid weird artefacts when calling the Export 
+    // function the second time. On a low-end Laptop this requires ~5-10ms and
+    // is therefore much faster than the rate-limiting saving of the image to
+    // disk at the end of the function. Feel free to investigate and propose a
+    // more efficient solution.
+    offscreen_context_->create();
     offscreen_context_->makeCurrent(offscreen_surface_);
     gfx::Scene::Instance().ContextSwitch();
     // the following InitGL sets potentially changed glClearcolor etc
