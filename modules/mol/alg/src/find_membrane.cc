@@ -400,11 +400,7 @@ void FloodLevel(char* data, int x_start, int y_start,
 
 
 void GetExposedAtoms(const std::vector<geom::Vec3>& atom_positions,
-                     const std::vector<Real>& transfer_energies,
-                     const std::vector<Real>& asas,
-                     std::vector<geom::Vec3>& exposed_atom_positions,
-                     std::vector<Real>& exposed_transfer_energies,
-                     std::vector<Real>& exposed_asas) {
+                     std::vector<int>& exposed_atoms) {
 
   // sum of approx. vdw radius of the present heavy atoms (1.8) 
   // plus 1.4 for water.
@@ -488,18 +484,14 @@ void GetExposedAtoms(const std::vector<geom::Vec3>& atom_positions,
   }
 
   // all positions that lie in a cube with value 3 are considered to be exposed...
-  exposed_atom_positions.clear();
-  exposed_transfer_energies.clear();
-  exposed_asas.clear();
+  exposed_atoms.clear();
   for(uint i = 0; i < atom_positions.size(); ++i) {
     const geom::Vec3& pos = atom_positions[i];
     int x_bin = (pos[0] - min_x) * one_over_radius;
     int y_bin = (pos[1] - min_y) * one_over_radius;
     int z_bin = (pos[2] - min_z) * one_over_radius;
     if(grid[z_bin*num_xbins*num_ybins + x_bin*num_ybins + y_bin] == 3) {
-      exposed_atom_positions.push_back(pos);
-      exposed_transfer_energies.push_back(transfer_energies[i]);
-      exposed_asas.push_back(asas[i]);
+      exposed_atoms.push_back(i);
     }
   }
 
@@ -582,6 +574,7 @@ struct LMInput {
   std::vector<geom::Vec3> exposed_atom_positions;
   std::vector<Real> exposed_transfer_energies;
   std::vector<Real> exposed_asas;
+  std::vector<int> exposed_indices;
 };
 
 
@@ -597,12 +590,26 @@ void SampleZ(const std::vector<geom::Vec3>& atom_pos,
     transformed_atom_pos[at_idx] = initial_transform.Apply(atom_pos[at_idx]);
   }
 
+  std::vector<int> exposed_atoms;
+  GetExposedAtoms(transformed_atom_pos, exposed_atoms);
+
   std::vector<geom::Vec3> exposed_atom_positions;
   std::vector<Real> exposed_transfer_energies;
   std::vector<Real> exposed_asas;
-  GetExposedAtoms(transformed_atom_pos, transfer_energies, asas,
-                  exposed_atom_positions, exposed_transfer_energies,
-                  exposed_asas);
+  std::vector<int> exposed_atoms_nonzero_energy;
+  exposed_atom_positions.reserve(exposed_atoms.size());
+  exposed_transfer_energies.reserve(exposed_atoms.size());
+  exposed_asas.reserve(exposed_atoms.size());
+  exposed_atoms_nonzero_energy.reserve(exposed_atoms.size());
+  for(uint i = 0; i < exposed_atoms.size(); ++i) {
+    if(transfer_energies[exposed_atoms[i]] != 0.0) {
+      exposed_atom_positions.push_back(transformed_atom_pos[exposed_atoms[i]]);
+      exposed_transfer_energies.push_back(transfer_energies[exposed_atoms[i]]);
+      exposed_asas.push_back(asas[exposed_atoms[i]]);
+      exposed_atoms_nonzero_energy.push_back(exposed_atoms[i]);
+    }
+  }
+  exposed_atoms = exposed_atoms_nonzero_energy;
 
   std::vector<Real> tilt_angles;
   std::vector<Real> rotation_angles;
@@ -654,6 +661,7 @@ void SampleZ(const std::vector<geom::Vec3>& atom_pos,
     lm_input.exposed_atom_positions = exposed_atom_positions;
     lm_input.exposed_transfer_energies = exposed_transfer_energies;
     lm_input.exposed_asas = exposed_asas;
+    lm_input.exposed_indices = exposed_atoms;
 
     if(top_solutions.empty()) {
       top_solutions.push_back(lm_input);
@@ -681,8 +689,7 @@ void SampleZ(const std::vector<geom::Vec3>& atom_pos,
 }
 
 
-ost::mol::alg::FindMemParam GetFinalSolution(const std::list<LMInput>& top_solutions, 
-                                             Real lambda) {
+LMInput GetFinalSolution(const std::list<LMInput>& top_solutions, Real lambda) {
 
   Real best_energy = std::numeric_limits<Real>::max();
   std::list<LMInput>::const_iterator best_sol_it = top_solutions.begin();
@@ -710,7 +717,7 @@ ost::mol::alg::FindMemParam GetFinalSolution(const std::list<LMInput>& top_solut
     lm_result = lm.minimize(&lm_parameters);
  
     Real minimized_energy = en_f(lm_parameters)(0, 0) - en_f.offset;
-    
+
     if(minimized_energy < best_energy) {
       best_energy = minimized_energy;
       best_sol_it = sol_it;
@@ -718,30 +725,29 @@ ost::mol::alg::FindMemParam GetFinalSolution(const std::list<LMInput>& top_solut
     }
   }
 
-  ost::mol::alg::FindMemParam mem_param = best_sol_it->mem_param;
-  mem_param.energy = best_energy;
-  mem_param.tilt = best_lm_parameters(0,0);
-  mem_param.angle = best_lm_parameters(1,0);
-  mem_param.width = best_lm_parameters(2,0);
-  mem_param.pos = best_lm_parameters(3,0);
+  LMInput sol = *best_sol_it;
+
+  // sol has still the initial parameters before optimization
+  sol.mem_param.energy = best_energy;
+  sol.mem_param.tilt = best_lm_parameters(0,0);
+  sol.mem_param.angle = best_lm_parameters(1,0);
+  sol.mem_param.width = best_lm_parameters(2,0);
+  sol.mem_param.pos = best_lm_parameters(3,0);
 
   // assign the membrane accessible surface
   // misuses the optimizer energy function and feeds in the 
   // exposed asa instead of the transfer energies
-  EnergyF en_f(best_sol_it->exposed_atom_positions, 
-               best_sol_it->exposed_asas, 
-               lambda, 0.0,
-               best_sol_it->mem_param.axis, 
-               best_sol_it->mem_param.tilt_axis);
-  mem_param.membrane_asa = en_f(best_lm_parameters)(0, 0);
+  EnergyF en_f(sol.exposed_atom_positions, sol.exposed_asas, lambda, 0.0,
+               sol.mem_param.axis, sol.mem_param.tilt_axis);
+  sol.mem_param.membrane_asa = en_f(best_lm_parameters)(0, 0);
 
   // the solution is still relative to the initial transform that has
   // been applied when calling the SampleZ funtion!
-  geom::Transform t = best_sol_it->initial_transform;
-  mem_param.tilt_axis = t.ApplyInverse(mem_param.tilt_axis);
-  mem_param.axis = t.ApplyInverse(mem_param.axis);
+  geom::Transform t = sol.initial_transform;
+  sol.mem_param.tilt_axis = t.ApplyInverse(sol.mem_param.tilt_axis);
+  sol.mem_param.axis = t.ApplyInverse(sol.mem_param.axis);
 
-  return mem_param;
+  return sol;
 }
 
 
@@ -926,6 +932,7 @@ FindMemParam FindMembrane(ost::mol::EntityView& ent,
   transfer_energies.reserve(peptide_view.GetAtomCount());
 
   ost::mol::AtomViewList atoms = peptide_view.GetAtomList();
+  ost::mol::AtomViewList processed_atoms;
   String stupid_string("S_N_O_C");
 
   for(ost::mol::AtomViewList::iterator it = atoms.begin(); 
@@ -940,6 +947,7 @@ FindMemParam FindMembrane(ost::mol::EntityView& ent,
       continue;
     }
 
+    processed_atoms.push_back(*it);
     Real asa = it->GetFloatProp("asaAtom");
     asas.push_back(asa);
     atom_pos.push_back(it->GetPos());
@@ -1014,23 +1022,28 @@ FindMemParam FindMembrane(ost::mol::EntityView& ent,
   }
 
   // Perform the final minimization and return the best solution.
-  // please note, that the returned solution is transformed back in order
-  // to match the initial atom positions
-  FindMemParam final_solution = GetFinalSolution(top_solutions, 0.9);
+  // The returned solution is transformed back in order to match the initial 
+  // atom positions
+  LMInput final_sol = GetFinalSolution(top_solutions, 0.9);
 
   if(assign_membrane_representation) {
-    final_solution.membrane_representation = CreateMembraneRepresentation(
-                                                                atom_pos,
-                                                                final_solution);
+    final_sol.mem_param.membrane_representation = CreateMembraneRepresentation(
+                                                          atom_pos,
+                                                          final_sol.mem_param);
   }
 
-  return final_solution;
+  // map transfer energies and membrane asas
+  for(uint i = 0; i < final_sol.exposed_indices.size(); ++i) {
+    ost::mol::AtomView at = processed_atoms[final_sol.exposed_indices[i]];
+    at.SetFloatProp("membrane_e", final_sol.exposed_transfer_energies[i]);
+  }
+
+  return final_sol.mem_param;
 }
 
 
 FindMemParam FindMembrane(ost::mol::EntityHandle& ent, 
-                          bool assign_membrane_representation,
-                          bool fast) {
+                          bool assign_membrane_representation, bool fast) {
 
   ost::mol::EntityView ent_view = ent.CreateFullView();
   return FindMembrane(ent_view, assign_membrane_representation, fast);
