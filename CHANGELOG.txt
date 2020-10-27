@@ -1,3 +1,11 @@
+Changes in Release 2.x.x
+--------------------------------------------------------------------------------
+
+ * Introduced CreateMeanlDDTHA function to evaluate the consistency of a
+   structure with a full ensemble of structures.
+ * FindMembrane algorithm returns additional intermediate results.
+ * Several minor bug fixes and improvements.
+
 Changes in Release 2.1.0
 --------------------------------------------------------------------------------
 
