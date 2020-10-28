@@ -586,6 +586,15 @@ differences between the structures.
     :returns: A list of :meth:`GetSize` lists with :meth:`GetSize` variances.
     :rtype:   :class:`list` of :class:`list` of :class:`float`
 
+  .. method:: GetSubData(num_res_to_avg)
+
+    Gets subset of data in this map by averaging neighboring values for
+    *num_res_to_avg* residues.
+
+    :returns: A list of ceil(:meth:`GetSize`/*num_res_to_avg*) lists with
+              ceil(:meth:`GetSize`/*num_res_to_avg*) variances.
+    :rtype:   :class:`list` of :class:`list` of :class:`float`
+
 .. class:: Dist2Mean
 
   Container returned by :func:`CreateDist2Mean`.
@@ -642,6 +651,15 @@ differences between the structures.
     on each element.
 
     :returns: A list of :meth:`GetNumResidues` lists with
+              :meth:`GetNumStructures` distances.
+    :rtype:   :class:`list` of :class:`list` of :class:`float`
+
+  .. method:: GetSubData(num_res_to_avg)
+
+    Gets subset of data in this map by averaging neighboring values for
+    *num_res_to_avg* residues.
+
+    :returns: A list of ceil(:meth:`GetNumResidues`/*num_res_to_avg*) lists with
               :meth:`GetNumStructures` distances.
     :rtype:   :class:`list` of :class:`list` of :class:`float`
 
