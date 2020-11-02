@@ -122,6 +122,7 @@ class SuperpositionDialog(QtWidgets.QDialog):
     self.rmsd_superposed_atoms = None
     self.rmsd = None
     self.fraction_superposed = None
+    self.superposition_error = None
     self._mmethod_dict = {'number': 'number',
                           'index': 'index',
                           'local alignment': 'local-aln',
@@ -223,11 +224,16 @@ class SuperpositionDialog(QtWidgets.QDialog):
     view_one = self._chain_one.selected_chain
     view_two = self._chain_two.selected_chain
     atoms = self._GetAtomSelection()
-    sp = Superpose(view_two, view_one,
-                   self._mmethod_dict[str(self._methods.currentText())],
-                   atoms, iterative=self._iterative, 
-                   max_iterations=self._it_in.value(), 
-                   distance_threshold=self._dist_in.value())
+    try:
+      sp = Superpose(view_two, view_one,
+                     self._mmethod_dict[str(self._methods.currentText())],
+                     atoms, iterative=self._iterative, 
+                     max_iterations=self._it_in.value(), 
+                     distance_threshold=self._dist_in.value())
+    except Exception as e:
+      # mark as failed by setting superposition_error and let caller handle it
+      self.superposition_error = str(e)
+      return
     self.rmsd = sp.rmsd
     if self._iterative:
       self.rmsd_superposed_atoms = sp.rmsd_superposed_atoms
