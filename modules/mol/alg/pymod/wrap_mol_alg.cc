@@ -47,6 +47,7 @@ void export_Molck();
 void export_contact_overlap();
 void export_accessibility();
 void export_sec_struct();
+void export_sec_struct_segments();
 void export_find_membrane();
 #if OST_IMG_ENABLED
 void export_entity_to_density();
@@ -319,6 +320,7 @@ BOOST_PYTHON_MODULE(_ost_mol_alg)
   export_contact_overlap();
   export_accessibility();
   export_sec_struct();
+  export_sec_struct_segments();
   export_find_membrane();
   #if OST_IMG_ENABLED
   export_entity_to_density();

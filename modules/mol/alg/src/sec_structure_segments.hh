@@ -35,6 +35,15 @@ struct DLLEXPORT_OST_MOL_ALG SecStructureSegment {
   SecStructureSegment():
     first(0), last(0), ss_type(SecStructure::COIL)
   { }
+  bool operator==(const SecStructureSegment& rhs) const
+  {
+    return first==rhs.first && last==rhs.last && ss_type==rhs.ss_type;
+  }
+  bool operator!=(const SecStructureSegment& rhs) const
+  {
+    return !(*this==rhs);
+  }
+
   /// \brief index of first residue part of the segment
   int                first;
   /// \brief index of last residue part of the segment
