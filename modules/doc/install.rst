@@ -268,6 +268,13 @@ Build Options
   * `HIDDEN_VISIBILITY` can be turned on to add "-fvisibility=hidden" to gcc's
     compile flags (only if GNU compiler used). By default, this is switched off.
 
+Known Issues
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Depending on how the dependecies (e.g. Boost) are compiled, linking might fail
+  with something like: `error: undefined reference to pthread_condattr_destroy`.
+  Add "-pthread" to the linking options by appending the following to your cmake
+  command: `-DCMAKE_EXE_LINKER_FLAGS=" -pthread"`
 
 Example Configurations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
