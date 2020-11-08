@@ -24,7 +24,7 @@
 export DNG_ROOT=`cd "$BIN_DIR/..";pwd`
 export DNG_BINDIR="$DNG_ROOT/bin"
 export DNG_LIBDIR="$DNG_ROOT/@LIBDIR@"
-export DNG_INITDIR="$DNG_LIBDIR/python@PYTHON_VERSION@/site-packages/ost/"
+export DNG_INITDIR="$DNG_LIBDIR/@PYTHON_MODULE_PATH@/ost/"
 
 export PATH="$DNG_BINDIR:${PATH}"
 export DYLD_FRAMEWORK_PATH="$DNG_LIBDIR:${DYLD_FRAMEWORK_PATH}"
@@ -37,7 +37,7 @@ export LD_LIBRARY_PATH="$DNG_LIBDIR:${LD_LIBRARY_PATH}"
 
 
 # retrieve absolute path to python executable
-pyexec="@PYTHON_BINARY@"
+pyexec="@Python_EXECUTABLE@"
 
 if [ ! -x "$pyexec" ]; then 
   echo "Error: Python executable '$pyexec' not found!"

@@ -1,5 +1,6 @@
-set(SUBST_DICT BUILD_TYPE=${CMAKE_BUILD_TYPE} PYTHON_BINARY=${PYTHON_BINARY}
-PYTHON_VERSION=${PYTHON_VERSION} LIBDIR=${LIB_DIR} LIBEXEC_PATH=${LIBEXEC_PATH})
+set(SUBST_DICT BUILD_TYPE=${CMAKE_BUILD_TYPE} Python_EXECUTABLE=${Python_EXECUTABLE}
+Python_VERSION=${Python_VERSION} LIBDIR=${LIB_DIR} LIBEXEC_PATH=${LIBEXEC_PATH}
+PYTHON_MODULE_PATH=${PYTHON_MODULE_PATH})
 message("${BUILD_TYPE}")
 add_custom_target(ost_scripts ALL)
 
@@ -30,11 +31,11 @@ if (NOT ENABLE_STATIC)
   endif()
 
   script(NAME ost_startup.py INPUT ost_startup.py.in SUBSTITUTE ${SUBST_DICT} 
-         TARGET ost_scripts OUTPUT_DIR "${LIB_DIR}/python${PYTHON_VERSION}/site-packages/ost" )    
+         TARGET ost_scripts OUTPUT_DIR "${LIB_DIR}/${PYTHON_MODULE_PATH}/ost" )    
 
   set(INIT_SCRIPTS 
   )
-  set(SPD "${LIB_DIR}/python${PYTHON_VERSION}/site-packages/ost")
+  set(SPD "${LIB_DIR}/${PYTHON_MODULE_PATH}/ost")
   if (ENABLE_GUI)
     list(APPEND INIT_SCRIPTS dng_startup.py)
   endif()

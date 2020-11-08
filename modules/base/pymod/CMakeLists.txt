@@ -34,5 +34,5 @@ if(NOT ENABLE_STATIC)
          INPUT __init__.py.in
          SUBSTITUTE "${SUBST_DICT}"
          TARGET ost_base_pymod
-         OUTPUT_DIR "${LIB_DIR}/python${PYTHON_VERSION}/site-packages/ost")
+         OUTPUT_DIR "${LIB_DIR}/${PYTHON_MODULE_PATH}/ost")
 endif()

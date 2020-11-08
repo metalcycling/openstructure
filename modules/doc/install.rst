@@ -147,7 +147,7 @@ can influence it.
   reason, it is desirable to use the non-multithreaded boost libraries, you can
   switch `Boost_USE_MULTITHREADED` off (it is on by default).
 
-* `PYTHON_ROOT` is the Python equivalent of BOOST_ROOT. It should be set to 
+* `Python_ROOT_DIR` is the Python equivalent of BOOST_ROOT. It should be set to 
   the prefix path containing the python binary, headers and libraries.
 
 * `SYS_ROOT` controls the general prefix for searching libraries and headers.
@@ -199,9 +199,9 @@ can influence it.
 * Several paths to other libraries can be set if they are not in the expected
   locations:
 
-  * `PYTHON_LIBRARIES` defines the location of the Python library (file name
+  * `Python_LIBRARY` defines the location of the Python library (file name
     starting with `libpython`). This must be set if it is not in
-    `$PYTHON_ROOT/lib`.
+    `$Python_ROOT_DIR/lib`.
   * `EIGEN3_INCLUDE_DIR` defines the include folder of Eigen3 (contains `Eigen`
     folder with include files).
   * `FFTW_LIBRARY` defines the location of the FFTW3 library (file name starting
@@ -318,18 +318,15 @@ All the dependencies can be installed from the package manager as follows:
                qt5-qmake qtbase5-dev libpng-dev libsqlite3-dev
 
 Now, all dependencies are located in standard locations and cmake will
-automatically find them without the need to pass any additional parameters. The
-only exception is the Python library which is put in a different path than
-expected. Also, we add -DOPTIMIZE, which will tell cmake to build an optimised
-version of OpenStructure.
+automatically find them without the need to pass any additional parameters. 
+We add -DOPTIMIZE, which will tell cmake to build an optimised version of 
+OpenStructure.
 
 .. code-block:: bash
 
-  cmake . -DPYTHON_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython3.8.so \
-          -DOPTIMIZE=ON
+  cmake . -DOPTIMIZE=ON
 
-Be careful at -DPYTHON_LIBRARIES, Debian 10 comes with Python 3.7 so that needs
-to be substituted (libpython3.8.so -> libpython3.7m.so).
+
 
 
 **macOS (Catalina) with Homebrew**
@@ -376,11 +373,11 @@ C flags:
 
 .. code-block:: bash
 
-  cmake . -DPYTHON_INCLUDE_PATH=/usr/local/opt/python@3.8/Frameworks/\
+  cmake . -DPython_INCLUDE_DIR=/usr/local/opt/python@3.8/Frameworks/\
   Python.framework/Versions/Current/include/python3.8/ \
-          -DPYTHON_LIBRARIES=/usr/local/opt/python@3.8/Frameworks/\
+          -DPython_LIBRARY=/usr/local/opt/python@3.8/Frameworks/\
   Python.framework/Versions/Current/lib/libpython3.8.dylib \
-          -DPYTHON_ROOT=/usr/local/opt/python@3.8/ \
+          -DPython_ROOT_DIR=/usr/local/opt/python@3.8/ \
           -DBOOST_ROOT=/usr/local \
           -DSYS_ROOT=/usr/local \
           -DOPTIMIZE=ON \

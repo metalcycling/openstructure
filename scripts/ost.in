@@ -47,7 +47,7 @@ if test -e "${OST_SCRIPT}" ; then
       fi
     done
     IFS="#"
-    $pyexec -c "exec(open('$DNG_ROOT/@LIBDIR@/python@PYTHON_VERSION@/site-packages/ost/ost_startup.py').read())" "${OST_SCRIPT}" $opts
+    $pyexec -c "exec(open('$DNG_ROOT/@LIBDIR@/@PYTHON_MODULE_PATH@/ost/ost_startup.py').read())" "${OST_SCRIPT}" $opts
     RC=$?
 else
     opts=""
@@ -59,7 +59,7 @@ else
       fi
     done
     IFS="#"
-    $pyexec $interactive -c "exec(open('$DNG_ROOT/@LIBDIR@/python@PYTHON_VERSION@/site-packages/ost/ost_startup.py').read())" $opts
+    $pyexec $interactive -c "exec(open('$DNG_ROOT/@LIBDIR@/@PYTHON_MODULE_PATH@/ost/ost_startup.py').read())" $opts
     RC=$?
 fi
 IFS=$OLDIFS

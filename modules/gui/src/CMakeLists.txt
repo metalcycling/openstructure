@@ -459,7 +459,7 @@ module(NAME gui SOURCES ${OST_GUI_MOCS} ${OST_GUI_SOURCES}
                ${OST_GUI_HEADERS}
        DEPENDS_ON ost_gfx ost_io ost_mol_alg ost_seq_alg
        LINK ${QT_LIBRARIES}
-            ${PYTHON_LIBRARIES} 
+            ${Python_LIBRARIES} 
             ${BOOST_PYTHON_LIBRARIES}
             ${SPNAV_LIBRARIES}
         NO_STATIC)
@@ -470,7 +470,7 @@ if (ADDITIONAL_LIBRARIES)
   target_link_libraries(ost_gui "${ADDITIONAL_LIBRARIES}")
 endif()
 
-include_directories(${PYTHON_INCLUDE_PATH})
+include_directories(${Python_INCLUDE_DIRS})
 qt5_add_resources(OST_QT_RESOURCE dngr.qrc)
 qt5_wrap_cpp(OST_GOSTY_MOC "gosty.hh"
              OPTIONS -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED

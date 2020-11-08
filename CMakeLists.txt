@@ -187,11 +187,14 @@ if (ENABLE_STATIC AND UNIX AND NOT APPLE)
 endif()
 
 # Python needed before Boost
-find_package(Python 3.6 REQUIRED)
+find_package(Python 3.6 REQUIRED COMPONENTS Interpreter Development)
 # Split version string
-string(REPLACE "." ";" _python_version_list ${PYTHON_VERSION})
-list(GET _python_version_list 0 PYTHON_VERSION_MAJOR)
-list(GET _python_version_list 1 PYTHON_VERSION_MINOR)
+string(REPLACE "." ";" _python_version_list ${Python_VERSION})
+list(GET _python_version_list 0 Python_VERSION_MAJOR)
+list(GET _python_version_list 1 Python_VERSION_MINOR)
+# where Python modules live
+set(PYTHON_MODULE_PATH "python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages/")
+
 
 if(BOOST_VERSION)
   message(STATUS "forcing boost to version ${BOOST_VERSION}")
@@ -356,7 +359,7 @@ set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES
                              "${FILES_TO_BE_REMOVED}")
 
 
-#ost_match_boost_python_version(${PYTHON_LIBRARIES})
+#ost_match_boost_python_version(${Python_LIBRARIES})
 
 if (CMAKE_COMPILER_IS_GNUCXX)
    set(HIDDEN_VIS_MSG 

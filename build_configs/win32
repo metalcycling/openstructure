@@ -4,7 +4,7 @@
 set(CMAKE_GENERATOR "Visual Studio 9 2008" CACHE PATH "generator")
 set(USER_DIR "d:/programs")
 set(BOOST_ROOT "${USER_DIR}/"  CACHE PATH "prefix for boost")
-set(PYTHON_ROOT "${USER_DIR}" CACHE PATH "points to python installation")
+set(Python_ROOT_DIR "${USER_DIR}" CACHE PATH "points to python installation")
 set(PNG_PNG_INCLUDE_DIR "${USER_DIR}/include" CACHE PATH "includes for libpng")
 set(PNG_LIBRARY "${USER_DIR}/lib/libpng13.lib" CACHE PATH "includes for libpng")
 set(ZLIB_INCLUDE_DIR "${USER_DIR}/include/" CACHE PATH "zlib includes")

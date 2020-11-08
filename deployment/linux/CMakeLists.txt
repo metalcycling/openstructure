@@ -42,7 +42,7 @@ elseif(CPACK_GENERATOR MATCHES "TGZ")
                        \"\${CMAKE_INSTALL_PREFIX}/bin/molck\"
                        \"\${CMAKE_INSTALL_PREFIX}/${LIBEXEC_PATH}/gosty\")
 
-      copy_python(${PYTHON_INCLUDE_PATH} ${PYTHON_VERSION} new_python_binary)
+      copy_python(${Python_INCLUDE_DIRS} ${Python_VERSION} new_python_binary)
       list(APPEND OST_BINARIES \${new_python_binary})
 
       file(GLOB_RECURSE OST_PYMODS \"\${CMAKE_INSTALL_PREFIX}/${LIB_DIR}/*.so\")

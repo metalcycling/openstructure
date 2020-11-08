@@ -450,11 +450,11 @@ macro(ui_to_python LIBNAME PYMODDIR STAGEDIR)
   add_custom_target("${LIBNAME}_ui" ALL)
   add_dependencies("_${LIBNAME}" "${LIBNAME}_ui")
   find_program(_PYUIC_EXECUTABLE
-    NAMES pyuic5-${PYTHON_VERSION} pyuic5 pyuic pyuic5.bat
+    NAMES pyuic5-${Python_VERSION} pyuic5 pyuic pyuic5.bat
     PATHS  ENV PATH 
   )  
   if(NOT _PYUIC_EXECUTABLE)
-    message(FATAL_ERROR "Could not find pyuic command in " ${QT_BINARY_DIR} " for python version " ${PYTHON_VERSION})
+    message(FATAL_ERROR "Could not find pyuic command in " ${QT_BINARY_DIR} " for python version " ${Python_VERSION})
   endif(NOT _PYUIC_EXECUTABLE)
   set(out_files)
   foreach(input_file ${_input_files})
@@ -491,7 +491,7 @@ macro(compile_py_files module out_dir compiled_files_name)
     get_filename_component(_in_name ${input_file} NAME)
     file(MAKE_DIRECTORY  ${out_dir})
     add_custom_command(TARGET ${module}
-                       COMMAND ${PYTHON_BINARY} -c "import py_compile;py_compile.compile(\"${_in_file}\",\"${_out_file}\",\"${_in_name}\",doraise=True)"
+                       COMMAND ${Python_EXECUTABLE} -c "import py_compile;py_compile.compile(\"${_in_file}\",\"${_out_file}\",\"${_in_name}\",doraise=True)"
                        VERBATIM DEPENDS ${input_file}
                        )
   endforeach()
@@ -521,15 +521,16 @@ macro(pymod)
   if (ENABLE_STATIC)
     return()
   endif()
-  if (_ARG_OUTPUT_DIR)
-    set(PYMOD_DIR "python${PYTHON_VERSION}/site-packages/${_ARG_OUTPUT_DIR}")
+  if(_ARG_OUTPUT_DIR)
+    set(PYMOD_DIR "${PYTHON_MODULE_PATH}/${_ARG_OUTPUT_DIR}")
   else()
-    set(PYMOD_DIR "python${PYTHON_VERSION}/site-packages/${_ARG_PREFIX}/${_ARG_NAME}")
+    set(PYMOD_DIR
+        "${PYTHON_MODULE_PATH}/${_ARG_PREFIX}/${_ARG_NAME}")
   endif()
   set(_LIB_NAME ${_ARG_PREFIX}_${_ARG_NAME})
   set(PYMOD_STAGE_DIR "${LIB_STAGE_PATH}/${PYMOD_DIR}")
   file(MAKE_DIRECTORY ${PYMOD_STAGE_DIR})
-  include_directories(${PYTHON_INCLUDE_PATH})
+  include_directories(${Python_INCLUDE_DIRS})
   #-----------------------------------------------------------------------------
   # compile and link C++ wrappers
   #-----------------------------------------------------------------------------
@@ -548,7 +549,7 @@ macro(pymod)
       set(_PARENT_LIB_NAME "${_PARENT_NAME}")
     endif()
     target_link_libraries("_${_LIB_NAME}" ${_PARENT_LIB_NAME} 
-                          ${PYTHON_LIBRARIES} ${BOOST_PYTHON_LIBRARIES})
+                          ${Python_LIBRARIES} ${BOOST_PYTHON_LIBRARIES})
 
     set_target_properties("_${_LIB_NAME}"
                           PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PYMOD_STAGE_DIR})
@@ -706,9 +707,9 @@ macro(ost_unittest)
       if(python_path)
         set(python_path ":${python_path}")
       endif(python_path)
-      set(python_path "${LIB_STAGE_PATH}/python${PYTHON_VERSION}/site-packages${python_path}")
+      set(python_path "${LIB_STAGE_PATH}/${PYTHON_MODULE_PATH}${python_path}")
       if(WIN32)
-        set (PY_TESTS_CMD "PYTHONPATH=${python_path}  ${PYTHON_BINARY}")
+        set (PY_TESTS_CMD "PYTHONPATH=${python_path}  ${Python_EXECUTABLE}")
         # todo fix python unit test running for Windows
         #set (PY_TESTS_CMD "${EXECUTABLE_OUTPUT_PATH}/ost.bat")
         #add_custom_target("${py_test}_run"
@@ -719,7 +720,7 @@ macro(ost_unittest)
         #add_dependencies("${py_test}_run" ost_scripts "_${_ARG_PREFIX}_${_ARG_MODULE}")
         #add_dependencies(check "${py_test}_run")
       else()
-        set (PY_TESTS_CMD "PYTHONPATH=${python_path}  ${PYTHON_BINARY}")
+        set (PY_TESTS_CMD "PYTHONPATH=${python_path}  ${Python_EXECUTABLE}")
         add_custom_target("${py_test}_run"
                   sh -c "${PY_TESTS_CMD} ${CMAKE_CURRENT_SOURCE_DIR}/${py_test}"
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -748,8 +749,8 @@ endmacro()
 #-------------------------------------------------------------------------------
 macro(ost_find_python_module MODULE)
   if (NOT PYTHON_MODULE_${MODULE})
-    message(STATUS "Searching for python module ${MODULE} for ${PYTHON_BINARY}")
-    execute_process(COMMAND ${PYTHON_BINARY} -c "import ${MODULE}"
+    message(STATUS "Searching for python module ${MODULE} for ${Python_EXECUTABLE}")
+    execute_process(COMMAND ${Python_EXECUTABLE} -c "import ${MODULE}"
                     OUTPUT_QUIET ERROR_QUIET
                     RESULT_VARIABLE _IMPORT_ERROR)
     if (_IMPORT_ERROR)
@@ -770,8 +771,8 @@ macro(ost_find_python_module_alt MODULES)
   foreach(py_mod ${MODULES})
     if (NOT PYTHON_MODULE_${py_mod})
       set(_PY_MODS "${_PY_MODS} ${py_mod}")
-      message(STATUS "Searching for python module ${py_mod} for ${PYTHON_BINARY}")
-      execute_process(COMMAND ${PYTHON_BINARY} -c "import ${py_mod}"
+      message(STATUS "Searching for python module ${py_mod} for ${Python_EXECUTABLE}")
+      execute_process(COMMAND ${Python_EXECUTABLE} -c "import ${py_mod}"
                       OUTPUT_QUIET ERROR_QUIET
                       RESULT_VARIABLE _IMPORT_ERROR)
       if (NOT _IMPORT_ERROR)
@@ -812,7 +813,7 @@ macro(ost_match_boost_python_version)
     list(GET _BOOST_PYTHON_LIBRARY ${_LIB_INDEX} _BP_LIB_PATH)
     set(_BOOST_PYTHON_LIBRARY ${_BP_LIB_PATH})
   endif()
-  set(CMAKE_REQUIRED_FLAGS "-I${PYTHON_INCLUDE_PATH} -I${Boost_INCLUDE_DIR} ${PYTHON_LIBRARIES} ${_BOOST_PYTHON_LIBRARY}")
+  set(CMAKE_REQUIRED_FLAGS "-I${Python_INCLUDE_DIRS} -I${Boost_INCLUDE_DIR} ${Python_LIBRARIES} ${_BOOST_PYTHON_LIBRARY}")
   check_cxx_source_runs(
 "#include <boost/python.hpp>
 
@@ -941,15 +942,14 @@ endmacro()
 set(_BOOST_MIN_VERSION 1.31)
 
 macro(setup_boost)
-  set (Boost_NO_BOOST_CMAKE TRUE)
   # starting with CMake 3.11 we could use the following instead of the foreach
   # find_package(Boost ${_BOOST_MIN_VERSION} COMPONENTS
-  #              python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR} REQUIRED)
+  #              python${Python_VERSION_MAJOR}${Python_VERSION_MINOR} REQUIRED)
   # set(BOOST_PYTHON_LIBRARIES ${Boost_LIBRARIES})
   # see https://cmake.org/cmake/help/v3.11/module/FindBoost.html
-  foreach(_python_lib_name python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}
-                           python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}
-                           python${PYTHON_VERSION_MAJOR}
+  foreach(_python_lib_name python${Python_VERSION_MAJOR}${Python_VERSION_MINOR}
+                           python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}
+                           python${Python_VERSION_MAJOR}
                            python)
     find_package(Boost ${_BOOST_MIN_VERSION} COMPONENTS ${_python_lib_name} QUIET)
     if(Boost_FOUND)
