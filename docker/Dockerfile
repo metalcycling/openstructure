@@ -75,8 +75,7 @@ RUN cd ${SRC_FOLDER} && \
     tar xf openstructure-${OPENSTRUCTURE_VERSION}.tar.gz -C ${SRC_FOLDER}/openstructure-${OPENSTRUCTURE_VERSION} --strip-components=1 && \
     mkdir -p ${SRC_FOLDER}/openstructure-${OPENSTRUCTURE_VERSION}/build && \
     cd ${SRC_FOLDER}/openstructure-${OPENSTRUCTURE_VERSION}/build && \
-    cmake .. -DPYTHON_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython3.6m.so \
-             -DOPTIMIZE=ON \
+    cmake .. -DOPTIMIZE=ON \
              -DENABLE_MM=ON \
              -DCOMPILE_TMTOOLS=1 \
              -DUSE_NUMPY=1 \
