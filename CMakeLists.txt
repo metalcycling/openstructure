@@ -188,13 +188,8 @@ endif()
 
 # Python needed before Boost
 find_package(Python 3.6 REQUIRED COMPONENTS Interpreter Development)
-# Split version string
-string(REPLACE "." ";" _python_version_list ${Python_VERSION})
-list(GET _python_version_list 0 Python_VERSION_MAJOR)
-list(GET _python_version_list 1 Python_VERSION_MINOR)
 # where Python modules live
 set(PYTHON_MODULE_PATH "python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages/")
-
 
 if(BOOST_VERSION)
   message(STATUS "forcing boost to version ${BOOST_VERSION}")
