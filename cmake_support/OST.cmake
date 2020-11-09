@@ -942,6 +942,7 @@ endmacro()
 set(_BOOST_MIN_VERSION 1.31)
 
 macro(setup_boost)
+  set (Boost_NO_BOOST_CMAKE TRUE)
   # starting with CMake 3.11 we could use the following instead of the foreach
   # find_package(Boost ${_BOOST_MIN_VERSION} COMPONENTS
   #              python${Python_VERSION_MAJOR}${Python_VERSION_MINOR} REQUIRED)
