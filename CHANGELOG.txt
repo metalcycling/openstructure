@@ -1,4 +1,4 @@
-Changes in Release 2.x.x
+Changes in Release 2.2.0
 --------------------------------------------------------------------------------
 
  * Introduced CreateMeanlDDTHA function to evaluate the consistency of a
