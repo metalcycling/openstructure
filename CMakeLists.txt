@@ -235,8 +235,8 @@ else()
   set (PNG_LIBRARY "")
 endif()
 
-find_package(Eigen 3.2.0 REQUIRED)
-find_package(SQLite3 3.7.13 REQUIRED)
+find_package(EIGEN 3.2.0 REQUIRED)
+find_package(SQLITE3 3.7.13 REQUIRED)
 
 if(USE_NUMPY)
   find_package(Numpy REQUIRED)
