@@ -8,6 +8,7 @@ Changes in Release 2.2.0
    own code. You might have to adapt CMake flags when building OpenStructure to 
    variables specified here: 
    https://cmake.org/cmake/help/latest/module/FindPython.html
+ * Update container base image from ubuntu:18.04 to ubuntu:20.04
  * Several minor bug fixes and improvements.
 
 Changes in Release 2.1.0

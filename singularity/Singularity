@@ -1,5 +1,5 @@
 BootStrap: docker
-From: registry.scicore.unibas.ch/schwede/openstructure:2.2.0
+From: registry.scicore.unibas.ch/schwede/openstructure:2.2.0-focal
 %post
 ##############################################################################
 # POST
@@ -54,7 +54,7 @@ cat > $JUPYTER_PATH/kernels/ost-kernel/kernel.json <<EOF
     "-m", "ipykernel",
         "-f", "{connection_file}",
     "--InteractiveShellApp.exec_PYTHONSTARTUP=False",
-    "--InteractiveShellApp.exec_files=['/usr/local/lib64/python3.6/site-packages/ost/ost_startup.py']"
+    "--InteractiveShellApp.exec_files=['/usr/local/lib64/python3.8/site-packages/ost/ost_startup.py']"
   ],
   "env": {
   }
@@ -176,7 +176,7 @@ goes to CWD. Thus this sould work as expected out of the box.
 # NOTEBOOK ENV
 ##############################################################################
 export DNG_ROOT=$OST_ROOT
-export DNG_INITDIR=${DNG_ROOT}/lib64/python3.6/site-packages/ost
+export DNG_INITDIR=${DNG_ROOT}/lib64/python3.8/site-packages/ost
 
 
 %apprun IPython
