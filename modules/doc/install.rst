@@ -341,9 +341,9 @@ OpenStructure.
 
 `Homebrew <https://brew.sh/>`_ can be used to conveniently install all
 dependencies. The current Python version, as of writing these instructions, is
-3.8.5 but works so far. Boost comes as 1.73.0 which seems to be OK. Do not
+3.9.0 but works so far. Boost comes as 1.74.0 which seems to be OK. Do not
 forget to also install `boost-python3` (your system may have a lower version of
-Python than 3.8.5 but it seems like `boost-python3` was compiled for 3.8.5).
+Python than 3.9.0 but it seems like `boost-python3` was compiled for 3.9.0).
 Eigen and SQLite also seem to be unproblematic concerning higher version numbers.
 
 If you want to build the info module or the graphical user interface, make sure
@@ -373,11 +373,11 @@ C flags:
 
 .. code-block:: bash
 
-  cmake . -DPython_INCLUDE_DIR=/usr/local/opt/python@3.8/Frameworks/\
-  Python.framework/Versions/Current/include/python3.8/ \
-          -DPython_LIBRARY=/usr/local/opt/python@3.8/Frameworks/\
-  Python.framework/Versions/Current/lib/libpython3.8.dylib \
-          -DPython_ROOT_DIR=/usr/local/opt/python@3.8/ \
+  cmake . -DPython_INCLUDE_DIRS=/usr/local/opt/python@3.9/Frameworks/\
+  Python.framework/Versions/Current/include/python3.9/ \
+          -DPython_LIBRARIES=/usr/local/opt/python@3.9/Frameworks/\
+  Python.framework/Versions/Current/lib/libpython3.9.dylib \
+          -DPython_ROOT_DIR=/usr/local/opt/python@3.9/ \
           -DBOOST_ROOT=/usr/local \
           -DSYS_ROOT=/usr/local \
           -DOPTIMIZE=ON \
