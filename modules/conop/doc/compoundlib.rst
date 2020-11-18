@@ -125,15 +125,41 @@ build the compound library manually.
     
   .. attribute:: atom_specs
 
-    The atom definitions of this compound. Read-only
+    The atom definitions of this compound. Read-only.
 
     :type: list of :class:`AtomSpec`
           
   .. attribute:: bond_specs
   
-    The bond definitions of this compound. Read-only
+    The bond definitions of this compound. Read-only.
     
     :type: list of :class:`BondSpec`
+    
+  .. attribute:: chem_class
+  
+    The :class:`~ost.mol.ChemClass` of this compound. Read-only.
+    
+    :type: :class:`str`
+    
+  .. attribute:: chem_type
+  
+    The :class:`~ost.mol.ChemType` of this compound. Read-only.
+    
+    :type: :class:`str`
+    
+  .. attribute:: inchi
+  
+    The InChI code of this compound, without the 'InChI=' part, e.g 
+    '1S/H2O/h1H2' for water. Read-only.
+    
+    :type: :class:`str`
+    
+  .. attribute:: inchi
+  
+    The InChIKey of this compound without the 'InChIKey=' part, e.g.
+    'XLYOFNOQVPJJNP-UHFFFAOYSA-N' for water. Read-only.
+    
+    :type: :class:`str`
     
 
 .. class:: AtomSpec

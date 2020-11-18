@@ -1,8 +1,8 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 # ARGUMENTS
 ###########
-ARG OPENSTRUCTURE_VERSION="2.1.0"
+ARG OPENSTRUCTURE_VERSION="2.2.0"
 ARG SRC_FOLDER="/usr/local/src"
 ARG CPUS_FOR_MAKE=2
 ARG MSMS_VERSION="2.6.1"
@@ -75,8 +75,7 @@ RUN cd ${SRC_FOLDER} && \
     tar xf openstructure-${OPENSTRUCTURE_VERSION}.tar.gz -C ${SRC_FOLDER}/openstructure-${OPENSTRUCTURE_VERSION} --strip-components=1 && \
     mkdir -p ${SRC_FOLDER}/openstructure-${OPENSTRUCTURE_VERSION}/build && \
     cd ${SRC_FOLDER}/openstructure-${OPENSTRUCTURE_VERSION}/build && \
-    cmake .. -DPYTHON_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython3.6m.so \
-             -DOPTIMIZE=ON \
+    cmake .. -DOPTIMIZE=ON \
              -DENABLE_MM=ON \
              -DCOMPILE_TMTOOLS=1 \
              -DUSE_NUMPY=1 \
@@ -99,7 +98,7 @@ RUN cd ${SRC_FOLDER} && \
 #############
 WORKDIR /home
 ENV OST_ROOT="/usr/local"
-ENV PYTHONPATH="/usr/local/lib64/python3.6/site-packages"
+ENV PYTHONPATH="/usr/local/lib64/python3.8/site-packages"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib64:/usr/local/openmm/lib/"
 ENV QT_X11_NO_MITSHM=1
 ENV OPENSTRUCTURE_VERSION=$OPENSTRUCTURE_VERSION

@@ -435,6 +435,20 @@ differences between the structures.
   :type d_map:  :class:`DistanceMap`
   :raises:  Exception if *d_map* has no entries.
 
+.. function:: CreateMeanlDDTHA(d_map)
+
+  :returns: lDDT calculation based on CA carbons of the structures with lddt 
+            distance threshold of 15 Angstrom and distance difference thresholds 
+            of [0.5, 1.0, 2.0, 4.0]. The reported values for a certain structure 
+            are the mean per-residue lDDT values given all other structures as 
+            reference. Structures are in the same order as passed when creating 
+            *d_map*.
+
+  :rtype:   :class:`MeanlDDT`
+  :param d_map: Distance map as created with :func:`CreateDistanceMap`.
+  :type d_map:  :class:`DistanceMap`
+  :raises:  Exception if *d_map* has no entries.
+
 .. class:: Distances
   
   Container used by :class:`DistanceMap` to store a pair wise distance for each
@@ -572,6 +586,15 @@ differences between the structures.
     :returns: A list of :meth:`GetSize` lists with :meth:`GetSize` variances.
     :rtype:   :class:`list` of :class:`list` of :class:`float`
 
+  .. method:: GetSubData(num_res_to_avg)
+
+    Gets subset of data in this map by averaging neighboring values for
+    *num_res_to_avg* residues.
+
+    :returns: A list of ceil(:meth:`GetSize`/*num_res_to_avg*) lists with
+              ceil(:meth:`GetSize`/*num_res_to_avg*) variances.
+    :rtype:   :class:`list` of :class:`list` of :class:`float`
+
 .. class:: Dist2Mean
 
   Container returned by :func:`CreateDist2Mean`.
@@ -630,6 +653,23 @@ differences between the structures.
     :returns: A list of :meth:`GetNumResidues` lists with
               :meth:`GetNumStructures` distances.
     :rtype:   :class:`list` of :class:`list` of :class:`float`
+
+  .. method:: GetSubData(num_res_to_avg)
+
+    Gets subset of data in this map by averaging neighboring values for
+    *num_res_to_avg* residues.
+
+    :returns: A list of ceil(:meth:`GetNumResidues`/*num_res_to_avg*) lists with
+              :meth:`GetNumStructures` distances.
+    :rtype:   :class:`list` of :class:`list` of :class:`float`
+
+
+.. class:: MeanlDDT
+
+  Container returned by :func:`CreateMeanlDDTHA`.
+  Stores mean lDDT values for :meth:`GetNumResidues` residues of
+  :meth:`GetNumStructures` structures.
+  Has the exact same functionality and behaviour as :class:`Dist2Mean`
 
 
 HMM Algorithms

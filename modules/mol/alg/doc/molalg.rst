@@ -1352,6 +1352,10 @@ Algorithms on Structures
 
     Pseudo energy of the implicit solvation model
 
+  .. attribute:: membrane_asa
+
+    Membrane accessible surface area
+
   .. attribute:: membrane_representation
 
     Dummy atoms that represent the membrane. This entity is only valid if
@@ -1389,7 +1393,15 @@ Algorithms on Structures
   :param ent:           Entity of a transmembrane protein, you'll get weird 
                         results if this is not the case. The energy term
                         of the result is typically a good indicator whether
-                        *ent* is an actual transmembrane protein.
+                        *ent* is an actual transmembrane protein. The 
+                        following float properties will be set on the atoms:
+
+                        * 'asaAtom' on all atoms that are selected with 
+                          ent.Select('peptide=true and ele!=H') as a result
+                          of envoking :meth:`Accessibility`.
+                        * 'membrane_e' the contribution of the potentially 
+                          membrane facing atoms to the energy function. 
+                          
   :type ent:            :class:`ost.mol.EntityHandle` / :class:`ost.mol.EntityView`
 
   :param assign_membrane_representation: Whether to construct a membrane 

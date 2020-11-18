@@ -24,10 +24,10 @@ install(CODE "
                      \"\${CMAKE_INSTALL_PREFIX}/libexec/openstructure/gosty\")
   
     #copy python into bundle if a version different from the system version is used
-    if(NOT ${PYTHON_BINARY} MATCHES /usr/bin/)
-      copy_python(${PYTHON_INCLUDE_PATH} ${PYTHON_VERSION} new_python_binary)
+    if(NOT ${Python_EXECUTABLE} MATCHES /usr/bin/)
+      copy_python(${Python_INCLUDE_DIRS} ${Python_VERSION} new_python_binary)
       list(APPEND OST_BINARIES \${new_python_binary})
-    endif(NOT ${PYTHON_BINARY} MATCHES /usr/bin/)  
+    endif(NOT ${Python_EXECUTABLE} MATCHES /usr/bin/)  
   
     file(GLOB_RECURSE OST_PYMODS \"\${CMAKE_INSTALL_PREFIX}/${LIB_DIR}/*.so\")
     list(APPEND  OST_BINARIES \${OST_PYMODS})

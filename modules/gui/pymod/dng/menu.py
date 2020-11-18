@@ -212,6 +212,10 @@ class SceneMenu(QMenu):
         gfx_ent_1.UpdatePositions()
         gfx.Scene().CenterOn(gfx_ent_2)
       LogScript('RMSD: %.3f'%sd.rmsd)
+    elif sd.superposition_error != None:
+      LogScript('Superposition Failed: ' + sd.superposition_error)
+    else:
+      LogScript('Superposition Failed!')
 
 class WindowMenu(QMenu):
   def __init__(self, parent=None):

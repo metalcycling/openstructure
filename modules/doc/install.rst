@@ -30,7 +30,7 @@ a bunch of open-source libraries. If you haven't already installed them, please
 install them now! Where appropriate, the minimally required version is given in 
 parentheses.
 
-* `CMake <http://cmake.org>`_ (3.10.2)
+* `CMake <http://cmake.org>`_ (3.12.1)
 * `Python3 <http://python.org>`_ (3.6)
 * `Boost <http://boost.org>`_ (1.65)
 * `zlib <https://zlib.net/>`_ (usually comes with Boost or system)
@@ -147,7 +147,7 @@ can influence it.
   reason, it is desirable to use the non-multithreaded boost libraries, you can
   switch `Boost_USE_MULTITHREADED` off (it is on by default).
 
-* `PYTHON_ROOT` is the Python equivalent of BOOST_ROOT. It should be set to 
+* `Python_ROOT_DIR` is the Python equivalent of BOOST_ROOT. It should be set to 
   the prefix path containing the python binary, headers and libraries.
 
 * `SYS_ROOT` controls the general prefix for searching libraries and headers.
@@ -199,9 +199,9 @@ can influence it.
 * Several paths to other libraries can be set if they are not in the expected
   locations:
 
-  * `PYTHON_LIBRARIES` defines the location of the Python library (file name
+  * `Python_LIBRARY` defines the location of the Python library (file name
     starting with `libpython`). This must be set if it is not in
-    `$PYTHON_ROOT/lib`.
+    `$Python_ROOT_DIR/lib`.
   * `EIGEN3_INCLUDE_DIR` defines the include folder of Eigen3 (contains `Eigen`
     folder with include files).
   * `FFTW_LIBRARY` defines the location of the FFTW3 library (file name starting
@@ -268,6 +268,13 @@ Build Options
   * `HIDDEN_VISIBILITY` can be turned on to add "-fvisibility=hidden" to gcc's
     compile flags (only if GNU compiler used). By default, this is switched off.
 
+Known Issues
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Depending on how the dependecies (e.g. Boost) are compiled, linking might fail
+  with something like: `error: undefined reference to pthread_condattr_destroy`.
+  Add "-pthread" to the linking options by appending the following to your cmake
+  command: `-DCMAKE_EXE_LINKER_FLAGS=" -pthread"`
 
 Example Configurations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -311,18 +318,15 @@ All the dependencies can be installed from the package manager as follows:
                qt5-qmake qtbase5-dev libpng-dev libsqlite3-dev
 
 Now, all dependencies are located in standard locations and cmake will
-automatically find them without the need to pass any additional parameters. The
-only exception is the Python library which is put in a different path than
-expected. Also, we add -DOPTIMIZE, which will tell cmake to build an optimised
-version of OpenStructure.
+automatically find them without the need to pass any additional parameters. 
+We add -DOPTIMIZE, which will tell cmake to build an optimised version of 
+OpenStructure.
 
 .. code-block:: bash
 
-  cmake . -DPYTHON_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython3.8.so \
-          -DOPTIMIZE=ON
+  cmake . -DOPTIMIZE=ON
 
-Be careful at -DPYTHON_LIBRARIES, Debian 10 comes with Python 3.7 so that needs
-to be substituted (libpython3.8.so -> libpython3.7m.so).
+
 
 
 **macOS (Catalina) with Homebrew**
@@ -337,9 +341,9 @@ to be substituted (libpython3.8.so -> libpython3.7m.so).
 
 `Homebrew <https://brew.sh/>`_ can be used to conveniently install all
 dependencies. The current Python version, as of writing these instructions, is
-3.8.5 but works so far. Boost comes as 1.72.0 which seems to be OK. Do not
+3.9.0 but works so far. Boost comes as 1.74.0 which seems to be OK. Do not
 forget to also install `boost-python3` (your system may have a lower version of
-Python than 3.8.5 but it seems like `boost-python` was compiled for 3.8.5).
+Python than 3.9.0 but it seems like `boost-python3` was compiled for 3.9.0).
 Eigen and SQLite also seem to be unproblematic concerning higher version numbers.
 
 If you want to build the info module or the graphical user interface, make sure
@@ -369,11 +373,11 @@ C flags:
 
 .. code-block:: bash
 
-  cmake . -DPYTHON_INCLUDE_PATH=/usr/local/opt/python@3.8/Frameworks/\
-  Python.framework/Versions/Current/include/python3.8/ \
-          -DPYTHON_LIBRARIES=/usr/local/opt/python@3.8/Frameworks/\
-  Python.framework/Versions/Current/lib/libpython3.8.dylib \
-          -DPYTHON_ROOT=/usr/local/opt/python@3.8/ \
+  cmake . -DPython_INCLUDE_DIRS=/usr/local/opt/python@3.9/Frameworks/\
+  Python.framework/Versions/Current/include/python3.9/ \
+          -DPython_LIBRARIES=/usr/local/opt/python@3.9/Frameworks/\
+  Python.framework/Versions/Current/lib/libpython3.9.dylib \
+          -DPython_ROOT_DIR=/usr/local/opt/python@3.9/ \
           -DBOOST_ROOT=/usr/local \
           -DSYS_ROOT=/usr/local \
           -DOPTIMIZE=ON \

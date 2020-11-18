@@ -110,6 +110,7 @@ def AssignDSSP(ent, pdb_path="", extract_burial_status=False, tmp_dir=None,
   # are handled in the parser LoadDSSP)
   temp_dssp_path=_ExecuteDSSP(pdb_path, dssp_bin)
   if not os.path.exists(temp_dssp_path):
+    _Cleanup(pdb_path, temp_dssp_path, entity_saved)
     raise RuntimeError('DSSP output file does not exist.')
   # assign DSSP to entity
   try:

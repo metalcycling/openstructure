@@ -38,6 +38,8 @@
 #include <ost/seq/alg/hmm_pseudo_counts.hh>
 #include <ost/seq/alg/hmm_score.hh>
 
+#include <algorithm>
+
 using namespace boost::python;
 using namespace ost::seq;
 using namespace ost::seq::alg;
@@ -77,6 +79,51 @@ list VarMapGetData(const VarianceMapPtr v_map) {
 
 list DistToMeanGetData(const Dist2MeanPtr d2m) {
   return GetList(*d2m, d2m->GetNumResidues(), d2m->GetNumStructures());
+}
+
+list MeanlDDTGetData(const MeanlDDTPtr ld) {
+  return GetList(*ld, ld->GetNumResidues(), ld->GetNumStructures());
+}
+
+template <typename T>
+list GetSubList(const T& data, uint num_rows, uint num_cols, uint rows_to_avg,
+                uint cols_to_avg) {
+  if (rows_to_avg < 1 || cols_to_avg < 1) {
+    throw ost::Error("Invalid number of data to average!");
+  }
+  list ret;
+  Real n_to_avg = rows_to_avg * cols_to_avg;
+  for (uint row = 0; row < num_rows; row += rows_to_avg) {
+    list my_row;
+    for (uint col = 0; col < num_cols; col += cols_to_avg) {
+      Real avg_data = 0;
+      const uint max_row = std::min(num_rows, row + rows_to_avg);
+      const uint max_col = std::min(num_cols, col + cols_to_avg);
+      for (uint sub_row = row; sub_row < max_row; ++sub_row) {
+        for (uint sub_col = col; sub_col < max_col; ++sub_col) {
+          avg_data += data(sub_row, sub_col);
+        }
+      }
+      my_row.append(avg_data / n_to_avg);
+    }
+    ret.append(my_row);
+  }
+  return ret;
+}
+
+list VarMapGetSubData(const VarianceMapPtr v_map, uint num_res_to_avg) {
+  return GetSubList(*v_map, v_map->GetSize(), v_map->GetSize(),
+                    num_res_to_avg, num_res_to_avg);
+}
+
+list DistToMeanGetSubData(const Dist2MeanPtr d2m, uint num_res_to_avg) {
+  return GetSubList(*d2m, d2m->GetNumResidues(), d2m->GetNumStructures(),
+                    num_res_to_avg, 1);
+}
+
+list MeanlDDTGetSubData(const MeanlDDTPtr ld, uint num_res_to_avg) {
+  return GetSubList(*ld, ld->GetNumResidues(), ld->GetNumStructures(),
+                    num_res_to_avg, 1);
 }
 
 void AAPseudoCountsSimple(ProfileHandle& profile, Real a, Real b, Real c) {
@@ -187,6 +234,7 @@ void export_distance_analysis()
   def("CreateDistanceMap", &CreateDistanceMap, (arg("aln")));
   def("CreateVarianceMap", &CreateVarianceMap, (arg("d_map"), arg("sigma")=25));
   def("CreateDist2Mean", &CreateDist2Mean, (arg("d_map")));
+  def("CreateMeanlDDTHA", &CreateMeanlDDTHA, (arg("d_map")));
 
   class_<Distances>("Distances", no_init)
     .def("GetDataSize", &Distances::GetDataSize)
@@ -220,6 +268,7 @@ void export_distance_analysis()
     .def("ExportJson", &VarianceMap::ExportJson, (arg("file_name")))
     .def("GetJsonString", &VarianceMap::GetJsonString)
     .def("GetData", &VarMapGetData)
+    .def("GetSubData", &VarMapGetSubData, (arg("num_res_to_avg")))
   ;
 
   class_<Dist2Mean, Dist2MeanPtr,
@@ -232,6 +281,20 @@ void export_distance_analysis()
     .def("ExportJson", &Dist2Mean::ExportJson, (arg("file_name")))
     .def("GetJsonString", &Dist2Mean::GetJsonString)
     .def("GetData", &DistToMeanGetData)
+    .def("GetSubData", &DistToMeanGetSubData, (arg("num_res_to_avg")))
+  ;
+
+  class_<MeanlDDT, MeanlDDTPtr,
+         boost::noncopyable>("MeanlDDT", no_init)
+    .def("Get", &MeanlDDT::Get, (arg("i_res"), arg("i_str")))
+    .def("GetNumResidues", &MeanlDDT::GetNumResidues)
+    .def("GetNumStructures", &MeanlDDT::GetNumStructures)
+    .def("ExportDat", &MeanlDDT::ExportDat, (arg("file_name")))
+    .def("ExportCsv", &MeanlDDT::ExportCsv, (arg("file_name")))
+    .def("ExportJson", &MeanlDDT::ExportJson, (arg("file_name")))
+    .def("GetJsonString", &MeanlDDT::GetJsonString)
+    .def("GetData", &MeanlDDTGetData)
+    .def("GetSubData", &MeanlDDTGetSubData, (arg("num_res_to_avg")))
   ;
 }
 

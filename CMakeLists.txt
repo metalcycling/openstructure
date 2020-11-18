@@ -2,7 +2,7 @@
 # Author: Marco Biasini
 #-------------------------------------------------------------------------------
 
-cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.12.1 FATAL_ERROR)
 
 # Set CMake policies
 # Behaviour of target_link_libraries, always link by full path. CMP0060 can
@@ -14,7 +14,7 @@ cmake_policy(SET CMP0060 NEW)
 project(OpenStructure CXX C)
 set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set (OST_VERSION_MAJOR 2)
-set (OST_VERSION_MINOR 1)
+set (OST_VERSION_MINOR 2)
 set (OST_VERSION_PATCH 0)
 set (OST_VERSION_STRING ${OST_VERSION_MAJOR}.${OST_VERSION_MINOR}.${OST_VERSION_PATCH} )
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake_support)
@@ -187,11 +187,9 @@ if (ENABLE_STATIC AND UNIX AND NOT APPLE)
 endif()
 
 # Python needed before Boost
-find_package(Python 3.6 REQUIRED)
-# Split version string
-string(REPLACE "." ";" _python_version_list ${PYTHON_VERSION})
-list(GET _python_version_list 0 PYTHON_VERSION_MAJOR)
-list(GET _python_version_list 1 PYTHON_VERSION_MINOR)
+find_package(Python 3.6 REQUIRED COMPONENTS Interpreter Development)
+# where Python modules live
+set(PYTHON_MODULE_PATH "python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages/")
 
 if(BOOST_VERSION)
   message(STATUS "forcing boost to version ${BOOST_VERSION}")
@@ -237,8 +235,8 @@ else()
   set (PNG_LIBRARY "")
 endif()
 
-find_package(Eigen 3.2.0 REQUIRED)
-find_package(SQLite3 3.7.13 REQUIRED)
+find_package(EIGEN 3.2.0 REQUIRED)
+find_package(SQLITE3 3.7.13 REQUIRED)
 
 if(USE_NUMPY)
   find_package(Numpy REQUIRED)
@@ -356,7 +354,7 @@ set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES
                              "${FILES_TO_BE_REMOVED}")
 
 
-#ost_match_boost_python_version(${PYTHON_LIBRARIES})
+#ost_match_boost_python_version(${Python_LIBRARIES})
 
 if (CMAKE_COMPILER_IS_GNUCXX)
    set(HIDDEN_VIS_MSG 

@@ -601,7 +601,6 @@ private:
 
   void set_near(float n);
   void set_far(float f);
-  void update_fog();
   void flag_all_dirty();
   void prep_glyphs();
   void prep_blur();

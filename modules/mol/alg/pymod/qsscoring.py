@@ -2441,7 +2441,7 @@ def _CheckClosedSymmetry(ent_1, ent_2, symm_1, symm_2, chem_mapping,
         rmsd_mappings.append((rmsd, mapping))
   # return best mapping
   if rmsd_mappings:
-    return min(rmsd_mappings)[1]
+    return min(rmsd_mappings, key=lambda x: x[0])[1]
   else:
     return None
 

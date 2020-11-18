@@ -111,11 +111,11 @@ class RemoteRepository:
       return LoadMMCIF(tmp_file.name)
 
 REMOTE_REPOSITORIES = {
-    'pdb' : RemoteRepository('pdb.org (PDB)', 'https://www.pdb.org/pdb/files/$ID.pdb.gz',
+    'pdb' : RemoteRepository('rcsb.org (PDB)', 'https://files.rcsb.org/download/$ID.pdb.gz',
                    type='pdb', id_transform='upper'),
     'smtl' : RemoteRepository('SMTL', 'https://swissmodel.expasy.org/templates/$ID.pdb',
                    type='pdb', id_transform='lower'),
-    'cif' : RemoteRepository('pdb.org (mmCIF)', 'https://www.pdb.org/pdb/files/$ID.cif.gz',
+    'cif' : RemoteRepository('rcsb.org (mmCIF)', 'https://files.rcsb.org/download/$ID.cif.gz',
                    type='cif', id_transform='lower'),
     'pdb_redo' : RemoteRepository('pdbredo', 'https://pdb-redo.eu/db/$ID/$ID_besttls.pdb.gz',
                    type='pdb', id_transform='lower'),

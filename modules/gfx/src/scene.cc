@@ -1428,7 +1428,6 @@ void Scene::PopView()
     zfar_=scene_view_stack_.top().zfar;
     scene_view_stack_.pop();
     ResetProjection();
-    update_fog();
     RequestRedraw();
   }
 }
@@ -1484,7 +1483,6 @@ float Scene::GetFOV() const
 void Scene::SetFogNearOffset(float o)
 {
   fnear_=o;
-  update_fog();
   RequestRedraw();
 }
 
@@ -1496,7 +1494,6 @@ float Scene::GetFogNearOffset() const
 void Scene::SetFogFarOffset(float o)
 {
   ffar_=o;
-  update_fog();
   RequestRedraw();
 }
 
@@ -1509,7 +1506,6 @@ void Scene::SetFogOffsets(float no, float fo)
 {
   fnear_=no;
   ffar_=fo;
-  update_fog();
   RequestRedraw();
 }
 
@@ -1798,7 +1794,7 @@ void Scene::set_near(float n)
   if(znear_>zfar_-0.1) {
     znear_=zfar_-0.1;
   }
-  update_fog();
+  RequestRedraw();
 }
 
 void Scene::set_far(float f)
@@ -1807,18 +1803,8 @@ void Scene::set_far(float f)
   if(znear_>zfar_-0.1) {
     zfar_=znear_+0.1;
   }
-  update_fog();
+  RequestRedraw();
 }
-
-void Scene::update_fog()
-{
-  if(gl_init_) {
-    this->ActivateGLContext();
-    glFogf(GL_FOG_START,znear_+fnear_);
-    glFogf(GL_FOG_END,zfar_+ffar_);
-  }
-}
-
 
 namespace {
 class DirtyAll: public GfxNodeVisitor
@@ -2112,6 +2098,9 @@ void Scene::render_scene()
   glLoadIdentity();
 
   render_bg();
+
+  glFogf(GL_FOG_START,znear_+fnear_);
+  glFogf(GL_FOG_END,zfar_+ffar_);
 
   glMultMatrix(transform_.GetTransposedMatrix().Data());
 

@@ -36,8 +36,10 @@ namespace ost { namespace seq { namespace alg {
 
 class VarianceMap;
 class Dist2Mean;
+class MeanlDDT;
 typedef boost::shared_ptr<VarianceMap> VarianceMapPtr;
 typedef boost::shared_ptr<Dist2Mean> Dist2MeanPtr;
+typedef boost::shared_ptr<MeanlDDT> MeanlDDTPtr;
 
 /// \brief Container for variances for each entry in a distance map.
 /// Main functionality: Get/Set, Min, Max, ExportXXX
@@ -119,6 +121,51 @@ private:
   std::vector<Real> values_;
 };
 
+
+class DLLEXPORT_OST_SEQ_ALG MeanlDDT {
+public:
+  // all values initialized to 0 in constructor!
+  MeanlDDT(uint num_residues, uint num_structures)
+           : num_residues_(num_residues), num_structures_(num_structures)
+            , values_(num_residues * num_structures, 0) { }
+
+  void Set(uint i_res, uint i_str, Real val) {
+    values_[GetIndex(i_res, i_str)] = val;
+  }
+  
+  Real Get(uint i_res, uint i_str) const {
+    return values_[GetIndex(i_res, i_str)];
+  }
+  
+  Real& operator()(uint i_res, uint i_str) {
+    return values_[GetIndex(i_res, i_str)];
+  }
+  Real operator()(uint i_res, uint i_str) const {
+    return values_[GetIndex(i_res, i_str)];
+  }
+  
+  std::vector<Real>& Data() { return values_; }
+
+  uint GetNumResidues() const { return num_residues_; }
+  uint GetNumStructures() const { return num_structures_; }
+
+  void ExportDat(const String& file_name);
+  void ExportCsv(const String& file_name);
+  void ExportJson(const String& file_name);
+  String GetJsonString();
+  
+private:
+  uint GetIndex(uint i_res, uint i_str) const {
+    assert(i_res < num_residues_);
+    assert(i_str < num_structures_);
+    return (i_res * num_structures_ + i_str);
+  }
+
+  uint num_residues_;
+  uint num_structures_;
+  std::vector<Real> values_;
+};
+
 /// \returns Variance measure for each entry in dmap.
 /// \param dmap Distance map as created with CreateDistanceMap.
 /// \param sigma Used for weighting of variance measure
@@ -131,6 +178,9 @@ CreateVarianceMap(const DistanceMapPtr dmap, Real sigma=25);
 /// \param dmap Distance map as created with CreateDistanceMap.
 Dist2MeanPtr DLLEXPORT_OST_SEQ_ALG
 CreateDist2Mean(const DistanceMapPtr dmap);
+
+MeanlDDTPtr DLLEXPORT_OST_SEQ_ALG
+CreateMeanlDDTHA(const DistanceMapPtr dmap);
 
 }}}
 

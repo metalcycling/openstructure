@@ -245,7 +245,9 @@ of the annotation available.
   .. method:: GetMMCifPDBChainTr(cif_chain_id)
 
     Get the translation of a certain mmCIF chain name to the traditional PDB
-    chain name.
+    chain name. Only works if SEQRES records are read in
+    :func:`~ost.io.LoadMMCIF` and a compound library is available (see
+    :func:`~ost.conop.GetDefaultLib`).
 
     :param cif_chain_id: atom_site.label_asym_id
     :type cif_chain_id: :class:`str`
