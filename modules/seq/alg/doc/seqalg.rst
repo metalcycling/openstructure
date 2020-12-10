@@ -214,6 +214,67 @@ Algorithms for Alignments
 
 .. autofunction:: ost.seq.alg.renumber.Renumber
 
+.. function:: SequenceIdentity(aln, ref_mode=seq.alg.RefMode.ALIGNMENT, seq_a=0, seq_b=1)
+
+  Calculates the sequence identity between two sequences at index seq_a and seq_b in
+  a multiple sequence alignment.
+
+  :param aln: multiple sequence alignment
+  :type aln: :class:`~ost.seq.AlignmentHandle`
+  :param ref_mode: influences the way the sequence identity is calculated. When
+    set to `seq.alg.RefMode.LONGER_SEQUENCE`, the sequence identity is 
+    calculated as the number of matches divided by the length of the longer
+    sequence. If set to `seq.alg.RefMode.ALIGNMENT` (the default), the sequence
+    identity is calculated as the number of matches divided by the number of
+    aligned residues. 
+  :type ref_mode: int
+  :param seq_a: the index of the first sequence
+  :type seq_a: int
+  :param seq_b: the index of the second sequence
+  :type seq_b: int
+  :returns: sequence identity in the range 0 to 100.
+  :rtype: float
+
+.. function:: SequenceSimilarity(aln, subst_weight, normalize=false, seq_a=0, seq_b=1)
+
+  Calculates the sequence similarity between two sequences at index seq_a and seq_b in
+  a multiple sequence alignment.
+
+  :param aln: Multiple sequence alignment
+  :type aln: :class:`~ost.seq.AlignmentHandle`
+  :param subst_weight: the substitution weight matrix 
+    (see the :ref:`BLOSUM Matrix<blosum>` section below)
+  :type subst_weight: :class:`~SubstWeightMatrix` 
+  :param normalize: if set to True, normalize to the range of the
+    substitution weight matrix
+  :type normalize: bool
+  :param seq_a: the index of the first sequence
+  :type seq_a: int
+  :param seq_b: the index of the second sequence
+  :type seq_b: int
+  :returns: sequence similarity
+  :rtype: float
+
+
+.. _substitution-weight-matrices
+
+Substitution Weight Matrices and BLOSUM Matrices
+--------------------------------------------------------------------------------
+
+.. autoclass:: SubstWeightMatrix
+   :members:
+
+.. _blosum:
+
+Four preset BLOSUM (BLOcks SUbstitution Matrix) matrices are available at 
+different levels of sequence identity:
+
+- BLOSUM45
+- BLOSUM62
+- BLOSUM80
+- BLOSUM100
+
+
 .. _contact-prediction:
 
 Contact Prediction
@@ -284,6 +345,8 @@ corresponding to interacting residues.
     :type zpx_transformation: :class:`bool`
     :param small_number_correction: initial values for the probabilities of having a given pair of amino acids *p(a,b)*.
     :type small_number_correction: :class:`float`
+
+.. autofunction:: CalculateContactProbability
 
 .. function:: CalculateContactScore(aln, \
                 weights=LoadDefaultContactWeightMatrix())
