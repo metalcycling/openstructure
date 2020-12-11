@@ -41,6 +41,12 @@ Basic Editing Operations
 
 The basic functionality of editors is implemented in the EditorBase class. 
 
+.. note::
+
+  To use the editing functions available in :class:`EditorBase`, it is
+  recommended to use the external coordinate system :class:`XCSEditor` for
+  performance reasons.
+
 .. class::  EditorBase
   
   Inherited by :class:`XCSEditor`, :class:`ICSEditor`.
@@ -485,6 +491,13 @@ using an :class:`ICSEditor` is undefined and vice versa.
   the first call to :meth:`EntityHandle.EditICS`. This involves the build-up of
   a directed-graph for the bond network as well as calculating the internal
   coordinate matrices.
+
+.. warning::
+
+  The :class:`ICSEditor` has a very significant performance impact on the
+  structure, and can make subsequent access or modifications on the entity
+  extremely slow due to lazy evaluation. The :class:`ICSEditor` is never used
+  in SWISS-MODEL, ProMod3 or CAMEO. Only open one if you absolutely need to.
 
 .. class:: ICSEditor
    
