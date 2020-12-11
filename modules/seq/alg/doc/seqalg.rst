@@ -256,7 +256,7 @@ Algorithms for Alignments
   :rtype: float
 
 
-.. _substitution-weight-matrices
+.. _substitution-weight-matrices:
 
 Substitution Weight Matrices and BLOSUM Matrices
 --------------------------------------------------------------------------------
