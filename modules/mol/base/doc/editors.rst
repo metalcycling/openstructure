@@ -496,8 +496,9 @@ using an :class:`ICSEditor` is undefined and vice versa.
 
   The :class:`ICSEditor` has a very significant performance impact on the
   structure, and can make subsequent access or modifications on the entity
-  extremely slow due to lazy evaluation. The :class:`ICSEditor` is never used
-  in SWISS-MODEL, ProMod3 or CAMEO. Only open one if you absolutely need to.
+  extremely slow to keep the internal coordinate system up-to-date. The
+  :class:`ICSEditor` is never used in SWISS-MODEL, ProMod3 or CAMEO. Only
+  open one if you absolutely need to.
 
 .. class:: ICSEditor
    
