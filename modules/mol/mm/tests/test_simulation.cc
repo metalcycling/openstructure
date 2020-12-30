@@ -173,7 +173,11 @@ BOOST_AUTO_TEST_CASE(test_simulation_energy_calculations){
   //Gromacs writes down the positions using nm instead of A, but
   //also has a precision of 3 digits.
 
-  BOOST_CHECK_CLOSE(sim.GetPotentialEnergy(), -2381.24, Real(1e-3));
+  // Threshold is relatively permissive (1e-1->0.1% difference) depending on
+  // OpenMM version / Hardware you might get slightly different results. 
+  // Error propagates when performing 200 steps steepest descent (minimizes from
+  // roughly 1981 down to -2381).
+  BOOST_CHECK_CLOSE(sim.GetPotentialEnergy(), -2381.24, Real(1e-1));
 }
 
 
