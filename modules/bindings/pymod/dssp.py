@@ -100,7 +100,7 @@ def AssignDSSP(ent, pdb_path="", extract_burial_status=False, tmp_dir=None,
   temp_dssp_path=tempfile.mktemp(suffix=".out",prefix="dssp", dir=tmp_dir)  
 
   cmd = [dssp_abs_path, pdb_path, temp_dssp_path]
-  s = subprocess.run(cmd, capture_output=True)
+  s = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
   if s.returncode == 0:
     try:
       LoadDSSP(temp_dssp_path, ent, extract_burial_status)
@@ -122,7 +122,7 @@ def AssignDSSP(ent, pdb_path="", extract_burial_status=False, tmp_dir=None,
 
   # explicitely request dssp output format
   cmd = [dssp_abs_path, '--output-format', 'dssp', pdb_path, temp_dssp_path]
-  s_fallback = subprocess.run(cmd, capture_output=True)
+  s_fallback = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
   
   if s_fallback.returncode == 0:
     try:
