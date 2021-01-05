@@ -38,27 +38,11 @@ def _SkipHeader(stream):
       line=stream.readline()
     return False
 
-def _Cleanup(pdb_path, temp_path, entity_saved):
-  if entity_saved and os.path.exists(pdb_path):
+def _Cleanup(temp_dssp_path, pdb_path):
+  if os.path.exists(temp_dssp_path):
+    os.remove(temp_dssp_path)
+  if os.path.exists(pdb_path):
     os.remove(pdb_path)
-  if os.path.exists(temp_path):
-    os.remove(temp_path)
-
-def _ExecuteDSSP(path, dssp_bin, temp_dir=None):
-  # use of mktemp is a safty problem (use mkstemp and provide file handle to 
-  # subsequent process
-  temp_dssp_path=tempfile.mktemp(suffix=".out",prefix="dssp", dir=temp_dir)
-  dssp_abs_path=settings.Locate(['dsspcmbi','dssp','mkdssp'], env_name='DSSP_EXECUTABLE', 
-                                explicit_file_name=dssp_bin)
-  if os.path.isdir(dssp_abs_path):
-    raise RuntimeError('"%s" is a directory. Specify path to DSSP binary' % dssp_abs_path)
-  if not os.access(dssp_abs_path, os.X_OK):
-    raise RuntimeError('"%s" is not executable' % dssp_abs_path)
-
-  subprocess.run([dssp_abs_path, path, temp_dssp_path])
-
-  return temp_dssp_path
-
 
 def _CalcRelativeSA(residue_type, absolute_sa):
   solvent_max_list=[118,317,238,243,183,262,286,154,258,228,
@@ -98,36 +82,58 @@ def AssignDSSP(ent, pdb_path="", extract_burial_status=False, tmp_dir=None,
       in the path.
   :raises: :class:`RuntimeError` when dssp is executed with errors
   """
-  entity_saved = False
-  # use of mktemp is a safty problem (use mkstemp and provide file handle to 
-  # subsequent process
-  pdb_path=tempfile.mktemp(suffix=".pdb",prefix="temp_entity", 
-                           dir=tmp_dir)
+
+  if not ent.IsValid():
+    raise ValueError('model entity is not valid')
+  if ent.atom_count==0:
+    raise ValueError('model entity does not contain any atoms')
+
+  dssp_abs_path=settings.Locate(['dsspcmbi','dssp','mkdssp'], env_name='DSSP_EXECUTABLE', 
+                                explicit_file_name=dssp_bin)
+  if os.path.isdir(dssp_abs_path):
+    raise RuntimeError('"%s" is a directory. Specify path to DSSP binary' % dssp_abs_path)
+  if not os.access(dssp_abs_path, os.X_OK):
+    raise RuntimeError('"%s" is not executable' % dssp_abs_path)
+    
+  pdb_path=tempfile.mktemp(suffix=".pdb",prefix="temp_entity", dir=tmp_dir)
   io.SavePDB(ent, pdb_path)
-  entity_saved = True
+  temp_dssp_path=tempfile.mktemp(suffix=".out",prefix="dssp", dir=tmp_dir)  
 
-  #TODO: exception handling (currently errors occuring here
-  # are handled in the parser LoadDSSP)
-  temp_dssp_path=_ExecuteDSSP(pdb_path, dssp_bin)
-  if not os.path.exists(temp_dssp_path):
-    _Cleanup(pdb_path, temp_dssp_path, entity_saved)
-    raise RuntimeError('DSSP output file does not exist.')
-  # assign DSSP to entity
-  try:
-    LoadDSSP(temp_dssp_path, ent, extract_burial_status,
-             entity_saved)
-  except Exception as e:
-    # clean up
-    print("Exception in DSSP:", e)
-    _Cleanup(pdb_path, temp_dssp_path, entity_saved)
-    raise RuntimeError(e)
+  cmd = [dssp_abs_path, pdb_path, temp_dssp_path]
+  s = subprocess.run(cmd, capture_output=True)
+  if s.returncode == 0:
+    try:
+      LoadDSSP(temp_dssp_path, ent, extract_burial_status)
+      _Cleanup(temp_dssp_path, pdb_path)
+      return ent
+    except:
+      pass # continue with dssp 4 fallback
+  
+  # either dssp execution failed or output file cannot be loaded
+  # both can be the result of using dssp 4 (https://github.com/PDB-REDO/dssp) 
+  # => try fallback
 
-  # clean up
-  #print pdb_path, temp_dssp_path
-  _Cleanup(pdb_path, temp_dssp_path, entity_saved)
+  # dssp 4 desperately wants a CRYST1 record (REMOVE IF NOT NEEDED ANYMORE!)
+  with open(pdb_path, 'r') as fh:
+    file_content = fh.read()
+  with open(pdb_path, 'w') as fh:
+    fh.write('CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1          ' +
+             os.linesep + file_content)
 
-  return ent
-
+  # explicitely request dssp output format
+  cmd = [dssp_abs_path, '--output-format', 'dssp', pdb_path, temp_dssp_path]
+  s_fallback = subprocess.run(cmd, capture_output=True)
+  
+  if s_fallback.returncode == 0:
+    try:
+      LoadDSSP(temp_dssp_path, ent, extract_burial_status)
+      _Cleanup(temp_dssp_path, pdb_path)
+      return ent
+    except:
+      pass # continue with cleanup and raise error
+      
+  _Cleanup(temp_dssp_path, pdb_path)
+  raise RuntimeError('Failed to assign DSSP')
 
 
 def LoadDSSP(file_name, model, extract_burial_status=False,
