@@ -221,11 +221,6 @@ Real GetAtomAccessibilityNACCESS(Real x_pos, Real y_pos, Real z_pos,
     Real a = x_pos - x[i];
     Real b = y_pos - y[i];  
     Real c = a*a + b*b;
-
-    if(c == Real(0.0)) {
-      return 0.0;
-    }
-
     dx[i] = a;
     dy[i] = b;
     dsqr[i] = c;
