@@ -51,14 +51,21 @@ The basic functionality of editors is implemented in the EditorBase class.
   
   Inherited by :class:`XCSEditor`, :class:`ICSEditor`.
   
-  .. method:: InsertChain(chain_name)
+  .. method:: InsertChain(chain_name[, chain, deep=false])
   
-     Add new chain to the entity
+     Add new chain to the entity. Properties of :class:`ChainHandle` `chain` will be inherited, if provided.
   
      :param chain_name: The chain's name. In the scope of an entity, chain names
-                        are unique. If a chain of the same already exists an
-                        IntegrityError is raised.
-     :type  chain_name: string
+                        are unique. If a chain of the same name already exists
+                        an :class:`IntegrityError` is raised.
+     :type  chain_name: :class:`string`
+     :param chain:      The newly created chain will take over all generic
+                        properties attached to this handle.
+     :type chain:       :class:`ChainHandle`
+     :param deep:       If set to true, all residues and atoms of `chain` will
+                        be completely copied into the created chain. No bonds
+                        and angles are added.
+     :type deep:
      :returns:          :class:`ChainHandle`
 
   .. method:: AppendResidue(chain, residue_name, [res_num])
