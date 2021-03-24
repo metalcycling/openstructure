@@ -30,7 +30,7 @@
 #include <ost/stdint.hh>
 #include <ost/message.hh>
 
-namespace ost{ namespace db{
+namespace ost{
 
 
 /// \brief Vector style container that splits content in pages, suited for large 
@@ -169,6 +169,6 @@ private:
   std::vector<Page> pages_;
 };
 
-}} // ns
+} // ns
 
 #endif
