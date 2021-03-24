@@ -18,8 +18,8 @@
 //------------------------------------------------------------------------------
 
 
-#ifndef OST_DB_PAGED_ARRAY_HH
-#define OST_DB_PAGED_ARRAY_HH
+#ifndef OST_PAGED_ARRAY_HH
+#define OST_PAGED_ARRAY_HH
 
 /*
   Author: Marco Biasini, Gabriel Studer
@@ -32,6 +32,9 @@
 
 namespace ost{ namespace db{
 
+
+/// \brief Vector style container that splits content in pages, suited for large 
+///        amounts of data. Comes with serialization functionality.
 template <typename T, uint64_t P>
 class PagedArray  {
 private:

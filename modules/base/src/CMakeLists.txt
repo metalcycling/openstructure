@@ -32,6 +32,7 @@ pod_vector.hh
 fixed_string.hh
 tri_matrix.hh
 boost_filesystem_helper.hh
+paged_array.hh
 )
 
 set(OST_EXPORT_HELPERS

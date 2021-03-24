@@ -3,7 +3,6 @@ sqlite_wrap.hh
 sqlite_conv.hh
 module_config.hh
 linear_indexer.hh
-paged_array.hh
 binary_container.hh
 extract_data_helper.hh
 )
