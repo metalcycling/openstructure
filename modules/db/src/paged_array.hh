@@ -135,7 +135,10 @@ public:
         p.reserve(P);
         p.resize(left);
         in_stream.read(reinterpret_cast<char*>(&p.front()), 
-                       p.size()*sizeof(T));        
+                       p.size()*sizeof(T));
+        if(!in_stream.good()) {
+          throw ost::Error("Failed to read data!");
+        }
       }
     } else {
       throw ost::Error("Cannot load non POD paged array!");
