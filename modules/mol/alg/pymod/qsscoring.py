@@ -1969,7 +1969,7 @@ def _GetChainMapping(ent_1, ent_2, symm_1, symm_2, chem_mapping,
       LogWarning('Mapping number estimation was wrong') # sanity check
 
     # return best (lowest RMSD) mapping
-    mapping = min(full_mappings)[1]
+    mapping = min(full_mappings, key=lambda x: x[0])[1]
 
   LogWarning('Extensive search used for mapping detection (fallback). This ' + \
              'approach has known limitations. Check mapping manually: %s' \
