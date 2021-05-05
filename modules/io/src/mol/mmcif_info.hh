@@ -304,7 +304,7 @@ public:
   /// \brief Get the list of intervals of chains
   ///
   /// \return pair-intervals
-  const std::vector<std::pair<int, int> >& GetChainIntervalList()
+  const std::vector<std::pair<int, int> >& GetChainIntervalList() const
   {
     return tr_chains_;
   }
@@ -317,7 +317,7 @@ public:
   /// \brief Get the list of intervals of operations
   ///
   /// \return pair-intervals
-  const std::vector<std::pair<int, int> >& GetOperationsIntervalList()
+  const std::vector<std::pair<int, int> >& GetOperationsIntervalList() const
   {
     return tr_operations_;
   }
@@ -325,7 +325,7 @@ public:
   /// \brief Get the list of operations
   ///
   /// \return vector of vectors of iterators.
-  const std::vector<std::vector<MMCifInfoTransOpPtr> >& GetOperations()
+  const std::vector<std::vector<MMCifInfoTransOpPtr> >& GetOperations() const
   {
     return operations_;
   }

@@ -1,0 +1,179 @@
+//------------------------------------------------------------------------------
+// This file is part of the OpenStructure project <www.openstructure.org>
+//
+// Copyright (C) 2008-2020 by the OpenStructure authors
+//
+// This library is free software; you can redistribute it and/or modify it under
+// the terms of the GNU Lesser General Public License as published by the Free
+// Software Foundation; either version 3.0 of the License, or (at your option)
+// any later version.
+// This library is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+// details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this library; if not, write to the Free Software Foundation, Inc.,
+// 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+//------------------------------------------------------------------------------
+#ifndef OST_IO_OMF_HH
+#define OST_IO_OMF_HH
+
+#include <unordered_map>
+#include <unordered_set>
+#include <fstream>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <ost/mol/entity_handle.hh>
+#include <ost/geom/mat4.hh>
+#include <ost/io/io_exception.hh>
+#include <ost/io/mmcif_info.hh>
+
+namespace ost { namespace io {
+
+class ChainData;
+class BioUnitData;
+class OMF;
+typedef boost::shared_ptr<OMF> OMFPtr;
+typedef boost::shared_ptr<ChainData> ChainDataPtr;
+typedef boost::shared_ptr<BioUnitData> BioUnitDataPtr;
+
+struct ResidueDefinition {
+
+  ResidueDefinition() { };
+
+  ResidueDefinition(const ost::mol::ResidueHandle& res);
+
+  bool operator==(const ResidueDefinition& other) const { 
+    return (name == other.name && 
+            olc == other.olc &&
+            chem_type == other.chem_type &&
+            chem_class == other.chem_class &&
+            anames == other.anames &&
+            elements == other.elements &&
+            is_hetatm == other.is_hetatm &&
+            bonds == other.bonds &&
+            bond_orders == other.bond_orders);
+  }
+
+  bool operator!=(const ResidueDefinition& other) const { 
+    return !(*this == other);
+  }
+
+  void ToStream(std::ostream& stream) const;
+
+  void FromStream(std::istream& stream);
+
+  String name;
+  char olc;
+  char chem_type;
+  char chem_class;
+  std::vector<String> anames;
+  std::vector<String> elements;
+  std::vector<bool> is_hetatm;
+  std::vector<int> bonds;
+  std::vector<int> bond_orders;
+};
+
+
+// define hash function, so we can use ResidueDefinition as key in an unordered 
+// map. The used hash function is overly simple and gives a hash collision 
+// whenever we have two residues of same name but different atom composition.
+// That's hopefully rare...
+struct ResidueDefinitionHash {
+  std::size_t operator()(const ResidueDefinition& r) const {
+    return std::hash<String>()(r.name);
+  }
+};
+
+
+struct BioUnitDefinition {
+  BioUnitDefinition() { }
+
+  BioUnitDefinition(const ost::io::MMCifInfoBioUnit& bu);
+
+  void ToStream(std::ostream& stream) const;
+
+  void FromStream(std::istream& stream);
+
+  std::vector<String> au_chains;
+  std::vector<int> chain_intvl;
+  std::vector<std::vector<geom::Mat4> > operations;
+  std::vector<int> op_intvl;
+};
+
+
+struct ChainData {
+
+  ChainData() { }
+
+  ChainData(const ost::mol::ChainHandle& chain,
+            const std::unordered_map<ResidueDefinition, 
+            int, ResidueDefinitionHash>& res_def_map);
+
+  void ToStream(std::ostream& stream) const;
+
+  void FromStream(std::istream& stream);
+
+  // chain features
+  String ch_name;
+
+  // residue features
+  std::vector<int> res_def_indices;
+  std::vector<int> rnums;
+  std::vector<char> insertion_codes;
+  std::vector<char> sec_structures;
+
+  // atom features    
+  std::vector<Real> occupancies;
+  std::vector<Real> bfactors;
+  geom::Vec3List positions;
+
+  // bond features - only for bonds that are inter-residue
+  // e.g. peptide bonds
+  std::vector<int> bonds;
+  std::vector<int> bond_orders;
+};
+
+class OMF {
+
+public:
+
+  static OMFPtr FromEntity(const ost::mol::EntityHandle& ent);
+
+  static OMFPtr FromMMCIF(const ost::mol::EntityHandle& ent,
+                          const MMCifInfo& info);
+
+  static OMFPtr FromFile(const String& fn);
+
+  static OMFPtr FromString(const String& s);
+
+  void ToFile(const String& fn) const;
+
+  String ToString() const;
+
+  ost::mol::EntityHandle GetAU() const;
+
+  ost::mol::EntityHandle GetAUChain(const String& name) const;
+
+  ost::mol::EntityHandle GetBU(int bu_idx) const;
+
+private:
+  // only construct with static functions
+  OMF() { }
+
+  void ToStream(std::ostream& stream) const;
+
+  void FromStream(std::istream& stream);
+
+  void FillChain(ost::mol::ChainHandle& chain, ost::mol::XCSEditor& ed,
+                 const ChainDataPtr data, 
+                 geom::Mat4 transform = geom::Mat4()) const;
+
+  std::vector<ResidueDefinition> residue_definitions_;
+  std::vector<BioUnitDefinition> biounit_definitions_;
+  std::map<String, ChainDataPtr> chain_data_;
+};
+
+}} //ns
+
+#endif
