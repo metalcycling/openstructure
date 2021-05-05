@@ -107,8 +107,11 @@ struct ChainData {
   ChainData() { }
 
   ChainData(const ost::mol::ChainHandle& chain,
-            const std::unordered_map<ResidueDefinition, 
-            int, ResidueDefinitionHash>& res_def_map);
+            const std::vector<ResidueDefinition>& residue_definitions,
+            const std::unordered_map<unsigned long, int>& res_idx_map,
+            const std::vector<std::pair<unsigned long, unsigned long> >& 
+            inter_residue_bonds,
+            const std::vector<int>& inter_residue_bond_orders);
 
   void ToStream(std::ostream& stream) const;
 

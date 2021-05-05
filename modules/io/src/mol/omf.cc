@@ -529,7 +529,7 @@ ResidueDefinition::ResidueDefinition(const ost::mol::ResidueHandle& res) {
   // sort atom names and store other info accordingly
   // sorting is required to compare definitions from different residues
   std::sort(anames.begin(), anames.end());
-  std::unordered_map<long, int> hash_idx_mapper;
+  std::unordered_map<unsigned long, int> hash_idx_mapper;
   for(auto it = anames.begin(); it != anames.end(); ++it) {
     ost::mol::AtomHandle at = res.FindAtom(*it);
     hash_idx_mapper[at.GetHashCode()] = elements.size();
@@ -546,8 +546,8 @@ ResidueDefinition::ResidueDefinition(const ost::mol::ResidueHandle& res) {
       // The atom represented by at_it is either first OR second atom of that
       // bond. So we check whether BOTH are in hash_idx_mapper to exclude bonds
       // to other residues.
-      long h1 = bond_it->GetFirst().GetHashCode();
-      long h2 = bond_it->GetSecond().GetHashCode();
+      unsigned long h1 = bond_it->GetFirst().GetHashCode();
+      unsigned long h2 = bond_it->GetSecond().GetHashCode();
       if(hash_idx_mapper.find(h1) != hash_idx_mapper.end() &&
          hash_idx_mapper.find(h2) != hash_idx_mapper.end()) {
         int i1 = hash_idx_mapper[h1];
@@ -653,24 +653,27 @@ void BioUnitDefinition::FromStream(std::istream& stream) {
 }
 
 ChainData::ChainData(const ost::mol::ChainHandle& chain,
-                     const std::unordered_map<ResidueDefinition, 
-                     int, ResidueDefinitionHash>& res_def_map) {
+                     const std::vector<ResidueDefinition>& residue_definitions,
+                     const std::unordered_map<unsigned long, int>& res_idx_map,
+                     const std::vector<std::pair<unsigned long, unsigned long> >& 
+                     inter_residue_bonds,
+                     const std::vector<int>& inter_residue_bond_orders) {
 
   ch_name = chain.GetName();
 
   // some mappers to deal with the bonds later on 
-  std::unordered_map<long, int> residue_idx_mapper;
-  std::unordered_map<long, int> atom_idx_mapper;
+  std::unordered_map<unsigned long, int> residue_idx_mapper;
+  std::unordered_map<unsigned long, int> atom_idx_mapper;
 
   // process residues
   ost::mol::ResidueHandleList res_list = chain.GetResidueList();
   for(auto res_it = res_list.begin(); res_it != res_list.end(); ++res_it){
-    ResidueDefinition def(*res_it);
-    res_def_indices.push_back(res_def_map.at(def));
+    res_def_indices.push_back(res_idx_map.at(res_it->GetHashCode()));
     rnums.push_back(res_it->GetNumber().GetNum());
     insertion_codes.push_back(res_it->GetNumber().GetInsCode());
     sec_structures.push_back(char(res_it->GetSecStructure()));
 
+    const ResidueDefinition& def = residue_definitions[res_def_indices.back()];
     // process atoms of that residue
     for(auto a_it = def.anames.begin(); a_it != def.anames.end(); ++a_it) {
       ost::mol::AtomHandle at = res_it->FindAtom(*a_it);
@@ -682,41 +685,19 @@ ChainData::ChainData(const ost::mol::ChainHandle& chain,
     }
   }
 
-  // process bonds
-  // in principle we want to store all unique bonds, but nevertheless
-  // use a map here to track the bond orders at the same time
-  std::unordered_map<std::pair<int, int>,  int, pair_hash> bond_order_map;
-
-  // the bonds itself can only be extracted from the overall entity
-  ost::mol::BondHandleList bond_list = chain.GetEntity().GetBondList(); 
-  for(auto bond_it = bond_list.begin(); bond_it != bond_list.end(); ++bond_it) {
-    // The atom represented by at_it is either first OR second atom of that
-    // bond. So we check whether BOTH are in hash_idx_mapper to exclude bonds
-    // to other chains.
-    long h1 = bond_it->GetFirst().GetHashCode();
-    long h2 = bond_it->GetSecond().GetHashCode();
-    if(residue_idx_mapper.find(h1) != residue_idx_mapper.end() &&
-       residue_idx_mapper.find(h2) != residue_idx_mapper.end()) {
-      // they're both from the same chain, let's check whether they are
-      // from different residues
-      if(residue_idx_mapper[h1] != residue_idx_mapper[h2]) {
-        // that's a relevant bond to add!
-        int at1 = atom_idx_mapper[h1];
-        int at2 = atom_idx_mapper[h2];
-        if(at1 < at2) {
-          bond_order_map[std::make_pair(at1, at2)] = bond_it->GetBondOrder();
-        } else {
-          bond_order_map[std::make_pair(at2, at1)] = bond_it->GetBondOrder();
-        }
-      }
-    } 
-  }
-
   // super stupid vec intended for sorting... sorry for that
   std::vector<std::pair<std::pair<int, int>, int > > tmp;
-  for(auto it = bond_order_map.begin(); it != bond_order_map.end(); ++it) {
-    tmp.push_back(std::make_pair(std::make_pair(it->first.first, 
-                  it->first.second), it->second));
+  for(uint bond_idx = 0; bond_idx < inter_residue_bonds.size(); ++ bond_idx) {
+    int at_idx_one = atom_idx_mapper[inter_residue_bonds[bond_idx].first];
+    int at_idx_two = atom_idx_mapper[inter_residue_bonds[bond_idx].second];
+    if(at_idx_one < at_idx_two) {
+      tmp.push_back(std::make_pair(std::make_pair(at_idx_one, at_idx_two), 
+                    inter_residue_bond_orders[bond_idx]));
+    } else {
+      tmp.push_back(std::make_pair(std::make_pair(at_idx_two, at_idx_one), 
+                    inter_residue_bond_orders[bond_idx]));
+
+    }
   }
 
   std::sort(tmp.begin(), tmp.end());
@@ -757,8 +738,15 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent) {
 
   OMFPtr omf(new OMF);
 
-  // generate unordered map to assign indices to each unique residue definition
+  //////////////////////////////////////////////////////////////////////////////
+  // Generate kind of a "mini compound library"... Eeach unique residue gets  //
+  // an own entry in the residue_definitions_ vector. Unique means if the ==  // 
+  // operator of the ResidueDefinition struct evaluates to false to everything// 
+  // else.                                                                    //
+  //////////////////////////////////////////////////////////////////////////////
+
   std::unordered_map<ResidueDefinition, int, ResidueDefinitionHash> res_def_map;
+  std::unordered_map<unsigned long, int> res_idx_map;
   ost::mol::ResidueHandleList res_list = ent.GetResidueList();
   int idx = 0;
   for(auto it = res_list.begin(); it != res_list.end(); ++it) {
@@ -767,15 +755,67 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent) {
     if(map_it == res_def_map.end()) {
       // we didn't see that one before
       res_def_map[def] = idx;
+      res_idx_map[it->GetHashCode()] = idx;
       ++idx;
       omf->residue_definitions_.push_back(def);
+    } else {
+      res_idx_map[it->GetHashCode()] = map_it->second;
     }
   }
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Before processing the single chains, we're dealing with the bonds. Bonds //
+  // can only reasonably be extracted from the full EntityHandle or from the  //
+  // single atoms. We therefore do some preprocessing here to extract all     //
+  // inter-residue bonds of each chains. The intra-residue bonds are dealt    //
+  // with in the residue definitions.                                         //
+  //////////////////////////////////////////////////////////////////////////////
+
   ost::mol::ChainHandleList chain_list = ent.GetChainList();
-  for(auto ch_it = chain_list.begin(); ch_it != chain_list.end(); ++ch_it) {
-    omf->chain_data_[ch_it->GetName()] = 
-    ChainDataPtr(new ChainData(*ch_it, res_def_map));
+  // get inter-residue bonds for each chain and the corresponding bond orders
+  // we use atom hashes here to define the bonds...
+  std::vector<std::vector<std::pair<unsigned long, unsigned long> > > 
+  inter_residue_bonds(chain_list.size());
+  std::vector<std::vector<int> > 
+  inter_residue_bond_orders(chain_list.size());
+
+  //TODO we still need a way to deal with interchain bonds!
+  std::vector<std::pair<unsigned long, unsigned long> > interchain_bonds;
+  std::vector<int> interchain_bond_orders;
+
+  // also keep track of the chain indices
+  std::unordered_map<unsigned long, int> chain_idx_map;
+  int chain_idx = 0;
+  for(auto it = chain_list.begin(); it != chain_list.end(); ++it) {
+    chain_idx_map[it->GetHashCode()] = chain_idx++;
+  }
+
+  ost::mol::BondHandleList bond_list = ent.GetBondList(); 
+  for(auto bond_it = bond_list.begin(); bond_it != bond_list.end(); ++bond_it) {
+    const ost::mol::AtomHandle& at_one = bond_it->GetFirst();
+    const ost::mol::AtomHandle& at_two = bond_it->GetSecond();
+    if(at_one.GetResidue().GetChain() == at_two.GetResidue().GetChain()) {
+      if(at_one.GetResidue() != at_two.GetResidue()) {
+        int idx = chain_idx_map[at_one.GetResidue().GetChain().GetHashCode()];
+        inter_residue_bonds[idx].push_back(std::make_pair(at_one.GetHashCode(), 
+                                                          at_two.GetHashCode()));
+        inter_residue_bond_orders[idx].push_back(bond_it->GetBondOrder());
+      }
+    } else{
+      interchain_bonds.push_back(std::make_pair(at_one.GetHashCode(),
+                                                at_two.GetHashCode()));
+      interchain_bond_orders.push_back(bond_it->GetBondOrder());
+    }
+  }
+
+  /////////////////////////
+  // Fill per chain data //
+  /////////////////////////
+  for(uint ch_idx = 0; ch_idx < chain_list.size();  ++ch_idx) {
+    omf->chain_data_[chain_list[ch_idx].GetName()] = 
+    ChainDataPtr(new ChainData(chain_list[ch_idx], omf->residue_definitions_, 
+                 res_idx_map, inter_residue_bonds[ch_idx], 
+                 inter_residue_bond_orders[ch_idx]));
   }
 
   return omf;

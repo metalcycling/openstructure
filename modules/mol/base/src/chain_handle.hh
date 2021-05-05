@@ -164,6 +164,9 @@ public:
   /// 
   /// Useful for duck-typing in Python and in templates
   ChainHandle GetHandle() const;
+
+  unsigned long GetHashCode() const;
+  
   /// \brief whether the residues form an ordered sequence with respect to their
   ///     reside numbers.
   bool InSequence() const;
