@@ -266,6 +266,7 @@ namespace{
         outliers.push_back(*it);
         outliers.push_back(vec[*it]);
       }
+
       DumpIntVec(stream, int8_vec);
       DumpIntVec(stream, outliers);
     } else if(n_bytes_16 < n_bytes_32) {
@@ -278,7 +279,7 @@ namespace{
         outliers.push_back(vec[*it]);
       }
       DumpIntVec(stream, int16_vec);
-      DumpIntVec(stream, outliers);        
+      DumpIntVec(stream, outliers);   
     } else {
       int8_t encoding = 32;
       stream.write(reinterpret_cast<char*>(&encoding), sizeof(int8_t));
@@ -386,6 +387,18 @@ namespace{
     Dump(stream, run_length_encoded);
   }
 
+  void LoadBonds(std::istream& stream, std::vector<int>& vec) {
+    std::vector<int> delta_encoded;
+    Load(stream, delta_encoded);
+    DeltaDecoding(delta_encoded, vec);
+  }
+
+  void DumpBonds(std::ostream& stream, const std::vector<int>& vec) {
+    std::vector<int> delta_encoded;
+    DeltaEncoding(vec, delta_encoded);
+    Dump(stream, delta_encoded);
+  }
+
   void LoadBondOrders(std::istream& stream, std::vector<int>& vec) {
     std::vector<int> run_length_encoded;
     Load(stream, run_length_encoded);
@@ -442,19 +455,47 @@ namespace{
   }
 
   void LoadBFactors(std::istream& stream, std::vector<Real>& bfactors) {
-    std::vector<int> delta_encoded;
-    Load(stream, delta_encoded);
-    std::vector<int> int_vec;
-    DeltaDecoding(delta_encoded, int_vec);
-    IntToRealVec(int_vec, bfactors, 0.01);
+
+    int8_t bfactor_encoding = 0;
+    stream.read(reinterpret_cast<char*>(&bfactor_encoding), sizeof(int8_t));
+    if(bfactor_encoding == 0) {
+      std::vector<int> delta_encoded;
+      Load(stream, delta_encoded);
+      std::vector<int> int_vec;
+      DeltaDecoding(delta_encoded, int_vec);
+      IntToRealVec(int_vec, bfactors, 0.01);
+    } else if(bfactor_encoding == 42) {
+      std::vector<int> runlength_encoded;
+      Load(stream, runlength_encoded);
+      std::vector<int> int_vec;
+      RunLengthDecoding(runlength_encoded, int_vec);
+      IntToRealVec(int_vec, bfactors, 0.01);
+    } else {
+      throw ost::Error("Observed invalid bfactor encoding");
+    }
   }
 
   void DumpBFactors(std::ostream& stream, const std::vector<Real>& bfactors) {
     std::vector<int> int_vec;
     RealToIntVec(bfactors, int_vec, 100);
-    std::vector<int> delta_encoded;
-    DeltaEncoding(int_vec, delta_encoded);
-    Dump(stream, delta_encoded);
+
+    // Hack: some structures (e.g. EM) have all bfactors set to 0.0
+    // this efficiently compresses with runlength encoding.
+    // Let's sacrifice a byte to mark that
+    std::vector<int> run_length_encoded;
+    RunLengthEncoding(int_vec, run_length_encoded);
+    if(static_cast<float>(run_length_encoded.size())/int_vec.size() < 0.42) {
+      int8_t bfactor_encoding = 42;
+      stream.write(reinterpret_cast<char*>(&bfactor_encoding), sizeof(int8_t));
+      Dump(stream, run_length_encoded);
+    } else {
+      // continue with delta encoding
+      int8_t bfactor_encoding = 0;
+      stream.write(reinterpret_cast<char*>(&bfactor_encoding), sizeof(int8_t));
+      std::vector<int> delta_encoded;
+      DeltaEncoding(int_vec, delta_encoded);
+      Dump(stream, delta_encoded);
+    }
   }
 
   void LoadOccupancies(std::istream& stream, std::vector<Real>& occupancies) {
@@ -584,7 +625,7 @@ void ResidueDefinition::FromStream(std::istream& stream) {
   Load(stream, anames);
   Load(stream, elements);
   LoadIsHetatm(stream, is_hetatm);
-  Load(stream, bonds);
+  LoadBonds(stream, bonds);
   LoadBondOrders(stream, bond_orders);
 }
 
@@ -596,7 +637,7 @@ void ResidueDefinition::ToStream(std::ostream& stream) const{
   Dump(stream, anames);
   Dump(stream, elements);
   DumpIsHetatm(stream, is_hetatm);
-  Dump(stream, bonds);
+  DumpBonds(stream, bonds);
   DumpBondOrders(stream, bond_orders);
 }
 
@@ -661,8 +702,7 @@ ChainData::ChainData(const ost::mol::ChainHandle& chain,
 
   ch_name = chain.GetName();
 
-  // some mappers to deal with the bonds later on 
-  std::unordered_map<unsigned long, int> residue_idx_mapper;
+  // mapper to deal with the bonds later on
   std::unordered_map<unsigned long, int> atom_idx_mapper;
 
   // process residues
@@ -677,7 +717,6 @@ ChainData::ChainData(const ost::mol::ChainHandle& chain,
     // process atoms of that residue
     for(auto a_it = def.anames.begin(); a_it != def.anames.end(); ++a_it) {
       ost::mol::AtomHandle at = res_it->FindAtom(*a_it);
-      residue_idx_mapper[at.GetHashCode()] = rnums.size() - 1;
       atom_idx_mapper[at.GetHashCode()] = positions.size();
       occupancies.push_back(at.GetOccupancy());
       bfactors.push_back(at.GetBFactor());
@@ -716,7 +755,7 @@ void ChainData::ToStream(std::ostream& stream) const {
   DumpOccupancies(stream, occupancies);
   DumpBFactors(stream, bfactors);
   DumpPositions(stream, positions);
-  Dump(stream, bonds);
+  DumpBonds(stream, bonds);
   DumpBondOrders(stream, bond_orders);
   DumpIntVec(stream, sec_structures);
 }
@@ -729,7 +768,7 @@ void ChainData::FromStream(std::istream& stream) {
   LoadOccupancies(stream, occupancies);
   LoadBFactors(stream, bfactors);
   LoadPositions(stream, positions);
-  Load(stream, bonds);
+  LoadBonds(stream, bonds);
   LoadBondOrders(stream, bond_orders);
   LoadIntVec(stream, sec_structures);
 }
