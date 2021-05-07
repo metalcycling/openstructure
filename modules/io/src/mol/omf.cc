@@ -143,6 +143,131 @@ namespace{
     }  
   }
 
+  // functionality to perform integer packing
+  int IntegerPackingSize(const std::vector<int>& vec, int min, int max) {
+    // This function only estimates the number of elements in integer
+    // packing without actually doing it.
+
+    if(max <= min) {
+      throw ost::Error("Min max error in IntegerPackingSize");
+    }
+
+    // We don't allow unsigned packing here => min must be negative,
+    // max must be positive
+    if(min >= 0) {
+      throw ost::Error("Min val in IntegerPacking must be negative");
+    }
+
+    if(max <= 0) {
+      throw ost::Error("Max val in IntegerPacking must be positive");
+    }
+
+    int n = 0;
+    int abs_min = std::abs(min);
+    for(auto it = vec.begin(); it != vec.end(); ++it) {
+      if(*it > max) {
+        n += (*it/max + 1); 
+      } else if (*it < min) {
+        n += (std::abs(*it)/abs_min + 1);
+      } else {
+        ++n;
+      }
+    }
+    return n;
+  }
+
+  template<typename T>
+  void IntegerPacking(const std::vector<int>& in, std::vector<T>& out) {
+
+    int min = std::numeric_limits<T>::min();
+    int max = std::numeric_limits<T>::max();
+
+    if(max <= min) {
+      throw ost::Error("Min max error in IntegerPackingSize");
+    }
+
+    // We don't allow unsigned packing here => min must be negative,
+    // max must be positive
+    if(min >= 0) {
+      throw ost::Error("Min val in IntegerPacking must be negative");
+    }
+
+    if(max <= 0) {
+      throw ost::Error("Max val in IntegerPacking must be positive");
+    }
+
+    out.clear();
+    int abs_min = std::abs(min);
+    for(auto it = in.begin(); it != in.end(); ++it) {
+      if(*it > max) {
+        int n = *it/max;
+        out.insert(out.end(), n, max);
+        out.push_back(*it - n*max); 
+      } else if (*it < min) {
+        int n = std::abs(*it)/abs_min;
+        out.insert(out.end(), n, min);
+        out.push_back(*it + n*abs_min);
+      } else {
+        out.push_back(*it);
+      }
+    }
+  }
+
+  template<typename T>
+  void IntegerUnpacking(const std::vector<T>& in, std::vector<int>& out) {
+    int min = std::numeric_limits<T>::min();
+    int max = std::numeric_limits<T>::max();
+
+    if(max <= min) {
+      throw ost::Error("Min max error in IntegerPackingSize");
+    }
+
+    // We don't allow unsigned packing here => min must be negative,
+    // max must be positive
+    if(min >= 0) {
+      throw ost::Error("Min val in IntegerPacking must be negative");
+    }
+
+    if(max <= 0) {
+      throw ost::Error("Max val in IntegerPacking must be positive");
+    }
+
+    out.clear();
+    int idx = 0;
+    int in_size = in.size();
+    while(idx < in_size) {
+      int val = in[idx];
+      if(val == max) {
+        int summed_val = val;
+        ++idx;
+        while(true) {
+          summed_val += in[idx];
+          if(in[idx] != max) {
+            ++idx;
+            break;
+          }
+          ++idx;
+        }
+        out.push_back(summed_val);
+      } else if (val == min) {
+        int summed_val = min;
+        ++idx;
+        while(true) {
+          summed_val += in[idx];
+          if(in[idx] != min) {
+            ++idx;
+            break;
+          }
+          ++idx;
+        }
+        out.push_back(summed_val);
+      } else {
+        out.push_back(val);
+        ++idx;
+      }
+    }
+  }
+
   // dump and load strings
   void Load(std::istream& stream, String& str) {
     uint32_t size;
@@ -206,30 +331,17 @@ namespace{
     stream.write(reinterpret_cast<const char*>(&vec[0]), size*sizeof(T));
   }
 
-  // dump and load vectors with int that has adaptive memory model
   void Load(std::istream& stream, std::vector<int>& vec) {
     int8_t encoding;
     stream.read(reinterpret_cast<char*>(&encoding), sizeof(int8_t));
     if(encoding == 8) {
       std::vector<int8_t> int8_vec;
-      std::vector<int> outliers;
       LoadIntVec(stream, int8_vec);
-      LoadIntVec(stream, outliers);
-      vec.assign(int8_vec.begin(), int8_vec.end());
-      int n_outliers = outliers.size() / 2;
-      for(int i = 0; i < n_outliers; ++i) {
-        vec[outliers[2*i]] = outliers[2*i+1];
-      }
+      IntegerUnpacking(int8_vec, vec);
     } else if(encoding == 16) {
       std::vector<int16_t> int16_vec;
-      std::vector<int> outliers;
       LoadIntVec(stream, int16_vec);
-      LoadIntVec(stream, outliers);
-      vec.assign(int16_vec.begin(), int16_vec.end());
-      int n_outliers = outliers.size() / 2;
-      for(int i = 0; i < n_outliers; ++i) {
-        vec[outliers[2*i]] = outliers[2*i+1];
-      }
+      IntegerUnpacking(int16_vec, vec);
     } else if(encoding == 32) {
       LoadIntVec(stream, vec);
     } else {
@@ -238,52 +350,35 @@ namespace{
   }
 
   void Dump(std::ostream& stream, const std::vector<int>& vec) {
-    std::vector<int> int8_outliers;
-    std::vector<int> int16_outliers;
-    for(uint i = 0; i < vec.size(); ++i) {
-      if(vec[i] < std::numeric_limits<int8_t>::min() || 
-        vec[i] > std::numeric_limits<int8_t>::max()) {
-        int8_outliers.push_back(i);
-        if(vec[i] < std::numeric_limits<int16_t>::min() || 
-           vec[i] > std::numeric_limits<int16_t>::max()) {
-          int16_outliers.push_back(i);
-        }
+
+    int8_t encoding = 32;
+
+    // check whether we can pack tighter
+    int n_16 = IntegerPackingSize(vec, std::numeric_limits<int16_t>::min(), 
+                                  std::numeric_limits<int16_t>::max());
+    if(n_16*sizeof(int16_t) < vec.size()*sizeof(int)) {
+      // less bytes required...
+      encoding = 16;
+      //even tighter?
+      int n_8 = IntegerPackingSize(vec, std::numeric_limits<int8_t>::min(), 
+                                   std::numeric_limits<int8_t>::max());
+      if(n_8*sizeof(int8_t) < n_16*sizeof(int16_t)) {
+        encoding = 8;
       }
     }
 
-    int n_bytes_8 = 4 + 1 * vec.size(); // the data vec
-    n_bytes_8 += (4 + 2*4*int8_outliers.size()); // overhead to store outliers
-    int n_bytes_16 = 4 + 2 * vec.size(); // the data vec
-    n_bytes_16 += (4 + 2*4*int16_outliers.size()); // overhead to store outliers
-    int n_bytes_32 = 4 + 4 * vec.size(); // the data vec, no overhead
+    stream.write(reinterpret_cast<char*>(&encoding), sizeof(int8_t));
 
-    if(n_bytes_8 < n_bytes_16 && n_bytes_8 < n_bytes_32) {
-      int8_t encoding = 8;
-      stream.write(reinterpret_cast<char*>(&encoding), sizeof(int8_t));
-      std::vector<int8_t> int8_vec(vec.begin(), vec.end());
-      std::vector<int> outliers;
-      for(auto it = int8_outliers.begin(); it != int8_outliers.end(); ++it) {
-        outliers.push_back(*it);
-        outliers.push_back(vec[*it]);
-      }
-
-      DumpIntVec(stream, int8_vec);
-      DumpIntVec(stream, outliers);
-    } else if(n_bytes_16 < n_bytes_32) {
-      int8_t encoding = 16;
-      stream.write(reinterpret_cast<char*>(&encoding), sizeof(int8_t));
-      std::vector<int16_t> int16_vec(vec.begin(), vec.end());
-      std::vector<int> outliers;
-      for(auto it = int16_outliers.begin(); it != int16_outliers.end(); ++it) {
-        outliers.push_back(*it);
-        outliers.push_back(vec[*it]);
-      }
-      DumpIntVec(stream, int16_vec);
-      DumpIntVec(stream, outliers);   
-    } else {
-      int8_t encoding = 32;
-      stream.write(reinterpret_cast<char*>(&encoding), sizeof(int8_t));
+    if(encoding == 32) {
       DumpIntVec(stream, vec);
+    } else if(encoding == 16) {
+      std::vector<int16_t> packed;
+      IntegerPacking(vec, packed);
+      DumpIntVec(stream, packed);
+    } else if(encoding == 8) {
+      std::vector<int8_t> packed;
+      IntegerPacking(vec, packed);
+      DumpIntVec(stream, packed);
     }
   }
 
@@ -779,9 +874,7 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent) {
 
   //////////////////////////////////////////////////////////////////////////////
   // Generate kind of a "mini compound library"... Eeach unique residue gets  //
-  // an own entry in the residue_definitions_ vector. Unique means if the ==  // 
-  // operator of the ResidueDefinition struct evaluates to false to everything// 
-  // else.                                                                    //
+  // an own entry in the residue_definitions_ vector.                         //
   //////////////////////////////////////////////////////////////////////////////
 
   std::unordered_map<ResidueDefinition, int, ResidueDefinitionHash> res_def_map;
@@ -806,7 +899,7 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent) {
   // Before processing the single chains, we're dealing with the bonds. Bonds //
   // can only reasonably be extracted from the full EntityHandle or from the  //
   // single atoms. We therefore do some preprocessing here to extract all     //
-  // inter-residue bonds of each chains. The intra-residue bonds are dealt    //
+  // inter-residue bonds of each chain. The intra-residue bonds are dealt     //
   // with in the residue definitions.                                         //
   //////////////////////////////////////////////////////////////////////////////
 
