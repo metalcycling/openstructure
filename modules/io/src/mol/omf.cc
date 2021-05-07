@@ -21,6 +21,16 @@ namespace{
     }
   };
 
+  // define hash function, so we can use ResidueDefinition as key in an unordered 
+  // map. The used hash function is overly simple and gives a hash collision 
+  // whenever we have two residues of same name but different atom composition.
+  // That's hopefully rare...
+  struct ResidueDefinitionHash {
+    std::size_t operator()(const ost::io::ResidueDefinition& r) const {
+      return std::hash<String>()(r.name);
+    }
+  };
+
   // some helpers
   void RealToIntVec(const std::vector<Real>& real_vec, 
                     std::vector<int>& int_vec, Real factor) {
