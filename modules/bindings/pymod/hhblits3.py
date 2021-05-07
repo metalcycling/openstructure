@@ -505,8 +505,8 @@ class HHblits:
                 if self.filename != os.path.abspath(query):
                     shutil.copy(query, self.filename)
             else:
-                self.filename = os.path.join(self.working_dir,
-                                             '%s.fasta' % HHblits.OUTPUT_PREFIX)
+                self.filename = os.path.abspath(os.path.join(self.working_dir,
+                                             '%s.fasta' % HHblits.OUTPUT_PREFIX))
                 ost.io.SaveSequence(query, self.filename)
         else:
             self.needs_cleanup = True
