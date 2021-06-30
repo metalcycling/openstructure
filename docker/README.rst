@@ -164,17 +164,6 @@ To see the help for compare-structures action run:
   cd <PATH TO OST>/docker
   ./run_docker_ost <IMAGE NAME> compare-structures
 
-Run GUI
--------
-
-The container is built with GUI support, but this is still to be considered an
-experimental feature as it is known to depend on some properties of the host
-where Docker is run. What works on some Linux machines is the following:
-
-.. code-block:: bash
-
-  xhost +local:docker
-  docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix --entrypoint dng <IMAGE NAME>
 
 Running other commands
 ----------------------
