@@ -1,3 +1,10 @@
+Changes in Release 2.2.x
+--------------------------------------------------------------------------------
+
+ * Removed GUI components in containers
+ * DSSP 4.0 support in DSSP binding (https://github.com/PDB-REDO/dssp) 
+ * Several minor bug fixes and improvements.
+
 Changes in Release 2.2.0
 --------------------------------------------------------------------------------
 
