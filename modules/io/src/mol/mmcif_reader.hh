@@ -342,7 +342,8 @@ protected:
   typedef enum {
     MMCIF_HELIX,
     MMCIF_STRAND,
-    MMCIF_TURN
+    MMCIF_TURN,
+    MMCIF_COIL
   } MMCifSecStructElement;
 
   /// \brief Check whether an element was classified sheet or helix

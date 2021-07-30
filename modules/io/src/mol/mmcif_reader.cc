@@ -1312,6 +1312,12 @@ MMCifReader::MMCifSecStructElement MMCifReader::DetermineSecStructType(
   else if (type == StringRef("STRN", 4)) {
     return MMCIF_STRAND;
   }
+  else if (type == StringRef("BEND", 4)) {
+    return MMCIF_COIL;
+  }
+  else if (type == StringRef("OTHER", 5)) {
+    return MMCIF_COIL;
+  }
 
   throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
                                     "Unknown secondary structure class found: "+
