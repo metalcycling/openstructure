@@ -2,6 +2,8 @@ Changes in Release 2.2.x
 --------------------------------------------------------------------------------
 
  * Add AAindex databases (Kawashima et al., 2000)
+ * Added experimental molecular structure format OMF (OpenStructure Minimal 
+   Format)
  * Removed GUI components in containers
  * DSSP 4.0 support in DSSP binding (https://github.com/PDB-REDO/dssp)
  * mol.alg.PDBize does not turn plain polymer chains (not marked peptide or
