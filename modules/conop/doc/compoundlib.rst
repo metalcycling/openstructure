@@ -154,7 +154,7 @@ build the compound library manually.
     
     :type: :class:`str`
     
-  .. attribute:: inchi
+  .. attribute:: inchi_key
   
     The InChIKey of this compound without the 'InChIKey=' part, e.g.
     'XLYOFNOQVPJJNP-UHFFFAOYSA-N' for water. Read-only.

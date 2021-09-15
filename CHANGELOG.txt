@@ -1,3 +1,13 @@
+Changes in Release 2.2.x
+--------------------------------------------------------------------------------
+
+ * Add AAindex databases (Kawashima et al., 2000)
+ * Removed GUI components in containers
+ * DSSP 4.0 support in DSSP binding (https://github.com/PDB-REDO/dssp)
+ * mol.alg.PDBize does not turn plain polymer chains (not marked peptide or
+   nucleotide) into ligand chains anymore
+ * Several minor bug fixes and improvements.
+
 Changes in Release 2.2.0
 --------------------------------------------------------------------------------
 

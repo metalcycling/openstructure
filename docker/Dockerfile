@@ -25,10 +25,7 @@ RUN apt-get update -y && apt-get install -y cmake \
                                             libeigen3-dev \
                                             libboost-all-dev \
                                             libpng-dev \
-                                            qt5-qmake \
-                                            qtbase5-dev \
                                             python3-all \
-                                            python3-pyqt5 \
                                             python3-numpy \
                                             python3-scipy \
                                             python3-pandas \
@@ -70,7 +67,7 @@ RUN cd ${SRC_FOLDER} && \
 #############
 RUN cd ${SRC_FOLDER} && \
     # copy ost release
-    wget -O openstructure-${OPENSTRUCTURE_VERSION}.tar.gz -nc https://git.scicore.unibas.ch/schwede/openstructure/repository/${OPENSTRUCTURE_VERSION}/archive.tar.gz && \
+    wget -O openstructure-${OPENSTRUCTURE_VERSION}.tar.gz -nc https://git.scicore.unibas.ch/schwede/openstructure/-/archive/${OPENSTRUCTURE_VERSION}/openstructure-${OPENSTRUCTURE_VERSION}.tar.gz && \
     mkdir openstructure-${OPENSTRUCTURE_VERSION} && \
     tar xf openstructure-${OPENSTRUCTURE_VERSION}.tar.gz -C ${SRC_FOLDER}/openstructure-${OPENSTRUCTURE_VERSION} --strip-components=1 && \
     mkdir -p ${SRC_FOLDER}/openstructure-${OPENSTRUCTURE_VERSION}/build && \
@@ -83,7 +80,8 @@ RUN cd ${SRC_FOLDER} && \
              -DOPEN_MM_INCLUDE_DIR=$OPENMM_INCLUDE_PATH \
              -DOPEN_MM_PLUGIN_DIR=$OPENMM_LIB_PATH/plugins \
              -DENABLE_GFX=ON \
-             -DENABLE_GUI=ON \
+             -DENABLE_GUI=OFF \
+             -DENABLE_INFO=OFF \
              -DCMAKE_C_FLAGS="-isystem /usr/include/boost/ -isystem ${OPENMM_INCLUDE_PATH}/include" \
              -DCMAKE_CXX_FLAGS="-isystem /usr/include/boost/ -isystem ${OPENMM_INCLUDE_PATH}/include" && \
     make -j ${CPUS_FOR_MAKE} && \
@@ -100,7 +98,6 @@ WORKDIR /home
 ENV OST_ROOT="/usr/local"
 ENV PYTHONPATH="/usr/local/lib64/python3.8/site-packages"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib64:/usr/local/openmm/lib/"
-ENV QT_X11_NO_MITSHM=1
 ENV OPENSTRUCTURE_VERSION=$OPENSTRUCTURE_VERSION
 
 ENTRYPOINT ["ost"]
