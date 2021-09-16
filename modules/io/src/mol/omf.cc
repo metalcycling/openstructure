@@ -36,7 +36,7 @@ namespace{
                     std::vector<int>& int_vec, Real factor) {
     int_vec.resize(real_vec.size());
     for(uint i = 0; i < real_vec.size(); ++i) {
-      int_vec[i] = factor*real_vec[i];
+      int_vec[i] = std::round(factor*real_vec[i]);
     }
   }
 
