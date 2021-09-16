@@ -100,7 +100,8 @@ struct ChainData {
             const std::unordered_map<unsigned long, int>& res_idx_map,
             const std::vector<std::pair<unsigned long, unsigned long> >& 
             inter_residue_bonds,
-            const std::vector<int>& inter_residue_bond_orders);
+            const std::vector<int>& inter_residue_bond_orders,
+            std::unordered_map<long, int>& atom_idx_mapper);
 
   void ToStream(std::ostream& stream) const;
 
@@ -164,6 +165,15 @@ private:
   std::vector<ResidueDefinition> residue_definitions_;
   std::vector<BioUnitDefinition> biounit_definitions_;
   std::map<String, ChainDataPtr> chain_data_;
+
+  // bond features - only for bonds that are inter-chain
+  // given n bonds, bond_chain_names_ and bond_atoms_ have length 2*n and are
+  // organized as follows: 
+  // [bond1_at1_x, bond1_at2_x, ..., bondn_at1_x, bondn_at2_x]
+  // bond_orders_ on the other hand has length n
+  std::vector<String> bond_chain_names_;
+  std::vector<int> bond_atoms_;
+  std::vector<int> bond_orders_;
 };
 
 }} //ns

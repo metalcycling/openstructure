@@ -803,12 +803,10 @@ ChainData::ChainData(const ost::mol::ChainHandle& chain,
                      const std::unordered_map<unsigned long, int>& res_idx_map,
                      const std::vector<std::pair<unsigned long, unsigned long> >& 
                      inter_residue_bonds,
-                     const std::vector<int>& inter_residue_bond_orders) {
+                     const std::vector<int>& inter_residue_bond_orders,
+                     std::unordered_map<long, int>& atom_idx_mapper) {
 
   ch_name = chain.GetName();
-
-  // mapper to deal with the bonds later on
-  std::unordered_map<unsigned long, int> atom_idx_mapper;
 
   // process residues
   ost::mol::ResidueHandleList res_list = chain.GetResidueList();
@@ -924,6 +922,7 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent) {
   //TODO we still need a way to deal with interchain bonds!
   std::vector<std::pair<unsigned long, unsigned long> > interchain_bonds;
   std::vector<int> interchain_bond_orders;
+  std::vector<std::pair<int, int> > interchain_bond_chain_indices;
 
   // also keep track of the chain indices
   std::unordered_map<unsigned long, int> chain_idx_map;
@@ -944,20 +943,42 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent) {
         inter_residue_bond_orders[idx].push_back(bond_it->GetBondOrder());
       }
     } else{
+      int idx_one = chain_idx_map[at_one.GetResidue().GetChain().GetHashCode()];
+      int idx_two = chain_idx_map[at_two.GetResidue().GetChain().GetHashCode()];
       interchain_bonds.push_back(std::make_pair(at_one.GetHashCode(),
                                                 at_two.GetHashCode()));
       interchain_bond_orders.push_back(bond_it->GetBondOrder());
+      interchain_bond_chain_indices.push_back(std::make_pair(idx_one, idx_two));
     }
   }
 
   /////////////////////////
   // Fill per chain data //
   /////////////////////////
+  // maps for each atom hash code the idx in the respective chain
+  std::map<String, std::unordered_map<long, int> > atom_idx_mapper;
   for(uint ch_idx = 0; ch_idx < chain_list.size();  ++ch_idx) {
-    omf->chain_data_[chain_list[ch_idx].GetName()] = 
+    String chain_name = chain_list[ch_idx].GetName(); 
+    atom_idx_mapper[chain_name] = std::unordered_map<long, int>();
+    omf->chain_data_[chain_name] = 
     ChainDataPtr(new ChainData(chain_list[ch_idx], omf->residue_definitions_, 
                  res_idx_map, inter_residue_bonds[ch_idx], 
-                 inter_residue_bond_orders[ch_idx]));
+                 inter_residue_bond_orders[ch_idx],
+                 atom_idx_mapper[chain_name]));
+  }
+
+  for(uint i = 0; i < interchain_bonds.size(); ++i) {
+    int ch_idx_one = interchain_bond_chain_indices[i].first;
+    int ch_idx_two = interchain_bond_chain_indices[i].second;
+    String chain_name_one = chain_list[ch_idx_one].GetName();
+    String chain_name_two = chain_list[ch_idx_two].GetName();
+    omf->bond_chain_names_.push_back(chain_name_one);
+    omf->bond_chain_names_.push_back(chain_name_two);
+    int at_hash_one = interchain_bonds[i].first;
+    int at_hash_two = interchain_bonds[i].second;
+    omf->bond_atoms_.push_back(atom_idx_mapper[chain_name_one][at_hash_one]);
+    omf->bond_atoms_.push_back(atom_idx_mapper[chain_name_two][at_hash_two]);
+    omf->bond_orders_.push_back(interchain_bond_orders[i]);
   }
 
   return omf;
@@ -1012,6 +1033,16 @@ ost::mol::EntityHandle OMF::GetAU() const{
   for(auto it = chain_data_.begin(); it!=chain_data_.end(); ++it) {
     ost::mol::ChainHandle ch = ed.InsertChain(it->first); 
     this->FillChain(ch, ed, it->second);
+  }
+
+  // deal with inter-chain bonds
+  // implemented inefficiently but can be considered special case
+  for(uint i = 0; i < bond_orders_.size(); ++i) {
+    ost::mol::ChainHandle chain_one = ent.FindChain(bond_chain_names_[i*2]);
+    ost::mol::ChainHandle chain_two = ent.FindChain(bond_chain_names_[i*2+1]);
+    ost::mol::AtomHandle at_one = chain_one.GetAtomList()[bond_atoms_[2*i]];
+    ost::mol::AtomHandle at_two = chain_two.GetAtomList()[bond_atoms_[2*i]];
+    ed.Connect(at_one, at_two, bond_orders_[i]);
   }
   return ent;
 }
@@ -1090,12 +1121,18 @@ void OMF::ToStream(std::ostream& stream) const {
   Dump(stream, residue_definitions_);
   Dump(stream, biounit_definitions_);
   Dump(stream, chain_data_);
+  Dump(stream, bond_chain_names_);
+  Dump(stream, bond_atoms_);
+  Dump(stream, bond_orders_);
 }
 
 void OMF::FromStream(std::istream& stream) {
   Load(stream, residue_definitions_);
   Load(stream, biounit_definitions_);
   Load(stream, chain_data_);
+  Load(stream, bond_chain_names_);
+  Load(stream, bond_atoms_);
+  Load(stream, bond_orders_);
 }
 
 void OMF::FillChain(ost::mol::ChainHandle& chain, ost::mol::XCSEditor& ed,
