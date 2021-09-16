@@ -209,11 +209,11 @@ namespace{
     out.clear();
     int abs_min = std::abs(min);
     for(auto it = in.begin(); it != in.end(); ++it) {
-      if(*it > max) {
+      if(*it >= max) {
         int n = *it/max;
         out.insert(out.end(), n, max);
         out.push_back(*it - n*max); 
-      } else if (*it < min) {
+      } else if (*it <= min) {
         int n = std::abs(*it)/abs_min;
         out.insert(out.end(), n, min);
         out.push_back(*it + n*abs_min);
