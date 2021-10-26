@@ -14,11 +14,10 @@ set(OST_IO_UNIT_TESTS
   test_star_parser.cc
   test_mmcif_reader.cc
   test_mmcif_info.cc
+  test_io_img.cc
+  test_exceptions.cc
 )
-if (ENABLE_IMG)
-  list(APPEND OST_IO_UNIT_TESTS test_io_img.cc)
-  list(APPEND OST_IO_UNIT_TESTS test_exceptions.cc)
-endif()
+
 ost_unittest(MODULE io
              SOURCES "${OST_IO_UNIT_TESTS}"
              LINK ost_mol ost_seq)

@@ -18,6 +18,10 @@ set(OST_GUI_PYMOD_SOURCES
   export_file_viewer.cc
   export_widget.cc
   export_gl_canvas.cc
+  data_viewer_proxy.cc
+  export_data_viewer.cc
+  export_overlay.cc
+  export_overlay_manager.cc
 )
 set(OST_GUI_SCENE_PYMOD_MODULES
 __init__.py
@@ -59,14 +63,6 @@ line_trace_widget.py
 wireframe_widget.py
 query_editor.py
 )
-if (ENABLE_IMG)
-  list(APPEND OST_GUI_PYMOD_SOURCES
-  data_viewer_proxy.cc
-  export_data_viewer.cc
-  export_overlay.cc
-  export_overlay_manager.cc
-  )
-endif()
 
 if (ENABLE_SPNAV)
   list( APPEND OST_GUI_PYMOD_SOURCES

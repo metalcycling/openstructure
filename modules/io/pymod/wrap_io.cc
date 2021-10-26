@@ -70,9 +70,7 @@ ost::mol::alg::StereoChemicalProps (*read_props_b)(bool check) = &ReadStereoChem
 void export_pdb_io();
 void export_mmcif_io();
 void export_omf_io();
-#if OST_IMG_ENABLED
 void export_map_io();
-#endif
 BOOST_PYTHON_MODULE(_ost_io)
 {
   class_<IOManager, boost::noncopyable>("IOManager", no_init)
@@ -136,9 +134,7 @@ BOOST_PYTHON_MODULE(_ost_io)
   export_pdb_io();
   export_mmcif_io();
   export_omf_io();
-#if OST_IMG_ENABLED  
   export_map_io();
-#endif
   def("SaveCHARMMTraj", &SaveCHARMMTraj, 
       (arg("traj"), arg("pdb_filename"), arg("dcd_filename"), arg("stride")=1, 
        arg("profile")=IOProfile()));

@@ -42,15 +42,12 @@ void export_FileLoader();
 void export_FileViewer();
 void export_Widget();
 void export_GLCanvas();
-
-#if OST_SPNAV_ENABLED
-void export_Input();
-#endif
-
-#ifdef OST_IMG_ENABLED
 void export_data_viewer();
 void export_overlay();
 void export_overlay_manager();
+
+#if OST_SPNAV_ENABLED
+void export_Input();
 #endif
 
 #include <boost/python/to_python_converter.hpp>
@@ -134,11 +131,9 @@ BOOST_PYTHON_MODULE(_ost_gui)
   export_Input();
   #endif
 
-  #if OST_IMG_ENABLED
   export_data_viewer();
   export_overlay();
   export_overlay_manager();
-  #endif
   
   class_<AdminRights>("AdminRights", init<>())
     .def("Acquire", &AdminRights::Acquire)

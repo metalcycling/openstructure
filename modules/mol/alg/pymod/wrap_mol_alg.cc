@@ -49,9 +49,7 @@ void export_accessibility();
 void export_sec_struct();
 void export_sec_struct_segments();
 void export_find_membrane();
-#if OST_IMG_ENABLED
 void export_entity_to_density();
-#endif
 
 namespace {
   
@@ -322,9 +320,7 @@ BOOST_PYTHON_MODULE(_ost_mol_alg)
   export_sec_struct();
   export_sec_struct_segments();
   export_find_membrane();
-  #if OST_IMG_ENABLED
   export_entity_to_density();
-  #endif
   
   def("LocalDistDiffTest", lddt_a, (arg("sequence_separation")=0,arg("local_lddt_property_string")=""));
   def("LocalDistDiffTest", lddt_c, (arg("local_lddt_property_string")=""));

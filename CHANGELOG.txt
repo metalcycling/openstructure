@@ -8,6 +8,7 @@ Changes in Release 2.2.x
  * DSSP 4.0 support in DSSP binding (https://github.com/PDB-REDO/dssp)
  * mol.alg.PDBize does not turn plain polymer chains (not marked peptide or
    nucleotide) into ligand chains anymore
+ * Remove ENABLE_IMG flag in cmake build system - img module is always built now
  * Several minor bug fixes and improvements.
 
 Changes in Release 2.2.0

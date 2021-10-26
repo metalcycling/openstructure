@@ -41,7 +41,7 @@ set(SETTINGS_HH_FILE "${CMAKE_CURRENT_SOURCE_DIR}/settings.hh")
 configure_file(settings.hh.in ${SETTINGS_HH_FILE})
 
 
-set(MOL_MM_DEPS ost_mol ost_io ost_img)
+set(MOL_MM_DEPS ost_mol ost_io)
 
 
 module(NAME mol_mm SOURCES ${OST_MOL_MM_SOURCES}

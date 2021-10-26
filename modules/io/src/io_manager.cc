@@ -29,20 +29,19 @@
 #include <ost/io/seq/pssm_io_handler.hh>
 #include <ost/io/mol/surface_io_msms_handler.hh>
 #include <ost/io/seq/clustal_io_handler.hh>
-#if OST_IMG_ENABLED
-#  include  <ost/io/img/map_io_dx_handler.hh>
-#  include  <ost/io/img/map_io_spi_handler.hh>
-#  include  <ost/io/img/map_io_mrc_handler.hh>
-#  include  <ost/io/img/map_io_dm3_handler.hh>
-#  include  <ost/io/img/map_io_situs_handler.hh>
-#  include  <ost/io/img/map_io_tiff_handler.hh>
-#  include  <ost/io/img/map_io_png_handler.hh>
-#  include  <ost/io/img/map_io_dat_handler.hh>
-#  include  <ost/io/img/map_io_jpk_handler.hh>
-#  include  <ost/io/img/map_io_nanoscope_handler.hh>
-#  include  <ost/io/img/map_io_df3_handler.hh>
-#  include  <ost/io/img/map_io_ipl_handler.hh>
-#endif
+#include  <ost/io/img/map_io_dx_handler.hh>
+#include  <ost/io/img/map_io_spi_handler.hh>
+#include  <ost/io/img/map_io_mrc_handler.hh>
+#include  <ost/io/img/map_io_dm3_handler.hh>
+#include  <ost/io/img/map_io_situs_handler.hh>
+#include  <ost/io/img/map_io_tiff_handler.hh>
+#include  <ost/io/img/map_io_png_handler.hh>
+#include  <ost/io/img/map_io_dat_handler.hh>
+#include  <ost/io/img/map_io_jpk_handler.hh>
+#include  <ost/io/img/map_io_nanoscope_handler.hh>
+#include  <ost/io/img/map_io_df3_handler.hh>
+#include  <ost/io/img/map_io_ipl_handler.hh>
+
 namespace ost { namespace io {
 
 IOManager::IOManager()
@@ -59,7 +58,6 @@ IOManager::IOManager()
   RegisterFactory(ProfileIOHandlerFactoryBasePtr(new HhmIOHandlerFactory));
   RegisterFactory(ProfileIOHandlerFactoryBasePtr(new PssmIOHandlerFactory));
   RegisterFactory(SurfaceIOHandlerFactoryBasePtr(new SurfaceIOMSMSHandlerFactory));
-#if OST_IMG_ENABLED  
   RegisterFactory(MapIOHandlerFactoryBasePtr(new MapIODxHandlerFactory));
   RegisterFactory(MapIOHandlerFactoryBasePtr(new MapIOSpiHandlerFactory));
   RegisterFactory(MapIOHandlerFactoryBasePtr(new MapIOSitusHandlerFactory));
@@ -72,7 +70,6 @@ IOManager::IOManager()
   RegisterFactory(MapIOHandlerFactoryBasePtr(new MapIONanoscopeHandlerFactory));
   RegisterFactory(MapIOHandlerFactoryBasePtr(new MapIODF3HandlerFactory));
   RegisterFactory(MapIOHandlerFactoryBasePtr(new MapIOIPLHandlerFactory));
-#endif
 }
 
 IOManager& IOManager::Instance()
@@ -165,7 +162,6 @@ SurfaceIOHandlerPtr IOManager::FindSurfaceImportHandler(const String& filename,
   throw IOUnknownFormatException("no suitable surface io handler found for "+filename);
 }
 
-#if OST_IMG_ENABLED
 MapIOHandlerPtr IOManager::FindMapImportHandlerFile(const boost::filesystem::path& loc,
                                                     const ImageFormatBase& formatstruct)
 {
@@ -281,8 +277,6 @@ const MapIOFList& IOManager::GetAvailableMapHandler() const
 {
   return map_io_list_;
 }
-
-#endif //OST_IMG_ENABLED
 
 void IOManager::RegisterFactory(const EntityIOHandlerFactoryBaseP& f) 
 {

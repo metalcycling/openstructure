@@ -45,12 +45,10 @@
 #include <ost/gui/file_type_dialog.hh>
 #include <ost/gui/sequence_viewer/sequence_viewer.hh>
 
-#if OST_IMG_ENABLED
-#  include <ost/io/img/load_map.hh>
-#  include <ost/gfx/map_iso.hh>
-#  include <ost/img/extent.hh>
-#  include <ost/gui/data_viewer/data_viewer.hh>
-#endif
+#include <ost/io/img/load_map.hh>
+#include <ost/gfx/map_iso.hh>
+#include <ost/img/extent.hh>
+#include <ost/gui/data_viewer/data_viewer.hh>
 
 #include <QDir>
 #include <QAction>
@@ -60,10 +58,7 @@
 #include <QMenuBar>
 namespace ost { namespace gui {
 
-
-#if OST_IMG_ENABLED
-  QList<img::ImageHandle> FileLoader::loaded_images_;
-#endif
+QList<img::ImageHandle> FileLoader::loaded_images_;
 
 FileLoader::FileLoader(){}
 
@@ -82,7 +77,6 @@ void FileLoader::LoadObject(const QString& filename, const QString& selection)
   else{
     try{
       obj=FileLoader::TryLoadEntity(filename, io::EntityIOHandlerP(), selection);
-  #if OST_IMG_ENABLED
       if (!obj)  {
         try{
           obj=FileLoader::TryLoadMap(filename);
@@ -90,7 +84,6 @@ void FileLoader::LoadObject(const QString& filename, const QString& selection)
           return;
         }
       }
-  #endif
       if (!obj)  {
         try{
           obj=FileLoader::TryLoadAlignment(filename);
@@ -148,11 +141,9 @@ gfx::GfxObjP FileLoader::NoHandlerFound(const QString& filename)
       if(dialog->GetSurfaceHandler()){
         return TryLoadSurface(filename,dialog->GetSurfaceHandler());
       }
-  #if OST_IMG_ENABLED
       if(dialog->GetMapHandler()){
         return TryLoadMap(filename,dialog->GetMapHandler());
       }
-  #endif
     }
   }
   catch (io::IOException& e) {
@@ -235,7 +226,6 @@ gfx::GfxObjP FileLoader::TryLoadEntity(const QString& filename, io::EntityIOHand
   return gfx::GfxObjP();
 }
 
-#if OST_IMG_ENABLED
 gfx::GfxObjP FileLoader::TryLoadMap(const QString& filename, io::MapIOHandlerPtr handler)
 {
   if(!handler){
@@ -267,7 +257,6 @@ gfx::GfxObjP FileLoader::TryLoadMap(const QString& filename, io::MapIOHandlerPtr
   }
   return gfx::GfxObjP();
 }
-#endif
 
 gfx::GfxObjP FileLoader::TryLoadSurface(const QString& filename, io::SurfaceIOHandlerPtr handler)
 {

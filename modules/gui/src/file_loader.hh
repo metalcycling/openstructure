@@ -29,9 +29,7 @@
 #include <ost/io/mol/entity_io_handler.hh>
 #include <ost/io/seq/sequence_io_handler.hh>
 #include <ost/io/mol/surface_io_handler.hh>
-#if OST_IMG_ENABLED
-#  include <ost/io/img/map_io_handler.hh>
-#endif
+#include <ost/io/img/map_io_handler.hh>
 
 #include <QString>
 #include <QList>
@@ -52,20 +50,14 @@ private:
   static gfx::GfxObjP TryLoadEntity(const QString& filename, io::EntityIOHandlerP handler=io::EntityIOHandlerP(), const QString& selection=QString());
   static gfx::GfxObjP TryLoadSurface(const QString& filename, io::SurfaceIOHandlerPtr handler=io::SurfaceIOHandlerPtr());
   static gfx::GfxObjP TryLoadAlignment(const QString& filename, io::SequenceIOHandlerPtr handler=io::SequenceIOHandlerPtr());
-#if OST_IMG_ENABLED
   static gfx::GfxObjP TryLoadMap(const QString& filename, io::MapIOHandlerPtr handler=io::MapIOHandlerPtr());
-#endif
   static void RunScript(const QString& filename);
   static void LoadPDB(const QString& filename, const QString& selection=QString());
   static void AddToScene(const QString& filename, gfx::GfxObjP obj);
   static void HandleError(const Error& e, ErrorType type, const QString& filename, gfx::GfxObjP obj=gfx::GfxObjP());
   static gfx::GfxObjP NoHandlerFound(const QString& filename);
   virtual ~FileLoader();
-
-
-#if OST_IMG_ENABLED
   static QList<img::ImageHandle> loaded_images_;
-#endif
 
 public:
   static void LoadObject(const QString& filename, const QString& selection=QString());

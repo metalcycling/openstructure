@@ -26,9 +26,7 @@
 #include <ost/geom/geom.hh>
 #include <ost/mol/entity_handle.hh>
 #include <ost/mol/entity_view.hh>
-#if OST_IMG_ENABLED
-#  include <ost/img/map.hh>
-#endif
+#include <ost/img/map.hh>
 
 #include <ost/config.hh>
 #include "module_config.hh"
@@ -135,15 +133,10 @@ class DLLEXPORT_OST_GFX GfxObjBase: public GfxNode
                        const String& prop,
                        const Gradient& g, float minv, float maxv) = 0;
 
-#if OST_IMG_ENABLED
   /// \brief color based on image
   virtual void ColorBy(const img::MapHandle& mh,
                        const String& prop,
-                       const Gradient& g,float minv, float maxv) = 0;
-#endif
-    
-
-
+                       const Gradient& g,float minv, float maxv) = 0;    
 };
 
 }} // ns

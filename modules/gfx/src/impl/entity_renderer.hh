@@ -49,9 +49,7 @@
 #include <ost/gfx/color_ops/uniform_color_op.hh>
 #include <ost/gfx/color_ops/gradient_level_color_op.hh>
 #include <ost/gfx/color_ops/entity_view_color_op.hh>
-#if OST_IMG_ENABLED
 #include <ost/gfx/color_ops/map_handle_color_op.hh>
-#endif //OST_IMG_ENABLED
 
 #include "mapped_property.hh"
 #include "entity_renderer_fw.hh"
@@ -157,9 +155,7 @@ public:
   virtual void Apply(const gfx::UniformColorOp& op)=0;
   virtual void Apply(const gfx::GradientLevelColorOp& op)=0;
   virtual void Apply(const gfx::EntityViewColorOp& op)=0;
-#if OST_IMG_ENABLED
   virtual void Apply(const gfx::MapHandleColorOp& op)=0;
-#endif
 
   bool IsDirty() const;
   
@@ -263,7 +259,6 @@ struct EntityViewGetCol {
   float minv_, maxv_;
 };
 
-#if OST_IMG_ENABLED
 struct MapHandleGetCol {
   MapHandleGetCol(const MapHandleColorOp& op):property_(op.GetProperty()),
       mh_(op.GetMapHandle()),
@@ -278,7 +273,6 @@ struct MapHandleGetCol {
   Gradient gradient_;
   float minv_, maxv_;
 };
-#endif
 
 }}} //ns
 

@@ -24,9 +24,7 @@
  */
 
 #include <ost/mol/entity_view.hh>
-#if OST_IMG_ENABLED
 #include <ost/img/map.hh>
-#endif
 
 #include <ost/gfx/module_config.hh>
 #include <ost/gfx/gradient.hh>
@@ -49,8 +47,7 @@ float DLLEXPORT_OST_GFX MappedProperty(const mol::EntityView& ev,
 Color DLLEXPORT_OST_GFX MappedProperty(const mol::EntityView& ev, 
                                        const String& prop,
                                        const Gradient& g, float minv, float maxv,
-                                       const geom::Vec3& pos);
-#if OST_IMG_ENABLED                          
+                                       const geom::Vec3& pos);                      
 float DLLEXPORT_OST_GFX MappedProperty(const img::MapHandle& mh, 
                                        const String& prop,
                                        const geom::Vec3& pos);
@@ -58,7 +55,6 @@ Color DLLEXPORT_OST_GFX MappedProperty(const img::MapHandle& mh,
                                        const String& prop,
                                        const Gradient& g, float minv, float maxv,
                                        const geom::Vec3& pos);
-#endif
 
 }}}
 

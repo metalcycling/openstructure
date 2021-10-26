@@ -836,7 +836,6 @@ void Entity::ColorBy(const mol::EntityView& ev,
   this->Apply(evop);
 }
 
-#if OST_IMG_ENABLED
 void Entity::ColorBy(const img::MapHandle& mh,
                      const String& prop,
                      const Gradient& g,float minv, float maxv)
@@ -844,7 +843,6 @@ void Entity::ColorBy(const img::MapHandle& mh,
   MapHandleColorOp mhop = MapHandleColorOp("",prop,g,minv,maxv,mh);
   this->Apply(mhop);
 }
-#endif //OST_IMG_ENABLED
 
 void Entity::ColorBy(const String& prop,
                      const Gradient& gradient,
@@ -1097,7 +1095,6 @@ void Entity::Apply(const gfx::EntityViewColorOp& op, bool store)
   FlagRebuild();
 }
 
-#if OST_IMG_ENABLED
 void Entity::Apply(const gfx::MapHandleColorOp& op, bool store)
 {
   if(store){
@@ -1107,7 +1104,6 @@ void Entity::Apply(const gfx::MapHandleColorOp& op, bool store)
   apply_color_op_to_renderer_list(renderer_.begin(), renderer_.end(), op);
   FlagRebuild();
 }
-#endif
 
 void Entity::CleanColorOps()
 {

@@ -30,10 +30,8 @@ std::vector< std::vector<Real> > (*pair_dist2)(const mol::EntityView&,const mol:
 void export_StructureAnalysis()
 {
   def("GetPosListFromView",&GetPosListFromView, (arg("view")));
-#if OST_IMG_ENABLED
   def("CalculateAverageAgreementWithDensityMap",&CalculateAverageAgreementWithDensityMap,(arg("pos_list"),arg("density_map")));
   def("CalculateAgreementWithDensityMap",&CalculateAgreementWithDensityMap,(arg("pos_list"),arg("density_map")));
-#endif
   def("WrapEntityInPeriodicCell",&WrapEntityInPeriodicCell,(arg("Entity"),arg("cell_center"),arg("ucell_size"),arg("ucell_angles")=geom::Vec3(),arg("group_res")=true,arg("follow_bonds")=false));
   
 

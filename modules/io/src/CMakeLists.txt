@@ -34,11 +34,9 @@ foreach(fname ${OST_IO_SEQ_SOURCES})
   set(OST_IO_SOURCES ${OST_IO_SOURCES} seq/${fname})
 endforeach(fname ${OST_IO_SEQ_SOURCES})
 
-if (ENABLE_IMG)
-  foreach(fname ${OST_IO_IMG_SOURCES})
-    set(OST_IO_SOURCES ${OST_IO_SOURCES} img/${fname})
-  endforeach(fname ${OST_IO_IMG_SOURCES})
-endif()
+foreach(fname ${OST_IO_IMG_SOURCES})
+  set(OST_IO_SOURCES ${OST_IO_SOURCES} img/${fname})
+endforeach(fname ${OST_IO_IMG_SOURCES})
 
 ####################################
 # Add headers in subfolders (additionally) to OST_IO_HEADERS.
@@ -58,17 +56,12 @@ foreach(fname ${OST_IO_SEQ_HEADERS})
   set(OST_IO_HEADERS ${OST_IO_HEADERS} seq/${fname})
 endforeach(fname ${OST_IO_SEQ_HEADERS})
 
-if (ENABLE_IMG)
-  foreach(fname ${OST_IO_IMG_HEADERS})
-    set(OST_IO_HEADERS ${OST_IO_HEADERS} img/${fname})
-  endforeach(fname ${OST_IO_IMG_HEADERS})
-endif()
+foreach(fname ${OST_IO_IMG_HEADERS})
+  set(OST_IO_HEADERS ${OST_IO_HEADERS} img/${fname})
+endforeach(fname ${OST_IO_IMG_HEADERS})
 ####################################
 
-set(OST_IO_DEPENDENCIES ost_base;ost_conop;ost_seq;ost_mol_alg)
-if (ENABLE_IMG)
-  set(OST_IO_DEPENDENCIES ${OST_IO_DEPENDENCIES};ost_img;ost_img_alg)
-endif()
+set(OST_IO_DEPENDENCIES ost_base;ost_conop;ost_seq;ost_mol_alg;ost_img;ost_img_alg)
 module(NAME io SOURCES "${OST_IO_SOURCES}" 
        HEADERS ${OST_IO_MOL_HEADERS} IN_DIR mol
                ${OST_IO_IMG_HEADERS} IN_DIR img
@@ -76,6 +69,5 @@ module(NAME io SOURCES "${OST_IO_SOURCES}"
                ${OST_IO_HEADERS} 
        DEPENDS_ON ${OST_IO_DEPENDENCIES})
 target_link_libraries(ost_io ${BOOST_IOSTREAM_LIBRARIES})
-if (ENABLE_IMG)
-  target_link_libraries(ost_io ${TIFF_LIBRARIES} ${PNG_LIBRARIES})
-endif()
+target_link_libraries(ost_io ${TIFF_LIBRARIES} ${PNG_LIBRARIES})
+

@@ -30,9 +30,7 @@
 #include <ost/io/mol/entity_io_handler.hh>
 #include <ost/io/seq/sequence_io_handler.hh>
 #include <ost/io/mol/surface_io_handler.hh>
-#if OST_IMG_ENABLED
 #include <ost/io/img/map_io_handler.hh>
-#endif
 
 #endif
 
@@ -51,9 +49,7 @@ public:
   io::EntityIOHandlerP GetEntityHandler();
   io::SequenceIOHandlerPtr GetSequenceHandler();
   io::SurfaceIOHandlerPtr GetSurfaceHandler();
-#if OST_IMG_ENABLED
   io::MapIOHandlerPtr GetMapHandler();
-#endif
 public slots:
   virtual void accept();
 private:
@@ -62,9 +58,7 @@ private:
   io::EntityIOHandlerP entity_handler_;
   io::SequenceIOHandlerPtr seq_handler_;
   io::SurfaceIOHandlerPtr surf_handler_;
-#if OST_IMG_ENABLED
   io::MapIOHandlerPtr map_handler_;
-#endif
 
 };
 
@@ -73,8 +67,6 @@ private:
 Q_DECLARE_METATYPE(ost::io::EntityIOHandlerFactoryBaseP);
 Q_DECLARE_METATYPE(ost::io::SequenceIOHandlerFactoryBasePtr);
 Q_DECLARE_METATYPE(ost::io::SurfaceIOHandlerFactoryBasePtr);
-#if OST_IMG_ENABLED
 Q_DECLARE_METATYPE(ost::io::MapIOHandlerFactoryBasePtr);
-#endif
 
 #endif

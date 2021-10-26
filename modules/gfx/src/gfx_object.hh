@@ -104,11 +104,9 @@ public:
   virtual void ColorBy(const mol::EntityView& ev, 
                        const String& prop,
                        const Gradient& g, float minv, float maxv);
-#if OST_IMG_ENABLED
   virtual void ColorBy(const img::MapHandle& mh,
                        const String& prop,
                        const Gradient& g,float minv, float maxv);
-#endif
 
   // end of gfx obj base interface
 

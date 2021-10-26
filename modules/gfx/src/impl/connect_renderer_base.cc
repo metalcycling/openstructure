@@ -237,14 +237,11 @@ void ConnectRendererBase::Apply(const gfx::EntityViewColorOp& op)
   state_|=DIRTY_VA;
 }
 
-#if OST_IMG_ENABLED
 void ConnectRendererBase::Apply(const gfx::MapHandleColorOp& op)
 {
   apply_color_op(this,&view_,MapHandleGetCol(op),op);
   state_|=DIRTY_VA;
 }
-#endif
-
 
 void ConnectRendererBase::PickAtom(const geom::Line3& line, Real line_width,
                                    mol::AtomHandle& picked_atom)

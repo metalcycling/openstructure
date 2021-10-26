@@ -35,17 +35,14 @@ using namespace boost::python;
 #include "transfer_ownership.hh"
 #include "sip_handler.hh"
 
-#if OST_IMG_ENABLED
 #include "data_viewer_proxy.hh"
 using namespace ost::img::gui;
-#endif
 
 using namespace ost;
 using namespace ost::gui;
 
 namespace {
 
-#if OST_IMG_ENABLED
 DataViewerProxyPtr app_create_data_viewer1(GostyApp* app, const ost::img::ImageHandle& d, const QString& name)
 {
   return DataViewerProxyPtr(new DataViewerProxy(app->CreateDataViewer(d,name)));
@@ -58,7 +55,6 @@ DataViewerProxyPtr app_create_data_viewer3(GostyApp* app, const ost::img::ImageH
 {
   return DataViewerProxyPtr(new DataViewerProxy(app->CreateDataViewer(d,name,noparent)));
 }
-#endif
 }
 
 void app_add_widget_to_app_a(GostyApp* app, const QString& ident,
@@ -115,11 +111,9 @@ void export_Gosty()
         return_value_policy<reference_existing_object>())
     .add_property("message_widget", make_function(&GostyApp::GetMessageWidget,
         return_value_policy<reference_existing_object>()))
-     #if OST_IMG_ENABLED
     .def("CreateDataViewer", &app_create_data_viewer1)
     .def("CreateDataViewer", &app_create_data_viewer2)
     .def("CreateDataViewer", &app_create_data_viewer3)
-    #endif
     .def("ProcessEvents", &GostyApp::ProcessEvents)           
     .add_property("perspective", 
                   make_function(&GostyApp::GetPerspective, 

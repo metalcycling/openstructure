@@ -28,10 +28,7 @@
 #include <ost/gui/scene_win/scene_win.hh>
 #include <ost/gui/sequence_viewer/sequence_viewer.hh>
 #include <ost/gui/messages/message_widget.hh>
-
-#if OST_IMG_ENABLED
-  #include <ost/gui/data_viewer/data_viewer.hh>
-#endif
+#include <ost/gui/data_viewer/data_viewer.hh>
 
 #include <QApplication>
 #include <QMainWindow>
@@ -112,7 +109,6 @@ SequenceViewer* GostyApp::GetSequenceViewer()
   return seq_viewer_;
 }
 
-#if OST_IMG_ENABLED
 ost::img::gui::DataViewer* GostyApp::CreateDataViewer(const ost::img::ImageHandle& d, const QString& name, const int noparent)
 {
   ost::img::gui::DataViewer* viewer=NULL;
@@ -129,7 +125,6 @@ ost::img::gui::DataViewer* GostyApp::CreateDataViewer(const ost::img::ImageHandl
   return viewer;
 
 }
-#endif
   
 PythonShell* GostyApp::GetPyShell()
 {
