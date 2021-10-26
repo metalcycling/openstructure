@@ -32,10 +32,10 @@ parentheses.
 
 * `CMake <http://cmake.org>`_ (3.12.1)
 * `Python3 <http://python.org>`_ (3.6)
-* `Boost <http://boost.org>`_ (1.65)
+* `Boost <http://boost.org>`_ (1.68)
 * `zlib <https://zlib.net/>`_ (usually comes with Boost or system)
-* `Eigen3 <http://eigen.tuxfamily.org>`_ (3.2.0)
-* `SQLite3 <https://www3.sqlite.org>`_ (3.7.13)
+* `Eigen3 <http://eigen.tuxfamily.org>`_ (3.3.1)
+* `SQLite3 <https://www3.sqlite.org>`_ (3.24.0)
 * `FFTW3 <http://fftw.org>`_. By default, OpenStructure is compiled with single
   precision and thus also requires FFTW to be compiled with single precision.
   Most platforms offer this as a second package. If you are compiling manually,
@@ -55,7 +55,7 @@ If you would like to use the graphical user interface (GUI), also install:
 
 If you would like to use the :mod:`molecular mechanics <ost.mol.mm>` module:
 
-* `OpenMM <https://simtk.org/home/openmm>`_ (6.1)
+* `OpenMM <https://simtk.org/home/openmm>`_ (7.1)
 
 We do not provide backwards compatibility to Python 2.7. The last
 release supporting Python 2.7 is 1.11.0.
