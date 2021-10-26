@@ -1,4 +1,4 @@
-Changes in Release 2.2.x
+Changes in Release 2.3.0
 --------------------------------------------------------------------------------
 
  * Add AAindex databases (Kawashima et al., 2000)
