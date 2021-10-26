@@ -568,17 +568,26 @@ def _ReadStructureFile(path, c_alpha_only=False, fault_tolerant=False,
     entities = list()
     if not os.path.isfile(path):
         raise IOError("%s is not a file" % path)
-    try:
+
+    # Determine file format from suffix.
+    ext = path.split(".")
+    if ext[-1] == "gz":
+        ext = ext[:-1]
+    if len(ext) <= 1:
+        raise RuntimeError(f"Could not determine format of file {path}.")
+    sformat = ext[-1].lower()
+
+    if sformat in ["pdb"]:
         entity = LoadPDB(
             path,
             fault_tolerant=fault_tolerant,
             calpha_only=c_alpha_only)
-        if not entity.IsValid():
+        if not entity.IsValid() or len(entity.residues) == 0:
             raise IOError("Provided file does not contain valid entity.")
         entity.SetName(os.path.basename(path))
         entity = _Select(entity)
         entities.append(entity)
-    except Exception:
+    elif sformat in ["cif", "mmcif"]:
         try:
             tmp_entity, cif_info = LoadMMCIF(
                 path,
@@ -623,6 +632,9 @@ def _ReadStructureFile(path, c_alpha_only=False, fault_tolerant=False,
 
         except Exception:
             raise
+    else:
+        raise RuntimeError(f"Unsupported file extension found for file {path}.")
+
     return entities
 
 
