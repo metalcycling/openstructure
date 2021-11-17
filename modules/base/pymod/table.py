@@ -2960,9 +2960,8 @@ Statistics for column %(col)s
       plt.ylabel(y_title, size='x-large')
       plt.xlabel(x_title, size='x-large')
       
-      plt.xscale('log', basex=10)
+      plt.xscale('log', base=10)
       plt.xlim(0.001, 1.0)
-      
 
       if save:
         plt.savefig(save)
