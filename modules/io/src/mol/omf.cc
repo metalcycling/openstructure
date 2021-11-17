@@ -1118,6 +1118,13 @@ ost::mol::EntityHandle OMF::GetBU(int bu_idx) const{
 }
 
 void OMF::ToStream(std::ostream& stream) const {
+
+  uint32_t magic_number = 42;
+  stream.write(reinterpret_cast<char*>(&magic_number), sizeof(uint32_t));
+
+  uint32_t version = 1;
+  stream.write(reinterpret_cast<char*>(&version), sizeof(uint32_t));
+
   Dump(stream, residue_definitions_);
   Dump(stream, biounit_definitions_);
   Dump(stream, chain_data_);
@@ -1127,6 +1134,21 @@ void OMF::ToStream(std::ostream& stream) const {
 }
 
 void OMF::FromStream(std::istream& stream) {
+
+  uint32_t magic_number;
+  stream.read(reinterpret_cast<char*>(&magic_number), sizeof(uint32_t));
+  if(magic_number != 42) {
+    throw ost::Error("Cannot read corrupted OMF stream");
+  }
+
+  uint32_t version;
+  stream.read(reinterpret_cast<char*>(&version), sizeof(uint32_t));
+  if(version != 1) {
+    std::stringstream ss;
+    ss << "OST version only supports OMF version 1. Got "<<version;
+    throw ost::Error(ss.str());
+  }
+
   Load(stream, residue_definitions_);
   Load(stream, biounit_definitions_);
   Load(stream, chain_data_);
