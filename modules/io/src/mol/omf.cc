@@ -1155,6 +1155,10 @@ void OMF::FromStream(std::istream& stream) {
   Load(stream, bond_chain_names_);
   Load(stream, bond_atoms_);
   Load(stream, bond_orders_);
+
+  if(!stream.good()) {
+    throw ost::Error("Cannot read corrupted OMF stream");
+  }
 }
 
 void OMF::FillChain(ost::mol::ChainHandle& chain, ost::mol::XCSEditor& ed,
