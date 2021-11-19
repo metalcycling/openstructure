@@ -148,12 +148,12 @@ def CreateDB(infasta, dbout, mkdb_cmd=None):
   """
   if mkdb_cmd==None:
     try:
-      exe=settings.Locate('formatdb')
-      args=[exe, '-i', infasta, '-n', dbout]
+      exe=settings.Locate('makeblastdb')
+      args=[exe, '-in', infasta, '-out', dbout, '-dbtype', 'prot']
     except:
       try:
-        exe=settings.Locate('makeblastdb')
-        args=[exe, '-in', infasta, '-out', dbout, '-dbtype', 'prot']
+        exe=settings.Locate('formatdb')
+        args=[exe, '-i', infasta, '-n', dbout]
       except:
         raise RuntimeError('could not find makeblastdb/formatdb executable')
   else:
