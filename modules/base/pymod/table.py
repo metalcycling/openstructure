@@ -2959,8 +2959,10 @@ Statistics for column %(col)s
       plt.title(title, size='x-large', fontweight='bold')
       plt.ylabel(y_title, size='x-large')
       plt.xlabel(x_title, size='x-large')
-      
-      plt.xscale('log', base=10)
+      try:
+        plt.xscale('log', basex=10)
+      except:
+        plt.xscale('log', base=10) # breaking change in matplotlib 3.5
       plt.xlim(0.001, 1.0)
 
       if save:
