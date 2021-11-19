@@ -177,10 +177,10 @@ def BlastVersion(blast_location=None):
   """
 
   try:
-    blast_exe=settings.Locate('blastall',explicit_file_name=blast_location)
+    blast_exe=settings.Locate('blastp',explicit_file_name=blast_location)
   except:
     try:
-      blast_exe=settings.Locate('blastp', explicit_file_name=blast_location)
+      blast_exe=settings.Locate('blastall', explicit_file_name=blast_location)
     except:
       raise RuntimeError('could not find blast executable')
 
@@ -242,10 +242,10 @@ def Blast(query, database, gap_open=11, gap_ext=1, matrix='BLOSUM62',
 
   if blast_location==None:
     try:
-      blast_exe=settings.Locate('blastall')
+      blast_exe=settings.Locate('blastp')
     except:
       try:
-        blast_exe=settings.Locate('blastp')
+        blast_exe=settings.Locate('blastall')
       except:
         raise RuntimeError('could not find blast executable')
   else:
