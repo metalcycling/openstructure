@@ -5,7 +5,10 @@ Changes in Release 2.3.0
  * Added experimental molecular structure format OMF (OpenStructure Minimal 
    Format)
  * Removed GUI components in containers
- * DSSP 4.0 support in DSSP binding (https://github.com/PDB-REDO/dssp)
+ * Support to call external DSSP program has been deprecated.
+   ost.bindings.dssp.AssignDSSP still exists with the "old" interface but mimics
+   the equivalent behaviour with the OpenStructure internal secondary structure
+   and solvent accessibility algorithms.
  * mol.alg.PDBize does not turn plain polymer chains (not marked peptide or
    nucleotide) into ligand chains anymore
  * Remove ENABLE_IMG flag in cmake build system - img module is always built now
