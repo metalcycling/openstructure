@@ -13,6 +13,18 @@ hydrogen bonding patterns and geometric features.
 
 The program can be downloaded from `<http://swift.cmbi.ru.nl/gv/dssp/>`_.
 
+.. warning::
+  Support of the DSSP program has been deprecated. OpenStructure provides
+  functionality to assign equivalent secondary structures
+  (:func:`ost.mol.alg.AssignSecStruct`) and solvent accessibility
+  (:func:`ost.mol.alg.Accessibility`). You're advised to use these
+  algorithms.
+
+  :func:`AssignDSSP` still exists and provides the "old" interface but
+  internally uses the OpenStructure impmlementations and does not call
+  an external program anymore.
+
+
 Examples
 --------------------------------------------------------------------------------
 

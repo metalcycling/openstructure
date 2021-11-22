@@ -148,12 +148,12 @@ def CreateDB(infasta, dbout, mkdb_cmd=None):
   """
   if mkdb_cmd==None:
     try:
-      exe=settings.Locate('formatdb')
-      args=[exe, '-i', infasta, '-n', dbout]
+      exe=settings.Locate('makeblastdb')
+      args=[exe, '-in', infasta, '-out', dbout, '-dbtype', 'prot']
     except:
       try:
-        exe=settings.Locate('makeblastdb')
-        args=[exe, '-in', infasta, '-out', dbout, '-dbtype', 'prot']
+        exe=settings.Locate('formatdb')
+        args=[exe, '-i', infasta, '-n', dbout]
       except:
         raise RuntimeError('could not find makeblastdb/formatdb executable')
   else:
@@ -177,10 +177,10 @@ def BlastVersion(blast_location=None):
   """
 
   try:
-    blast_exe=settings.Locate('blastall',explicit_file_name=blast_location)
+    blast_exe=settings.Locate('blastp',explicit_file_name=blast_location)
   except:
     try:
-      blast_exe=settings.Locate('blastp', explicit_file_name=blast_location)
+      blast_exe=settings.Locate('blastall', explicit_file_name=blast_location)
     except:
       raise RuntimeError('could not find blast executable')
 
@@ -242,10 +242,10 @@ def Blast(query, database, gap_open=11, gap_ext=1, matrix='BLOSUM62',
 
   if blast_location==None:
     try:
-      blast_exe=settings.Locate('blastall')
+      blast_exe=settings.Locate('blastp')
     except:
       try:
-        blast_exe=settings.Locate('blastp')
+        blast_exe=settings.Locate('blastall')
       except:
         raise RuntimeError('could not find blast executable')
   else:

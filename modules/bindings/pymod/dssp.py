@@ -59,12 +59,94 @@ def _CalcRelativeSA(residue_type, absolute_sa):
     rel=float(absolute_sa)/(solvent_max_list[residue_indices.find(residue_type)])
   return rel
   
+#
+#def AssignDSSP(ent, pdb_path="", extract_burial_status=False, tmp_dir=None, 
+#               dssp_bin=None):
+#  """
+#  Assign secondary structure states to peptide residues in the structure. This
+#  function uses the DSSP command line program.
+#
+#  If you already have a DSSP output file and would like to assign the secondary 
+#  structure states to an entity, use :func:`LoadDSSP`.
+#  
+#  :param ent: The entity for which the secondary structure should be calculated
+#  :type ent: :class:`~ost.mol.EntityHandle` or :class:`~ost.mol.EntityView`
+#  :param extract_burial_status: If true, also extract burial status and store
+#                                as float-property
+#                                ``relative_solvent_accessibility`` at residue
+#                                level
+#  :param tmp_dir: If set, overrides the default tmp directory of the
+#                  operating system
+#  :param dssp_bin: The path to the DSSP executable
+#  :raises: :class:`~ost.settings.FileNotFound` if the dssp executable is not 
+#      in the path.
+#  :raises: :class:`RuntimeError` when dssp is executed with errors
+#  """
+#
+#  if not ent.IsValid():
+#    raise ValueError('model entity is not valid')
+#  if ent.atom_count==0:
+#    raise ValueError('model entity does not contain any atoms')
+#
+#  dssp_abs_path=settings.Locate(['dsspcmbi','dssp','mkdssp'], env_name='DSSP_EXECUTABLE', 
+#                                explicit_file_name=dssp_bin)
+#  if os.path.isdir(dssp_abs_path):
+#    raise RuntimeError('"%s" is a directory. Specify path to DSSP binary' % dssp_abs_path)
+#  if not os.access(dssp_abs_path, os.X_OK):
+#    raise RuntimeError('"%s" is not executable' % dssp_abs_path)
+#    
+#  pdb_path=tempfile.mktemp(suffix=".pdb",prefix="temp_entity", dir=tmp_dir)
+#  io.SavePDB(ent, pdb_path)
+#  temp_dssp_path=tempfile.mktemp(suffix=".out",prefix="dssp", dir=tmp_dir)  
+#
+#  cmd = [dssp_abs_path, pdb_path, temp_dssp_path]
+#  s = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+#  if s.returncode == 0:
+#    try:
+#      LoadDSSP(temp_dssp_path, ent, extract_burial_status)
+#      _Cleanup(temp_dssp_path, pdb_path)
+#      return ent
+#    except:
+#      pass # continue with dssp 4 fallback
+#  
+#  # either dssp execution failed or output file cannot be loaded
+#  # both can be the result of using dssp 4 (https://github.com/PDB-REDO/dssp) 
+#  # => try fallback
+#
+#  # dssp 4 desperately wants a CRYST1 record (REMOVE IF NOT NEEDED ANYMORE!)
+#  # Be aware, Even more stuff is needed if you don't set the CLIBD_MON env var
+#  # The dssp binding has therefore been deprecated and we mimic to "old" interface
+#  # using OpenStructure internal functionality
+#  with open(pdb_path, 'r') as fh:
+#    file_content = fh.read()
+#  with open(pdb_path, 'w') as fh:
+#    fh.write('CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1          ' +
+#             os.linesep + file_content)
+#
+#  # explicitely request dssp output format
+#  cmd = [dssp_abs_path, '--output-format', 'dssp', pdb_path, temp_dssp_path]
+#  s_fallback = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+#  
+#  if s_fallback.returncode == 0:
+#    try:
+#      LoadDSSP(temp_dssp_path, ent, extract_burial_status)
+#      _Cleanup(temp_dssp_path, pdb_path)
+#      return ent
+#    except:
+#      pass # continue with cleanup and raise error
+#      
+#  _Cleanup(temp_dssp_path, pdb_path)
+#  raise RuntimeError('Failed to assign DSSP')
+
 
 def AssignDSSP(ent, pdb_path="", extract_burial_status=False, tmp_dir=None, 
                dssp_bin=None):
   """
   Assign secondary structure states to peptide residues in the structure. This
-  function uses the DSSP command line program.
+  function replaces the "old" AssignDSSP which relies on the DSSP command line
+  program and uses OpenStructure internal functionality only. The sole purpose
+  is to retain the "old" interface and you're adviced to directly use
+  :func:`ost.mol.alg.AssignSecStruct` and :func:`ost.mol.alg.Accessibility`.  
 
   If you already have a DSSP output file and would like to assign the secondary 
   structure states to an entity, use :func:`LoadDSSP`.
@@ -76,11 +158,8 @@ def AssignDSSP(ent, pdb_path="", extract_burial_status=False, tmp_dir=None,
                                 ``relative_solvent_accessibility`` at residue
                                 level
   :param tmp_dir: If set, overrides the default tmp directory of the
-                  operating system
-  :param dssp_bin: The path to the DSSP executable
-  :raises: :class:`~ost.settings.FileNotFound` if the dssp executable is not 
-      in the path.
-  :raises: :class:`RuntimeError` when dssp is executed with errors
+                  operating system - deprecated, has no effect
+  :param dssp_bin: The path to the DSSP executable - deprecated, has no effect
   """
 
   if not ent.IsValid():
@@ -88,52 +167,24 @@ def AssignDSSP(ent, pdb_path="", extract_burial_status=False, tmp_dir=None,
   if ent.atom_count==0:
     raise ValueError('model entity does not contain any atoms')
 
-  dssp_abs_path=settings.Locate(['dsspcmbi','dssp','mkdssp'], env_name='DSSP_EXECUTABLE', 
-                                explicit_file_name=dssp_bin)
-  if os.path.isdir(dssp_abs_path):
-    raise RuntimeError('"%s" is a directory. Specify path to DSSP binary' % dssp_abs_path)
-  if not os.access(dssp_abs_path, os.X_OK):
-    raise RuntimeError('"%s" is not executable' % dssp_abs_path)
-    
-  pdb_path=tempfile.mktemp(suffix=".pdb",prefix="temp_entity", dir=tmp_dir)
-  io.SavePDB(ent, pdb_path)
-  temp_dssp_path=tempfile.mktemp(suffix=".out",prefix="dssp", dir=tmp_dir)  
-
-  cmd = [dssp_abs_path, pdb_path, temp_dssp_path]
-  s = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-  if s.returncode == 0:
-    try:
-      LoadDSSP(temp_dssp_path, ent, extract_burial_status)
-      _Cleanup(temp_dssp_path, pdb_path)
-      return ent
-    except:
-      pass # continue with dssp 4 fallback
-  
-  # either dssp execution failed or output file cannot be loaded
-  # both can be the result of using dssp 4 (https://github.com/PDB-REDO/dssp) 
-  # => try fallback
-
-  # dssp 4 desperately wants a CRYST1 record (REMOVE IF NOT NEEDED ANYMORE!)
-  with open(pdb_path, 'r') as fh:
-    file_content = fh.read()
-  with open(pdb_path, 'w') as fh:
-    fh.write('CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1          ' +
-             os.linesep + file_content)
-
-  # explicitely request dssp output format
-  cmd = [dssp_abs_path, '--output-format', 'dssp', pdb_path, temp_dssp_path]
-  s_fallback = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-  
-  if s_fallback.returncode == 0:
-    try:
-      LoadDSSP(temp_dssp_path, ent, extract_burial_status)
-      _Cleanup(temp_dssp_path, pdb_path)
-      return ent
-    except:
-      pass # continue with cleanup and raise error
-      
-  _Cleanup(temp_dssp_path, pdb_path)
-  raise RuntimeError('Failed to assign DSSP')
+  mol.alg.AssignSecStruct(ent)
+  if extract_burial_status:
+    mol.alg.Accessibility(ent, algorithm=mol.alg.DSSP)
+    # map float properties from Accessibility algorithm to the original
+    # properties that have been set in the binding
+    for r in ent.residues:
+      if r.HasProp("asaAbs"):
+        asa = round(r.GetFloatProp("asaAbs")) # original DSSP output is rounded
+        asa_rel = _CalcRelativeSA(r.one_letter_code, asa) # there would be the
+                                                          # asaRel property but
+                                                          # it relates to the
+                                                          # non-rounded asa
+        r.SetFloatProp("solvent_accessibility", asa)
+        r.SetFloatProp("relative_solvent_accessibility", asa_rel)
+        if asa_rel < 0.25:
+          r.SetStringProp("burial_status", 'b')
+        else:
+          r.SetStringProp("burial_status", 'e')
 
 
 def LoadDSSP(file_name, model, extract_burial_status=False,

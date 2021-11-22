@@ -2,7 +2,7 @@ FROM ubuntu:20.04
 
 # ARGUMENTS
 ###########
-ARG OPENSTRUCTURE_VERSION="2.2.0"
+ARG OPENSTRUCTURE_VERSION="2.3.0"
 ARG SRC_FOLDER="/usr/local/src"
 ARG CPUS_FOR_MAKE=2
 ARG MSMS_VERSION="2.6.1"
@@ -32,7 +32,6 @@ RUN apt-get update -y && apt-get install -y cmake \
                                             doxygen \
                                             swig \
                                             clustalw \
-                                            dssp \
                                             locales && \
                                             # CLEANUP
                                             rm -rf /var/lib/apt/lists/*
