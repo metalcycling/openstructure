@@ -242,29 +242,28 @@ void test_Interpolation()
               +(  dx  )*(one-dy)*(  dz  )*ih3d.GetReal(Point(1,0,1))  
               +(one-dx)*(  dy  )*(  dz  )*ih3d.GetReal(Point(0,1,1))  
               +(  dx  )*(  dy  )*(  dz  )*ih3d.GetReal(Point(1,1,1));
-  BOOST_CHECK(check_close(val3,ih3d.GetIntpolReal(Vec3(dx,dy,dz)),1.0e-8));
+  BOOST_CHECK(check_close(val3,ih3d.GetIntpolReal(Vec3(dx,dy,dz)),1.0e-6));
 
 
   ImageHandle ih2d=CreateImage(Extent(Point(0,0),Point(1,1)));
-  ih3d.SetReal(Point(0,0,0), Real(0.000));
-  ih3d.SetReal(Point(1,0,0), Real(0.500));
-  ih3d.SetReal(Point(0,1,0), Real(0.250));
-  ih3d.SetReal(Point(1,1,0), Real(0.125));
+  ih2d.SetReal(Point(0,0), Real(0.000));
+  ih2d.SetReal(Point(1,0), Real(0.500));
+  ih2d.SetReal(Point(0,1), Real(0.250));
+  ih2d.SetReal(Point(1,1), Real(0.125));
   Real val2= (one-dx)*(one-dy)*ih2d.GetReal(Point(0,0))
               +(  dx  )*(one-dy)*ih2d.GetReal(Point(1,0))  
               +(one-dx)*(  dy  )*ih2d.GetReal(Point(0,1))  
               +(  dx  )*(  dy  )*ih2d.GetReal(Point(1,1));  
   
-  BOOST_CHECK(check_close(val2,ih2d.GetIntpolReal(Vec2(dx,dy)),1.0e-10));
+  BOOST_CHECK(check_close(val2,ih2d.GetIntpolReal(Vec2(dx,dy)),1.0e-6));
 
   ImageHandle ih1d=CreateImage(Extent(Point(0),Point(1)));
-  ih3d.SetReal(Point(0,0,0), Real(0.000));
-  ih3d.SetReal(Point(1,0,0), Real(0.500));
-  Real val1= (one-dx)*ih1d.GetReal(Point(0,0))
-              +(  dx  )*ih1d.GetReal(Point(1,0));  
+  ih1d.SetReal(Point(0), Real(0.000));
+  ih1d.SetReal(Point(1), Real(0.500));
+  Real val1= (one-dx)*ih1d.GetReal(Point(0))
+              +(  dx  )*ih1d.GetReal(Point(1));
   
-  BOOST_CHECK(check_close(val1,ih1d.GetIntpolReal(dx),1.0e-15));
-
+  BOOST_CHECK(check_close(val1,ih1d.GetIntpolReal(dx),1.0e-6));
 }
 
 void test_ScalarOps()

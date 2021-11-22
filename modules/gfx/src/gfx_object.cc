@@ -34,10 +34,7 @@
 #include "povray.hh"
 #include "impl/mapped_property.hh"
 #include "exporter.hh"
-
-#if OST_IMG_ENABLED
-#  include <ost/img/alg/stat.hh>
-#endif // OST_IMG_ENABLED
+#include <ost/img/alg/stat.hh>
 
 #if OST_SHADER_SUPPORT_ENABLED
 #include "shader.hh"
@@ -454,14 +451,12 @@ void GfxObj::ColorBy(const mol::EntityView& ev,
   LOG_VERBOSE("ColorBy not implemented for this gfx object");
 }
 
-#if OST_IMG_ENABLED
 void GfxObj::ColorBy(const img::MapHandle& mh,
                       const String& prop,
                       const Gradient& g, float minv, float maxv)
 {
   LOG_VERBOSE("ColorBy not implemented for this gfx object");
 }
-#endif
 
 //////////////////////////////////////////////////
 // and now for the rest of the GfxObj interface

@@ -22,9 +22,9 @@ endif(ENABLE_GUI)
 if(ENABLE_GFX)
   set(SUBST_DICT "${SUBST_DICT},${SQ}gfx${SQ}")
 endif(ENABLE_GFX)
-if(ENABLE_IMG)
-  set(SUBST_DICT "${SUBST_DICT},${SQ}img${SQ}")
-endif(ENABLE_IMG)
+
+set(SUBST_DICT "${SUBST_DICT},${SQ}img${SQ}")
+
 if(ENABLE_INFO)
   set(SUBST_DICT ${SUBST_DICT},${SQ}info${SQ})
 endif(ENABLE_INFO)

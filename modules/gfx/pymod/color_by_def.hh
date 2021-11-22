@@ -21,10 +21,8 @@
 
 #include <ost/config.hh>
 #include <ost/gfx/gfx_object.hh>
-
-#if OST_IMG_ENABLED
 #include <ost/img/alg/stat.hh>
-#endif
+
 
 using namespace ost;
 using namespace ost::gfx;
@@ -106,7 +104,6 @@ inline void color_by_e7(GfxObj* go,
   color_by_e5(go,eh.CreateFullView(),prop,c1,c2);
 }
 
-#if OST_IMG_ENABLED
 inline void color_by_m0(GfxObj* go,
 			const ::img::MapHandle& mh, 
 			const String& prop,
@@ -154,7 +151,6 @@ inline void color_by_m3(GfxObj* go,
   g.SetColorAt(1.0,c2);
   go->ColorBy(mh,prop,g,minv, maxv);
 }
-#endif
 
 }
 
@@ -168,15 +164,11 @@ inline void color_by_m3(GfxObj* go,
     .def("ColorBy",ost_gfx::color_by_e6)\
     .def("ColorBy",ost_gfx::color_by_e7)
 
-#if OST_IMG_ENABLED
 #  define COLOR_BY_DEF_MAP() \
     .def("ColorBy",ost_gfx::color_by_m0)\
     .def("ColorBy",ost_gfx::color_by_m1)\
     .def("ColorBy",ost_gfx::color_by_m2)\
     .def("ColorBy",ost_gfx::color_by_m3)
-#else
-#  define COLOR_BY_DEF_MAP()
-#endif
 
 #define COLOR_BY_DEF() \
   COLOR_BY_DEF_STD() \

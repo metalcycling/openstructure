@@ -203,5 +203,10 @@ void ChainHandle::SetInSequence(const int index)
   Impl()->SetInSequence(index);
 }
 
+unsigned long ChainHandle::GetHashCode() const
+{
+  return reinterpret_cast<unsigned long>(Impl().get());
+}
+
 }}
 

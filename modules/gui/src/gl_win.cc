@@ -31,10 +31,7 @@
 #include <ost/gui/tools/tool.hh>
 #include <ost/gui/tools/tool_bar.hh>
 #include <ost/gui/scene_menu.hh>
-
-#if OST_IMG_ENABLED
-#  include <ost/gui/tools/map_tool.hh>
-#endif
+#include <ost/gui/tools/map_tool.hh>
 
 /*
   Authors: Ansgar Philippsen, Marco Biasini
@@ -61,9 +58,7 @@ GLWin::GLWin(QWidget* p, bool try_stereo): Widget(NULL, p) {
   ToolManager::Instance().AddTool(new SelectionTool);
   ToolManager::Instance().AddTool(new Manipulator);
   ToolManager::Instance().AddTool(new MeasureTool);
-#if OST_IMG_ENABLED
   ToolManager::Instance().AddTool(new MapTool);
-#endif
 
   scene_menu_ = new SceneMenu();
 

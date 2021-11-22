@@ -2,11 +2,9 @@ set(OST_IO_PYMOD_SOURCES
   wrap_io.cc
   export_pdb_io.cc
   export_mmcif_io.cc
+  export_omf_io.cc
+  export_map_io.cc
 )
-
-if (ENABLE_IMG)
-  set(OST_IO_PYMOD_SOURCES ${OST_IO_PYMOD_SOURCES} export_map_io.cc)
-endif()
 
 set(OST_IO_PYMOD_MODULES
   __init__.py

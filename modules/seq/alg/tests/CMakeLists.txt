@@ -9,6 +9,7 @@ set(OST_SEQ_ALG_UNIT_TESTS
   test_semiglobal_align.py
   test_weight_matrix.py
   test_alignment_from_chain_view.py
+  test_aaindex.py
 )
 
 if (COMPOUND_LIB)

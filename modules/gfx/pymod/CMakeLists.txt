@@ -16,11 +16,8 @@ set(OST_GFX_PYMOD_SOURCES
   export_glwin_base.cc
   export_exporter.cc
   export_bitmap.cc
+  export_map.cc
 )
-
-if (ENABLE_IMG)
-  set(OST_GFX_PYMOD_SOURCES ${OST_GFX_PYMOD_SOURCES} export_map.cc)
-endif()
 
 pymod(NAME gfx CPP ${OST_GFX_PYMOD_SOURCES} PY __init__.py py_gfx_obj.py)
 

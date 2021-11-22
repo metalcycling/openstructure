@@ -26,7 +26,6 @@
 #define OST_SHADER_SUPPORT_ENABLED @shader_support@
 #define OST_PROFILING_ENABLED @profiling_enabled@
 #define OST_ANIMATIONS_ENABLED @animations_enabled@
-#define OST_IMG_ENABLED @img_enabled@
 #define OST_DOUBLE_PRECISION @double_prec@
 #define OST_STATIC_PROPERTY_WORKAROUND @static_props@
 #define OST_FFT_USE_THREADS @fftw_use_threads@

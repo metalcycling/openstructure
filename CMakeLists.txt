@@ -14,7 +14,7 @@ cmake_policy(SET CMP0060 NEW)
 project(OpenStructure CXX C)
 set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set (OST_VERSION_MAJOR 2)
-set (OST_VERSION_MINOR 2)
+set (OST_VERSION_MINOR 3)
 set (OST_VERSION_PATCH 0)
 set (OST_VERSION_STRING ${OST_VERSION_MAJOR}.${OST_VERSION_MINOR}.${OST_VERSION_PATCH} )
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake_support)
@@ -34,8 +34,6 @@ option(ENABLE_GFX "whether graphics support should be enabled"
        ON)
 option(OPENGLPREFERENCE_LEGACY "whether to use the OpenGL Legacy GL implementation"
        OFF)
-option(ENABLE_IMG "whether the image processing module should be compiled"
-       ON)
 option(ENABLE_INFO "whether openstructure should be compiled with support for the info library"
        ON)
 option(USE_NUMPY "whether numpy support is added"
@@ -128,11 +126,6 @@ if (COMPILE_TMTOOLS)
   set(_TM_TOOLS ON)
 else()
   set(_TM_TOOLS OFF)
-endif()
-if (ENABLE_IMG)
-  set(_IMG ON)
-else()
-  set(_IMG OFF)
 endif()
 if (PROFILE)
   set(_PROFILE ON)
@@ -229,14 +222,11 @@ if (ENABLE_GFX)
   find_package(OpenGL REQUIRED)
 endif()
 
-if (ENABLE_IMG OR ENABLE_GFX)
-  find_package(PNG REQUIRED)
-else()
-  set (PNG_LIBRARY "")
-endif()
-
 find_package(EIGEN 3.2.0 REQUIRED)
 find_package(SQLITE3 3.7.13 REQUIRED)
+find_package(PNG REQUIRED)
+find_package(FFTW REQUIRED)
+find_package(TIFF REQUIRED)
 
 if(USE_NUMPY)
   find_package(Numpy REQUIRED)
@@ -248,12 +238,6 @@ if(ENABLE_MM)
 else(ENABLE_MM)
   set(_OPENMM_PLUGINS "NONE")
 endif(ENABLE_MM)
-
-if (ENABLE_IMG)
-  find_package(FFTW REQUIRED)
-  find_package(TIFF REQUIRED)
-endif()
-
 
 if (ENABLE_STATIC)
   set(Boost_LIBRARIES)
@@ -367,7 +351,6 @@ message(STATUS
         "   Info support                     (-DENABLE_INFO) : ${_INFO}\n"
         "   Graphical interface               (-DENABLE_GUI) : ${_UI}\n"
         "   OpenGL support                    (-DENABLE_GFX) : ${_OPENGL}\n"
-        "   Image Processing support          (-DENABLE_IMG) : ${_IMG}\n"
         "   Shader support                    (-DUSE_SHADER) : ${_SHADER}\n"
         "   Numpy support                      (-DUSE_NUMPY) : ${_NUMPY}\n"
         "   SpaceNav Device support         (-DENABLE_SPNAV) : ${_SPNAV}\n"

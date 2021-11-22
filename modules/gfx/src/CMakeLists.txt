@@ -40,6 +40,7 @@ povray.hh
 exporter.hh
 exporter_fw.hh
 gost_exporter.hh
+color_ops/map_handle_color_op.hh
 )
 
 set(OST_GFX_COLOR_OPS_HEADERS
@@ -51,6 +52,7 @@ gradient_color_op.hh
 entity_view_color_op.hh
 basic_gradient_color_op.hh
 gradient_level_color_op.hh
+map_handle_color_op.hh
 )
 
 set(OST_GFX_RENDER_OPTIONS_HEADERS
@@ -85,11 +87,6 @@ entity_renderer_fw.hh
 tabulated_trig.hh
 fast_spheres.hh
 )
-
-
-if (ENABLE_IMG)
-  list(APPEND OST_GFX_HEADERS color_ops/map_handle_color_op.hh)
-endif()
 
 set(OST_GFX_SOURCES
 bitmap_io.cc
@@ -149,37 +146,31 @@ render_options/sline_render_options.cc
 render_options/line_trace_render_options.cc
 render_options/cartoon_render_options.cc
 render_options/trace_render_options.cc
+color_ops/map_handle_color_op.cc
 )
 
-if (ENABLE_IMG)
-  set(OST_GFX_MAP_IMPL_HEADERS
-  map_iso_gen.hh
-  map_iso_gen_s.hh
-  map_iso_gen_s.hh
-  map_iso_spec.hh
-  map_octree.hh
-  octree_isocont.hh
-  )
-  set(OST_GFX_MAP_SOURCES
-  map_iso.cc
-  map_slab.cc
-  impl/map_iso_gen.cc
-  impl/map_iso_gen_s.cc
-  impl/map_iso_gen_o.cc
-  impl/map_octree.cc
-  impl/octree_isocont.cc
-  )
-  set(OST_GFX_MAP_HEADERS
-  map_iso.hh
-  map_slab.hh
-  map_iso_prop.hh
-  )  
-  list(APPEND OST_GFX_COLOR_OPS_HEADERS map_handle_color_op.hh)
-  list(APPEND OST_GFX_SOURCES color_ops/map_handle_color_op.cc)
-else()
-  set(OST_GFX_MAP_HEADERS "")
-  set(OST_GFX_MAP_SOURCES "")  
-endif()
+set(OST_GFX_MAP_IMPL_HEADERS
+map_iso_gen.hh
+map_iso_gen_s.hh
+map_iso_gen_s.hh
+map_iso_spec.hh
+map_octree.hh
+octree_isocont.hh
+)
+set(OST_GFX_MAP_SOURCES
+map_iso.cc
+map_slab.cc
+impl/map_iso_gen.cc
+impl/map_iso_gen_s.cc
+impl/map_iso_gen_o.cc
+impl/map_octree.cc
+impl/octree_isocont.cc
+)
+set(OST_GFX_MAP_HEADERS
+map_iso.hh
+map_slab.hh
+map_iso_prop.hh
+)  
 
 if (USE_SHADER)
   list(APPEND OST_GFX_SOURCES shader.cc)
@@ -197,10 +188,7 @@ if (USE_SHADER)
   endif()  
 endif()
 
-set(OST_GFX_DEPENDENCIES "ost_conop;ost_seq")
-if (ENABLE_IMG)
-  set(OST_GFX_DEPENDENCIES "${OST_GFX_DEPENDENCIES};ost_img;ost_img_alg")
-endif()
+set(OST_GFX_DEPENDENCIES "ost_conop;ost_seq;ost_img;ost_img_alg")
 
 module(NAME gfx SOURCES ${OST_GFX_SOURCES} ${OST_GFX_MAP_SOURCES} 
        HEADERS ${OST_GFX_MAP_IMPL_HEADERS} ${OST_GFX_IMPL_HEADERS} IN_DIR impl

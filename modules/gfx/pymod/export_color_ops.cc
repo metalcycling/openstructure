@@ -28,9 +28,7 @@
 #include <ost/gfx/color_ops/gradient_color_op.hh>
 #include <ost/gfx/color_ops/gradient_level_color_op.hh>
 #include <ost/gfx/color_ops/entity_view_color_op.hh>
-#if OST_IMG_ENABLED
 #include <ost/gfx/color_ops/map_handle_color_op.hh>
-#endif //OST_IMG_ENABLED
 
 
 using namespace boost::python;
@@ -146,7 +144,6 @@ void export_ColorOps()
     .staticmethod("FromInfo")
   ;
 
-#if OST_IMG_ENABLED
   class_<MapHandleColorOp, bases<GradientColorOp> >("MapHandleColorOp", init<>())
     .def(init<const MapHandleColorOp&>())
     .def(init<const String&, const String&, const gfx::Gradient&, float, float, const img::MapHandle&>())
@@ -158,8 +155,6 @@ void export_ColorOps()
     .def("FromInfo",&MapHandleColorOp::FromInfo)
     .staticmethod("FromInfo")
   ;
-#endif //OST_IMG_ENABLED
-
 }
 
 

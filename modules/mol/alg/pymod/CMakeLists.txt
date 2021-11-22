@@ -10,6 +10,7 @@ set(OST_MOL_ALG_PYMOD_SOURCES
   export_non_standard.cc
   export_molck.cc
   export_membrane.cc
+  export_entity_to_density.cc
 )
 
 set(OST_MOL_ALG_PYMOD_MODULES
@@ -23,14 +24,6 @@ set(OST_MOL_ALG_PYMOD_MODULES
   hbond.py
 )
 
-if (ENABLE_IMG)
-
-  set(OST_MOL_ALG_PYMOD_SOURCES
-    ${OST_MOL_ALG_PYMOD_SOURCES}
-    export_entity_to_density.cc
-  )
-
-endif()
 if (NOT ENABLE_STATIC)
   pymod(NAME mol_alg OUTPUT_DIR ost/mol/alg CPP ${OST_MOL_ALG_PYMOD_SOURCES}
         PY ${OST_MOL_ALG_PYMOD_MODULES})

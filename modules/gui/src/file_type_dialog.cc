@@ -61,14 +61,12 @@ public:
       this->AddRow(this->rowCount(),alignment_handler[i]->GetFormatName().c_str(),alignment_handler[i]->GetFormatDescription().c_str(),handler);
     }
 
-#if OST_IMG_ENABLED
     io::MapIOFList map_handler = io::IOManager::Instance().GetAvailableMapHandler();
     for(unsigned int i = 0 ; i < map_handler.size() ; i++){
       QVariant handler = QVariant();
       handler.setValue(map_handler[i]);
       this->AddRow(this->rowCount(),map_handler[i]->GetFormatName().c_str(),map_handler[i]->GetFormatDescription().c_str(),handler);
     }
-#endif
 
     io::SurfaceIOFList surf_handler = io::IOManager::Instance().GetAvailableSurfaceHandler();
     for(unsigned int i = 0 ; i < surf_handler.size() ; i++){
@@ -102,10 +100,7 @@ public:
 
 
 FileTypeDialog::FileTypeDialog(const QString& file_name, QWidget* parent):
-  QDialog(parent),entity_handler_(),seq_handler_(), surf_handler_()
-#if OST_IMG_ENABLED
-      ,map_handler_()
-#endif
+  QDialog(parent),entity_handler_(),seq_handler_(), surf_handler_(), map_handler_()
 {
   this->setWindowTitle("File format not recognized");
   this->setFixedSize(QSize(400, 300));
@@ -152,13 +147,11 @@ void FileTypeDialog::accept()
         surf_handler_ = surf_handler_fac->Create();
         break;
       }
-#if OST_IMG_ENABLED
       io::MapIOHandlerFactoryBasePtr map_handler_fac = variant.value<io::MapIOHandlerFactoryBasePtr>();
       if(map_handler_fac){
         map_handler_ = map_handler_fac->Create();
         break;
       }
-#endif
     }
   }
   QDialog::accept();
@@ -176,10 +169,8 @@ io::SurfaceIOHandlerPtr FileTypeDialog::GetSurfaceHandler(){
   return surf_handler_;
 }
 
-#if OST_IMG_ENABLED
 io::MapIOHandlerPtr FileTypeDialog::GetMapHandler(){
   return map_handler_;
 }
-#endif
 
 }} //ns

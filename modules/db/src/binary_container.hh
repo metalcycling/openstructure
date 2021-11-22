@@ -26,7 +26,7 @@
 #include <ost/base.hh>
 #include <ost/stdint.hh>
 #include <ost/geom/vec3.hh>
-#include <ost/db/paged_array.hh>
+#include <ost/paged_array.hh>
 
 
 namespace ost { namespace db {

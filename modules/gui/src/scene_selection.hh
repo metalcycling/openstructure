@@ -44,11 +44,9 @@ public:
 public slots:
   void CenterOnObjects();
   void Delete();
-#if OST_IMG_ENABLED
   void ViewDensitySlices();
   void ShowDownsampledMap();
   void ShowOriginalMap();  
-#endif // OST_IMG_ENABLED
   void Deselect();
   void Show();
   void Hide();

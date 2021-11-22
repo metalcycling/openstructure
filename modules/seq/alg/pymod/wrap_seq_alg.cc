@@ -149,7 +149,7 @@ void export_aln_alg()
   ;
 
   def("SequenceIdentity", &SequenceIdentity, 
-      (arg("ref_mode")=RefMode::ALIGNMENT, arg("seq_a")=0, arg("seq_b")=1));
+      (arg("aln"), arg("ref_mode")=RefMode::ALIGNMENT, arg("seq_a")=0, arg("seq_b")=1));
 
   def("SequenceSimilarity", &SequenceSimilarity,
       (arg("aln"),arg("subst_weight"),arg("normalize")=false,

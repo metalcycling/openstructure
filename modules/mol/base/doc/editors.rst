@@ -41,18 +41,31 @@ Basic Editing Operations
 
 The basic functionality of editors is implemented in the EditorBase class. 
 
+.. note::
+
+  To use the editing functions available in :class:`EditorBase`, it is
+  recommended to use the external coordinate system :class:`XCSEditor` for
+  performance reasons.
+
 .. class::  EditorBase
   
   Inherited by :class:`XCSEditor`, :class:`ICSEditor`.
   
-  .. method:: InsertChain(chain_name)
+  .. method:: InsertChain(chain_name[, chain, deep=false])
   
-     Add new chain to the entity
+     Add new chain to the entity. Properties of :class:`ChainHandle` `chain` will be inherited, if provided.
   
      :param chain_name: The chain's name. In the scope of an entity, chain names
-                        are unique. If a chain of the same already exists an
-                        IntegrityError is raised.
-     :type  chain_name: string
+                        are unique. If a chain of the same name already exists
+                        an :class:`IntegrityError` is raised.
+     :type  chain_name: :class:`string`
+     :param chain:      The newly created chain will take over all generic
+                        properties attached to this handle.
+     :type chain:       :class:`ChainHandle`
+     :param deep:       If set to true, all residues and atoms of `chain` will
+                        be completely copied into the created chain. No bonds
+                        and angles are added.
+     :type deep:
      :returns:          :class:`ChainHandle`
 
   .. method:: AppendResidue(chain, residue_name, [res_num])
@@ -485,6 +498,14 @@ using an :class:`ICSEditor` is undefined and vice versa.
   the first call to :meth:`EntityHandle.EditICS`. This involves the build-up of
   a directed-graph for the bond network as well as calculating the internal
   coordinate matrices.
+
+.. warning::
+
+  The :class:`ICSEditor` has a very significant performance impact on the
+  structure, and can make subsequent access or modifications on the entity
+  extremely slow to keep the internal coordinate system up-to-date. The
+  :class:`ICSEditor` is never used in SWISS-MODEL, ProMod3 or CAMEO. Only
+  open one if you absolutely need to.
 
 .. class:: ICSEditor
    

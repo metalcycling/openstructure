@@ -38,7 +38,6 @@
 #include <ost/mol/xcs_editor.hh>
 #include <ost/mol/bond_handle.hh>
 #include <ost/mol/residue_prop.hh>
-#include <ost/img/image_handle.hh>
 
 #include <time.h>
 

@@ -23,7 +23,6 @@
 
 namespace ost { namespace gfx { namespace impl {
 
-#if OST_IMG_ENABLED
 namespace {
 
 float InterpolatedValue(const img::ImageHandle& mh, const geom::Vec3& xyz)
@@ -50,9 +49,6 @@ float InterpolatedValue(const img::ImageHandle& mh, const geom::Vec3& xyz)
   return static_cast<float>(value);
 }  
 }
-
-#endif
-
 
 float DLLEXPORT_OST_GFX MappedProperty(const mol::EntityView& ev, 
                                        const String& prop,
@@ -83,8 +79,7 @@ Color DLLEXPORT_OST_GFX MappedProperty(const mol::EntityView& ev,
   nrvo=g.GetColorAt(Normalize(MappedProperty(ev,prop,pos), minv, maxv));
   return nrvo;
 }
-
-#if OST_IMG_ENABLED                          
+                        
 float DLLEXPORT_OST_GFX MappedProperty(const img::MapHandle& mh, 
                                        const String& prop,
                                        const geom::Vec3& pos)
@@ -102,5 +97,4 @@ Color DLLEXPORT_OST_GFX MappedProperty(const img::MapHandle& mh,
   return nrvo;
 }
 
-#endif  
 }}}

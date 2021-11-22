@@ -23,6 +23,7 @@ set(OST_MOL_ALG_HEADERS
   nonstandard.hh
   molck.hh
   find_membrane.hh
+  entity_to_density.hh
 )
 
 set(OST_MOL_ALG_SOURCES
@@ -49,23 +50,10 @@ set(OST_MOL_ALG_SOURCES
   nonstandard.cc
   molck.cc
   find_membrane.cc
+  entity_to_density.cc
 )
 
-set(MOL_ALG_DEPS ost_mol ost_seq)
-
-if (ENABLE_IMG)
-  set(OST_MOL_ALG_HEADERS
-    ${OST_MOL_ALG_HEADERS}
-    entity_to_density.hh
-  )
-
-  set(OST_MOL_ALG_SOURCES
-    ${OST_MOL_ALG_SOURCES}
-    entity_to_density.cc
-  )
-
-  set(MOL_ALG_DEPS ${MOL_ALG_DEPS} ost_img ost_img_alg ost_seq_alg ost_conop)
-endif()
+set(MOL_ALG_DEPS ost_mol ost_seq ost_img ost_img_alg ost_seq_alg ost_conop)
 
 executable(NAME lddt SOURCES lddt.cc 
            DEPENDS_ON  ost_mol ost_mol_alg ost_io STATIC)

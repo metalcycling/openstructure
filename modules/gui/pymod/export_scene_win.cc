@@ -56,9 +56,7 @@ void export_SceneWin()
       .value("VIEWS_SAME_OBJECT", VIEWS_SAME_OBJECT)
       .value("SINGLE", SINGLE)
       .value("MULTI", MULTI)
-#if OST_IMG_ENABLED
       .value("MAP", MAP)
-#endif
       .export_values()
       ;
 

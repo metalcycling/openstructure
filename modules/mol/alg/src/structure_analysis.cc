@@ -38,7 +38,7 @@ geom::Vec3List GetPosListFromView(const EntityView& view){
   }
   return vl;
 }    
-#if OST_IMG_ENABLED
+
 std::vector<Real> CalculateAgreementWithDensityMap(const geom::Vec3List& vl, img::MapHandle& density_map){
   CheckHandleValidity(density_map);
   std::vector<Real> v;
@@ -86,9 +86,7 @@ std::vector< std::vector<Real> > PariwiseDistanceMatrix(const EntityView& view){
   }
   return dist_mat;
 }
-  
-  
-#endif
+
 void DLLEXPORT_OST_MOL_ALG WrapEntityInPeriodicCell(EntityHandle eh, const geom::Vec3 cell_center, const geom::Vec3 ucell_size, \
                                                     const geom::Vec3 ucell_angles, bool group_residues,bool follow_bonds){
   mol::XCSEditor edi=eh.EditXCS(mol::BUFFERED_EDIT);

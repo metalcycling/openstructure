@@ -15,6 +15,7 @@ blast.py
 cadscore.py
 kclust.py
 ialign.py
+mmseqs2.py
 )
 
 set(OST_BINDINGS_PYMOD_SOURCES

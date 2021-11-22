@@ -1,7 +1,7 @@
 //------------------------------------------------------------------------------
 // This file is part of the OpenStructure project <www.openstructure.org>
 //
-// Copyright (C) 2008-2020 by the OpenStructure authors
+// Copyright (C) 2008-2021 by the OpenStructure authors
 //
 // This library is free software; you can redistribute it and/or modify it under
 // the terms of the GNU Lesser General Public License as published by the Free
@@ -19,22 +19,35 @@
 #include <boost/python.hpp>
 using namespace boost::python;
 
-#include <ost/mol/alg/structure_analysis.hh>
+#include <ost/io/mol/omf.hh>
 
 using namespace ost;
-using namespace ost::mol::alg;
+using namespace ost::io;
 
-std::vector< std::vector<Real> > (*pair_dist1)(const mol::EntityView&) = PariwiseDistanceMatrix;
-std::vector< std::vector<Real> > (*pair_dist2)(const mol::EntityView&,const mol::EntityView&) = PariwiseDistanceMatrix;
+namespace{
 
-void export_StructureAnalysis()
-{
-  def("GetPosListFromView",&GetPosListFromView, (arg("view")));
-  def("CalculateAverageAgreementWithDensityMap",&CalculateAverageAgreementWithDensityMap,(arg("pos_list"),arg("density_map")));
-  def("CalculateAgreementWithDensityMap",&CalculateAgreementWithDensityMap,(arg("pos_list"),arg("density_map")));
-  def("WrapEntityInPeriodicCell",&WrapEntityInPeriodicCell,(arg("Entity"),arg("cell_center"),arg("ucell_size"),arg("ucell_angles")=geom::Vec3(),arg("group_res")=true,arg("follow_bonds")=false));
+  PyObject* wrap_to_bytes(OMFPtr omf) {
+    String str = omf->ToString();
+    return PyBytes_FromStringAndSize(str.c_str(), str.size());
+  }
   
+  OMFPtr wrap_from_bytes(boost::python::object obj) {
+    String str(PyBytes_AsString(obj.ptr()), PyBytes_Size(obj.ptr()));
+    return OMF::FromString(str);
+  }
 
-  def("PariwiseDistanceMatrix",pair_dist2,(arg("EntityView1"),arg("EntityView2")));
-  def("PariwiseDistanceMatrix",pair_dist1,(arg("EntityView")));
+}
+
+void export_omf_io() {
+  class_<OMF, OMFPtr>("OMF",no_init)
+    .def("FromEntity", &OMF::FromEntity).staticmethod("FromEntity")
+    .def("FromMMCIF", &OMF::FromMMCIF).staticmethod("FromMMCIF")
+    .def("FromFile", &OMF::FromFile).staticmethod("FromFile")
+    .def("FromBytes", &wrap_from_bytes).staticmethod("FromBytes")
+    .def("ToFile", &OMF::ToFile)
+    .def("ToBytes", &wrap_to_bytes)
+    .def("GetAU", &OMF::GetAU)
+    .def("GetAUChain", &OMF::GetAUChain)
+    .def("GetBU", &OMF::GetBU)
+  ;
 }

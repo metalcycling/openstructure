@@ -23,8 +23,6 @@
 #include <boost/python.hpp>
 #include <ost/config.hh>
 
-#if OST_IMG_ENABLED
-
 #include <ost/mol/alg/entity_to_density.hh>
 
 using namespace boost::python;
@@ -46,4 +44,4 @@ void export_entity_to_density()
     .export_values()
     ;
 }
-#endif
+

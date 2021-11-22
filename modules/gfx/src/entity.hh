@@ -36,10 +36,7 @@
 #include <ost/gfx/color_ops/uniform_color_op.hh>
 #include <ost/gfx/color_ops/gradient_level_color_op.hh>
 #include <ost/gfx/color_ops/entity_view_color_op.hh>
-
-#if OST_IMG_ENABLED
 #include <ost/gfx/color_ops/map_handle_color_op.hh>
-#endif //OST_IMG_ENABLED
 
 #include <ost/gfx/impl/entity_renderer.hh>
 
@@ -233,12 +230,10 @@ public:
                        const String& prop,
                        const Gradient& g, float minv, float maxv);
 
-#if OST_IMG_ENABLED
   // GfxObj property interface
   virtual void ColorBy(const img::MapHandle& mh,
                        const String& prop,
                        const Gradient& g,float minv, float maxv);
-#endif
 
   // map property to color gradient from minv to maxv
   void ColorBy(const String& prop, 
@@ -294,13 +289,9 @@ public:
   void Apply(const gfx::ByElementColorOp& op, bool store=true);
   void Apply(const gfx::ByChainColorOp& op, bool store=true);
   void Apply(const gfx::UniformColorOp& op, bool store=true);
-
   void Apply(const gfx::GradientLevelColorOp& op, bool store=true);
   void Apply(const gfx::EntityViewColorOp& op, bool store=true);
-  
-#if OST_IMG_ENABLED
   void Apply(const gfx::MapHandleColorOp& op, bool store=true);
-#endif
 
   void CleanColorOps();
   void ReapplyColorOps();

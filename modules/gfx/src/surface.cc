@@ -191,7 +191,7 @@ void Surface::ColorBy(const mol::EntityView& ev,
   EntityViewColorOp evop = EntityViewColorOp(prop, g,minv,maxv,ev);
   this->Apply(evop);
 }
-#if OST_IMG_ENABLED
+
 void Surface::ColorBy(const img::MapHandle& mh,
                       const String& prop,
                       const Gradient& g,float minv, float maxv)
@@ -199,9 +199,6 @@ void Surface::ColorBy(const img::MapHandle& mh,
   MapHandleColorOp mhop = MapHandleColorOp("",prop,g,minv,maxv,mh);
   this->Apply(mhop);
 }
-
-#endif //OST_IMG_ENABLED
-
 
 namespace {
 
@@ -344,8 +341,7 @@ void Surface::Apply(const gfx::EntityViewColorOp& op, bool store)
   }
   FlagRefresh();
 }
-  
-#if OST_IMG_ENABLED
+
 void Surface::Apply(const gfx::MapHandleColorOp& op, bool store)
 {
   if(store){
@@ -362,7 +358,6 @@ void Surface::Apply(const gfx::MapHandleColorOp& op, bool store)
   }
   FlagRefresh();
 }
-#endif //OST_IMG_ENABLED
 
 void Surface::CleanColorOps()
 {

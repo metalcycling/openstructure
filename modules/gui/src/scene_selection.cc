@@ -28,12 +28,10 @@
 #include <ost/gfx/gfx_object.hh>
 #include <ost/gfx/entity.hh>
 
-#if OST_IMG_ENABLED
-#  include <ost/gfx/map_iso.hh>
-#  include <ost/gui/main_area.hh>
-#  include <ost/gui/perspective.hh>
-#  include <ost/gui/data_viewer/data_viewer.hh>
-#endif
+#include <ost/gfx/map_iso.hh>
+#include <ost/gui/main_area.hh>
+#include <ost/gui/perspective.hh>
+#include <ost/gui/data_viewer/data_viewer.hh>
 
 #include <ost/gui/scene_win/scene_win.hh>
 
@@ -127,8 +125,6 @@ void SceneSelection::Delete() {
   gfx::Scene::Instance().RequestRedraw();
 }
 
-#if OST_IMG_ENABLED
-
 void SceneSelection::ViewDensitySlices() {
   for(unsigned int i = 0; i < nodes_.size(); i++){
     gfx::GfxNodeP node = nodes_[i];
@@ -160,8 +156,6 @@ void SceneSelection::ShowOriginalMap()
     obj->ShowOriginalMap();
   }
 }
-
-#endif // OST_IMG_ENABLED
 
 void SceneSelection::Deselect(){
   for(unsigned int i = 0; i < nodes_.size(); i++){

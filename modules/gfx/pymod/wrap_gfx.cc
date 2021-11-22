@@ -39,10 +39,7 @@ extern void export_color();
 extern void export_gradient();
 extern void export_bitmap();
 extern void export_Exporter();
-
-#if OST_IMG_ENABLED
-  extern void export_Map();
-#endif
+extern void export_Map();
 extern void export_SymmetryNode();
 extern void export_SceneObserver();
 
@@ -63,9 +60,7 @@ BOOST_PYTHON_MODULE(_ost_gfx)
   export_Entity();
   export_Surface();
   export_RenderOptions();
-#if OST_IMG_ENABLED  
   export_Map();
-#endif  
   export_SymmetryNode();
   export_SceneObserver();
   export_ColorOps();

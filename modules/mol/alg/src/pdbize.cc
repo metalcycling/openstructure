@@ -88,7 +88,9 @@ void PDBize::Add(EntityView asu, const geom::Mat4List& transforms,
       if ((chain.IsPolypeptide() && chain_length >= peptide_min_size_) ||
           (chain.IsPolynucleotide() && chain_length >= nucleicacid_min_size_) ||
           ((chain.IsOligosaccharide() || chain.IsPolysaccharide()) &&
-           chain_length >= saccharide_min_size_)) {
+           chain_length >= saccharide_min_size_) ||
+          (chain.GetType() == CHAINTYPE_POLY && chain_length >= peptide_min_size_ &&
+          chain_length >= nucleicacid_min_size_)) {
         if (*curr_chain_name_ == 0) {
           throw std::runtime_error("running out of chain names");
         }

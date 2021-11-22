@@ -28,9 +28,7 @@
 
 #include <ost/gui/scene_selection.hh>
 
-#if OST_IMG_ENABLED
 #include <ost/gfx/map_iso.hh>
-#endif // OST_IMG_ENABLED
 
 #include "custom_part_node.hh"
 #include "entity_node.hh"
@@ -101,7 +99,6 @@ ContextMenu::ContextMenu(QTreeView* view, SceneWinModel* model):
   connect(action, SIGNAL(triggered()), this, SLOT(Rename()));
   this->AddAction(action, ENTITY_VIEW | SINGLE);
 
-#if OST_IMG_ENABLED
   action = new QAction("View Density Slices",this);
   connect(action, SIGNAL(triggered()), SceneSelection::Instance(), SLOT(ViewDensitySlices()));
   this->AddAction(action, MAP);
@@ -113,7 +110,6 @@ ContextMenu::ContextMenu(QTreeView* view, SceneWinModel* model):
   action = new QAction("Show Downsampled Map",this);
   connect(action, SIGNAL(triggered()), SceneSelection::Instance(), SLOT(ShowDownsampledMap()));
   this->AddAction(action, MAP | SINGLE | MAP_ORIGINAL | MAP_DSAMPLED_AVAIL);
-#endif // OST_IMG_ENABLED
 
 }
 
@@ -141,7 +137,6 @@ void ContextMenu::ShowMenu(const QPoint& pos)
           if(gfx::Scene::Instance().GetRootNode() == gfx_node){flags &= ~NOT_SCENE;}
           if(!dyn_cast<gfx::GfxObj> (gfx_node)){flags &= ~GFX_OBJECT;}
           if(!dyn_cast<gfx::Entity> (gfx_node)){flags &= ~ENTITY;}
-#if OST_IMG_ENABLED
           if(!dyn_cast<gfx::MapIso>(gfx_node))
           {
             flags &= ~MAP;
@@ -161,14 +156,9 @@ void ContextMenu::ShowMenu(const QPoint& pos)
 
           }
           if(!dyn_cast<gfx::MapIso> (gfx_node)){flags &= ~MAP;}
-#endif // OST_IMG_ENABLED
         }
         else{
-          flags &= ~(GFX_NODE | GFX_OBJECT | ENTITY
-#if OST_IMG_ENABLED
-              | MAP
-#endif
-          );
+          flags &= ~(GFX_NODE | GFX_OBJECT | ENTITY | MAP);
           flags &= ~(NOT_VISIBLE | NOT_HIDDEN);
         }
         EntityPartNode* entity_part_node = qobject_cast<EntityPartNode*>(model_->GetItem(indexes[i]));

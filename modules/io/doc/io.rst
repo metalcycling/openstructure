@@ -95,6 +95,93 @@ behaviour.
         pdb_str = pdb.read()
         ent = io.PDBStrToEntity(pdb_str, ost.io.profiles['DEFAULT'], True)
 
+
+.. class:: ost.io.OMF
+
+  Experimental data format capable of storing minimally required information 
+  of a :class:`ost.mol.EntityHandle` in a heavily compressed manner 
+  (OMF - OpenStructure Minimal Format). Shares lots of ideas with the mmtf or
+  binaryCIF formats but comes with no dependencies attached.
+
+  .. staticmethod:: FromEntity(ent)
+
+    Generates :class:`ost.io.OMF` object starting from an 
+    :class:`ost.mol.EntityHandle`. *ent* is is assigned as assymetric unit,
+    no biounits are defined (i.e. :func:`GetBU` raises an error in any case`).
+
+    :param ent: Structural data
+    :type ent: :class:`ost.mol.EntityHandle`
+    :returns: The created :class:`ost.io.OMF` object
+
+  .. staticmethod:: FromFile(filepath)
+
+    Generates :class:`ost.io.OMF` object from a file stored with 
+    :func:`ToFile`.
+
+    :param filepath: The file
+    :type filepath: :class:`str`
+    :returns: The created :class:`ost.io.OMF` object    
+
+  .. staticmethod:: FromMMCIF(ent, info)
+
+    Generates :class:`ost.io.OMF` object starting from an 
+    :class:`ost.mol.EntityHandle` with an associated :class:`MMCifInfo`
+    (you get this stuff with :func:`ost.io.LoadMMCIF`). *ent* is assigned
+    as assymetric unit and the biounits are fetched from *info*. 
+
+    :param ent: Structural data
+    :type ent: :class:`ost.mol.EntityHandle`
+    :param info: Biounits are fetched from here
+    :type info: :class:`MMCifInfo`
+    :returns: The created :class:`ost.io.OMF` object
+
+  .. staticmethod:: FromBytes(bytes_string)
+
+    Generates :class:`ost.io.OMF` object from a :class:`bytes` object created
+    with :func:`ToBytes`.
+
+    :param bytes_string: The super heavily compressed OMF structure
+    :type bytes_string: :class:`bytes`
+
+  .. method:: ToFile(filepath)
+
+    Stores object to file
+    
+    :param filepath: The file 
+    :type filepath: :class:`str`
+
+  .. method:: ToBytes()
+
+    Stores object to :class:`bytes` string
+    
+    :returns: The :class:`bytes` string
+
+  .. method:: GetAU()
+
+    Getter for assymetric unit
+
+    :returns: The assymetric unit as :class:`ost.mol.EntityHandle`
+
+  .. method:: GetAUChain(chain_name)
+
+    Getter for single chain in the assymetric unit
+
+    :param chain_name: The name of the chain you want
+    :type chain_name: :class:`str`
+    :returns: :class:`ost.mol.EntityHandle` of the AU only containing the 
+              specified chain
+
+  .. method:: GetBU(bu_idx)
+
+    Getter for Biounit
+
+    :param bu_idx: The index from the biounit as it has been read from *info* in
+                   :func:`FromMMCIF`.
+    :type bu_idx: :class:`int`
+    :returns: The Biounit as :class:`ost.mol.EntityHandle`
+    :raises: :class:`RuntimeError` if *bu_idx* doesn't exist
+
+
 Loading Molecular Structures From Remote Repositories
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

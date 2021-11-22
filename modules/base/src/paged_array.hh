@@ -18,8 +18,8 @@
 //------------------------------------------------------------------------------
 
 
-#ifndef OST_DB_PAGED_ARRAY_HH
-#define OST_DB_PAGED_ARRAY_HH
+#ifndef OST_PAGED_ARRAY_HH
+#define OST_PAGED_ARRAY_HH
 
 /*
   Author: Marco Biasini, Gabriel Studer
@@ -30,8 +30,11 @@
 #include <ost/stdint.hh>
 #include <ost/message.hh>
 
-namespace ost{ namespace db{
+namespace ost{
 
+
+/// \brief Vector style container that splits content in pages, suited for large 
+///        amounts of data. Comes with serialization functionality.
 template <typename T, uint64_t P>
 class PagedArray  {
 private:
@@ -135,7 +138,10 @@ public:
         p.reserve(P);
         p.resize(left);
         in_stream.read(reinterpret_cast<char*>(&p.front()), 
-                       p.size()*sizeof(T));        
+                       p.size()*sizeof(T));
+        if(!in_stream.good()) {
+          throw ost::Error("Failed to read data!");
+        }
       }
     } else {
       throw ost::Error("Cannot load non POD paged array!");
@@ -163,6 +169,6 @@ private:
   std::vector<Page> pages_;
 };
 
-}} // ns
+} // ns
 
 #endif

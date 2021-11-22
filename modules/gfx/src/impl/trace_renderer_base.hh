@@ -51,10 +51,7 @@ public:
   virtual void Apply(const gfx::UniformColorOp& op);
   virtual void Apply(const gfx::GradientLevelColorOp& op);
   virtual void Apply(const gfx::EntityViewColorOp& op);
-#if OST_IMG_ENABLED
   virtual void Apply(const gfx::MapHandleColorOp& op);
-#endif  
-
   virtual void PickAtom(const geom::Line3& line, Real line_width,
                         mol::AtomHandle& picked_atom);
 

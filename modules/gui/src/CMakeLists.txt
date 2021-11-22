@@ -49,6 +49,7 @@ tool_options_widget.hh
 manipulator.hh
 tool_options_win.hh
 mouse_event.hh
+map_tool.hh
 )
 set(OST_GUI_PYTHON_SHELL_HEADERS
 main_thread_runner.hh
@@ -133,34 +134,32 @@ plot_ticker_fw.hh
 plot_types.hh
 )
 
-if (ENABLE_IMG)
-  set(OST_GUI_DATA_VIEWER_HEADERS
-  argand.hh
-  data_viewer.hh
-  data_viewer_panel.hh
-  data_viewer_panel_base.hh
-  draw_overlay.hh
-  drawing_functions.hh
-  fft_panel.hh
-  info_panel.hh
-  img2qt.hh
-  mask_overlay.hh
-  null_overlay.hh
-  overlay.hh
-  overlay_base.hh
-  overlay_base_fw.hh
-  overlay_manager.hh
-  overlay_manager_fw.hh
-  overlay_manager_gui.hh
-  overlay_manager_observer.hh
-  pointlist_overlay.hh
-  pointlist_overlay_base.hh
-  strategies.hh
-  strategies_fw.hh
-  viewer_normalizer.hh
-  IN_DIR data_viewer
-  )
-endif()
+set(OST_GUI_DATA_VIEWER_HEADERS
+argand.hh
+data_viewer.hh
+data_viewer_panel.hh
+data_viewer_panel_base.hh
+draw_overlay.hh
+drawing_functions.hh
+fft_panel.hh
+info_panel.hh
+img2qt.hh
+mask_overlay.hh
+null_overlay.hh
+overlay.hh
+overlay_base.hh
+overlay_base_fw.hh
+overlay_manager.hh
+overlay_manager_fw.hh
+overlay_manager_gui.hh
+overlay_manager_observer.hh
+pointlist_overlay.hh
+pointlist_overlay_base.hh
+strategies.hh
+strategies_fw.hh
+viewer_normalizer.hh
+IN_DIR data_viewer
+)
 
 set(OST_GUI_HEADERS
 file_browser.hh
@@ -293,6 +292,25 @@ scene_win/render_modes_node.cc
 scene_win/root_node.cc
 scene_win/scene_win.cc
 scene_win/scene_win_model.cc
+tools/map_tool.cc
+data_viewer/argand.cc
+data_viewer/data_viewer.cc
+data_viewer/data_viewer_panel.cc
+data_viewer/data_viewer_panel_base.cc
+data_viewer/draw_overlay.cc
+data_viewer/drawing_functions.cc
+data_viewer/fft_panel.cc
+data_viewer/info_panel.cc
+data_viewer/img2qt.cc
+data_viewer/mask_overlay.cc
+data_viewer/null_overlay.cc
+data_viewer/overlay_base.cc
+data_viewer/overlay_manager.cc
+data_viewer/overlay_manager_gui.cc
+data_viewer/pointlist_overlay.cc
+data_viewer/pointlist_overlay_base.cc
+data_viewer/strategies.cc
+data_viewer/viewer_normalizer.cc
 )
 
 set(HEADERS_TO_BE_MOCCED
@@ -385,41 +403,16 @@ tools/tool_manager.hh
 tools/tool_options_widget.hh
 tools/measure_tool.hh
 tools/tool_options_win.hh
+data_viewer/argand.hh
+data_viewer/fft_panel.hh
+data_viewer/info_panel.hh
+data_viewer/data_viewer.hh
+data_viewer/overlay_manager_gui.hh
+data_viewer/data_viewer_panel_base.hh
+data_viewer/null_overlay.hh
+data_viewer/overlay_base.hh
+data_viewer/pointlist_overlay_base.hh
 )
-if (ENABLE_IMG)
-  list(APPEND OST_GUI_TOOLS_HEADERS map_tool.hh)
-  list(APPEND OST_GUI_SOURCES
-       tools/map_tool.cc
-       data_viewer/argand.cc
-       data_viewer/data_viewer.cc
-       data_viewer/data_viewer_panel.cc
-       data_viewer/data_viewer_panel_base.cc
-       data_viewer/draw_overlay.cc
-       data_viewer/drawing_functions.cc
-       data_viewer/fft_panel.cc
-       data_viewer/info_panel.cc
-       data_viewer/img2qt.cc
-       data_viewer/mask_overlay.cc
-       data_viewer/null_overlay.cc
-       data_viewer/overlay_base.cc
-       data_viewer/overlay_manager.cc
-       data_viewer/overlay_manager_gui.cc
-       data_viewer/pointlist_overlay.cc
-       data_viewer/pointlist_overlay_base.cc
-       data_viewer/strategies.cc
-       data_viewer/viewer_normalizer.cc)
-  list(APPEND HEADERS_TO_BE_MOCCED
-    data_viewer/argand.hh
-    data_viewer/fft_panel.hh
-    data_viewer/info_panel.hh
-    data_viewer/data_viewer.hh
-    data_viewer/overlay_manager_gui.hh
-    data_viewer/data_viewer_panel_base.hh
-    data_viewer/null_overlay.hh
-    data_viewer/overlay_base.hh
-    data_viewer/pointlist_overlay_base.hh
-  )
-endif()
 
 if (ENABLE_SPNAV)
   set(spnav_enabled 1)
