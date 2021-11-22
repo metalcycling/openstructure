@@ -32,7 +32,6 @@ RUN apt-get update -y && apt-get install -y cmake \
                                             doxygen \
                                             swig \
                                             clustalw \
-                                            dssp \
                                             locales && \
                                             # CLEANUP
                                             rm -rf /var/lib/apt/lists/*
