@@ -16,7 +16,10 @@ image for the latest stable version of OST. You can import it by
 
   docker pull registry.scicore.unibas.ch/schwede/openstructure:<TAG>
 
-and just start using it without the overhead to build it yourself.
+and just start using it without the overhead to build it yourself. A list of
+available tags can be found on our
+`GitLab registry page <https://git.scicore.unibas.ch/schwede/openstructure/container_registry/>`_.
+A tag named ``latest`` is always available, pointing to the current stable OST release.
 
 
 Build Docker image
