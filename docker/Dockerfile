@@ -36,18 +36,6 @@ RUN apt-get update -y && apt-get install -y cmake \
                                             # CLEANUP
                                             rm -rf /var/lib/apt/lists/*
 
-# INSTALL MSMS
-##############
-RUN cd ${SRC_FOLDER} && \
-    mkdir -p msms && \
-    cd ${SRC_FOLDER}/msms && \
-    wget http://mgltools.scripps.edu/downloads/tars/releases/MSMSRELEASE/REL${MSMS_VERSION}/msms_i86_64Linux2_${MSMS_VERSION}.tar.gz && \
-    tar -xvzf msms_i86_64Linux2_${MSMS_VERSION}.tar.gz && \
-    cp -v ${SRC_FOLDER}/msms/msms.x86_64Linux2.${MSMS_VERSION} /usr/local/bin/msms && \
-    cp -v ${SRC_FOLDER}/msms/pdb_to_xyzr /usr/local/bin/pdb_to_xyzr && \
-    cp -v ${SRC_FOLDER}/msms/pdb_to_xyzrn /usr/local/bin/pdb_to_xyzrn && \
-    rm -rf ${SRC_FOLDER}/msms
-
 # INSTALL OPENMM
 ################
 RUN cd ${SRC_FOLDER} && \
