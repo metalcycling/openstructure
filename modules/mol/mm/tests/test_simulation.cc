@@ -54,8 +54,8 @@ BOOST_AUTO_TEST_CASE(test_simulation_basics){
 
   TopologyPtr top = TopologyCreator::Create(test_ent,settings);
   //lets add interactions, that are not set when using charmm
-  top->AddHarmonicAngle(1,2,3,10.0,10.0);
-  top->AddPeriodicImproper(1,2,3,4,2,10.0,10.0);
+  top->AddHarmonicAngle(1,2,3,1.0,10.0);
+  top->AddPeriodicImproper(1,2,3,4,2,1.0,10.0);
   top->AddDistanceConstraint(1,2,10.0);
   top->AddHarmonicPositionRestraint(1,geom::Vec3(0.0,0.0,0.0),10.0);
   top->AddHarmonicDistanceRestraint(1,2,10.0,10.0);
@@ -68,11 +68,11 @@ BOOST_AUTO_TEST_CASE(test_simulation_basics){
   //we check, wether the reset functions have the desired effect on the topology
   //we cannot really check the effect on the openmm system...
   sim.ResetHarmonicBond(42,5.0,6.0);
-  sim.ResetHarmonicAngle(0,8.0,9.0);
-  sim.ResetUreyBradleyAngle(42,5.0,6.0,7.0,8.0);
-  sim.ResetPeriodicDihedral(42,4,5.0,6.0);
-  sim.ResetPeriodicImproper(0,5,8.0,9.0);
-  sim.ResetHarmonicImproper(42,5.0,6.0);
+  sim.ResetHarmonicAngle(0,2.0,9.0);
+  sim.ResetUreyBradleyAngle(42,2.0,6.0,7.0,8.0);
+  sim.ResetPeriodicDihedral(42,4,2.0,6.0);
+  sim.ResetPeriodicImproper(0,5,2.0,9.0);
+  sim.ResetHarmonicImproper(42,2.0,6.0);
   sim.ResetLJPair(42,5.0,6.0);
   sim.ResetDistanceConstraint(0,10.0);
   sim.ResetHarmonicPositionRestraint(0,geom::Vec3(1.0,1.0,1.0),5.0);
@@ -92,16 +92,16 @@ BOOST_AUTO_TEST_CASE(test_simulation_basics){
   BOOST_CHECK(r1 == 5.0 && r2 == 6.0);
 
   top->GetHarmonicAngleParameters(0,ui1,ui2,ui3,r1,r2);
-  BOOST_CHECK(r1 == 8.0 && r2 == 9.0);
+  BOOST_CHECK(r1 == 2.0 && r2 == 9.0);
 
   top->GetUreyBradleyAngleParameters(42,ui1,ui2,ui3,r1,r2,r3,r4);
-  BOOST_CHECK(r1 == 5.0 && r2 == 6.0 && r3 == 7.0 && r4 == 8.0);
+  BOOST_CHECK(r1 == 2.0 && r2 == 6.0 && r3 == 7.0 && r4 == 8.0);
 
   top->GetPeriodicDihedralParameters(42,ui1,ui2,ui3,ui4,i1,r1,r2);
-  BOOST_CHECK(i1 == 4 && r1 == 5.0 && r2 == 6.0);
+  BOOST_CHECK(i1 == 4 && r1 == 2.0 && r2 == 6.0);
 
   top->GetPeriodicImproperParameters(0,ui1,ui2,ui3,ui4,i1,r1,r2);
-  BOOST_CHECK(i1 == 5 && r1 == 8.0 && r2 == 9.0);
+  BOOST_CHECK(i1 == 5 && r1 == 2.0 && r2 == 9.0);
 
   top->GetLJPairParameters(42,ui1,ui2,r1,r2);
   BOOST_CHECK(r1 == 5.0 && r2 == 6.0);
