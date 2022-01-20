@@ -20,7 +20,6 @@
 
 #include "python_interpreter_worker.hh"
 #include "python_interpreter.hh"
-#include <iostream>
 
 namespace ost { namespace gui {
 
