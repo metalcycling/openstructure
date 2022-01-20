@@ -66,6 +66,9 @@ PythonInterpreter::~PythonInterpreter()
 
 PythonInterpreter& PythonInterpreter::Instance()
 {
+  if(!Py_IsInitialized()){
+    Py_InitializeEx(1);
+  }
   static PythonInterpreter instance;
   return instance;
 }
