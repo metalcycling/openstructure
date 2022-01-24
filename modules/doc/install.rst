@@ -344,9 +344,11 @@ The Boost library delivered by Homebrew does not work, at this point. Version 1.
 .. code-block:: bash
 
   cd /tmp
-  curl -L -o boost.tar.bz2 https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2
+  curl -L -o boost.tar.bz2 https://boostorg.jfrog.io/artifactory/main/release/\
+  1.78.0/source/boost_1_78_0.tar.bz2
   ...
-  curl -L -o boost.json https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2.json
+  curl -L -o boost.json https://boostorg.jfrog.io/artifactory/main/release/\
+  1.78.0/source/boost_1_78_0.tar.bz2.json
   ...
   cat boost.json
   {
@@ -355,7 +357,8 @@ The Boost library delivered by Homebrew does not work, at this point. Version 1.
   "sha256": "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc"
   }
   shasum -a 256 boost.tar.bz2
-  8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost.tar.bz2
+  8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  \
+  boost.tar.bz2
   # compare the checksums from the shasum call and the JSON file
   mkdir boost
   tar --strip-components=1 -C boost -xf boost.tar.bz2
@@ -365,8 +368,10 @@ The Boost library delivered by Homebrew does not work, at this point. Version 1.
   cat <<EOF > user-config.jam
   using python : 3.9
                : python3
-               : /usr/local/opt/python@3.9/Frameworks/Python.framework/Versions/3.9/include/python3.9/
-               : /usr/local/opt/python@3.9/Frameworks/Python.framework/Versions/3.9/lib ;
+               : /usr/local/opt/python@3.9/Frameworks/Python.framework/\
+  Versions/3.9/include/python3.9/
+               : /usr/local/opt/python@3.9/Frameworks/Python.framework/\
+  Versions/3.9/lib ;
   EOF
   ./b2 --prefix=$HOME/local install --user-config=user-config.jam
 
