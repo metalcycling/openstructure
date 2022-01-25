@@ -324,7 +324,7 @@ OpenStructure.
 
 
 
-**macOS (Catalina) with Homebrew**
+**macOS (Catalina/ Monterey) with Homebrew**
 
 .. note::
 
