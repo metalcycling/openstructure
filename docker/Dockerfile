@@ -5,7 +5,6 @@ FROM ubuntu:20.04
 ARG OPENSTRUCTURE_VERSION="2.3.0"
 ARG SRC_FOLDER="/usr/local/src"
 ARG CPUS_FOR_MAKE=2
-ARG MSMS_VERSION="2.6.1"
 ARG OPENMM_VERSION="7.1.1"
 ARG OPENMM_INCLUDE_PATH="/usr/local/openmm/include/"
 ARG OPENMM_LIB_PATH="/usr/local/openmm/lib/"
