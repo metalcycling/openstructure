@@ -324,7 +324,7 @@ OpenStructure.
 
 
 
-**macOS (Catalina/ Monterey) with Homebrew**
+**macOS (Catalina/ Big Sur/ Monterey) with Homebrew**
 
 .. note::
 
@@ -332,52 +332,16 @@ OpenStructure.
   graphical user interface, dng may start behaving weird. Symptoms are that the
   user interface starts being unresponsive to mouse clicks. An easy solution
   may be to close dng and remove
-  $HOME/Library/Preferences/org.openstructure.dng.plist and start dng again.
+  ``$HOME/Library/Preferences/org.openstructure.dng.plist`` and start dng again.
 
-`Homebrew <https://brew.sh/>`_ can be used to conveniently install most
+`Homebrew <https://brew.sh/>`_ can be used to conveniently install all
 dependencies. The current Python version, as of writing these instructions, is
-3.9.10 but works so far. Eigen and SQLite also seem to be unproblematic
-concerning higher version numbers. To build the graphical user interface, use Qt version 5 by installing packages qt@5 and pyqt@5 from Homebrew.
-
-The Boost library delivered by Homebrew does not work, at this point. Version 1.76.0 is build in a way letting the OST compilation fail. Here are some lines of shell commands to install version 1.78.0 of Boost, working with OST, in $HOME/local:
-
-.. code-block:: bash
-
-  cd /tmp
-  curl -L -o boost.tar.bz2 https://boostorg.jfrog.io/artifactory/main/release/\
-  1.78.0/source/boost_1_78_0.tar.bz2
-  ...
-  curl -L -o boost.json https://boostorg.jfrog.io/artifactory/main/release/\
-  1.78.0/source/boost_1_78_0.tar.bz2.json
-  ...
-  cat boost.json
-  {
-  "commit": "b9ab49fc70ee1ef59aaab7f59d2bc6e9971ebb46",
-  "file": "boost_1_78_0.tar.bz2",
-  "sha256": "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc"
-  }
-  shasum -a 256 boost.tar.bz2
-  8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  \
-  boost.tar.bz2
-  # compare the checksums from the shasum call and the JSON file
-  mkdir boost
-  tar --strip-components=1 -C boost -xf boost.tar.bz2
-  cd boost
-  export BOOST_LOG_NO_THREADS=1
-  ./bootstrap.sh --prefix=$HOME/local
-  cat <<EOF > user-config.jam
-  using python : 3.9
-               : python3
-               : /usr/local/opt/python@3.9/Frameworks/Python.framework/\
-  Versions/3.9/include/python3.9/
-               : /usr/local/opt/python@3.9/Frameworks/Python.framework/\
-  Versions/3.9/lib ;
-  EOF
-  ./b2 --prefix=$HOME/local install --user-config=user-config.jam
-
-For CMake configuring the OST build system, a Boost library installed by
-Homebrew needs to be uninstalled, otherwise CMake will pick up the system
-installation.
+3.9.10 but works so far. Boost comes as 1.76.0 which seems to be OK. Do not
+forget to also install boost-python3 (your system may have a lower version of
+Python than 3.9.10 but it seems like boost-python3 was compiled for 3.9.10).
+Eigen and SQLite also seem to be unproblematic concerning higher version
+numbers. To build the graphical user interface, use Qt version 5 by installing
+packages qt@5 and pyqt@5 from Homebrew.
 
 If you want to build the info module or the graphical user interface, make sure
 you have the Xcode app installed. Just the Xcode command line tools which are
@@ -410,10 +374,9 @@ compilation warnings from third party software, we add some dedicated C flags:
           -DPython_LIBRARIES=/usr/local/opt/python@3.9/Frameworks/\
   Python.framework/Versions/Current/lib/libpython3.9.dylib \
           -DPython_ROOT_DIR=/usr/local/opt/python@3.9/ \
-          -DBoost_USE_MULTITHREADED=OFF \
-          -DBOOST_ROOT=$HOME/local \
+          -DBOOST_ROOT=/usr/local \
           -DSYS_ROOT=/usr/local \
-          -DOPTIMIZE=ON  \
+          -DOPTIMIZE=ON \
           -DCMAKE_C_FLAGS="-isystem /Applications/Xcode.app/Contents/\
   Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/\
   Library/Frameworks/OpenGL.framework/Headers/ -isystem /usr/local/opt/\
@@ -422,7 +385,7 @@ compilation warnings from third party software, we add some dedicated C flags:
   Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/\
   MacOSX.sdk/System/Library/Frameworks/Security.framework/ \
   -isystem /usr/local/opt/qt@5/lib/QtGui.framework/Headers/" \
-         -DCMAKE_CXX_FLAGS="-std=c++11 -isystem /Applications/Xcode.app/\
+         -DCMAKE_CXX_FLAGS="-isystem /Applications/Xcode.app/\
   Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/\
   System/Library/Frameworks/OpenGL.framework/Headers/ -isystem /usr/local/opt/\
   qt@5/lib/QtCore.framework/Headers/ -isystem /usr/local/opt/qt@5/lib/\
@@ -472,4 +435,5 @@ in your terminal. This will fetch the newest changes.
 ..  LocalWords:  Homebrew cmake CMake zlib SQLite FFTW libtiff libpng PyQt OST
 ..  LocalWords:  SSL macOS Makefiles PDB qmake PNG libz libsqlite OPTIMIZE dng
 ..  LocalWords:  DNDEBUG RPATH rpath SHADER shader SPNAV DConnexion profiler
-..  LocalWords:  DOPTIMIZE DENABLE DOPEN DPYTHON DBOOST DSYS Xcode Eigen
+..  LocalWords:  DOPTIMIZE DENABLE DOPEN DPYTHON DBOOST DSYS Xcode Eigen Sur
+..  LocalWords:  Monterey SDKROOT DPython DIRS DCMAKE isystem CXX
