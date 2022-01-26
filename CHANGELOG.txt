@@ -2,6 +2,8 @@ Changes in Release 2.3.1
 --------------------------------------------------------------------------------
 
  * Simplify Dockerfile - remove MSMS
+ * Enable OpenMM 7.7.0
+ * Resolve segfault in DNG observed in Python 3.9
 
 Changes in Release 2.3.0
 --------------------------------------------------------------------------------
