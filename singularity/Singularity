@@ -1,5 +1,5 @@
 BootStrap: docker
-From: registry.scicore.unibas.ch/schwede/openstructure:2.3.1-focal
+From: registry.scicore.unibas.ch/schwede/openstructure:2.3.0-focal
 %post
 ##############################################################################
 # POST
