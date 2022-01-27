@@ -55,7 +55,6 @@ PythonInterpreterWorker::PythonInterpreterWorker():
   current_id_(),
   awake_(false)
 {
-  Py_InitializeEx(1);
   parse_expr_cmd_=bp::import("parser").attr("expr");
   main_namespace_ = bp::extract<bp::dict>(bp::import("__main__").attr("__dict__"));
   repr_=bp::import("__main__").attr("__builtins__").attr("repr");

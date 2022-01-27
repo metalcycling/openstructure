@@ -323,22 +323,25 @@ OpenStructure.
 
 
 
-**macOS (Catalina) with Homebrew**
+
+**macOS (Catalina/ Big Sur/ Monterey) with Homebrew**
 
 .. note::
 
-  When switching the Qt version used to compile OST with support for the
+  When switching the Qt version used for compiling OST with support for the
   graphical user interface, dng may start behaving weird. Symptoms are that the
   user interface starts being unresponsive to mouse clicks. An easy solution
   may be to close dng and remove
-  $HOME/Library/Preferences/org.openstructure.dng.plist and start dng again.
+  ``$HOME/Library/Preferences/org.openstructure.dng.plist`` and start dng again.
 
 `Homebrew <https://brew.sh/>`_ can be used to conveniently install all
 dependencies. The current Python version, as of writing these instructions, is
-3.9.0 but works so far. Boost comes as 1.74.0 which seems to be OK. Do not
-forget to also install `boost-python3` (your system may have a lower version of
-Python than 3.9.0 but it seems like `boost-python3` was compiled for 3.9.0).
-Eigen and SQLite also seem to be unproblematic concerning higher version numbers.
+3.9.10 but works so far. Boost comes as 1.76.0 which seems to be OK. Do not
+forget to also install boost-python3 (your system may have a lower version of
+Python than 3.9.10 but it seems like boost-python3 was compiled for 3.9.10).
+Eigen and SQLite also seem to be unproblematic concerning higher version
+numbers. To build the graphical user interface, use Qt version 5 by installing
+packages qt@5 and pyqt@5 from Homebrew.
 
 If you want to build the info module or the graphical user interface, make sure
 you have the Xcode app installed. Just the Xcode command line tools which are
@@ -357,13 +360,12 @@ binaries in your Path for CMake to determine its configuration:
 
 .. code-block:: bash
 
-  export PATH="/usr/local/opt/qt/bin:$PATH"
+  export PATH="/usr/local/opt/qt@5/bin:$PATH"
 
 Homebrew installs all the software under /usr/local. Thus we have to tell cmake
-where to find Boost and Python. Also the Python headers and libraries are not
-located as they are on Linux and hence they must be specified too. To get rid of
-a ton of compilation warnings from third party software, we add some dedicated
-C flags:
+where to find Python. Also the Python headers and libraries are not located as
+they are on Linux and hence they must be specified too. To get rid of a ton of
+compilation warnings from third party software, we add some dedicated C flags:
 
 .. code-block:: bash
 
@@ -378,19 +380,19 @@ C flags:
           -DCMAKE_C_FLAGS="-isystem /Applications/Xcode.app/Contents/\
   Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/\
   Library/Frameworks/OpenGL.framework/Headers/ -isystem /usr/local/opt/\
-  qt/lib/QtCore.framework/Headers/ -isystem /usr/local/opt/qt/lib/\
+  qt@5/lib/QtCore.framework/Headers/ -isystem /usr/local/opt/qt@5/lib/\
   QtWidgets.framework/Headers/ -isystem /Applications/Xcode.app/\
   Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/\
   MacOSX.sdk/System/Library/Frameworks/Security.framework/ \
-  -isystem /usr/local/opt/qt/lib/QtGui.framework/Headers/" \
-          -DCMAKE_CXX_FLAGS="-isystem /Applications/Xcode.app/Contents/\
-  Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/\
-  Library/Frameworks/OpenGL.framework/Headers/ -isystem /usr/local/opt/\
-  qt/lib/QtCore.framework/Headers/ -isystem /usr/local/opt/qt/lib/\
+  -isystem /usr/local/opt/qt@5/lib/QtGui.framework/Headers/" \
+         -DCMAKE_CXX_FLAGS="-isystem /Applications/Xcode.app/\
+  Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/\
+  System/Library/Frameworks/OpenGL.framework/Headers/ -isystem /usr/local/opt/\
+  qt@5/lib/QtCore.framework/Headers/ -isystem /usr/local/opt/qt@5/lib/\
   QtWidgets.framework/Headers/ -isystem /Applications/Xcode.app/\
   Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/\
   MacOSX.sdk/System/Library/Frameworks/Security.framework/ \
-  -isystem /usr/local/opt/qt/lib/QtGui.framework/Headers/"
+  -isystem /usr/local/opt/qt@5/lib/QtGui.framework/Headers/"
 
 Building the Project
 --------------------------------------------------------------------------------
@@ -430,7 +432,8 @@ To get the newest changes from the central git repository, enter
 in your terminal. This will fetch the newest changes.
 
 
-..  LocalWords:  Homebrew cmake CMake zlib SQLite FFTW libtiff libpng PyQt
-..  LocalWords:  SSL macOS Makefiles PDB qmake PNG libz libsqlite OPTIMIZE
+..  LocalWords:  Homebrew cmake CMake zlib SQLite FFTW libtiff libpng PyQt OST
+..  LocalWords:  SSL macOS Makefiles PDB qmake PNG libz libsqlite OPTIMIZE dng
 ..  LocalWords:  DNDEBUG RPATH rpath SHADER shader SPNAV DConnexion profiler
-..  LocalWords:  DOPTIMIZE DENABLE DOPEN DPYTHON DBOOST DSYS Xcode Eigen
+..  LocalWords:  DOPTIMIZE DENABLE DOPEN DPYTHON DBOOST DSYS Xcode Eigen Sur
+..  LocalWords:  Monterey SDKROOT DPython DIRS DCMAKE isystem CXX
