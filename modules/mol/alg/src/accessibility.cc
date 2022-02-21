@@ -270,7 +270,7 @@ Real GetAtomAccessibilityNACCESS(Real x_pos, Real y_pos, Real z_pos,
 
         Real r_diff = z_slice_r - close_atom_z_slice_r;
 
-        if(d[idx] < std::abs(r_diff)) {
+        if(d[idx] <= std::abs(r_diff)) {
           // one circle is inside the other!
           if(r_diff <= Real(0.0)) {
             // the circle of the close atom fully encloses circle of currently
