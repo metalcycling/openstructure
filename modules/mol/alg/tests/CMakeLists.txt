@@ -8,6 +8,7 @@ set(OST_MOL_ALG_UNIT_TESTS
   test_hbond.py
   test_accessibility.py
   test_sec_struct.py
+  test_lddt.py
 )
 
 if (COMPOUND_LIB)

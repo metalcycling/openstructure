@@ -5,6 +5,7 @@ import ost.mol.alg.trajectory_analysis
 import ost.mol.alg.structure_analysis
 import ost.mol.alg.helix_kinks
 import ost.mol.alg.hbond
+import ost.mol.alg.lddt
 
 # Fills a list of reference clashing distances from a file (requires a path to the file)
 def FillClashingDistancesFromFile(filename):

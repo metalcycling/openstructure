@@ -22,6 +22,7 @@ set(OST_MOL_ALG_PYMOD_MODULES
   structure_analysis.py
   helix_kinks.py
   hbond.py
+  lddt.py
 )
 
 if (NOT ENABLE_STATIC)
