@@ -4,6 +4,7 @@ from ost import io, mol, settings, conop, seq
 # check if we can import: fails if numpy or scipy not available
 try:
     from ost.mol.alg.qsscoring import *
+    from ost.mol.alg.lddt import *
 except ImportError:
     print("Failed to import qsscoring. Happens when numpy or scipy missing. " \
           "Ignoring test_lddt.py tests.")
@@ -24,7 +25,7 @@ class TestlDDT(unittest.TestCase):
         target = _LoadFile("7SGN_C_target.pdb")
 
         # do awesome implementation
-        scorer = mol.alg.lddt.lDDTScorer(target, conop.GetDefaultLib())
+        scorer = lDDTScorer(target, conop.GetDefaultLib())
         aws_score, aws_per_res_scores = scorer.lDDT(model)
 
         # do reference implementation
@@ -50,7 +51,7 @@ class TestlDDT(unittest.TestCase):
         target = _LoadFile("7W1F_B_target.pdb")
 
         # do awesome implementation
-        scorer = mol.alg.lddt.lDDTScorer(target, conop.GetDefaultLib())
+        scorer = lDDTScorer(target, conop.GetDefaultLib())
         aws_score, aws_per_res_scores = scorer.lDDT(model)
 
         # do reference implementation
@@ -79,7 +80,7 @@ class TestlDDT(unittest.TestCase):
         target = ent_full.Select('peptide=true and cname=A,B')
         # we use functionality from QS-scorer to derive a mapping
         qs_scorer = QSscorer(model, target)
-        lddt_scorer = mol.alg.lddt.lDDTScorer(target, conop.GetDefaultLib())
+        lddt_scorer = lDDTScorer(target, conop.GetDefaultLib())
 
         score, per_res_scores = lddt_scorer.lDDT(model, 
           chain_mapping=qs_scorer.chain_mapping)
@@ -112,7 +113,7 @@ class TestlDDT(unittest.TestCase):
 
         # we use functionality from QS-scorer to derive a mapping
         qs_scorer = QSscorer(model, target)
-        lddt_scorer = mol.alg.lddt.lDDTScorer(target, conop.GetDefaultLib())
+        lddt_scorer = lDDTScorer(target, conop.GetDefaultLib())
 
         # naively running lDDT will fail, as residue-residue mapping happens
         # with resnums. Since we shifted that stuff above we'll get an error
@@ -142,10 +143,10 @@ class TestlDDT(unittest.TestCase):
     def test_lDDT_seqsep(self):
         target = _LoadFile("7SGN_C_target.pdb")
         with self.assertRaises(NotImplementedError):
-            scorer = mol.alg.lddt.lDDTScorer(target, conop.GetDefaultLib(),
+            scorer = lDDTScorer(target, conop.GetDefaultLib(),
                                              sequence_separation=42)
-        scorer = mol.alg.lddt.lDDTScorer(target, conop.GetDefaultLib(),
-                                         sequence_separation=0)
+        scorer = lDDTScorer(target, conop.GetDefaultLib(),
+                            sequence_separation=0)
 
 if __name__ == "__main__":
     from ost import testutils
