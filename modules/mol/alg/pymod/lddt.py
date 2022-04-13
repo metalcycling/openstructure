@@ -311,11 +311,11 @@ class lDDTScorer:
                                 generic float property of that name
         :type local_lddt_prop: :class:`str`
         :param local_contact_prop: If set, number of expected contacts as well
-                                   as number of fulfilled contacts will be
+                                   as number of conserved contacts will be
                                    assigned as generic int property.
                                    Excected contacts will be set as
-                                   <local_contact_prop>_exp, fulfilled contacts
-                                   as <local_contact_prop>_fulfilled. Values
+                                   <local_contact_prop>_exp, conserved contacts
+                                   as <local_contact_prop>_conserved. Values
                                    are summed over all thresholds.
         :param local_contact_prop: :class:`str`
         :param chain_mapping: Mapping of model chains (key) onto target chains
@@ -360,7 +360,7 @@ class lDDTScorer:
                                  Third: numpy matrix of shape 
                                  (len(scored_residues), len(thresholds))
                                  specifying how many for each threshold are
-                                 fulfilled. 
+                                 conserved. 
         :returns: global and per-residue lDDT scores as a tuple -
                   first element is global lDDT score and second element
                   a list of per-residue scores with length len(*model*.residues)
@@ -478,7 +478,7 @@ class lDDTScorer:
 
         per_res_exp = np.asarray([self._GetNExp(res_ref_atom_indices[idx],
             ref_indices) for idx in range(len(res_indices))], dtype=np.int32)
-        per_res_fulfilled = self._EvalResidues(pos, thresholds,
+        per_res_conserved = self._EvalResidues(pos, thresholds,
                                                res_atom_indices,
                                                ref_indices, ref_distances)
 
@@ -488,14 +488,14 @@ class lDDTScorer:
         per_res_lDDT = [None] * len(model.residues)
         for idx in range(len(res_indices)):
             n_exp = n_thresh * per_res_exp[idx]
-            score = np.sum(per_res_fulfilled[idx,:]) / n_exp
+            score = np.sum(per_res_conserved[idx,:]) / n_exp
             per_res_lDDT[res_indices[idx]] = score
 
         # do full model score
         if penalize_extra_chains:
             n_distances += self._GetExtraModelChainPenalty(model, chain_mapping)
 
-        lDDT = np.sum(per_res_fulfilled) / (n_thresh * n_distances)
+        lDDT = np.sum(per_res_conserved) / (n_thresh * n_distances)
 
         # set properties if necessary
         if local_lddt_prop:
@@ -506,14 +506,14 @@ class lDDTScorer:
         if local_contact_prop:
             residues = model.residues
             exp_prop = local_contact_prop + "_exp"
-            fulfilled_prop = local_contact_prop + "_fulfilled"
+            conserved_prop = local_contact_prop + "_conserved"
             for idx in res_indices:
                 residues[idx].SetIntProp(exp_prop, n_thresh * per_res_exp[idx])
-                residues[idx].SetIntProp(fulfilled_prop,
-                                         np.sum(per_res_fulfilled[idx,:]))
+                residues[idx].SetIntProp(conserved_prop,
+                                         np.sum(per_res_conserved[idx,:]))
 
         if return_dist_test:
-            return lDDT, per_res_lDDT, res_indices, per_res_exp, per_res_fulfilled
+            return lDDT, per_res_lDDT, res_indices, per_res_exp, per_res_conserved
         else:
             return lDDT, per_res_lDDT
 
@@ -858,12 +858,12 @@ class lDDTScorer:
 
         returns numpy matrix of shape (n_atoms, len(threshold))
         """
-        fulfilled = np.zeros((len(atom_indices), len(thresholds)),
+        conserved = np.zeros((len(atom_indices), len(thresholds)),
                              dtype=np.int32)
         for a_idx, a in enumerate(atom_indices):
-            fulfilled[a_idx, :] = self._EvalAtom(pos, a, thresholds,
+            conserved[a_idx, :] = self._EvalAtom(pos, a, thresholds,
                                                  ref_indices, ref_distances)
-        return fulfilled
+        return conserved
 
     def _EvalResidues(self, pos, thresholds, res_atom_indices, ref_indices,
                       ref_distances):
@@ -872,12 +872,12 @@ class lDDTScorer:
         residues are defined in *res_atom_indices* as lists of atom indices
         returns numpy matrix of shape (n_residues, len(thresholds)).
         """
-        fulfilled = np.zeros((len(res_atom_indices), len(thresholds)),
+        conserved = np.zeros((len(res_atom_indices), len(thresholds)),
                              dtype=np.int32)
         for rai_idx, rai in enumerate(res_atom_indices):
-            fulfilled[rai_idx,:] = np.sum(self._EvalAtoms(pos, rai, thresholds,
+            conserved[rai_idx,:] = np.sum(self._EvalAtoms(pos, rai, thresholds,
                                           ref_indices, ref_distances), axis=0)
-        return fulfilled
+        return conserved
 
     def _ProcessSequenceSeparation(self):
         if self.sequence_separation != 0:
@@ -914,7 +914,7 @@ class lDDTScorer:
                 continue  # nothing to do
 
             # score as is
-            sym_one_fulfilled = self._EvalAtoms(
+            sym_one_conserved = self._EvalAtoms(
                 pos,
                 atom_indices,
                 thresholds,
@@ -926,7 +926,7 @@ class lDDTScorer:
             for pair in sym:
                 pos[[pair[0], pair[1]]] = pos[[pair[1], pair[0]]]
 
-            sym_two_fulfilled = self._EvalAtoms(
+            sym_two_conserved = self._EvalAtoms(
                 pos,
                 atom_indices,
                 thresholds,
@@ -934,8 +934,8 @@ class lDDTScorer:
                 sym_ref_distances,
             )
 
-            sym_one_score = np.sum(sym_one_fulfilled) / (len(thresholds) * tot)
-            sym_two_score = np.sum(sym_two_fulfilled) / (len(thresholds) * tot)
+            sym_one_score = np.sum(sym_one_conserved) / (len(thresholds) * tot)
+            sym_two_score = np.sum(sym_two_conserved) / (len(thresholds) * tot)
 
             if sym_one_score >= sym_two_score:
                 # switch back, initial positions were better or equal
