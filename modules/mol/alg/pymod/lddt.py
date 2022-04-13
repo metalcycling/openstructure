@@ -315,7 +315,7 @@ class lDDTScorer:
                                    assigned as generic int property.
                                    Excected contacts will be set as
                                    <local_contact_prop>_exp, conserved contacts
-                                   as <local_contact_prop>_conserved. Values
+                                   as <local_contact_prop>_cons. Values
                                    are summed over all thresholds.
         :param local_contact_prop: :class:`str`
         :param chain_mapping: Mapping of model chains (key) onto target chains
@@ -506,7 +506,7 @@ class lDDTScorer:
         if local_contact_prop:
             residues = model.residues
             exp_prop = local_contact_prop + "_exp"
-            conserved_prop = local_contact_prop + "_conserved"
+            conserved_prop = local_contact_prop + "_cons"
             for idx in res_indices:
                 residues[idx].SetIntProp(exp_prop, n_thresh * per_res_exp[idx])
                 residues[idx].SetIntProp(conserved_prop,
