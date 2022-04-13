@@ -295,7 +295,8 @@ class lDDTScorer:
         return self._n_distances_sc
 
     def lDDT(self, model, thresholds = [0.5, 1.0, 2.0, 4.0],
-             local_lddt_prop=None, chain_mapping=None, no_interchain=False,
+             local_lddt_prop=None, local_contact_prop=None,
+             chain_mapping=None, no_interchain=False,
              penalize_extra_chains=False, residue_mapping=None,
              return_dist_test=False):
         """Computes lDDT of *model* - globally and per-residue
@@ -309,6 +310,14 @@ class lDDTScorer:
         :param local_lddt_prop: If set, per-residue scores will be assigned as
                                 generic float property of that name
         :type local_lddt_prop: :class:`str`
+        :param local_contact_prop: If set, number of expected contacts as well
+                                   as number of fulfilled contacts will be
+                                   assigned as generic int property.
+                                   Excected contacts will be set as
+                                   <local_contact_prop>_exp, fulfilled contacts
+                                   as <local_contact_prop>_fulfilled. Values
+                                   are summed over all thresholds.
+        :param local_contact_prop: :class:`str`
         :param chain_mapping: Mapping of model chains (key) onto target chains
                               (value). This is required if target or model have
                               more than one chain.
@@ -342,11 +351,14 @@ class lDDTScorer:
                                value: :class:`ost.seq.AlignmentHandle`
         :param return_dist_test: Whether to additionally return the underlying
                                  per-residue data for the distance difference
-                                 test. Adds two objects to the return tuple.
-                                 First: numpy array of size len(model.residues)
-                                 containing the number of expected distances,
-                                 Second: numpy matrix of shape 
-                                 (len(model.residues), len(thresholds))
+                                 test. Adds three objects to the return tuple.
+                                 First: list with length of scored residues.
+                                 Contains indices referring to model.residues.
+                                 Second: numpy array of size
+                                 len(scored_residues) containing the number of
+                                 expected distances,
+                                 Third: numpy matrix of shape 
+                                 (len(scored_residues), len(thresholds))
                                  specifying how many for each threshold are
                                  fulfilled. 
         :returns: global and per-residue lDDT scores as a tuple -
@@ -485,18 +497,27 @@ class lDDTScorer:
 
         lDDT = np.sum(per_res_fulfilled) / (n_thresh * n_distances)
 
-        # set float properties if necessary
+        # set properties if necessary
         if local_lddt_prop:
             residues = model.residues
             for idx in res_indices:
                 residues[idx].SetFloatProp(local_lddt_prop, per_res_lDDT[idx])
 
+        if local_contact_prop:
+            residues = model.residues
+            exp_prop = local_contact_prop + "_exp"
+            fulfilled_prop = local_contact_prop + "_fulfilled"
+            for idx in res_indices:
+                residues[idx].SetIntProp(exp_prop, n_thresh * per_res_exp[idx])
+                residues[idx].SetIntProp(fulfilled_prop,
+                                         np.sum(per_res_fulfilled[idx,:]))
+
         if return_dist_test:
-            return lDDT, per_res_lDDT, per_res_exp, per_res_fulfilled
+            return lDDT, per_res_lDDT, res_indices, per_res_exp, per_res_fulfilled
         else:
             return lDDT, per_res_lDDT
 
-    def GetNContacts(self, target_chain, no_interchain=False):
+    def GetNChainContacts(self, target_chain, no_interchain=False):
         """Returns number of contacts expected for a certain chain in *target*
 
         :param target_chain: Chain in *target* for which you want the number
