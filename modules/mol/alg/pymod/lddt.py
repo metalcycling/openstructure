@@ -496,6 +496,30 @@ class lDDTScorer:
         else:
             return lDDT, per_res_lDDT
 
+    def GetNContacts(self, target_chain, no_interchain=False):
+        """Returns number of contacts expected for a certain chain in *target*
+
+        :param target_chain: Chain in *target* for which you want the number
+                             of expected contacts
+        :type target_chain: :class:`str`
+        :param no_interchain: Whether to exclude interchain contacts
+        :type no_interchain: :class:`bool`
+        :raises: :class:`RuntimeError` if specified chain doesnt exist
+        """
+        if target_chain not in self.chain_names:
+            raise RuntimeError(f"Specified chain name ({target_chain}) not in "
+                               f"target")
+        ch_idx = self.chain_names.index(target_chain)
+        s = self.chain_start_indices[ch_idx]
+        e = self.n_atoms
+        if ch_idx + 1 < len(self.chain_names):
+            e = self.chain_start_indices[ch_idx+1]
+        if no_interchain:
+            return self._GetNExp(list(range(s, e)), self.ref_indices_sc)
+        else:
+            return self._GetNExp(list(range(s, e)), self.ref_indices)
+
+
     def _GetExtraModelChainPenalty(self, model, chain_mapping):
         """Counts n distances in extra model chains to be added as penalty
         """
