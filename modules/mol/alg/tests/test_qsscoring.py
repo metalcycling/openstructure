@@ -424,13 +424,12 @@ class TestQSscore(unittest.TestCase):
     lddt_oligo_scorer2 = qs_scorer2.GetOligoLDDTScorer(lddt_settings, False)
     self.assertAlmostEqual(qs_scorer2.global_score, 0.171, 2)
     self.assertAlmostEqual(qs_scorer2.best_score, 1.00, 2)
-    self.assertAlmostEqual(lddt_oligo_scorer2.weighted_lddt, 1.00, 2)
+    self.assertAlmostEqual(lddt_oligo_scorer2.weighted_lddt, 0.4996, 2)
     self.assertEqual(len(lddt_oligo_scorer2.sc_lddt), 2)
     self.assertAlmostEqual(lddt_oligo_scorer2.sc_lddt[0], 1.00, 2)
     self.assertAlmostEqual(lddt_oligo_scorer2.sc_lddt[1], 1.00, 2)
-    # without penalty we don't see extra chains
-    self.assertAlmostEqual(lddt_oligo_scorer2.oligo_lddt, 1.00, 2)
-    # with penalty we account for extra reference chains
+    self.assertAlmostEqual(lddt_oligo_scorer2.oligo_lddt, 0.4496, 2)
+    # penalty only affects additional model chains, scores are thus the same
     lddt_oligo_scorer2_pen = qs_scorer2.GetOligoLDDTScorer(lddt_settings, True)
     self.assertAlmostEqual(lddt_oligo_scorer2_pen.oligo_lddt, 0.4496, 2)
     self.assertAlmostEqual(lddt_oligo_scorer2_pen.weighted_lddt, 0.50, 2)

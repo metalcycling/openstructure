@@ -67,12 +67,10 @@ import ost
 from ost.io import (LoadPDB, LoadMMCIF, SavePDB, MMCifInfoBioUnit, MMCifInfo,
                     MMCifInfoTransOp, ReadStereoChemicalPropsFile, profiles)
 from ost import PushVerbosityLevel
-from ost.mol.alg import (qsscoring, Molck, MolckSettings, lDDTSettings,
-                         CheckStructure, ResidueNamesMatch)
+from ost.mol.alg import (qsscoring, lddt, Molck, MolckSettings, lDDTSettings,
+                         CheckStructure)
 from ost.conop import (CompoundLib, SetDefaultLib, GetDefaultLib,
                        RuleBasedProcessor)
-from ost.seq.alg.renumber import Renumber
-
 
 def _GetDefaultShareFilePath(filename):
     """Look for filename in working directory and OST shared data path.
@@ -520,10 +518,19 @@ def _RevertChainNames(ent):
 def _CheckConsistency(alignments, log_error):
     is_cons = True
     for alignment in alignments:
-        ref_chain = Renumber(alignment.GetSequence(0)).CreateFullView()
-        mdl_chain = Renumber(alignment.GetSequence(1)).CreateFullView()
-        new_is_cons = ResidueNamesMatch(mdl_chain, ref_chain, log_error)
-        is_cons = is_cons and new_is_cons
+        for col in alignment:
+            r1 = col.GetResidue(0)
+            r2 = col.GetResidue(1)
+            if r1.IsValid() and r2.IsValid():
+                if r1.GetName() != r2.GetName():
+                    is_cons = False
+                    msg = f"Name mismatch for model residue {r2}: in the "
+                    msg += f"reference structure(s) is {r1.GetName()} ({r1}), "
+                    msg += f"in the model {r2.GetName()}"
+                    if log_error:
+                        ost.LogError(msg)
+                    else:
+                        ost.LogWarning(msg)
     return is_cons
 
 
@@ -837,25 +844,24 @@ def _Main():
                             "best_score": 0.0}
             # Calculate lDDT
             if opts.lddt:
+
+                lddt_settings = lDDTSettings(radius=opts.inclusion_radius,
+                sequence_separation=opts.sequence_separation, label="lddt")
+
                 ost.LogInfo("-" * 80)
                 ost.LogInfo("Computing lDDT scores")
-                lddt_results = {
-                    "single_chain_lddt": list()
-                }
-                lddt_settings = lDDTSettings(
-                    radius=opts.inclusion_radius,
-                    sequence_separation=opts.sequence_separation,
-                    label="lddt")
                 ost.LogInfo("lDDT settings: ")
                 ost.LogInfo(str(lddt_settings).rstrip())
                 ost.LogInfo("===")
-                oligo_lddt_scorer = qs_scorer.GetOligoLDDTScorer(lddt_settings)
-                for mapped_lddt_scorer in oligo_lddt_scorer.mapped_lddt_scorers:
-                    # Get data
-                    lddt_scorer = mapped_lddt_scorer.lddt_scorer
-                    model_chain = mapped_lddt_scorer.model_chain_name
-                    reference_chain = mapped_lddt_scorer.reference_chain_name
-                    if skip_score:
+
+                lddt_results = {
+                    "single_chain_lddt": list()
+                }
+
+                if skip_score:
+                    for aln in qs_scorer.alignments:
+                        reference_chain = aln.GetSequence(0).GetName()
+                        model_chain = aln.GetSequence(1).GetName()
                         ost.LogInfo(
                             " --> Skipping single chain lDDT because "
                             "consistency check failed")
@@ -867,107 +873,97 @@ def _Main():
                             "global_score": 0.0,
                             "conserved_contacts": 0.0,
                             "total_contacts": 0.0})
-                    else:
-                        try:
-                            ost.LogInfo((" --> Computing lDDT between model "
-                                         "chain %s and reference chain %s") % (
-                                             model_chain,
-                                             reference_chain))
-                            ost.LogInfo("Global LDDT score: %.4f" %
-                                        lddt_scorer.global_score)
-                            ost.LogInfo(
-                                "(%i conserved distances out of %i checked, over "
-                                "%i thresholds)" % (lddt_scorer.conserved_contacts,
-                                                    lddt_scorer.total_contacts,
-                                                    len(lddt_settings.cutoffs)))
-                            sc_lddt_scores = {
-                                "status": "SUCCESS",
-                                "error": "",
-                                "model_chain": model_chain,
-                                "reference_chain": reference_chain,
-                                "global_score": lddt_scorer.global_score,
-                                "conserved_contacts":
-                                    lddt_scorer.conserved_contacts,
-                                "total_contacts": lddt_scorer.total_contacts}
-                            if opts.save_per_residue_scores:
-                                per_residue_sc = \
-                                    mapped_lddt_scorer.GetPerResidueScores()
-                                ost.LogInfo("Per residue local lDDT (reference):")
-                                ost.LogInfo("Chain\tResidue Number\tResidue Name"
-                                            "\tlDDT\tConserved Contacts\tTotal "
-                                            "Contacts")
-                                for prs_scores in per_residue_sc:
-                                    ost.LogInfo("%s\t%i\t%s\t%.4f\t%i\t%i" % (
-                                        reference_chain,
-                                        prs_scores["residue_number"],
-                                        prs_scores["residue_name"],
-                                        prs_scores["lddt"],
-                                        prs_scores["conserved_contacts"],
-                                        prs_scores["total_contacts"]))
-                                sc_lddt_scores["per_residue_scores"] = \
-                                    per_residue_sc
-                            lddt_results["single_chain_lddt"].append(
-                                sc_lddt_scores)
-                        except Exception as ex:
-                            ost.LogError('Single chain lDDT failed:', str(ex))
-                            lddt_results["single_chain_lddt"].append({
-                                "status": "FAILURE",
-                                "error": str(ex),
-                                "model_chain": model_chain,
-                                "reference_chain": reference_chain,
-                                "global_score": 0.0,
-                                "conserved_contacts": 0.0,
-                                "total_contacts": 0.0})
-                # perform oligo lddt scoring
-                if skip_score:
+
                     ost.LogInfo(
                         " --> Skipping oligomeric lDDT because consistency "
                         "check failed")
                     lddt_results["oligo_lddt"] = {
                         "status": "FAILURE",
                         "error": "Consistency check failed.",
-                        "global_score": 0.0}
+                        "global_score": 0.0,
+                        "conserved_contacts": 0,
+                        "total_contacts": 0}
+
                 else:
-                    try:
-                        ost.LogInfo(' --> Computing oligomeric lDDT score')
-                        lddt_results["oligo_lddt"] = {
+                    lddt_scorer = qs_scorer.GetOligoLDDTScorer(lddt_settings,
+                                                               penalize_extra_chains=True)
+
+                    # do single chain lDDT
+                    scores = lddt_scorer.sc_lddt
+                    per_res = lddt_scorer.sc_lddt_per_res
+                    tot = lddt_scorer.sc_lddt_tot
+                    cons = lddt_scorer.sc_lddt_cons
+                    alns = qs_scorer.alignments
+
+                    for idx in range(len(scores)):
+                        ref_chain = alns[idx].GetSequence(0).GetName()
+                        model_chain = alns[idx].GetSequence(1).GetName()
+
+                        ost.LogInfo((" --> Computing lDDT between model "
+                                     "chain %s and reference chain %s") % (
+                                             model_chain,
+                                             ref_chain))
+                        ost.LogInfo("Global LDDT score: %.4f" %scores[idx])
+                        ost.LogInfo("(%i conserved distances out of %i checked, over "
+                                    "%i thresholds)" % (cons[idx], tot[idx], 4))
+
+                        sc_lddt_scores = {
                             "status": "SUCCESS",
                             "error": "",
-                            "global_score": oligo_lddt_scorer.oligo_lddt}
-                        ost.LogInfo(
-                            "Oligo lDDT score: %.4f" %
-                            oligo_lddt_scorer.oligo_lddt)
-                    except Exception as ex:
-                        ost.LogError('Oligo lDDT failed:', str(ex))
-                        lddt_results["oligo_lddt"] = {
-                            "status": "FAILURE",
-                            "error": str(ex),
-                            "global_score": 0.0}
-                if skip_score:
+                            "model_chain": model_chain,
+                            "reference_chain": ref_chain,
+                            "global_score": scores[idx],
+                            "conserved_contacts": cons[idx],
+                            "total_contacts": tot[idx]}
+
+                        if opts.save_per_residue_scores:
+                            tmp = [x for x in per_res if x["chain"]==ref_chain]
+                            ost.LogInfo("Per residue local lDDT (reference):")
+                            ost.LogInfo("Chain\tResidue Number\tResidue Name"
+                                        "\tlDDT\tConserved Contacts\tTotal "
+                                        "Contacts")
+                            for x in tmp:
+                                ost.LogInfo("%s\t%i\t%s\t%.4f\t%i\t%i" % (
+                                    x["chain"],
+                                    x["residue_number"],
+                                    x["residue_name"],
+                                    x["lddt"],
+                                    x["conserved_contacts"],
+                                    x["total_contacts"]))
+                            sc_lddt_scores["per_residue_scores"] = tmp
+
+                        lddt_results["single_chain_lddt"].append(
+                            sc_lddt_scores)
+
+                    # perform oligo lddt scoring
+                    ost.LogInfo(' --> Computing oligomeric lDDT score')
+                    lddt_results["oligo_lddt"] = {
+                        "status": "SUCCESS",
+                        "error": "",
+                        "global_score": lddt_scorer.oligo_lddt,
+                        "conserved_contacts": lddt_scorer.oligo_lddt_cons,
+                        "total_contacts": lddt_scorer.oligo_lddt_tot}
                     ost.LogInfo(
-                        " --> Skipping weighted lDDT because consistency "
-                        "check failed")
-                    lddt_results["weighted_lddt"] = {
-                        "status": "FAILURE",
-                        "error": "Consistency check failed.",
-                        "global_score": 0.0}
-                else:
-                    try:
-                        ost.LogInfo(' --> Computing weighted lDDT score')
-                        lddt_results["weighted_lddt"] = {
-                            "status": "SUCCESS",
-                            "error": "",
-                            "global_score": oligo_lddt_scorer.weighted_lddt}
-                        ost.LogInfo(
-                            "Weighted lDDT score: %.4f" %
-                            oligo_lddt_scorer.weighted_lddt)
-                    except Exception as ex:
-                        ost.LogError('Weighted lDDT failed:', str(ex))
-                        lddt_results["weighted_lddt"] = {
-                            "status": "FAILURE",
-                            "error": str(ex),
-                            "global_score": 0.0}
+                    "Oligo lDDT score: %.4f" % lddt_scorer.oligo_lddt)
+
+                    if opts.save_per_residue_scores:
+                        tmp = lddt_scorer.oligo_lddt_per_res
+                        ost.LogInfo("Per residue local oligo lDDT (reference):")
+                        ost.LogInfo("Chain\tResidue Number\tResidue Name"
+                                    "\tlDDT\tConserved Contacts\tTotal "
+                                    "Contacts")
+                        for x in tmp:
+                            ost.LogInfo("%s\t%i\t%s\t%.4f\t%i\t%i" % (
+                                x["chain"],
+                                x["residue_number"],
+                                x["residue_name"],
+                                x["lddt"],
+                                x["conserved_contacts"],
+                                x["total_contacts"]))
+                        lddt_results["oligo_lddt"]["per_residue_scores"] = tmp
+
                 reference_results["lddt"] = lddt_results
+
             model_results[reference_name] = reference_results
             if opts.dump_structures:
                 ost.LogInfo("-" * 80)
