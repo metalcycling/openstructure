@@ -121,6 +121,11 @@ class lDDTScorer:
                            original residue numbers were. 
     :type seqres_mapping: :class:`dict` (key: :class:`str`, value:
                           :class:`ost.seq.AlignmentHandle`)
+    :param calpha: Only consider atoms with name "CA". Technically this sets
+                   the expected atom names for each residue name to ["CA"], thus
+                   invalidating *compound_lib*. No check whether the target
+                   residues are actually amino acids!
+    :type calpha: :class:`bool`
     :raises: :class:`RuntimeError` if *target* contains compound which is not in
              *compound_lib*, :class:`RuntimeError` if *symmetry_settings*
              specifies symmetric atoms that are not present in the according
@@ -132,7 +137,6 @@ class lDDTScorer:
              (seq1 contains gaps, mismatch in seq1/seq2, seq2 does not match
              residues in corresponding chains).
     """
-
     def __init__(
         self,
         target,
@@ -141,6 +145,7 @@ class lDDTScorer:
         sequence_separation=0,
         symmetry_settings=None,
         seqres_mapping=dict(),
+        calpha=False
     ):
 
         self.target = target
@@ -151,6 +156,10 @@ class lDDTScorer:
             self.symmetry_settings = GetDefaultSymmetrySettings()
         else:
             self.symmetry_settings = symmetry_settings
+
+        # whether to only consider atoms with name "CA", invalidates
+        # *compound_lib*
+        self.calpha=calpha
 
         # names of heavy atoms of each unique compound present in *target* as
         # extracted from *compound_lib*, e.g.
@@ -202,7 +211,7 @@ class lDDTScorer:
 
         # setup members defined above
         self._SetupEnv(self.compound_lib, self.symmetry_settings,
-                       seqres_mapping)
+                       seqres_mapping, self.calpha)
 
         # distance related members are lazily computed as they're affected
         # by different flavours of lDDT (e.g. lDDT including inter-chain
@@ -560,7 +569,8 @@ class lDDTScorer:
                 dummy_scorer = lDDTScorer(model.Select("cname="+ch_name),
                                           self.compound_lib,
                                           symmetry_settings = sm,
-                                          inclusion_radius = self.inclusion_radius)
+                                          inclusion_radius = self.inclusion_radius,
+                                          calpha = self.calpha)
                 penalty += dummy_scorer.n_distances
         return penalty
 
@@ -622,7 +632,8 @@ class lDDTScorer:
         return rnums
 
 
-    def _SetupEnv(self, compound_lib, symmetry_settings, seqres_mapping):
+    def _SetupEnv(self, compound_lib, symmetry_settings, seqres_mapping,
+                  calpha):
         """Sets target related lDDTScorer members defined in constructor
 
         No distance related members - see _SetupDistances
@@ -682,31 +693,10 @@ class lDDTScorer:
             self.chain_res_start_indices.append(len(self.compound_names))
             for r, rnum in zip(chain.residues, residue_numbers[ch_name]):
                 if r.name not in self.compound_anames:
-                    compound = compound_lib.FindCompound(r.name)
-                    if compound is None:
-                        raise RuntimeError(f"compound_lib has no entry for {r}")
-                    atom_names = list()
-                    for atom_spec in compound.GetAtomSpecs():
-                        if atom_spec.element not in ["H", "D"]:
-                            atom_names.append(atom_spec.name)
-                    self.compound_anames[r.name] = atom_names
-                    self.compound_symmetric_atoms[r.name] = list()
-                    if r.name in symmetry_settings.symmetric_compounds:
-                        for pair in symmetry_settings.symmetric_compounds[
-                            r.name
-                        ]:
-                            try:
-                                a = self.compound_anames[r.name].index(pair[0])
-                                b = self.compound_anames[r.name].index(pair[1])
-                            except:
-                                msg = f"Could not find symmetric atoms "
-                                msg += f"({pair[0]}, {pair[1]}) for {r.name} "
-                                msg += f"as specified in SymmetrySettings in "
-                                msg += f"compound from component dictionary. "
-                                msg += f"Atoms in compound: "
-                                msg += f"{self.compound_anames[r.name]}"
-                                raise RuntimeError(msg)
-                            self.compound_symmetric_atoms[r.name].append((a, b))
+                    # sets compound info in self.compound_anames and
+                    # self.compound_symmetric_atoms
+                    self._SetupCompound(r, compound_lib, symmetry_settings,
+                                        calpha)
 
                 self.res_start_indices.append(current_idx)
                 self.res_mapper[(ch_name, rnum)] = len(self.compound_names)
@@ -728,6 +718,39 @@ class lDDTScorer:
                                 self.atom_indices[hashcode]
                             )
         self.n_atoms = current_idx
+
+    def _SetupCompound(self, r, compound_lib, symmetry_settings, calpha):
+        """fill self.compound_anames/self.compound_symmetric_atoms
+        """
+        if calpha:
+            # throw away compound_lib info
+            self.compound_anames[r.name] = ["CA"]
+            self.compound_symmetric_atoms[r.name] = list()
+        else:
+            atom_names = list()
+            symmetric_atoms = list()
+            compound = compound_lib.FindCompound(r.name)
+            if compound is None:
+                raise RuntimeError(f"no entry for {r} in compound_lib")
+            for atom_spec in compound.GetAtomSpecs():
+                if atom_spec.element not in ["H", "D"]:
+                    atom_names.append(atom_spec.name)
+            self.compound_anames[r.name] = atom_names
+            if r.name in symmetry_settings.symmetric_compounds:
+                for pair in symmetry_settings.symmetric_compounds[r.name]:
+                    try:
+                        a = self.compound_anames[r.name].index(pair[0])
+                        b = self.compound_anames[r.name].index(pair[1])
+                    except:
+                        msg = f"Could not find symmetric atoms "
+                        msg += f"({pair[0]}, {pair[1]}) for {r.name} "
+                        msg += f"as specified in SymmetrySettings in "
+                        msg += f"compound from component dictionary. "
+                        msg += f"Atoms in compound: "
+                        msg += f"{self.compound_anames[r.name]}"
+                        raise RuntimeError(msg)
+                    symmetric_atoms.append((a, b))
+            self.compound_symmetric_atoms[r.name] = symmetric_atoms
 
     def _SetupDistances(self):
         """Compute distance related members of lDDTScorer

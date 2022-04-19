@@ -148,6 +148,30 @@ class TestlDDT(unittest.TestCase):
         scorer = lDDTScorer(target, conop.GetDefaultLib(),
                             sequence_separation=0)
 
+    def test_calpha(self):
+        model = _LoadFile("7SGN_C_model.pdb")
+        target = _LoadFile("7SGN_C_target.pdb")
+
+        # do scoring and select aname=CA
+        scorer = lDDTScorer(target.Select("aname=CA"),
+                            conop.GetDefaultLib())
+        score_one, per_res_scores_one = scorer.lDDT(model)
+        score_two, per_res_scores_two = scorer.lDDT(model.Select("aname=CA"))
+
+        # no selection, just setting calpha flag should give the same
+        scorer = lDDTScorer(target,
+                            conop.GetDefaultLib(),
+                            calpha=True)
+        score_three, per_res_scores_three = scorer.lDDT(model)
+
+        # check
+        self.assertAlmostEqual(score_one, score_two, places=5)
+        self.assertAlmostEqual(score_one, score_three, places=5)
+        for a,b in zip(per_res_scores_one, per_res_scores_two):
+            self.assertAlmostEqual(a, b, places=5)
+        for a,b in zip(per_res_scores_one, per_res_scores_three):
+            self.assertAlmostEqual(a, b, places=5)
+
 if __name__ == "__main__":
     from ost import testutils
     if testutils.SetDefaultCompoundLib():
