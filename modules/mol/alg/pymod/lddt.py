@@ -631,6 +631,7 @@ class lDDTScorer:
         for ch in self.target.chains:
             ch_name = ch.GetName()
             self.chain_names.append(ch_name)
+            rnums = list()
             if ch_name in seqres_mapping:
                 seqres = seqres_mapping[ch_name].GetSequence(0).GetString()
                 atomseq = seqres_mapping[ch_name].GetSequence(1).GetString()
@@ -646,7 +647,6 @@ class lDDTScorer:
                         "raw sequence extracted from chain "
                         "residues"
                     )
-                rnums = list()
                 rnum = 0
                 for seqres_olc, atomseq_olc in zip(seqres, atomseq):
                     if seqres_olc != "-":
@@ -659,7 +659,6 @@ class lDDTScorer:
                                 f"ATOMSEQ mismatch"
                             )
                         rnums.append(rnum)
-                residue_numbers[ch_name] = rnums
             else:
                 rnums = [r.GetNumber() for r in ch.residues]
                 if sum([len(rn.GetInsCode().strip("\0")) for rn in rnums]) > 0:
@@ -667,13 +666,14 @@ class lDDTScorer:
                         "Residue numbers in target must not "
                         "contain insertion codes"
                     )
+                rnums = [rnum.GetNum() for rnum in rnums]
                 if not all(x < y for x, y in zip(rnums, rnums[1:])):
                     raise RuntimeError(
                         "Residue numbers in each target chain "
                         "must be monotonically increasing"
                     )
-                residue_numbers[ch_name] = [rnum.GetNum() for rnum in rnums]
             assert len(rnums) == len(ch.residues)
+            residue_numbers[ch_name] = rnums
 
         current_idx = 0
         for chain in self.target.chains:
