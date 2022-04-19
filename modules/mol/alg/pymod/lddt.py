@@ -351,13 +351,17 @@ class lDDTScorer:
                                value: :class:`ost.seq.AlignmentHandle`
         :param return_dist_test: Whether to additionally return the underlying
                                  per-residue data for the distance difference
-                                 test. Adds three objects to the return tuple.
-                                 First: list with length of scored residues.
+                                 test. Adds five objects to the return tuple.
+                                 First: Number of total contacts summed over all
+                                 thresholds
+                                 Second: Number of conserved contacts summed
+                                 over all thresholds
+                                 Third: list with length of scored residues.
                                  Contains indices referring to model.residues.
-                                 Second: numpy array of size
+                                 Fourth: numpy array of size
                                  len(scored_residues) containing the number of
-                                 expected distances,
-                                 Third: numpy matrix of shape 
+                                 total contacts,
+                                 Fifth: numpy matrix of shape 
                                  (len(scored_residues), len(thresholds))
                                  specifying how many for each threshold are
                                  conserved. 
@@ -495,7 +499,9 @@ class lDDTScorer:
         if penalize_extra_chains:
             n_distances += self._GetExtraModelChainPenalty(model, chain_mapping)
 
-        lDDT = np.sum(per_res_conserved) / (n_thresh * n_distances)
+        lDDT_tot = int(n_thresh * n_distances)
+        lDDT_cons = int(np.sum(per_res_conserved))
+        lDDT = float(lDDT_cons) / lDDT_tot
 
         # set properties if necessary
         if local_lddt_prop:
@@ -514,7 +520,8 @@ class lDDTScorer:
                                          int(np.sum(per_res_conserved[idx,:])))
 
         if return_dist_test:
-            return lDDT, per_res_lDDT, res_indices, per_res_exp, per_res_conserved
+            return lDDT, per_res_lDDT, lDDT_tot, lDDT_cons, res_indices, \
+            per_res_exp, per_res_conserved
         else:
             return lDDT, per_res_lDDT
 
