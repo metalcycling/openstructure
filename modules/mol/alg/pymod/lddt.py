@@ -4,17 +4,19 @@ from ost import mol
 
 
 class SymmetrySettings:
-    """Simple container for symmetric sidechains
+    """Container for symmetric compounds
+
+    lDDT considers symmetries and selects the one resulting in the highest
+    possible score.
 
     A symmetry is defined as a renaming operation on one or more atoms that
     leads to a chemically equivalent residue. Example would be OD1 and OD2 in
     ASP => renaming OD1 to OD2 and vice versa gives a chemically equivalent
     residue.
 
-    Use :func:`AddSymmetricSidechains` to define a symmetry which can then
+    Use :func:`AddSymmetricCompound` to define a symmetry which can then
     directly be accessed through the *symmetric_compounds* member.
     """
-
     def __init__(self):
         self.symmetric_compounds = dict()
 
@@ -30,11 +32,15 @@ class SymmetrySettings:
                                 must refer to the PDB component dictionary.
         :type symmetric_atoms: :class:`list` of :class:`tuple`
         """
+        for pair in symmetric_atoms:
+            if len(pair) != 2:
+                raise RuntimeError("Expect pairs when defining symmetries")
         self.symmetric_compounds[name] = symmetric_atoms
 
 
 def GetDefaultSymmetrySettings():
-    """Constructs and returns symmetry settings for natural amino acids
+    """Constructs and returns :class:`SymmetrySettings` object for natural amino
+    acids
     """
     symmetry_settings = SymmetrySettings()
 
@@ -107,7 +113,7 @@ class lDDTScorer:
     :param seqres_mapping: Mapping of model residues at the scoring stage
                            happens with residue numbers defining their location
                            in a reference sequence (SEQRES) using one based
-                           indexing. If the residue numbers in *ent* don't
+                           indexing. If the residue numbers in *target* don't
                            correspond to that SEQRES, you can specify the
                            mapping manually. You can provide a dictionary to
                            specify a reference sequence (SEQRES) for one or more
@@ -115,10 +121,10 @@ class lDDTScorer:
                            (seq1: SEQRES, seq2: sequence of residues in chain).
                            Example: The residues in a chain with name "A" have
                            sequence "YEAH" and residue numbers [42,43,44,45].
-                           You can provide an alignment with seq1 "HELLYEAH"
-                           and seq2 "----YEAH". "Y" gets assigned residue number
-                           5, "E" gets assigned 6 and so on no matter what the
-                           original residue numbers were. 
+                           You can provide an alignment with seq1 "``HELLYEAH``"
+                           and seq2 "``----YEAH``". "Y" gets assigned residue
+                           number 5, "E" gets assigned 6 and so on no matter
+                           what the original residue numbers were. 
     :type seqres_mapping: :class:`dict` (key: :class:`str`, value:
                           :class:`ost.seq.AlignmentHandle`)
     :param calpha: Only consider atoms with name "CA". Technically this sets
@@ -310,10 +316,13 @@ class lDDTScorer:
              return_dist_test=False, check_resnames=True):
         """Computes lDDT of *model* - globally and per-residue
 
-        :param model: Model to be scored
-        :type model: :class:`EntityHandle`/:class:`EntityView`
+        :param model: Model to be scored - models are preferably scored upon
+                      performing stereo-chemistry checks in order to punish for
+                      non-sensical irregularities. This must be done separately
+                      as a pre-processing step.
+        :type model: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
         :param thresholds: Thresholds of distance differences to be considered
-                           as correct - see docs in constructor for more info
+                           as correct - see docs in constructor for more info.
                            default: [0.5, 1.0, 2.0, 4.0]
         :type thresholds: :class:`list` of :class:`floats`
         :param local_lddt_prop: If set, per-residue scores will be assigned as
@@ -326,12 +335,12 @@ class lDDTScorer:
                                    <local_contact_prop>_exp, conserved contacts
                                    as <local_contact_prop>_cons. Values
                                    are summed over all thresholds.
-        :param local_contact_prop: :class:`str`
+        :type local_contact_prop: :class:`str`
         :param chain_mapping: Mapping of model chains (key) onto target chains
                               (value). This is required if target or model have
                               more than one chain.
         :type chain_mapping: :class:`dict` with :class:`str` as keys/values
-        :param no_interchain: Whether to exclude interchain distances
+        :param no_interchain: Whether to exclude interchain contacts
         :type no_interchain: :class:`bool`
         :param penalize_extra_chains: Whether to include a fixed penalty for
                                       additional chains in the model that are
