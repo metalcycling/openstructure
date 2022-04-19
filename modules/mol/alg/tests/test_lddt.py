@@ -172,6 +172,23 @@ class TestlDDT(unittest.TestCase):
         for a,b in zip(per_res_scores_one, per_res_scores_three):
             self.assertAlmostEqual(a, b, places=5)
 
+    def test_resname_match(self):
+        model = _LoadFile("7SGN_C_model.pdb")
+        target = _LoadFile("7SGN_C_target.pdb")
+
+        # introduce name mismatch
+        ed = model.handle.EditXCS()
+        ed.RenameResidue(model.residues[42], "asdf")
+
+        # do scoring and select aname=CA
+        scorer = lDDTScorer(target.Select("aname=CA"),
+                            conop.GetDefaultLib())
+
+        with self.assertRaises(RuntimeError):
+            scorer.lDDT(model)
+
+        scorer.lDDT(model, check_resnames=False)
+
 if __name__ == "__main__":
     from ost import testutils
     if testutils.SetDefaultCompoundLib():

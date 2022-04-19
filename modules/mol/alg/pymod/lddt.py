@@ -307,7 +307,7 @@ class lDDTScorer:
              local_lddt_prop=None, local_contact_prop=None,
              chain_mapping=None, no_interchain=False,
              penalize_extra_chains=False, residue_mapping=None,
-             return_dist_test=False):
+             return_dist_test=False, check_resnames=True):
         """Computes lDDT of *model* - globally and per-residue
 
         :param model: Model to be scored
@@ -373,7 +373,10 @@ class lDDTScorer:
                                  Fifth: numpy matrix of shape 
                                  (len(scored_residues), len(thresholds))
                                  specifying how many for each threshold are
-                                 conserved. 
+                                 conserved.
+        :param check_resnames: On by default. Enforces residue name matches
+                               between mapped model and target residues.
+        :type check_resnames: :class:`bool`
         :returns: global and per-residue lDDT scores as a tuple -
                   first element is global lDDT score and second element
                   a list of per-residue scores with length len(*model*.residues)
@@ -437,7 +440,7 @@ class lDDTScorer:
                 if res_mapper_key not in self.res_mapper:
                     continue
                 r_idx = self.res_mapper[res_mapper_key]
-                if r.name != self.compound_names[r_idx]:
+                if check_resnames and r.name != self.compound_names[r_idx]:
                     raise RuntimeError(
                         f"Residue name mismatch for {r}, "
                         f" expect {self.compound_names[r_idx]}"
