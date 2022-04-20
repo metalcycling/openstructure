@@ -1244,7 +1244,7 @@ class OligoLDDTScorer(object):
         raise RuntimeError("OligolDDT computation requires a compound library!")
       r = self.settings.radius
       seq_sep = self.settings.sequence_separation
-      self._lddt_scorer = lddt.lDDTScorer(self.ref, conop.GetDefaultLib(),
+      self._lddt_scorer = lddt.lDDTScorer(self.ref,
                                           inclusion_radius = r,
                                           sequence_separation = seq_sep)
     return self._lddt_scorer

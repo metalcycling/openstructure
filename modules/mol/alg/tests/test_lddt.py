@@ -25,7 +25,7 @@ class TestlDDT(unittest.TestCase):
         target = _LoadFile("7SGN_C_target.pdb")
 
         # do awesome implementation
-        scorer = lDDTScorer(target, conop.GetDefaultLib())
+        scorer = lDDTScorer(target)
         aws_score, aws_per_res_scores = scorer.lDDT(model)
 
         # do reference implementation
@@ -51,7 +51,7 @@ class TestlDDT(unittest.TestCase):
         target = _LoadFile("7W1F_B_target.pdb")
 
         # do awesome implementation
-        scorer = lDDTScorer(target, conop.GetDefaultLib())
+        scorer = lDDTScorer(target)
         aws_score, aws_per_res_scores = scorer.lDDT(model)
 
         # do reference implementation
@@ -80,7 +80,7 @@ class TestlDDT(unittest.TestCase):
         target = ent_full.Select('peptide=true and cname=A,B')
         # we use functionality from QS-scorer to derive a mapping
         qs_scorer = QSscorer(model, target)
-        lddt_scorer = lDDTScorer(target, conop.GetDefaultLib())
+        lddt_scorer = lDDTScorer(target)
 
         score, per_res_scores = lddt_scorer.lDDT(model, 
           chain_mapping=qs_scorer.chain_mapping)
@@ -113,7 +113,7 @@ class TestlDDT(unittest.TestCase):
 
         # we use functionality from QS-scorer to derive a mapping
         qs_scorer = QSscorer(model, target)
-        lddt_scorer = lDDTScorer(target, conop.GetDefaultLib())
+        lddt_scorer = lDDTScorer(target)
 
         # naively running lDDT will fail, as residue-residue mapping happens
         # with resnums. Since we shifted that stuff above we'll get an error
@@ -143,25 +143,20 @@ class TestlDDT(unittest.TestCase):
     def test_lDDT_seqsep(self):
         target = _LoadFile("7SGN_C_target.pdb")
         with self.assertRaises(NotImplementedError):
-            scorer = lDDTScorer(target, conop.GetDefaultLib(),
-                                             sequence_separation=42)
-        scorer = lDDTScorer(target, conop.GetDefaultLib(),
-                            sequence_separation=0)
+            scorer = lDDTScorer(target, sequence_separation=42)
+        scorer = lDDTScorer(target, sequence_separation=0)
 
     def test_calpha(self):
         model = _LoadFile("7SGN_C_model.pdb")
         target = _LoadFile("7SGN_C_target.pdb")
 
         # do scoring and select aname=CA
-        scorer = lDDTScorer(target.Select("aname=CA"),
-                            conop.GetDefaultLib())
+        scorer = lDDTScorer(target.Select("aname=CA"))
         score_one, per_res_scores_one = scorer.lDDT(model)
         score_two, per_res_scores_two = scorer.lDDT(model.Select("aname=CA"))
 
         # no selection, just setting calpha flag should give the same
-        scorer = lDDTScorer(target,
-                            conop.GetDefaultLib(),
-                            calpha=True)
+        scorer = lDDTScorer(target, calpha=True)
         score_three, per_res_scores_three = scorer.lDDT(model)
 
         # check
@@ -181,8 +176,7 @@ class TestlDDT(unittest.TestCase):
         ed.RenameResidue(model.residues[42], "asdf")
 
         # do scoring and select aname=CA
-        scorer = lDDTScorer(target.Select("aname=CA"),
-                            conop.GetDefaultLib())
+        scorer = lDDTScorer(target.Select("aname=CA"))
 
         with self.assertRaises(RuntimeError):
             scorer.lDDT(model)

@@ -1,6 +1,7 @@
 import numpy as np
 
 from ost import mol
+from ost import conop
 
 
 class SymmetrySettings:
@@ -87,15 +88,17 @@ class lDDTScorer:
     :param target: The target
     :type target: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
     :param compound_lib: Compound library from which a compound for each residue
-                         is extracted based on its name. Atoms defined in the
-                         compound are searched in the residue and build the
-                         reference for scoring. If the residue has atoms with
-                         names ["A", "B", "C"] but the corresponding compound
-                         only has ["A", "B"], "A" and "B" are considered for
-                         scoring. If the residue has atoms ["A", "B"] but the
-                         compound has ["A", "B", "C"], "C" is considered missing
-                         and does not influence scoring, even if present in the
-                         model.
+                         is extracted based on its name. Uses
+                         :func:`ost.conop.GetDefaultLib` if not given, raises
+                         if this returns no valid compound library. Atoms
+                         defined in the compound are searched in the residue and
+                         build the reference for scoring. If the residue has
+                         atoms with names ["A", "B", "C"] but the corresponding
+                         compound only has ["A", "B"], "A" and "B" are
+                         considered for scoring. If the residue has atoms
+                         ["A", "B"] but the compound has ["A", "B", "C"], "C" is
+                         considered missing and does not influence scoring, even
+                         if present in the model.
     :type compound_lib: :class:`ost.conop.CompoundLib`
     :param inclusion_radius: All pairwise distances < *inclusion_radius* are
                              considered for scoring
@@ -146,7 +149,7 @@ class lDDTScorer:
     def __init__(
         self,
         target,
-        compound_lib,
+        compound_lib=None,
         inclusion_radius=15,
         sequence_separation=0,
         symmetry_settings=None,
@@ -157,6 +160,11 @@ class lDDTScorer:
         self.target = target
         self.inclusion_radius = inclusion_radius
         self.sequence_separation = sequence_separation
+        if compound_lib is None:
+            compound_lib = conop.GetDefaultLib()
+        if compound_lib is None:
+            raise RuntimeError("No compound_lib given and conop.GetDefaultLib "
+                               "returns no valid compound library")
         self.compound_lib = compound_lib
         if symmetry_settings is None:
             self.symmetry_settings = GetDefaultSymmetrySettings()
