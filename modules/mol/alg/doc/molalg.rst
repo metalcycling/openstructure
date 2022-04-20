@@ -16,6 +16,15 @@ Local Distance Test scores (lDDT, DRMSD)
   proteinogenic amino acids. The old code is still available and documented
   :doc:`here <lddt_deprecated>`.
 
+.. note::
+
+  :class:`lddt.lDDTScorer` provides the raw Python API to compute lDDT but
+  stereochemistry checks as described in
+  `Mariani et al. <https://dx.doi.org/10.1093/bioinformatics/btt473>`_
+  must be done seperately. You may want to check out the
+  ``compare-structures`` action (:ref:`ost-compare-structures`) to
+  compute lDDT with pre-processing and support for quaternary structures.
+
 
 .. autoclass:: ost.mol.alg.lddt.lDDTScorer
   :members:
@@ -24,8 +33,6 @@ Local Distance Test scores (lDDT, DRMSD)
   :members:
 
 .. autofunction:: ost.mol.alg.lddt.GetDefaultSymmetrySettings
-
-
 
 .. function:: CheckStructure(ent, \
                              bond_table, \
