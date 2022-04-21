@@ -444,104 +444,104 @@ lDDT (deprecated)
     :type cutoffs_length: int
 
 
-
-
-
-.. class:: lDDTScorer(reference, model, settings)
-
-  Object to compute lDDT scores using :func:`LocalDistDiffTest` as in
-  `Mariani et al. <https://dx.doi.org/10.1093/bioinformatics/btt473>`_.
-  
-  Example usage.
-  
-  .. code:: python
-  
-    #! /bin/env python
-    """Run lDDT from within script."""
-    from ost.io import LoadPDB
-    from ost.mol.alg import (CleanlDDTReferences,
-                             lDDTSettings, lDDTScorer)
-
-    ent_full = LoadPDB('3ia3', remote=True)
-    model_view = ent_full.Select('cname=A')
-    references = [ent_full.Select('cname=C')]
-
-    #
-    # Initialize settings with default parameters and print them
-    settings = lDDTSettings()
-    settings.PrintParameters()
-
-    # Clean up references
-    CleanlDDTReferences(references)
-    #
-    # Calculate lDDT
-    scorer = lDDTScorer(references=references, model=model_view, settings=settings)
-    print("Global score:", scorer.global_score)
-    scorer.PrintPerResidueStats()
-  
-  :param references: Sets :attr:`references`
-  :param model: Sets :attr:`model`
-  :param settings: Sets :attr:`settings`
-  
-  .. attribute:: references
-  
-    A list of reference structures.
-    
-    :type: list(:class:`~ost.mol.EntityView`)
-  
-  .. attribute:: model
-  
-    A model structure. 
-    
-    :type: :class:`~ost.mol.EntityView`
-    
-  .. attribute:: settings
-  
-    Settings used to calculate lDDT.
-    
-    :type: :class:`~ost.mol.alg.lDDTSettings`
-  
-  .. attribute:: global_dist_list
-  
-    Global map of residue properties.
-    
-    :type: :class:`~ost.mol.alg.GlobalRDMap`
-
-  .. attribute:: global_score
-  
-    Global lDDT score. It is calculated as :attr:`conserved_contacts` divided
-    by :attr:`total_contacts`.
-    
-    :type: float
-
-  .. attribute:: conserved_contacts
-  
-    Number of conserved distances.
-  
-    :type: int
-  
-  .. attribute:: total_contacts
-  
-    Number of total distances.
-  
-    :type:
-  
-  .. attribute:: local_scores
-  
-    Local scores. For each of the residue lDDT is it is calculated as residue
-    conserved contacts divided by residue total contacts.
-  
-    :type: list(:class:`~ost.mol.alg.lDDTLocalScore`)
-  
-  .. attribute:: is_valid
-  
-    Is the calculated score valid?
-  
-    :type: bool
-  
-  .. method:: PrintPerResidueStats
-    
-    Print per-residue statistics.
+..  The deprecated lDDTScorer is commented out to not collide with the new
+..  and shiny lDDTScorer class
+..
+..  .. class:: lDDTScorer(reference, model, settings)
+..  
+..    Object to compute lDDT scores using :func:`LocalDistDiffTest` as in
+..    `Mariani et al. <https://dx.doi.org/10.1093/bioinformatics/btt473>`_.
+..    
+..    Example usage.
+..    
+..    .. code:: python
+..    
+..      #! /bin/env python
+..      """Run lDDT from within script."""
+..      from ost.io import LoadPDB
+..      from ost.mol.alg import (CleanlDDTReferences,
+..                               lDDTSettings, lDDTScorer)
+..  
+..      ent_full = LoadPDB('3ia3', remote=True)
+..      model_view = ent_full.Select('cname=A')
+..      references = [ent_full.Select('cname=C')]
+..  
+..      #
+..      # Initialize settings with default parameters and print them
+..      settings = lDDTSettings()
+..      settings.PrintParameters()
+..  
+..      # Clean up references
+..      CleanlDDTReferences(references)
+..      #
+..      # Calculate lDDT
+..      scorer = lDDTScorer(references=references, model=model_view, settings=settings)
+..      print("Global score:", scorer.global_score)
+..      scorer.PrintPerResidueStats()
+..    
+..    :param references: Sets :attr:`references`
+..    :param model: Sets :attr:`model`
+..    :param settings: Sets :attr:`settings`
+..    
+..    .. attribute:: references
+..    
+..      A list of reference structures.
+..      
+..      :type: list(:class:`~ost.mol.EntityView`)
+..    
+..    .. attribute:: model
+..    
+..      A model structure. 
+..      
+..      :type: :class:`~ost.mol.EntityView`
+..      
+..    .. attribute:: settings
+..    
+..      Settings used to calculate lDDT.
+..      
+..      :type: :class:`~ost.mol.alg.lDDTSettings`
+..    
+..    .. attribute:: global_dist_list
+..    
+..      Global map of residue properties.
+..      
+..      :type: :class:`~ost.mol.alg.GlobalRDMap`
+..  
+..    .. attribute:: global_score
+..    
+..      Global lDDT score. It is calculated as :attr:`conserved_contacts` divided
+..      by :attr:`total_contacts`.
+..      
+..      :type: float
+..  
+..    .. attribute:: conserved_contacts
+..    
+..      Number of conserved distances.
+..    
+..      :type: int
+..    
+..    .. attribute:: total_contacts
+..    
+..      Number of total distances.
+..    
+..      :type:
+..    
+..    .. attribute:: local_scores
+..    
+..      Local scores. For each of the residue lDDT is it is calculated as residue
+..      conserved contacts divided by residue total contacts.
+..    
+..      :type: list(:class:`~ost.mol.alg.lDDTLocalScore`)
+..    
+..    .. attribute:: is_valid
+..    
+..      Is the calculated score valid?
+..    
+..      :type: bool
+..    
+..    .. method:: PrintPerResidueStats
+..      
+..      Print per-residue statistics.
 
 
 .. class:: UniqueAtomIdentifier(chain, residue_number, residue_name, atom_name)
