@@ -8,7 +8,7 @@ lDDT
   `Mariani et al. <https://dx.doi.org/10.1093/bioinformatics/btt473>`_
   is considered deprecated. This documentation still exists for
   reference but you should consider using the ``compare-structures`` action
-  (:ref:`ost-compare-structures`) which utilizes the latest lDDT implementation
+  (:ref:`ost compare structures`) which utilizes the latest lDDT implementation
   that can deal with quaternary structures and compounds beyond the 20
   standard proteinogenic amino acids. 
 

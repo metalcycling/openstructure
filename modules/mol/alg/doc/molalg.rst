@@ -22,7 +22,7 @@ Local Distance Test scores (lDDT, DRMSD)
   stereochemistry checks as described in
   `Mariani et al. <https://dx.doi.org/10.1093/bioinformatics/btt473>`_
   must be done seperately. You may want to check out the
-  ``compare-structures`` action (:ref:`ost-compare-structures`) to
+  ``compare-structures`` action (:ref:`ost compare structures`) to
   compute lDDT with pre-processing and support for quaternary structures.
 
 
