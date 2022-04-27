@@ -5,6 +5,7 @@ from ost import io, mol, settings, conop, seq
 try:
     from ost.mol.alg.qsscoring import *
     from ost.mol.alg.lddt import *
+    from ost.mol.alg.scoring import *
 except ImportError:
     print("Failed to import qsscoring. Happens when numpy or scipy missing. " \
           "Ignoring test_lddt.py tests.")
@@ -182,6 +183,63 @@ class TestlDDT(unittest.TestCase):
             scorer.lDDT(model)
 
         scorer.lDDT(model, check_resnames=False)
+
+
+class TestlDDTBS(unittest.TestCase):
+
+    def test_basic(self):
+        mdl = _LoadFile("lddtbs_mdl.pdb")
+        ref = _LoadFile("lddtbs_ref_1r8q.1.pdb")
+
+        lddtbs_scorer = lDDTBSScorer(reference=ref, model=mdl)
+        score, ref_residues, mdl_residues = \
+        lddtbs_scorer.ScoreBS(ref.Select("rname=AFB"), radius = 5.0,
+                              lddt_radius = 12.0, return_mapping=True)
+
+        # select residues manually from reference
+        for at in ref.Select("rname=AFB").atoms:
+            close_atoms = ref.FindWithin(at.GetPos(), 5.0)
+            for close_at in close_atoms:
+                close_at.GetResidue().SetIntProp("asdf", 1)
+
+        ref_bs = ref.Select("grasdf:0=1")
+        ref_bs = ref_bs.Select("peptide=true")
+        ref_bs_names = [r.GetQualifiedName() for r in ref_bs.residues]
+        self.assertEqual(sorted(ref_bs_names), sorted(ref_residues))
+
+
+        # everything below basically computes lDDTBS manually and
+        # compares with the result we got above 
+
+        # select residues manually from model
+        fancy_mapping = {"A":"B", "B":"A"} # hardcoded chain mapping...
+        mdl_bs = mdl.CreateEmptyView()
+        for r in ref_bs.residues:
+            mdl_res = mdl.FindResidue(fancy_mapping[r.GetChain().GetName()],
+                                      r.GetNumber())
+            mdl_bs.AddResidue(mdl_res, mol.ViewAddFlag.INCLUDE_ALL)
+
+        # put that stuff in single chain structures
+        sc_ref_bs = mol.CreateEntity()
+        ed = sc_ref_bs.EditXCS()
+        ch = ed.InsertChain("A")
+        for r in ref_bs.residues:
+            added_r = ed.AppendResidue(ch, r.GetName())
+            for a in r.atoms:
+                ed.InsertAtom(added_r, a.GetName(), a.GetPos())
+
+        sc_mdl_bs = mol.CreateEntity()
+        ed = sc_mdl_bs.EditXCS()
+        ch = ed.InsertChain("A")
+        for r in mdl_bs.residues:
+            added_r = ed.AppendResidue(ch, r.GetName())
+            for a in r.atoms:
+                ed.InsertAtom(added_r, a.GetName(), a.GetPos())
+
+        # compute and compare
+        lddt_scorer = lDDTScorer(sc_ref_bs, inclusion_radius=12.0)
+        self.assertAlmostEqual(score, lddt_scorer.lDDT(sc_mdl_bs)[0])
+
 
 if __name__ == "__main__":
     from ost import testutils

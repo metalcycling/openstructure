@@ -146,6 +146,19 @@ Local Distance Test scores (lDDT, DRMSD)
 .. currentmodule:: ost.mol.alg
 
 
+:mod:`scoring <ost.mol.alg.scoring>` -- Specialized scoring functions
+--------------------------------------------------------------------------------
+
+.. autoclass:: ost.mol.alg.scoring.lDDTBSScorer
+   :members:
+
+.. currentmodule:: ost.mol.alg
+
+
+
+
+
+
 .. _steric-clashes:
 
 Steric Clashes

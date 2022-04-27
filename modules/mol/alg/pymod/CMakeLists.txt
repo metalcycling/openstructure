@@ -23,6 +23,7 @@ set(OST_MOL_ALG_PYMOD_MODULES
   helix_kinks.py
   hbond.py
   lddt.py
+  scoring.py
 )
 
 if (NOT ENABLE_STATIC)
