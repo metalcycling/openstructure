@@ -138,9 +138,6 @@ class lDDTBSScorer:
         score, _ = scorer.lDDT(mdl_bs, chain_mapping = lddt_chain_mapping,
                                residue_mapping = alns)
 
-        io.SavePDB(ref_bs, "/home/schdaude/ref_bs.pdb")
-        io.SavePDB(mdl_bs, "/home/schdaude/mdl_bs.pdb")
-
         if return_mapping:
             trg_residues = [str(r) for r in ref_bs.residues]
             mdl_residues = [str(r) for r in mdl_bs.residues]
