@@ -275,8 +275,10 @@ void export_Residue()
     .def(self==self)
     .def(self!=self)
     .def("__hash__", &ResidueHandle::GetHashCode)
+    .def("GetHashCode", &ResidueHandle::GetHashCode)
     .def("GetBounds", &ResidueHandle::GetBounds)
-    .add_property("bounds", &ResidueHandle::GetBounds)    
+    .add_property("bounds", &ResidueHandle::GetBounds)
+    .add_property("hash_code", &ResidueHandle::GetHashCode)    
   ;
 
   class_<ResidueHandleList>("ResidueHandleList", no_init)
