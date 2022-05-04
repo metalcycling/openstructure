@@ -508,7 +508,6 @@ class lDDTScorer:
         self._ResolveSymmetries(pos, thresholds, symmetries, sym_ref_indices,
                                 sym_ref_distances)
 
-
         per_res_exp = np.asarray([self._GetNExp(res_ref_atom_indices[idx],
             ref_indices) for idx in range(len(res_indices))], dtype=np.int32)
         per_res_conserved = self._EvalResidues(pos, thresholds,
@@ -521,8 +520,9 @@ class lDDTScorer:
         per_res_lDDT = [None] * len(model.residues)
         for idx in range(len(res_indices)):
             n_exp = n_thresh * per_res_exp[idx]
-            score = np.sum(per_res_conserved[idx,:]) / n_exp
-            per_res_lDDT[res_indices[idx]] = score
+            if n_exp > 0:
+                score = np.sum(per_res_conserved[idx,:]) / n_exp
+                per_res_lDDT[res_indices[idx]] = score
 
         # do full model score
         if penalize_extra_chains:
@@ -530,7 +530,9 @@ class lDDTScorer:
 
         lDDT_tot = int(n_thresh * n_distances)
         lDDT_cons = int(np.sum(per_res_conserved))
-        lDDT = float(lDDT_cons) / lDDT_tot
+        lDDT = None
+        if lDDT_tot > 0:
+            lDDT = float(lDDT_cons) / lDDT_tot
 
         # set properties if necessary
         if local_lddt_prop:
