@@ -184,6 +184,40 @@ class TestlDDT(unittest.TestCase):
 
         scorer.lDDT(model, check_resnames=False)
 
+    def test_intra_interchain(self):
+        ent_full = _LoadFile("4br6.1.pdb")
+        model = ent_full.Select('peptide=true and cname=A,B')
+        target = ent_full.Select('peptide=true and cname=A,B')
+        chain_mapping = {"A": "A", "B": "B"}
+
+        lddt_scorer = lDDTScorer(target)
+
+        # do lDDT only on interchain contacts (ic)
+        lDDT_ic, per_res_lDDT_ic, lDDT_tot_ic, lDDT_cons_ic, \
+        res_indices_ic, per_res_exp_ic, per_res_conserved_ic =\
+        lddt_scorer.lDDT(model, no_intrachain=True, 
+                         chain_mapping = chain_mapping,
+                         return_dist_test = True)
+
+        # do lDDT only on intrachain contacts (sc for single chain)
+        lDDT_sc, per_res_lDDT_sc, lDDT_tot_sc, lDDT_cons_sc, \
+        res_indices_sc, per_res_exp_sc, per_res_conserved_sc =\
+        lddt_scorer.lDDT(model, no_interchain=True,
+                         chain_mapping = chain_mapping,
+                         return_dist_test = True)
+
+        # do lDDT on everything
+        lDDT, per_res_lDDT, lDDT_tot, lDDT_cons, res_indices, per_res_exp, \
+        per_res_conserved = lddt_scorer.lDDT(model,
+                                             chain_mapping = chain_mapping,
+                                             return_dist_test = True)
+
+        # sum of lDDT_tot_ic and lDDT_tot_sc should be equal to lDDT_tot
+        self.assertEqual(lDDT_tot_ic + lDDT_tot_sc, lDDT_tot)
+
+        # same for the conserved contacts
+        self.assertEqual(lDDT_cons_ic + lDDT_cons_sc, lDDT_cons)
+
 
 class TestlDDTBS(unittest.TestCase):
 
