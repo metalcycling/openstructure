@@ -43,7 +43,8 @@ public:
   enum Preset{BLOSUM45 = 0,
               BLOSUM62 = 1,
               BLOSUM80 = 2,
-              BLOSUM100 = 3};
+              BLOSUM100 = 3,
+              IDENTITY = 4};
   /// \brief Initialize substitution matrix with zero.
   /// 
   /// In order to get a useful  substitution weight matrix, use SetWeight(). 

@@ -140,6 +140,14 @@ void FillData(ost::seq::alg::SubstWeightMatrix* subst, short (&data)[23][23]){
   }
 }
 
+void FillIdentity(ost::seq::alg::SubstWeightMatrix* subst) {
+  char chars[26] = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',
+                    'P','Q','R','S','T','U','V','W','X','Y','Z'};
+  for(uint i = 0; i < 26; ++i) {
+    subst->SetWeight(chars[i], chars[i], 1.0);
+  }
+}
+
 }
 
 namespace ost { namespace seq { namespace alg {
@@ -165,6 +173,10 @@ void SubstWeightMatrix::AssignPreset(SubstWeightMatrix::Preset p)
     }
     case BLOSUM100:{
       FillData(this,RAW_BLOSUM100_DATA);
+      break;
+    }
+    case IDENTITY:{
+      FillIdentity(this);
       break;
     }
   }
