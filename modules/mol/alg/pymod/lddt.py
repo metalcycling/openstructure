@@ -841,10 +841,10 @@ class lDDTScorer:
         """Compute distance related members of lDDTScorer
         """
         # init
-        self._ref_indices = [[] for idx in range(self.n_atoms)]
-        self._ref_distances = [[] for idx in range(self.n_atoms)]
-        self._sym_ref_indices = [[] for idx in range(self.n_atoms)]
-        self._sym_ref_distances = [[] for idx in range(self.n_atoms)]
+        self._ref_indices = [np.asarray([], dtype=np.int64) for idx in range(self.n_atoms)]
+        self._ref_distances = [np.asarray([], dtype=np.float64) for idx in range(self.n_atoms)]
+        self._sym_ref_indices = [np.asarray([], dtype=np.int64) for idx in range(self.n_atoms)]
+        self._sym_ref_distances = [np.asarray([], dtype=np.float64) for idx in range(self.n_atoms)]
 
         # initialize positions with values far in nirvana. If a position is not
         # set, it should be far away from any position in target (or at least
@@ -888,10 +888,10 @@ class lDDTScorer:
         """Select subset of contacts only covering intra-chain contacts
         """
         # init
-        self._ref_indices_sc = [[] for idx in range(self.n_atoms)]
-        self._ref_distances_sc = [[] for idx in range(self.n_atoms)]
-        self._sym_ref_indices_sc = [[] for idx in range(self.n_atoms)]
-        self._sym_ref_distances_sc = [[] for idx in range(self.n_atoms)]
+        self._ref_indices_sc = [np.asarray([], dtype=np.int64) for idx in range(self.n_atoms)]
+        self._ref_distances_sc = [np.asarray([], dtype=np.float64) for idx in range(self.n_atoms)]
+        self._sym_ref_indices_sc = [np.asarray([], dtype=np.int64) for idx in range(self.n_atoms)]
+        self._sym_ref_distances_sc = [np.asarray([], dtype=np.float64) for idx in range(self.n_atoms)]
 
         # start from overall contacts
         ref_indices = self.ref_indices
@@ -920,10 +920,10 @@ class lDDTScorer:
         """Select subset of contacts only covering inter-chain contacts
         """
         # init
-        self._ref_indices_ic = [[] for idx in range(self.n_atoms)]
-        self._ref_distances_ic = [[] for idx in range(self.n_atoms)]
-        self._sym_ref_indices_ic = [[] for idx in range(self.n_atoms)]
-        self._sym_ref_distances_ic = [[] for idx in range(self.n_atoms)]
+        self._ref_indices_ic = [np.asarray([], dtype=np.int64) for idx in range(self.n_atoms)]
+        self._ref_distances_ic = [np.asarray([], dtype=np.float64) for idx in range(self.n_atoms)]
+        self._sym_ref_indices_ic = [np.asarray([], dtype=np.int64) for idx in range(self.n_atoms)]
+        self._sym_ref_distances_ic = [np.asarray([], dtype=np.float64) for idx in range(self.n_atoms)]
 
         # start from overall contacts
         ref_indices = self.ref_indices
