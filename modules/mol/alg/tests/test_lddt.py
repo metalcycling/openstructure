@@ -147,7 +147,7 @@ class TestlDDT(unittest.TestCase):
             scorer = lDDTScorer(target, sequence_separation=42)
         scorer = lDDTScorer(target, sequence_separation=0)
 
-    def test_calpha(self):
+    def test_bb_only(self):
         model = _LoadFile("7SGN_C_model.pdb")
         target = _LoadFile("7SGN_C_target.pdb")
 
@@ -156,8 +156,8 @@ class TestlDDT(unittest.TestCase):
         score_one, per_res_scores_one = scorer.lDDT(model)
         score_two, per_res_scores_two = scorer.lDDT(model.Select("aname=CA"))
 
-        # no selection, just setting calpha flag should give the same
-        scorer = lDDTScorer(target, calpha=True)
+        # no selection, just setting bb_only flag should give the same
+        scorer = lDDTScorer(target, bb_only=True)
         score_three, per_res_scores_three = scorer.lDDT(model)
 
         # check
