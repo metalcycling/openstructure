@@ -50,6 +50,7 @@ struct Properties : public boost::spirit::symbols<Prop> {
       ("abfac", Prop(Prop::ABFAC, Prop::FLOAT, Prop::ATOM))
       ("rbfac", Prop(Prop::RBFAC, Prop::FLOAT, Prop::RESIDUE))
       ("peptide", Prop(Prop::PEPTIDE, Prop::INT, Prop::RESIDUE))
+      ("nucleotide", Prop(Prop::NUCLEOTIDE, Prop::INT, Prop::RESIDUE))
       ("rindex", Prop(Prop::RINDEX, Prop::INT, Prop::RESIDUE))
       ("protein", Prop(Prop::PROTEIN, Prop::INT, Prop::RESIDUE))
       ("ligand", Prop(Prop::LIGAND, Prop::INT, Prop::RESIDUE))
@@ -111,7 +112,9 @@ String Prop::GetName() const
     case ABFAC:
       return "abfac";
     case PEPTIDE:
-      return "peptide";      
+      return "peptide";
+    case NUCLEOTIDE:
+      return "nucleotide";
     case ACHARGE:
       return "acharge";
     case RINDEX:
