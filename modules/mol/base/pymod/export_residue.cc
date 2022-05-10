@@ -193,6 +193,8 @@ void export_Residue()
     .add_property("qualified_name", &ResidueBase::GetQualifiedName)
     .def("IsPeptideLinking", &ResidueBase::IsPeptideLinking)
     .add_property("peptide_linking", &ResidueBase::IsPeptideLinking)
+    .def("IsNucleotideLinking", &ResidueBase::IsNucleotideLinking)
+    .add_property("nucleotide_linking", &ResidueBase::IsNucleotideLinking)
     
     .def("GetCentralAtom", &ResidueBase::GetCentralAtom)
     .def("SetCentralAtom", &ResidueBase::SetCentralAtom)

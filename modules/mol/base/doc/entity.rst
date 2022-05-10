@@ -701,6 +701,13 @@ The Handle Classes
 
     :type: :class:`bool`
 
+  .. attribute:: nucleotide_linking
+  
+    Whether residue can form nucleotide bonds. This is determined based on
+    :attr:`chem_class` which is set when loading the structure.
+
+    :type: :class:`bool`
+
   .. attribute:: index
 
     Residue index (starting at 0) within chain.
@@ -797,6 +804,10 @@ The Handle Classes
   .. method:: IsPeptideLinking()
 
     See :attr:`peptide_linking`
+
+  .. method:: IsNucleotideLinking()
+
+    See :attr:`nucleotide_linking`
     
   .. method:: GetChain()
   
