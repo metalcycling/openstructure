@@ -130,6 +130,25 @@ short RAW_BLOSUM100_DATA[23][23]={
   {-2,  0, -8,  0,  7, -7, -5, -1, -7,  0, -6, -4, -2, -4,  5, -1, -2, -3, -5, -7, -2, -6,  6},
 };
 
+short RAW_NUC44_DATA[16][16]={
+  { 5, -4, -4, -4, -4, -4,  1,  1, -4, -4,  1, -4, -1, -1, -1, -2},
+  {-4,  5,  5, -4, -4, -4,  1, -4,  1,  1, -4, -1, -4, -1, -1, -2},
+  {-4,  5,  5, -4, -4, -4,  1, -4,  1,  1, -4, -1, -4, -1, -1, -2},
+  {-4, -4, -4,  5, -4,  1, -4,  1, -4,  1, -4, -1, -1, -4, -1, -2},
+  {-4, -4, -4, -4,  5,  1, -4, -4,  1, -4,  1, -1, -1, -1, -4, -2},
+  {-4, -4, -4,  1,  1, -1, -4, -2, -2, -2, -2, -1, -1, -3, -3, -1},
+  { 1,  1,  1, -4, -4, -4, -1, -2, -2, -2, -2, -3, -3, -1, -1, -1},
+  { 1, -4, -4,  1, -4, -2, -2, -1, -4, -2, -2, -3, -1, -3, -1, -1},
+  {-4,  1,  1, -4,  1, -2, -2, -4, -1, -2, -2, -1, -3, -1, -3, -1},
+  {-4,  1,  1,  1, -4, -2, -2, -2, -2, -1, -4, -1, -3, -3, -1, -1},
+  { 1, -4, -4, -4,  1, -2, -2, -2, -2, -4, -1, -3, -1, -1, -3, -1},
+  {-4, -1, -1, -1, -1, -1, -3, -3, -1, -1, -3, -1, -2, -2, -2, -1},
+  {-1, -4, -4, -1, -1, -1, -3, -1, -3, -3, -1, -2, -1, -2, -2, -1},
+  {-1, -1, -1, -4, -1, -3, -1, -3, -1, -3, -1, -2, -2, -1, -2, -1},
+  {-1, -1, -1, -1, -4, -3, -1, -1, -3, -1, -3, -2, -2, -2, -1, -1},
+  {-2, -2, -2, -2, -2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+};
+
 void FillData(ost::seq::alg::SubstWeightMatrix* subst, short (&data)[23][23]){
   char chars[23] = {'A','B','C','D','E','F','G','H','I','K','L','M','N','P','Q',
                     'R','S','T','V','W','X','Y','Z'};
@@ -140,11 +159,36 @@ void FillData(ost::seq::alg::SubstWeightMatrix* subst, short (&data)[23][23]){
   }
 }
 
+void FillNucData(ost::seq::alg::SubstWeightMatrix* subst,
+                 short (&data)[16][16]) {
+  char chars[16] = {'A','T','U','G','C','S','W','R','Y','K','M','B','V','H',
+                    'D','N'};
+  for(uint i = 0; i < 16; ++i){
+    for(uint j = 0; j < 16; ++j){
+      subst->SetWeight(chars[i],chars[j],data[i][j]);
+    }
+  }
+}
+
 void FillIdentity(ost::seq::alg::SubstWeightMatrix* subst) {
   char chars[26] = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',
                     'P','Q','R','S','T','U','V','W','X','Y','Z'};
   for(uint i = 0; i < 26; ++i) {
     subst->SetWeight(chars[i], chars[i], 1.0);
+  }
+}
+
+void FillMatch(ost::seq::alg::SubstWeightMatrix* subst) {
+  char chars[26] = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',
+                    'P','Q','R','S','T','U','V','W','X','Y','Z'};
+  for(uint i = 0; i < 26; ++i) {
+    for(uint j = 0; j < 26; ++j) {
+      if(i == j){
+        subst->SetWeight(chars[i], chars[j], 1.0);
+      } else {
+        subst->SetWeight(chars[i], chars[j], -1.0);
+      }
+    }
   }
 }
 
@@ -177,6 +221,14 @@ void SubstWeightMatrix::AssignPreset(SubstWeightMatrix::Preset p)
     }
     case IDENTITY:{
       FillIdentity(this);
+      break;
+    }
+    case MATCH:{
+      FillMatch(this);
+      break;
+    }
+    case NUC44:{
+      FillNucData(this,RAW_NUC44_DATA);
       break;
     }
   }
