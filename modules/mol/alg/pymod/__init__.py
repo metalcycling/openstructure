@@ -7,6 +7,7 @@ import ost.mol.alg.helix_kinks
 import ost.mol.alg.hbond
 import ost.mol.alg.lddt
 import ost.mol.alg.scoring
+import ost.mol.alg.chain_mapping
 
 # Fills a list of reference clashing distances from a file (requires a path to the file)
 def FillClashingDistancesFromFile(filename):

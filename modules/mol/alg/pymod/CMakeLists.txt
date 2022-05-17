@@ -24,6 +24,7 @@ set(OST_MOL_ALG_PYMOD_MODULES
   hbond.py
   lddt.py
   scoring.py
+  chain_mapping.py
 )
 
 if (NOT ENABLE_STATIC)
