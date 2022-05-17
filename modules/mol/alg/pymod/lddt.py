@@ -506,7 +506,8 @@ class lDDTScorer:
                         f" expect {self.compound_names[r_idx]}"
                     )
                 res_start_idx = self.res_start_indices[r_idx]
-                anames = self.compound_anames[self.compound_names[r_idx]]
+                rname = self.compound_names[r_idx]
+                anames = self.compound_anames[rname]
                 atoms = [r.FindAtom(aname) for aname in anames]
                 res_ref_atom_indices.append(
                     list(range(res_start_idx, res_start_idx + len(anames)))
@@ -520,9 +521,9 @@ class lDDTScorer:
                         pos[res_start_idx + a_idx][1] = p[1]
                         pos[res_start_idx + a_idx][2] = p[2]
                         res_atom_indices[-1].append(res_start_idx + a_idx)
-                if r.name in self.compound_symmetric_atoms:
+                if rname in self.compound_symmetric_atoms:
                     sym_indices = list()
-                    for sym_tuple in self.compound_symmetric_atoms[r.name]:
+                    for sym_tuple in self.compound_symmetric_atoms[rname]:
                         a_one = atoms[sym_tuple[0]]
                         a_two = atoms[sym_tuple[1]]
                         if a_one.IsValid() and a_two.IsValid():
