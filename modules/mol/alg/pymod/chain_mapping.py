@@ -1,5 +1,9 @@
 import itertools
 
+from scipy.special import factorial
+from scipy.special import binom # as of Python 3.8, the math module implements
+                                # comb, i.e. n choose k
+
 from ost import seq
 from ost import mol
 
@@ -464,6 +468,63 @@ def _Align(s1, s2, subst_mat, gap_open, gap_ext):
     gap_frac_1 = float(n_gaps_1)/len(aln.GetSequence(0).GetGaplessString())
     gap_frac_2 = float(n_gaps_2)/len(aln.GetSequence(1).GetGaplessString())
     return (aln, seqid, gap_frac_1, gap_frac_2)
+
+def _NChemGroupMappings(ref_chains, mdl_chains):
+    """ Number of mappings within one chem group
+
+    :param ref_chains: Reference chains
+    :type ref_chains: :class:`list` of :class:`str`
+    :param mdl_chains: Model chains that are mapped onto *ref_chains*
+    :type mdl_chains: :class:`list` of :class:`str`
+    :returns: Number of possible mappings of *mdl_chains* onto *ref_chains*
+    """
+    n_ref = len(ref_chains)
+    n_mdl = len(mdl_chains)
+    if n_ref == n_mdl:
+        return factorial(n_ref)
+    elif n_ref > n_mdl:
+        n_choose_k = binom(n_ref, n_mdl)
+        return n_choose_k * factorial(n_mdl)
+    else:
+        n_choose_k = binom(n_mdl, n_ref)
+        return n_choose_k * factorial(n_ref)
+
+def _NMappings(ref_chains, mdl_chains):
+    """ Number of mappings for a full chem mapping
+
+    :param ref_chains: Chem groups of reference
+    :type ref_chains: :class:`list` of :class:`list` of :class:`str`
+    :param mdl_chains: Model chains that map onto those chem groups
+    :type mdl_chains: :class:`list` of :class:`list` of :class:`str`
+    :returns: Number of possible mappings of *mdl_chains* onto *ref_chains*
+    """
+    assert(len(ref_chains) == len(mdl_chains))
+    n = 1
+    for a,b in zip(ref_chains, mdl_chains):
+        n *= _NChemGroupMappings(a,b)
+    return n
+
+def _NMappingsWithin(ref_chains, mdl_chains, max_mappings):
+    """ Check whether total number of mappings is smaller than given maximum
+
+    In principle the same as :func:`_NMappings` but it stops as soon as the
+    maximum is hit.
+
+    :param ref_chains: Chem groups of reference
+    :type ref_chains: :class:`list` of :class:`list` of :class:`str`
+    :param mdl_chains: Model chains that map onto those chem groups
+    :type mdl_chains: :class:`list` of :class:`list` of :class:`str`
+    :param max_mappings: Number of max allowed mappings
+    :returns: Whether number of possible mappings of *mdl_chains* onto
+              *ref_chains* is below or equal *max_mappings*.
+    """
+    assert(len(ref_chains) == len(mdl_chains))
+    n = 1
+    for a,b in zip(ref_chains, mdl_chains):
+        n *= _NChemGroupMappings(a,b)
+        if n > max_mappings:
+            return False
+    return True
 
 def _RefSmallerGenerator(ref_chains, mdl_chains):
     """ Returns all possible ways to map mdl_chains onto ref_chains
