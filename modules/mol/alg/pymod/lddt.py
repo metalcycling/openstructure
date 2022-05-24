@@ -463,11 +463,10 @@ class lDDTScorer:
                                        f"{[c.GetName() for c in model.chains]}")
 
         # initialize positions with values far in nirvana. If a position is not
-        # set, it should be far away from any position in model (or at least
-        # more than max thresh).
+        # set, it should be far away from any position in model.
         max_pos = model.bounds.GetMax()
-        max_coordinate = max(max_pos[0], max_pos[1], max_pos[2])
-        max_coordinate += 2 * max(thresholds)
+        max_coordinate = abs(max(max_pos[0], max_pos[1], max_pos[2]))
+        max_coordinate += 42 * max(thresholds)
         pos = np.ones((self.n_atoms, 3), dtype=np.float32) * max_coordinate
 
         # for each scored residue in model a list of indices describing the
@@ -858,7 +857,7 @@ class lDDTScorer:
         # set, it should be far away from any position in target (or at least
         # more than inclusion_radius).
         max_pos = self.target.bounds.GetMax()
-        max_coordinate = max(max_pos[0], max_pos[1], max_pos[2])
+        max_coordinate = abs(max(max_pos[0], max_pos[1], max_pos[2]))
         max_coordinate += 2 * self.inclusion_radius
 
         pos = np.ones((self.n_atoms, 3), dtype=np.float32) * max_coordinate
