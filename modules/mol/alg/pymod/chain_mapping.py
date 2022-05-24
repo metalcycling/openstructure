@@ -1,5 +1,7 @@
 import itertools
 
+import numpy as np
+
 from scipy.special import factorial
 from scipy.special import binom # as of Python 3.8, the math module implements
                                 # comb, i.e. n choose k
@@ -165,12 +167,11 @@ class ChainMapper:
             # skip ref chem groups with no mapped mdl chain
             return [(a,b) for a,b in zip(self.chem_groups, chem_mapping) if len(b) == 1]
 
-        # alignment of each model chain to chem_group reference sequence
-        mdl_alns = dict()
-        for alns in chem_group_alns:
-            for aln in alns:
-                mdl_chain_name = aln.GetSequence(1).GetName()
-                mdl_alns[mdl_chain_name] = aln
+        # all possible ref/mdl alns given chem mapping
+        ref_mdl_alns =  _GetRefMdlAlns(self.chem_groups,
+                                       self.chem_group_alignments,
+                                       chem_mapping,
+                                       chem_group_alns)
 
         # Setup scoring
         lddt_scorer = lddt.lDDTScorer(self.target, bb_only = bb_only)
@@ -186,38 +187,73 @@ class ChainMapper:
             for ref_chem_group, mdl_chem_group, ref_aln in \
             zip(self.chem_groups, mapping, self.chem_group_alignments):
                 for ref_ch, mdl_ch in zip(ref_chem_group, mdl_chem_group):
-
                     # some mdl chains can be None
                     if mdl_ch is not None:
                         lddt_chain_mapping[mdl_ch] = ref_ch
-
-                        # obtain alignments of mdl and ref chains towards chem
-                        # group ref sequence and merge them
-                        aln_list = seq.AlignmentList()
-                        # do ref aln
-                        s1 = ref_aln.GetSequence(0)
-                        s2 = ref_aln.GetSequence(ref_chem_group.index(ref_ch))
-                        aln_list.append(seq.CreateAlignment(s1, s2))
-                        # do mdl aln
-                        aln_list.append(mdl_alns[mdl_ch])
-                        # merge
-                        ref_seq = seq.CreateSequence(s1.GetName(),
-                                                     s1.GetGaplessString())
-                        merged_aln = seq.alg.MergePairwiseAlignments(aln_list,
-                                                                     ref_seq)
-                        # merged_aln:
-                        # seq1: ref seq of chem group
-                        # seq2: seq of ref chain
-                        # seq3: seq of mdl chain
-                        # => we need the alignment between seq2 and seq3
-                        aln = seq.CreateAlignment(merged_aln.GetSequence(1),
-                                                  merged_aln.GetSequence(2))
-                        lddt_alns[mdl_ch] = aln
+                        lddt_alns[mdl_ch] = ref_mdl_alns[(ref_ch, mdl_ch)]
 
             lDDT, _ = lddt_scorer.lDDT(mdl, thresholds=thresholds,
                                        chain_mapping=lddt_chain_mapping,
                                        residue_mapping = lddt_alns,
                                        check_resnames = False)
+
+            if lDDT > best_lddt:
+                best_mapping = mapping
+                best_lddt = lDDT
+
+        return best_mapping
+
+    def GetDecomposerlDDTMapping(self, model, bb_only=False, inclusion_radius=15.0,
+                            thresholds=[0.5, 1.0, 2.0, 4.0]):
+        """Naively iterates all possible chain mappings and returns the best
+
+        Maps *model* chain sequences to :attr:`~chem_groups` and performs all
+        possible permutations. The best mapping is selected based on lDDT score.
+
+        :param model: Model to map
+        :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
+        :param bb_only: lDDT considers only atoms of name "CA" (peptides) or
+                        "C3'" (nucleotides). Gives speed improvement but
+                        sidechains are not considered anymore.
+        :type bb_only: :class:`bool`
+        :param inclusion_radius: Inclusion radius for lDDT
+        :type inclusion_radius: :class:`float`
+        :param thresholds: Thresholds for lDDT
+        :type thresholds: :class:`list` of :class:`float`
+        :returns: A :class:`list` of :class:`list` that reflects
+                  :attr:`~chem_groups` but is filled with the respective model
+                  chains. Target chains without mapped model chains are set to
+                  None.
+        """
+
+        mdl = model.Select("peptide=true or nucleotide=true")
+        chem_mapping, chem_group_alns = self.GetChemMapping(mdl)
+
+        # check for the simplest case
+        only_one_to_one = True
+        for ref_chains, mdl_chains in zip(self.chem_groups, chem_mapping):
+            if len(ref_chains) != 1 or len(mdl_chains) not in [0, 1]:
+                only_one_to_one = False
+                break
+        if only_one_to_one:
+            # skip ref chem groups with no mapped mdl chain
+            return [(a,b) for a,b in zip(self.chem_groups, chem_mapping) if len(b) == 1]
+
+        ref_mdl_alns =  _GetRefMdlAlns(self.chem_groups,
+                                       self.chem_group_alignments,
+                                       chem_mapping,
+                                       chem_group_alns)
+
+        # Setup scoring
+        lddt_scorer = _lDDTDecomposer(self.target, mdl, ref_mdl_alns,
+                                      inclusion_radius=inclusion_radius,
+                                      thresholds = thresholds)
+        best_mapping = None
+        best_lddt = -1.0
+
+        for mapping in _ChainMappings(self.chem_groups, chem_mapping):
+
+            lDDT = lddt_scorer.lDDT(self.chem_groups, mapping)
             if lDDT > best_lddt:
                 best_mapping = mapping
                 best_lddt = lDDT
@@ -442,6 +478,68 @@ def _MapSequence(ref_seqs, ref_types, s, s_type, seqid_thr, gap_thr, subst_mat,
             map_aln = aln
     return (map_idx, map_aln)
 
+def _GetRefMdlAlns(ref_chem_groups, ref_chem_group_msas, mdl_chem_groups,
+                   mdl_chem_group_alns):
+    """ Get all possible ref/mdl chain alignments given chem group mapping
+
+    :param ref_chem_groups: :attr:`ChainMapper.chem_groups`
+    :type ref_chem_groups: :class:`list` of :class:`list` of :class:`str`
+    :param ref_chem_group_msas: :attr:`ChainMapper.chem_group_alignments`
+    :type ref_chem_group_msas: :class:`ost.seq.AlignmentList`
+    :param mdl_chem_groups: Groups of model chains that are mapped to
+                            *ref_chem_groups*. Return value of
+                            :func:`ChainMapper.GetChemMapping`.
+    :type mdl_chem_groups: :class:`list` of :class:`list` of :class:`str`
+    :param mdl_chem_group_alns: A pairwise sequence alignment for every chain
+                                in *mdl_chem_groups* that aligns these sequences
+                                to the respective reference sequence.
+                                Return values of
+                                :func:`ChainMapper.GetChemMapping`.
+    :type mdl_chem_group_alns: :class:`list` of :class:`ost.seq.AlignmentList`
+    :returns: A dictionary holding all possible ref/mdl chain alignments. Keys
+              in that dictionary are tuples of the form (ref_ch, mdl_ch) and
+              values are the respective pairwise alignments with first sequence
+              being from ref, the second from mdl.
+    """
+    # alignment of each model chain to chem_group reference sequence
+    mdl_alns = dict()
+    for alns in mdl_chem_group_alns:
+        for aln in alns:
+            mdl_chain_name = aln.GetSequence(1).GetName()
+            mdl_alns[mdl_chain_name] = aln
+
+    # generate all alignments between ref/mdl chain atomseqs that we will
+    # ever observe
+    ref_mdl_alns = dict()
+    for ref_chains, mdl_chains, ref_aln in zip(ref_chem_groups, mdl_chem_groups,
+                                               ref_chem_group_msas):
+        for ref_ch in ref_chains:
+            for mdl_ch in mdl_chains:
+                # obtain alignments of mdl and ref chains towards chem
+                # group ref sequence and merge them
+                aln_list = seq.AlignmentList()
+                # do ref aln
+                s1 = ref_aln.GetSequence(0)
+                s2 = ref_aln.GetSequence(ref_chains.index(ref_ch))
+                aln_list.append(seq.CreateAlignment(s1, s2))
+                # do mdl aln
+                aln_list.append(mdl_alns[mdl_ch])
+                # merge
+                ref_seq = seq.CreateSequence(s1.GetName(),
+                                             s1.GetGaplessString())
+                merged_aln = seq.alg.MergePairwiseAlignments(aln_list,
+                                                             ref_seq)
+                # merged_aln:
+                # seq1: ref seq of chem group
+                # seq2: seq of ref chain
+                # seq3: seq of mdl chain
+                # => we need the alignment between seq2 and seq3
+                aln = seq.CreateAlignment(merged_aln.GetSequence(1),
+                                          merged_aln.GetSequence(2))
+                ref_mdl_alns[(ref_ch, mdl_ch)] = aln
+
+    return ref_mdl_alns
+
 def _Align(s1, s2, subst_mat, gap_open, gap_ext):
     """Returns alignment and some distance metrics of that alignment
 
@@ -590,3 +688,131 @@ def _ChainMappings(ref_chains, mdl_chains):
             iterators.append(_RefLargerGenerator(ref, mdl))
 
     return itertools.product(*iterators)
+
+
+class _lDDTDecomposer:
+
+    def __init__(self, ref, mdl, ref_mdl_alns,
+                 inclusion_radius = 15.0,
+                 thresholds = [0.5, 1.0, 2.0, 4.0]):
+
+        self.ref = ref
+        self.mdl = mdl
+        self.ref_mdl_alns = ref_mdl_alns
+        self.inclusion_radius = inclusion_radius
+        self.thresholds = thresholds
+
+        # holds lDDT scorer for each chain in ref
+        # key: chain name, value: scorer
+        self.single_chain_scorer = dict()
+
+        # cache for single chain conserved contacts
+        # key: tuple (ref_ch, mdl_ch) value: score
+        self.single_chain_cache = dict()
+
+        # holds lDDT scorer for each pairwise interface in target
+        # key: tuple (ref_ch1, ref_ch2), value: scorer
+        self.interface_scorer = dict()
+
+        # cache for interface conserved contacts
+        # key: tuple of tuple ((ref_ch1, ref_ch2),((mdl_ch1, mdl_ch2))
+        # value: score
+        self.interface_cache = dict()
+
+        self.n = 0
+
+        self._SetupScorer()
+
+    def _SetupScorer(self):
+        for ch in self.ref.chains:
+            # Select everything close to that chain
+            query = f"{self.inclusion_radius} <> [cname={ch.GetName()}]"
+            query += f"and cname!={ch.GetName()}"
+            close_sel = self.ref.Select("")
+
+            for close_ch in close_sel.chains:
+                k1 = (ch.GetName(), close_ch.GetName())
+                k2 = (close_ch.GetName(), ch.GetName())
+                if k1 not in self.interface_scorer and \
+                k2 not in self.interface_scorer:
+                    dimer_ref = self.ref.Select(f"cname={k1[0]},{k1[1]}")
+                    s = lddt.lDDTScorer(dimer_ref, bb_only=True)
+                    self.interface_scorer[k1] = s
+                    self.n += self.interface_scorer[k1].n_distances_ic
+
+                    # single chain scorer are actually interface scorers to save
+                    # some distance calculations
+                    if ch.GetName() not in self.single_chain_scorer:
+                        self.single_chain_scorer[ch.GetName()] = s
+                        self.n += s.GetNChainContacts(ch.GetName(),
+                                                      no_interchain=True)
+                    if close_ch.GetName() not in self.single_chain_scorer:
+                        self.single_chain_scorer[close_ch.GetName()] = s
+                        self.n += s.GetNChainContacts(close_ch.GetName(),
+                                                      no_interchain=True)
+
+        # add any missing single chain scorer
+        for ch in self.ref.chains:
+            if ch.GetName() not in self.single_chain_scorer:
+                single_chain_ref = self.ref.Select(f"cname={ch.GetName()}")
+                self.single_chain_scorer[ch.GetName()] = \
+                lddt.lDDTScorer(single_chain_ref, bb_only = True)
+                self.n += self.single_chain_scorer[ch.GetName()].n_distances
+
+    def lDDT(self, ref_chain_groups, mdl_chain_groups):
+
+        conserved = 0
+
+        flat_map = dict()
+        for ref_chains, mdl_chains in zip(ref_chain_groups, mdl_chain_groups):
+            for ref_ch, mdl_ch in zip(ref_chains, mdl_chains):
+                flat_map[ref_ch] = mdl_ch
+
+        # do single chain scores
+        for ref_ch in self.single_chain_scorer.keys():
+            if ref_ch in flat_map and flat_map[ref_ch] is not None:
+                conserved += self._SingleChain(ref_ch, flat_map[ref_ch])
+
+        # do interfaces
+        for ref_ch1, ref_ch2 in self.interface_scorer.keys():
+            if ref_ch1 in flat_map and ref_ch2 in flat_map:
+                mdl_ch1 = flat_map[ref_ch1]
+                mdl_ch2 = flat_map[ref_ch2]
+                if mdl_ch1 is not None and mdl_ch2 is not None:
+                    conserved += self._Interface(ref_ch1, ref_ch2, mdl_ch1,
+                                                 mdl_ch2)
+
+        return conserved / (len(self.thresholds) * self.n)
+
+    def _SingleChain(self, ref_ch, mdl_ch):
+        if not (ref_ch, mdl_ch) in self.single_chain_cache:
+            alns = dict()
+            alns[mdl_ch] = self.ref_mdl_alns[(ref_ch, mdl_ch)]
+            mdl_sel = self.mdl.Select(f"cname={mdl_ch}")
+            s = self.single_chain_scorer[ref_ch]
+            _,_,_,conserved,_,_,_ = s.lDDT(mdl_sel,
+                                           residue_mapping=alns,
+                                           return_dist_test=True,
+                                           no_interchain=True,
+                                           chain_mapping={mdl_ch: ref_ch},
+                                           check_resnames=False)
+            self.single_chain_cache[(ref_ch, mdl_ch)] = conserved
+        return self.single_chain_cache[(ref_ch, mdl_ch)]
+
+    def _Interface(self, ref_ch1, ref_ch2, mdl_ch1, mdl_ch2):
+        cache_key = ((ref_ch1, ref_ch2),(mdl_ch1, mdl_ch2))
+        if cache_key not in self.interface_cache:
+            alns = dict()
+            alns[mdl_ch1] = self.ref_mdl_alns[(ref_ch1, mdl_ch1)]
+            alns[mdl_ch2] = self.ref_mdl_alns[(ref_ch2, mdl_ch2)]
+            mdl_sel = self.mdl.Select(f"cname={mdl_ch1},{mdl_ch2}")
+            s = self.interface_scorer[(ref_ch1, ref_ch2)]
+            _,_,_,conserved,_,_,_ = s.lDDT(mdl_sel,
+                                           residue_mapping=alns,
+                                           return_dist_test=True,
+                                           no_intrachain=True,
+                                           chain_mapping={mdl_ch1: ref_ch1,
+                                                          mdl_ch2: ref_ch2},
+                                           check_resnames=False)
+            self.interface_cache[cache_key] = conserved
+        return self.interface_cache[cache_key]
