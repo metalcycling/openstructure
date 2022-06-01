@@ -20,7 +20,7 @@ class ChainMapper:
                        polypeptides and polynucleotides.
         :type target: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
         """
-        self.target = target.Select("peptide=true or nucleotide=true")
+        self.target = _StructureSelection(target)
 
         # lazy computed attributes
         self._chem_groups = None
@@ -102,7 +102,7 @@ class ChainMapper:
                   2) Each element is a :class:`ost.seq.AlignmentList` aligning
                   these mdl chain sequences to the chem group ref sequences.
         """
-        mdl = model.Select("peptide=true or nucleotide=true")
+        mdl = _StructureSelection(model)
         mdl_pep_seqs, mdl_nuc_seqs = _GetAtomSeqs(mdl)
 
         mapping = [list() for x in self.chem_groups]
@@ -154,7 +154,7 @@ class ChainMapper:
                   None.
         """
 
-        mdl = model.Select("peptide=true or nucleotide=true")
+        mdl = _StructureSelection(model)
         chem_mapping, chem_group_alns = self.GetChemMapping(mdl)
 
         # check for the simplest case
@@ -203,8 +203,8 @@ class ChainMapper:
 
         return best_mapping
 
-    def GetDecomposerlDDTMapping(self, model, bb_only=False, inclusion_radius=15.0,
-                            thresholds=[0.5, 1.0, 2.0, 4.0]):
+    def GetDecomposerlDDTMapping(self, model, inclusion_radius=15.0,
+                                 thresholds=[0.5, 1.0, 2.0, 4.0]):
         """Naively iterates all possible chain mappings and returns the best
 
         Maps *model* chain sequences to :attr:`~chem_groups` and performs all
@@ -212,10 +212,6 @@ class ChainMapper:
 
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
-        :param bb_only: lDDT considers only atoms of name "CA" (peptides) or
-                        "C3'" (nucleotides). Gives speed improvement but
-                        sidechains are not considered anymore.
-        :type bb_only: :class:`bool`
         :param inclusion_radius: Inclusion radius for lDDT
         :type inclusion_radius: :class:`float`
         :param thresholds: Thresholds for lDDT
@@ -225,8 +221,7 @@ class ChainMapper:
                   chains. Target chains without mapped model chains are set to
                   None.
         """
-
-        mdl = model.Select("peptide=true or nucleotide=true")
+        mdl = _StructureSelection(model)
         chem_mapping, chem_group_alns = self.GetChemMapping(mdl)
 
         # check for the simplest case
@@ -259,6 +254,113 @@ class ChainMapper:
                 best_lddt = lDDT
 
         return best_mapping
+
+
+    def GetGreedylDDTMapping(self, model, inclusion_radius=15.0,
+                             thresholds=[0.5, 1.0, 2.0, 4.0]):
+        """Heuristic to lower the complexity of naive iteration
+
+        Maps *model* chain sequences to :attr:`~chem_groups` and performs all
+        vs. all single chain lDDTs within those mappings. In fact, it's not lDDT
+        but rather a count of conserved contacts. The one-to-one mapping with
+        highest count serves as seed to extend the mapping in a greedy way.
+        In each iteration, the one-to-one mapping that leads to highest increase
+        in counts is added with the additional requirement that this added
+        mapping must have non-zero interface counts towards the already mapped
+        chains. So basically we're "growing" the mapped structure by only
+        adding connected stuff. 
+
+        :param model: Model to map
+        :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
+        :param inclusion_radius: Inclusion radius for lDDT
+        :type inclusion_radius: :class:`float`
+        :param thresholds: Thresholds for lDDT
+        :type thresholds: :class:`list` of :class:`float`
+        :returns: A :class:`list` of :class:`list` that reflects
+                  :attr:`~chem_groups` but is filled with the respective model
+                  chains. Target chains without mapped model chains are set to
+                  None.
+        """
+
+        mdl = _StructureSelection(model)
+        chem_mapping, chem_group_alns = self.GetChemMapping(mdl)
+
+        # check for the simplest case
+        only_one_to_one = True
+        for ref_chains, mdl_chains in zip(self.chem_groups, chem_mapping):
+            if len(ref_chains) != 1 or len(mdl_chains) not in [0, 1]:
+                only_one_to_one = False
+                break
+        if only_one_to_one:
+            # skip ref chem groups with no mapped mdl chain
+            return [(a,b) for a,b in zip(self.chem_groups, chem_mapping) if len(b) == 1]
+
+        ref_mdl_alns =  _GetRefMdlAlns(self.chem_groups,
+                                       self.chem_group_alignments,
+                                       chem_mapping,
+                                       chem_group_alns)
+
+        # setup greedy searcher
+        the_greed = _GreedySearcher(self.target, mdl, self.chem_groups,
+                                    chem_mapping, ref_mdl_alns,
+                                    inclusion_radius=inclusion_radius,
+                                    thresholds=thresholds)
+
+        # estimate how many chains should get mapped
+        n_mappings = 0
+        for ref_chains, mdl_chains in zip(self.chem_groups, chem_mapping):
+            n_mappings += min(len(ref_chains), len(mdl_chains))
+
+        mapping = dict()
+        while len(mapping) < n_mappings:
+            # search for best scoring starting point
+            n_best = 0
+            best_seed = None
+            mapped_ref_chains = set(mapping.keys())
+            mapped_mdl_chains = set(mapping.values())
+            for ref_chains, mdl_chains in zip(self.chem_groups, chem_mapping):
+                for ref_ch in ref_chains:
+                    if ref_ch not in mapped_ref_chains:
+                        for mdl_ch in mdl_chains:
+                            if mdl_ch not in mapped_mdl_chains:
+                                n = the_greed.SingleChainCounts(ref_ch, mdl_ch)
+                                if n > n_best:
+                                    n_best = n
+                                    best_seed = (ref_ch, mdl_ch)
+
+            if n_best == 0:
+                break # no proper seed found anymore...
+
+            # add seed to mapping and start the greed
+            mapping[best_seed[0]] = best_seed[1]
+            mapping = the_greed.ExtendMapping(mapping)
+
+        # translate mapping format and return
+        final_mapping = list()
+        for ref_chains in self.chem_groups:
+            mapped_mdl_chains = list()
+            for ref_ch in ref_chains:
+                if ref_ch in mapping:
+                    mapped_mdl_chains.append(mapping[ref_ch])
+                else:
+                    mapped_mdl_chains.append(None)
+            final_mapping.append(mapped_mdl_chains)
+        return final_mapping
+
+def _StructureSelection(ent):
+    """Selects structure to only contain peptide and nucleotide residues
+
+    Additionally selects for residues that also contain the backbone
+    representatives (CA for peptide and C3' for nucleotides) to avoid ATOMSEQ
+    alignment inconsistencies when switching between all atom and backbone only
+    representations.
+    """
+    query = "peptide=true or nucleotide=true and aname=\"CA\",\"C3'\""
+    sel = ent.Select(query)
+    view = ent.CreateEmptyView()
+    for r in sel.residues:
+        view.AddResidue(r.handle, mol.INCLUDE_ALL)
+    return view
 
 def _GetChemGroupAlignments(ent, seqid_thr=95., gap_thr=0.1):
     """Returns alignments with groups of chemically equivalent chains
@@ -692,8 +794,7 @@ def _ChainMappings(ref_chains, mdl_chains):
 
 class _lDDTDecomposer:
 
-    def __init__(self, ref, mdl, ref_mdl_alns,
-                 inclusion_radius = 15.0,
+    def __init__(self, ref, mdl, ref_mdl_alns, inclusion_radius = 15.0,
                  thresholds = [0.5, 1.0, 2.0, 4.0]):
 
         self.ref = ref
@@ -702,12 +803,16 @@ class _lDDTDecomposer:
         self.inclusion_radius = inclusion_radius
         self.thresholds = thresholds
 
+        # keep track of single chains and interfaces in ref
+        self.ref_chains = list() # e.g. ['A', 'B', 'C']
+        self.ref_interfaces = list() # e.g. [('A', 'B'), ('A', 'C')]
+
         # holds lDDT scorer for each chain in ref
         # key: chain name, value: scorer
         self.single_chain_scorer = dict()
 
         # cache for single chain conserved contacts
-        # key: tuple (ref_ch, mdl_ch) value: score
+        # key: tuple (ref_ch, mdl_ch) value: number of conserved contacts
         self.single_chain_cache = dict()
 
         # holds lDDT scorer for each pairwise interface in target
@@ -716,7 +821,7 @@ class _lDDTDecomposer:
 
         # cache for interface conserved contacts
         # key: tuple of tuple ((ref_ch1, ref_ch2),((mdl_ch1, mdl_ch2))
-        # value: score
+        # value: number of conserved contacts
         self.interface_cache = dict()
 
         self.n = 0
@@ -726,11 +831,9 @@ class _lDDTDecomposer:
     def _SetupScorer(self):
         for ch in self.ref.chains:
             # Select everything close to that chain
-            query = f"{self.inclusion_radius} <> [cname={ch.GetName()}]"
+            query = f"{self.inclusion_radius} <> [cname={ch.GetName()}] "
             query += f"and cname!={ch.GetName()}"
-            close_sel = self.ref.Select("")
-
-            for close_ch in close_sel.chains:
+            for close_ch in self.ref.Select(query).chains:
                 k1 = (ch.GetName(), close_ch.GetName())
                 k2 = (close_ch.GetName(), ch.GetName())
                 if k1 not in self.interface_scorer and \
@@ -738,18 +841,21 @@ class _lDDTDecomposer:
                     dimer_ref = self.ref.Select(f"cname={k1[0]},{k1[1]}")
                     s = lddt.lDDTScorer(dimer_ref, bb_only=True)
                     self.interface_scorer[k1] = s
+                    self.interface_scorer[k2] = s
                     self.n += self.interface_scorer[k1].n_distances_ic
-
+                    self.ref_interfaces.append(k1)
                     # single chain scorer are actually interface scorers to save
                     # some distance calculations
                     if ch.GetName() not in self.single_chain_scorer:
                         self.single_chain_scorer[ch.GetName()] = s
                         self.n += s.GetNChainContacts(ch.GetName(),
                                                       no_interchain=True)
+                        self.ref_chains.append(ch.GetName())
                     if close_ch.GetName() not in self.single_chain_scorer:
                         self.single_chain_scorer[close_ch.GetName()] = s
                         self.n += s.GetNChainContacts(close_ch.GetName(),
                                                       no_interchain=True)
+                        self.ref_chains.append(close_ch.GetName())
 
         # add any missing single chain scorer
         for ch in self.ref.chains:
@@ -758,6 +864,7 @@ class _lDDTDecomposer:
                 self.single_chain_scorer[ch.GetName()] = \
                 lddt.lDDTScorer(single_chain_ref, bb_only = True)
                 self.n += self.single_chain_scorer[ch.GetName()].n_distances
+                self.ref_chains.append(ch.GetName())
 
     def lDDT(self, ref_chain_groups, mdl_chain_groups):
 
@@ -769,22 +876,22 @@ class _lDDTDecomposer:
                 flat_map[ref_ch] = mdl_ch
 
         # do single chain scores
-        for ref_ch in self.single_chain_scorer.keys():
+        for ref_ch in self.ref_chains:
             if ref_ch in flat_map and flat_map[ref_ch] is not None:
-                conserved += self._SingleChain(ref_ch, flat_map[ref_ch])
+                conserved += self.SingleChainCounts(ref_ch, flat_map[ref_ch])
 
         # do interfaces
-        for ref_ch1, ref_ch2 in self.interface_scorer.keys():
+        for ref_ch1, ref_ch2 in self.ref_interfaces:
             if ref_ch1 in flat_map and ref_ch2 in flat_map:
                 mdl_ch1 = flat_map[ref_ch1]
                 mdl_ch2 = flat_map[ref_ch2]
                 if mdl_ch1 is not None and mdl_ch2 is not None:
-                    conserved += self._Interface(ref_ch1, ref_ch2, mdl_ch1,
-                                                 mdl_ch2)
+                    conserved += self.InterfaceCounts(ref_ch1, ref_ch2, mdl_ch1,
+                                                      mdl_ch2)
 
         return conserved / (len(self.thresholds) * self.n)
 
-    def _SingleChain(self, ref_ch, mdl_ch):
+    def SingleChainCounts(self, ref_ch, mdl_ch):
         if not (ref_ch, mdl_ch) in self.single_chain_cache:
             alns = dict()
             alns[mdl_ch] = self.ref_mdl_alns[(ref_ch, mdl_ch)]
@@ -799,9 +906,10 @@ class _lDDTDecomposer:
             self.single_chain_cache[(ref_ch, mdl_ch)] = conserved
         return self.single_chain_cache[(ref_ch, mdl_ch)]
 
-    def _Interface(self, ref_ch1, ref_ch2, mdl_ch1, mdl_ch2):
-        cache_key = ((ref_ch1, ref_ch2),(mdl_ch1, mdl_ch2))
-        if cache_key not in self.interface_cache:
+    def InterfaceCounts(self, ref_ch1, ref_ch2, mdl_ch1, mdl_ch2):
+        k1 = ((ref_ch1, ref_ch2),(mdl_ch1, mdl_ch2))
+        k2 = ((ref_ch2, ref_ch1),(mdl_ch2, mdl_ch1))
+        if k1 not in self.interface_cache and k2 not in self.interface_cache:
             alns = dict()
             alns[mdl_ch1] = self.ref_mdl_alns[(ref_ch1, mdl_ch1)]
             alns[mdl_ch2] = self.ref_mdl_alns[(ref_ch2, mdl_ch2)]
@@ -814,5 +922,123 @@ class _lDDTDecomposer:
                                            chain_mapping={mdl_ch1: ref_ch1,
                                                           mdl_ch2: ref_ch2},
                                            check_resnames=False)
-            self.interface_cache[cache_key] = conserved
-        return self.interface_cache[cache_key]
+            self.interface_cache[k1] = conserved
+            self.interface_cache[k2] = conserved
+        return self.interface_cache[k1]
+
+
+class _GreedySearcher(_lDDTDecomposer):
+    def __init__(self, ref, mdl, ref_chem_groups, mdl_chem_groups,
+                 ref_mdl_alns, inclusion_radius = 15.0,
+                 thresholds = [0.5, 1.0, 2.0, 4.0]):
+        super().__init__(ref, mdl, ref_mdl_alns,
+                         inclusion_radius = inclusion_radius,
+                         thresholds = thresholds)
+        self.neighbors = dict()
+        for k in self.interface_scorer.keys():
+            if k[0] not in self.neighbors:
+                self.neighbors[k[0]] = set()
+            if k[1] not in self.neighbors:
+                self.neighbors[k[1]] = set()
+            self.neighbors[k[0]].add(k[1])
+            self.neighbors[k[1]].add(k[0])
+
+        assert(len(ref_chem_groups) == len(mdl_chem_groups))
+        self.ref_chem_groups = ref_chem_groups
+        self.mdl_chem_groups = mdl_chem_groups
+        self.ref_ch_group_mapper = dict()
+        self.mdl_ch_group_mapper = dict()
+        for g_idx, (ref_g, mdl_g) in enumerate(zip(ref_chem_groups,
+                                                   mdl_chem_groups)):
+            for ch in ref_g:
+                self.ref_ch_group_mapper[ch] = g_idx
+            for ch in mdl_g:
+                self.mdl_ch_group_mapper[ch] = g_idx
+
+        # keep track of mdl chains that potentially give lDDT contributions,
+        # i.e. they have locations within inclusion_radius + max(thresholds)
+        self.mdl_neighbors = dict()
+        d = self.inclusion_radius + max(self.thresholds)
+        for ch in self.mdl.chains:
+            ch_name = ch.GetName()
+            query = f"{d} <> [cname={ch_name}] and cname !={ch_name}"
+            for close_ch in self.ref.Select(query).chains:
+                self.mdl_neighbors[ch_name] = close_ch.GetName()
+
+
+    def ExtendMapping(self, mapping):
+
+        if len(mapping) == 0:
+            raise RuntimError("Mapping must contain a starting point")
+
+        for ref_ch, mdl_ch in mapping.items():
+            assert(ref_ch in self.ref_ch_group_mapper)
+            assert(mdl_ch in self.mdl_ch_group_mapper)
+            assert(self.ref_ch_group_mapper[ref_ch] == \
+                   self.mdl_ch_group_mapper[mdl_ch])
+
+        # Ref chains onto which we can map. The algorithm starts with a mapping
+        # on ref_ch. From there we can start to expand to connected neighbors.
+        # All neighbors that we can reach from the already mapped chains are
+        # stored in this set which will be updated during runtime
+        map_targets = set()
+        for ref_ch in mapping.keys():
+            map_targets.update(self.neighbors[ref_ch])
+
+        # remove the already mapped chains
+        for ref_ch in mapping.keys():
+            map_targets.discard(ref_ch)
+
+        if len(map_targets) == 0:
+            return mapping # nothing to extend
+
+        # keep track of what model chains are not yet mapped for each chem group
+        free_mdl_chains = list()
+        for chem_group in self.mdl_chem_groups:
+            tmp = [x for x in chem_group if x not in mapping.values()]
+            free_mdl_chains.append(set(tmp))
+
+        something_happened = True
+
+        while something_happened:
+            something_happened=False
+            max_n = 0
+            max_mapping = None
+            for ref_ch in map_targets:
+                chem_group_idx = self.ref_ch_group_mapper[ref_ch]
+                for mdl_ch in free_mdl_chains[chem_group_idx]:
+                    # single chain score
+                    n_single = self.SingleChainCounts(ref_ch, mdl_ch)
+                    # scores towards neighbors that are already mapped
+                    n_inter = 0
+                    for neighbor in self.neighbors[ref_ch]:
+                        if neighbor in mapping and mdl_ch in \
+                        self.mdl_neighbors[mapping[neighbor]]:
+                            n_inter += self.InterfaceCounts(ref_ch, neighbor,
+                                                            mdl_ch,
+                                                            mapping[neighbor])
+                    n = n_single + n_inter
+                    if n_inter > 0 and n > max_n:
+                        # Only accept a new solution if its actually connected
+                        # i.e. n_inter > 0. Otherwise we could just map a big
+                        # fat mdl chain sitting somewhere in Nirvana
+                        max_n = n
+                        max_mapping = (ref_ch, mdl_ch)
+     
+            if max_n > 0:
+                something_happened = True
+                # Four things to do
+                # 1) assign new found mapping
+                # 2) add all neighboring chains to map targets as they are now
+                #    reachable
+                # 3) remove the ref chain from map targets
+                # 4) remove the mdl chain from free_mdl_chains - its taken...
+                mapping[max_mapping[0]] = max_mapping[1]
+                for neighbor in self.neighbors[max_mapping[0]]:
+                    if neighbor not in mapping:
+                        map_targets.add(neighbor)
+                map_targets.remove(max_mapping[0])
+                chem_group_idx = self.ref_ch_group_mapper[max_mapping[0]]
+                free_mdl_chains[chem_group_idx].remove(max_mapping[1])
+
+        return mapping
