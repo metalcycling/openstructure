@@ -257,18 +257,28 @@ class ChainMapper:
 
 
     def GetGreedylDDTMapping(self, model, inclusion_radius=15.0,
-                             thresholds=[0.5, 1.0, 2.0, 4.0]):
+                             thresholds=[0.5, 1.0, 2.0, 4.0],
+                             seed_strategy="fast", full_n_mdl_chains = -1):
         """Heuristic to lower the complexity of naive iteration
 
-        Maps *model* chain sequences to :attr:`~chem_groups` and performs all
-        vs. all single chain lDDTs within those mappings. In fact, it's not lDDT
-        but rather a count of conserved contacts. The one-to-one mapping with
-        highest count serves as seed to extend the mapping in a greedy way.
-        In each iteration, the one-to-one mapping that leads to highest increase
-        in counts is added with the additional requirement that this added
+        Maps *model* chain sequences to :attr:`~chem_groups` and extends these
+        start mappings (seeds) in a greedy way. In each iteration, the
+        one-to-one mapping that leads to highest increase in number of conserved
+        contacts is added with the additional requirement that this added
         mapping must have non-zero interface counts towards the already mapped
-        chains. So basically we're "growing" the mapped structure by only
-        adding connected stuff. 
+        chains. So basically we're "growing" the mapped structure by only adding
+        connected stuff.
+
+        Several strategies exist to identify the start seed(s):
+
+        * fast: perform all vs. all single chain lDDTs within the respective
+          ref/mdl chem groups. The mapping with highest number of conserved
+          contacts is selected as seed for extension
+
+        * full: try multiple seeds, i.e. try all ref/mdl chain combinations
+          within the respective chem groups and retain the mapping leading to
+          the best lDDT. Optionally, you can reduce the number of mdl chains
+          per ref chain to the *full_n_mdl_chains* best scoring ones. 
 
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
@@ -276,11 +286,21 @@ class ChainMapper:
         :type inclusion_radius: :class:`float`
         :param thresholds: Thresholds for lDDT
         :type thresholds: :class:`list` of :class:`float`
+        :param seed_strategy: Strategy to pick starting seeds for expansion
+        :type seed_strategy: :class:`str`
+        :param full_n_mdl_chains: Param for *full* seed strategy - Max number of
+                                  mdl chains that are tried per ref chain. The
+                                  default (-1) tries all of them.
+        :type full_n_mdl_chains: :class:`int`
         :returns: A :class:`list` of :class:`list` that reflects
                   :attr:`~chem_groups` but is filled with the respective model
                   chains. Target chains without mapped model chains are set to
                   None.
         """
+
+        seed_strategies = ["fast", "full"]
+        if seed_strategy not in seed_strategies:
+            raise RuntimeError(f"Seed strategy must be in {seed_strategies}")
 
         mdl = _StructureSelection(model)
         chem_mapping, chem_group_alns = self.GetChemMapping(mdl)
@@ -306,46 +326,123 @@ class ChainMapper:
                                     inclusion_radius=inclusion_radius,
                                     thresholds=thresholds)
 
-        # estimate how many chains should get mapped
-        n_mappings = 0
-        for ref_chains, mdl_chains in zip(self.chem_groups, chem_mapping):
-            n_mappings += min(len(ref_chains), len(mdl_chains))
+        if seed_strategy == "fast":
+            return _FastGreedy(the_greed)
 
-        mapping = dict()
-        while len(mapping) < n_mappings:
-            # search for best scoring starting point
-            n_best = 0
-            best_seed = None
-            mapped_ref_chains = set(mapping.keys())
-            mapped_mdl_chains = set(mapping.values())
-            for ref_chains, mdl_chains in zip(self.chem_groups, chem_mapping):
-                for ref_ch in ref_chains:
-                    if ref_ch not in mapped_ref_chains:
-                        for mdl_ch in mdl_chains:
-                            if mdl_ch not in mapped_mdl_chains:
-                                n = the_greed.SingleChainCounts(ref_ch, mdl_ch)
-                                if n > n_best:
-                                    n_best = n
-                                    best_seed = (ref_ch, mdl_ch)
+        elif seed_strategy == "full":
+            return _FullGreedy(the_greed, n_mdl_chains = full_n_mdl_chains)
 
-            if n_best == 0:
-                break # no proper seed found anymore...
 
-            # add seed to mapping and start the greed
-            mapping[best_seed[0]] = best_seed[1]
-            mapping = the_greed.ExtendMapping(mapping)
+def _FastGreedy(the_greed):
 
-        # translate mapping format and return
-        final_mapping = list()
-        for ref_chains in self.chem_groups:
-            mapped_mdl_chains = list()
+    # estimate how many chains should get mapped
+    n_mappings = 0
+    for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
+                                      the_greed.mdl_chem_groups):
+        n_mappings += min(len(ref_chains), len(mdl_chains))
+
+    mapping = dict()
+
+    while len(mapping) < n_mappings:
+        # search for best scoring starting point
+        n_best = 0
+        best_seed = None
+        mapped_ref_chains = set(mapping.keys())
+        mapped_mdl_chains = set(mapping.values())
+        for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
+                                          the_greed.mdl_chem_groups):
             for ref_ch in ref_chains:
-                if ref_ch in mapping:
-                    mapped_mdl_chains.append(mapping[ref_ch])
-                else:
-                    mapped_mdl_chains.append(None)
-            final_mapping.append(mapped_mdl_chains)
-        return final_mapping
+                if ref_ch not in mapped_ref_chains:
+                    for mdl_ch in mdl_chains:
+                        if mdl_ch not in mapped_mdl_chains:
+                            n = the_greed.SingleChainCounts(ref_ch, mdl_ch)
+                            if n > n_best:
+                                n_best = n
+                                best_seed = (ref_ch, mdl_ch)
+        if n_best == 0:
+            break # no proper seed found anymore...
+        # add seed to mapping and start the greed
+        mapping[best_seed[0]] = best_seed[1]
+        mapping = the_greed.ExtendMapping(mapping)
+
+
+    # translate mapping format and return
+    final_mapping = list()
+    for ref_chains in the_greed.ref_chem_groups:
+        mapped_mdl_chains = list()
+        for ref_ch in ref_chains:
+            if ref_ch in mapping:
+                mapped_mdl_chains.append(mapping[ref_ch])
+            else:
+                mapped_mdl_chains.append(None)
+        final_mapping.append(mapped_mdl_chains)
+
+    return final_mapping
+
+
+def _FullGreedy(the_greed, n_mdl_chains=-1):
+    """ Uses each reference chain as starting point for expansion
+
+    However, not all mdl chain are mapped onto these reference chains,
+    that's controlled by *n_mdl_chains*
+    """
+
+    if n_mdl_chains == 0:
+        raise RuntimeError("n_mdl_chains must be -1 or > 0")
+
+    # estimate how many chains should get mapped
+    n_mappings = 0
+    for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
+                                      the_greed.mdl_chem_groups):
+        n_mappings += min(len(ref_chains), len(mdl_chains))
+
+    mapping = dict()
+
+    while len(mapping) < n_mappings:
+        # Try all possible starting points and keep the one giving the best lDDT
+        best_lddt = 0.0
+        best_mapping = None
+        mapped_ref_chains = set(mapping.keys())
+        mapped_mdl_chains = set(mapping.values())
+        for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
+                                          the_greed.mdl_chem_groups):
+            for ref_ch in ref_chains:
+                if ref_ch not in mapped_ref_chains:
+
+                    seeds = list()
+                    for mdl_ch in mdl_chains:
+                        if mdl_ch not in mapped_mdl_chains:
+                            seeds.append((ref_ch, mdl_ch))
+                    if n_mdl_chains != -1 and n_mdl_chains < len(seeds):
+                        seeds = seeds[:n_mdl_chains]
+
+                    for seed in seeds:
+                        tmp_mapping = dict(mapping)
+                        tmp_mapping[seed[0]] = seed[1]
+                        tmp_mapping = the_greed.ExtendMapping(tmp_mapping)
+                        tmp_lddt = the_greed.lDDTFromFlatMap(tmp_mapping)
+                        if tmp_lddt > best_lddt:
+                            best_lddt = tmp_lddt
+                            best_mapping = tmp_mapping
+
+        if best_lddt == 0.0:
+            break # no proper mapping found anymore...
+
+        mapping = best_mapping
+
+    # translate mapping format and return
+    final_mapping = list()
+    for ref_chains in the_greed.ref_chem_groups:
+        mapped_mdl_chains = list()
+        for ref_ch in ref_chains:
+            if ref_ch in mapping:
+                mapped_mdl_chains.append(mapping[ref_ch])
+            else:
+                mapped_mdl_chains.append(None)
+        final_mapping.append(mapped_mdl_chains)
+
+    return final_mapping
+
 
 def _StructureSelection(ent):
     """Selects structure to only contain peptide and nucleotide residues
@@ -868,12 +965,16 @@ class _lDDTDecomposer:
 
     def lDDT(self, ref_chain_groups, mdl_chain_groups):
 
-        conserved = 0
-
         flat_map = dict()
         for ref_chains, mdl_chains in zip(ref_chain_groups, mdl_chain_groups):
             for ref_ch, mdl_ch in zip(ref_chains, mdl_chains):
                 flat_map[ref_ch] = mdl_ch
+
+        return self.lDDTFromFlatMap(flat_map)
+
+
+    def lDDTFromFlatMap(self, flat_map):
+        conserved = 0
 
         # do single chain scores
         for ref_ch in self.ref_chains:
