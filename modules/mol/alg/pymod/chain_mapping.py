@@ -258,7 +258,8 @@ class ChainMapper:
 
     def GetGreedylDDTMapping(self, model, inclusion_radius=15.0,
                              thresholds=[0.5, 1.0, 2.0, 4.0],
-                             seed_strategy="fast", full_n_mdl_chains = None):
+                             seed_strategy="fast", steep_opt_rate=None,
+                             full_n_mdl_chains = None):
         """Heuristic to lower the complexity of naive iteration
 
         Maps *model* chain sequences to :attr:`~chem_groups` and extends these
@@ -288,6 +289,14 @@ class ChainMapper:
         :type thresholds: :class:`list` of :class:`float`
         :param seed_strategy: Strategy to pick starting seeds for expansion
         :type seed_strategy: :class:`str`
+        :param steep_opt_rate: If set, every *steep_opt_rate* mappings, a simple
+                               optimization is executed with the goal of
+                               avoiding local minima. The optimization
+                               iteratively checks all possible swaps of mappings
+                               within their respective chem groups and accepts
+                               swaps that improve lDDT score. Iteration stops as
+                               soon as no improvement can be achieved anymore.
+        :type stepp_opt_rate: :class:`int`
         :param full_n_mdl_chains: Param for *full* seed strategy - Max number of
                                   mdl chains that are tried per ref chain. The
                                   default (-1) tries all of them.
@@ -324,7 +333,8 @@ class ChainMapper:
         the_greed = _GreedySearcher(self.target, mdl, self.chem_groups,
                                     chem_mapping, ref_mdl_alns,
                                     inclusion_radius=inclusion_radius,
-                                    thresholds=thresholds)
+                                    thresholds=thresholds,
+                                    steep_opt_rate=steep_opt_rate)
 
         if seed_strategy == "fast":
             return _FastGreedy(the_greed)
@@ -1034,10 +1044,12 @@ class _lDDTDecomposer:
 class _GreedySearcher(_lDDTDecomposer):
     def __init__(self, ref, mdl, ref_chem_groups, mdl_chem_groups,
                  ref_mdl_alns, inclusion_radius = 15.0,
-                 thresholds = [0.5, 1.0, 2.0, 4.0]):
+                 thresholds = [0.5, 1.0, 2.0, 4.0],
+                 steep_opt_rate = None):
         super().__init__(ref, mdl, ref_mdl_alns,
                          inclusion_radius = inclusion_radius,
                          thresholds = thresholds)
+        self.steep_opt_rate = steep_opt_rate
         self.neighbors = dict()
         for k in self.interface_scorer.keys():
             if k[0] not in self.neighbors:
@@ -1102,10 +1114,18 @@ class _GreedySearcher(_lDDTDecomposer):
             tmp = [x for x in chem_group if x not in mapping.values()]
             free_mdl_chains.append(set(tmp))
 
-        something_happened = True
+        # keep track of what ref chains got a mapping
+        newly_mapped_ref_chains = list()
 
+        something_happened = True
         while something_happened:
             something_happened=False
+
+            if self.steep_opt_rate is not None:
+                n_chains = len(newly_mapped_ref_chains)
+                if n_chains > 0 and n_chains % self.steep_opt_rate == 0:
+                    mapping = self._SteepOpt(mapping, newly_mapped_ref_chains)
+
             max_n = 0
             max_mapping = None
             for ref_ch in map_targets:
@@ -1130,18 +1150,65 @@ class _GreedySearcher(_lDDTDecomposer):
      
             if max_n > 0:
                 something_happened = True
-                # Four things to do
-                # 1) assign new found mapping
-                # 2) add all neighboring chains to map targets as they are now
-                #    reachable
-                # 3) remove the ref chain from map targets
-                # 4) remove the mdl chain from free_mdl_chains - its taken...
+                # assign new found mapping
                 mapping[max_mapping[0]] = max_mapping[1]
+
+                # add all neighboring chains to map targets as they are now
+                # reachable
                 for neighbor in self.neighbors[max_mapping[0]]:
                     if neighbor not in mapping:
                         map_targets.add(neighbor)
+
+                # remove the ref chain from map targets
                 map_targets.remove(max_mapping[0])
+
+                # remove the mdl chain from free_mdl_chains - its taken...
                 chem_group_idx = self.ref_ch_group_mapper[max_mapping[0]]
                 free_mdl_chains[chem_group_idx].remove(max_mapping[1])
+
+                # keep track of what ref chains got a mapping
+                newly_mapped_ref_chains.append(max_mapping[0])
+
+        return mapping
+
+
+    def _SteepOpt(self, mapping, chains_to_optimize=None):
+
+        # just optimize ALL ref chains if nothing specified
+        if chains_to_optimize is None:
+            chains_to_optimize = mapping.keys()
+
+        # make sure that we only have ref chains which are actually mapped
+        ref_chains = [x for x in chains_to_optimize if mapping[x] is not None]
+
+        # group ref chains to be optimized into chem groups
+        tmp = dict()
+        for ch in ref_chains:
+            chem_group_idx = self.ref_ch_group_mapper[ch] 
+            if chem_group_idx in tmp:
+                tmp[chem_group_idx].append(ch)
+            else:
+                tmp[chem_group_idx] = [ch]
+        chem_groups = list(tmp.values())
+
+        # try all possible mapping swaps. Swaps that improve the score are
+        # immediately accepted and we start all over again
+        current_lddt = self.lDDTFromFlatMap(mapping)
+        something_happened = True
+        while something_happened:
+            something_happened = False
+            for chem_group in chem_groups:
+                if something_happened:
+                    break
+                for ch1, ch2 in itertools.combinations(chem_group, 2):
+                    swapped_mapping = dict(mapping)
+                    swapped_mapping[ch1] = mapping[ch2]
+                    swapped_mapping[ch2] = mapping[ch1]
+                    score = self.lDDTFromFlatMap(swapped_mapping)
+                    if score > current_lddt:
+                        something_happened = True
+                        mapping = swapped_mapping
+                        current_lddt = score
+                        break        
 
         return mapping
