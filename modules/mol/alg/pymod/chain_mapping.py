@@ -258,7 +258,7 @@ class ChainMapper:
 
     def GetGreedylDDTMapping(self, model, inclusion_radius=15.0,
                              thresholds=[0.5, 1.0, 2.0, 4.0],
-                             seed_strategy="fast", full_n_mdl_chains = -1):
+                             seed_strategy="fast", full_n_mdl_chains = None):
         """Heuristic to lower the complexity of naive iteration
 
         Maps *model* chain sequences to :attr:`~chem_groups` and extends these
@@ -355,7 +355,7 @@ def _FastGreedy(the_greed):
                 if ref_ch not in mapped_ref_chains:
                     for mdl_ch in mdl_chains:
                         if mdl_ch not in mapped_mdl_chains:
-                            n = the_greed.SingleChainCounts(ref_ch, mdl_ch)
+                            n = the_greed.SCCounts(ref_ch, mdl_ch)
                             if n > n_best:
                                 n_best = n
                                 best_seed = (ref_ch, mdl_ch)
@@ -380,15 +380,15 @@ def _FastGreedy(the_greed):
     return final_mapping
 
 
-def _FullGreedy(the_greed, n_mdl_chains=-1):
+def _FullGreedy(the_greed, n_mdl_chains):
     """ Uses each reference chain as starting point for expansion
 
     However, not all mdl chain are mapped onto these reference chains,
     that's controlled by *n_mdl_chains*
     """
 
-    if n_mdl_chains == 0:
-        raise RuntimeError("n_mdl_chains must be -1 or > 0")
+    if n_mdl_chains is not None and n_mdl_chains < 1:
+        raise RuntimeError("n_mdl_chains must be None or >= 1")
 
     # estimate how many chains should get mapped
     n_mappings = 0
@@ -413,8 +413,11 @@ def _FullGreedy(the_greed, n_mdl_chains=-1):
                     for mdl_ch in mdl_chains:
                         if mdl_ch not in mapped_mdl_chains:
                             seeds.append((ref_ch, mdl_ch))
-                    if n_mdl_chains != -1 and n_mdl_chains < len(seeds):
-                        seeds = seeds[:n_mdl_chains]
+                    if n_mdl_chains is not None and n_mdl_chains < len(seeds):
+                        counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
+                        tmp = [(a,b) for a,b in zip(counts, seeds)]
+                        tmp.sort(reverse=True)
+                        seeds = [item[1] for item in tmp[:n_mdl_chains]]
 
                     for seed in seeds:
                         tmp_mapping = dict(mapping)
@@ -979,7 +982,7 @@ class _lDDTDecomposer:
         # do single chain scores
         for ref_ch in self.ref_chains:
             if ref_ch in flat_map and flat_map[ref_ch] is not None:
-                conserved += self.SingleChainCounts(ref_ch, flat_map[ref_ch])
+                conserved += self.SCCounts(ref_ch, flat_map[ref_ch])
 
         # do interfaces
         for ref_ch1, ref_ch2 in self.ref_interfaces:
@@ -987,12 +990,12 @@ class _lDDTDecomposer:
                 mdl_ch1 = flat_map[ref_ch1]
                 mdl_ch2 = flat_map[ref_ch2]
                 if mdl_ch1 is not None and mdl_ch2 is not None:
-                    conserved += self.InterfaceCounts(ref_ch1, ref_ch2, mdl_ch1,
-                                                      mdl_ch2)
+                    conserved += self.IntCounts(ref_ch1, ref_ch2, mdl_ch1,
+                                                mdl_ch2)
 
         return conserved / (len(self.thresholds) * self.n)
 
-    def SingleChainCounts(self, ref_ch, mdl_ch):
+    def SCCounts(self, ref_ch, mdl_ch):
         if not (ref_ch, mdl_ch) in self.single_chain_cache:
             alns = dict()
             alns[mdl_ch] = self.ref_mdl_alns[(ref_ch, mdl_ch)]
@@ -1007,7 +1010,7 @@ class _lDDTDecomposer:
             self.single_chain_cache[(ref_ch, mdl_ch)] = conserved
         return self.single_chain_cache[(ref_ch, mdl_ch)]
 
-    def InterfaceCounts(self, ref_ch1, ref_ch2, mdl_ch1, mdl_ch2):
+    def IntCounts(self, ref_ch1, ref_ch2, mdl_ch1, mdl_ch2):
         k1 = ((ref_ch1, ref_ch2),(mdl_ch1, mdl_ch2))
         k2 = ((ref_ch2, ref_ch1),(mdl_ch2, mdl_ch1))
         if k1 not in self.interface_cache and k2 not in self.interface_cache:
@@ -1109,15 +1112,14 @@ class _GreedySearcher(_lDDTDecomposer):
                 chem_group_idx = self.ref_ch_group_mapper[ref_ch]
                 for mdl_ch in free_mdl_chains[chem_group_idx]:
                     # single chain score
-                    n_single = self.SingleChainCounts(ref_ch, mdl_ch)
+                    n_single = self.SCCounts(ref_ch, mdl_ch)
                     # scores towards neighbors that are already mapped
                     n_inter = 0
                     for neighbor in self.neighbors[ref_ch]:
                         if neighbor in mapping and mdl_ch in \
                         self.mdl_neighbors[mapping[neighbor]]:
-                            n_inter += self.InterfaceCounts(ref_ch, neighbor,
-                                                            mdl_ch,
-                                                            mapping[neighbor])
+                            n_inter += self.IntCounts(ref_ch, neighbor, mdl_ch,
+                                                      mapping[neighbor])
                     n = n_single + n_inter
                     if n_inter > 0 and n > max_n:
                         # Only accept a new solution if its actually connected
