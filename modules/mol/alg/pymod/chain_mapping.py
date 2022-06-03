@@ -1077,9 +1077,10 @@ class _GreedySearcher(_lDDTDecomposer):
         d = self.inclusion_radius + max(self.thresholds)
         for ch in self.mdl.chains:
             ch_name = ch.GetName()
+            self.mdl_neighbors[ch_name] = set()
             query = f"{d} <> [cname={ch_name}] and cname !={ch_name}"
-            for close_ch in self.ref.Select(query).chains:
-                self.mdl_neighbors[ch_name] = close_ch.GetName()
+            for close_ch in self.mdl.Select(query).chains:
+                self.mdl_neighbors[ch_name].add(close_ch.GetName())
 
 
     def ExtendMapping(self, mapping):
@@ -1136,11 +1137,12 @@ class _GreedySearcher(_lDDTDecomposer):
                     # scores towards neighbors that are already mapped
                     n_inter = 0
                     for neighbor in self.neighbors[ref_ch]:
-                        if neighbor in mapping and mdl_ch in \
-                        self.mdl_neighbors[mapping[neighbor]]:
+                        if neighbor in mapping and mapping[neighbor] in \
+                        self.mdl_neighbors[mdl_ch]:
                             n_inter += self.IntCounts(ref_ch, neighbor, mdl_ch,
                                                       mapping[neighbor])
                     n = n_single + n_inter
+
                     if n_inter > 0 and n > max_n:
                         # Only accept a new solution if its actually connected
                         # i.e. n_inter > 0. Otherwise we could just map a big
