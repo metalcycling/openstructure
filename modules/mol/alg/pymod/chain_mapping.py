@@ -258,8 +258,9 @@ class ChainMapper:
 
     def GetGreedylDDTMapping(self, model, inclusion_radius=15.0,
                              thresholds=[0.5, 1.0, 2.0, 4.0],
-                             seed_strategy="fast", steep_opt_rate=None,
-                             full_n_mdl_chains = None):
+                             seed_strategy="fast", steep_opt_rate = None,
+                             full_n_mdl_chains = None, block_seed_size = None,
+                             block_n_mdl_chains = None):
         """Heuristic to lower the complexity of naive iteration
 
         Maps *model* chain sequences to :attr:`~chem_groups` and extends these
@@ -279,7 +280,13 @@ class ChainMapper:
         * full: try multiple seeds, i.e. try all ref/mdl chain combinations
           within the respective chem groups and retain the mapping leading to
           the best lDDT. Optionally, you can reduce the number of mdl chains
-          per ref chain to the *full_n_mdl_chains* best scoring ones. 
+          per ref chain to the *full_n_mdl_chains* best scoring ones.
+
+        * block: try multiple seeds, i.e. try all ref/mdl chain combinations
+          within the respective chem groups but only extend these seeds by
+          *block_seed_size* chains. The highest scoring block for every ref
+          chain is extended exhaustively to identify the best scoring initial
+          block.
 
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
@@ -299,15 +306,23 @@ class ChainMapper:
         :type stepp_opt_rate: :class:`int`
         :param full_n_mdl_chains: Param for *full* seed strategy - Max number of
                                   mdl chains that are tried per ref chain. The
-                                  default (-1) tries all of them.
+                                  default (None) tries all of them.
         :type full_n_mdl_chains: :class:`int`
+        :param block_seed_size: Param for *block* seed strategy - Initial seeds
+                                are extended by that number of chains. The
+                                default (None) performs full extensions and you
+                                get equivalent behaviour as in *full* strategy.
+        :type block_seed_size: :class:`int`
+        :param block_n_mdl_chains: Equivalent of *full_n_mdl_chains* but for
+                                   *block* seed strategy.
+        :type block_n_mdl_chains: :class:`int`
         :returns: A :class:`list` of :class:`list` that reflects
                   :attr:`~chem_groups` but is filled with the respective model
                   chains. Target chains without mapped model chains are set to
                   None.
         """
 
-        seed_strategies = ["fast", "full"]
+        seed_strategies = ["fast", "full", "block"]
         if seed_strategy not in seed_strategies:
             raise RuntimeError(f"Seed strategy must be in {seed_strategies}")
 
@@ -338,9 +353,10 @@ class ChainMapper:
 
         if seed_strategy == "fast":
             return _FastGreedy(the_greed)
-
         elif seed_strategy == "full":
-            return _FullGreedy(the_greed, n_mdl_chains = full_n_mdl_chains)
+            return _FullGreedy(the_greed, full_n_mdl_chains)
+        elif seed_strategy == "block":
+            return _BlockGreedy(the_greed, block_seed_size, block_n_mdl_chains)
 
 
 def _FastGreedy(the_greed):
@@ -456,6 +472,94 @@ def _FullGreedy(the_greed, n_mdl_chains):
 
     return final_mapping
 
+
+def _BlockGreedy(the_greed, seed_size, n_mdl_chains):
+    """ Uses each reference chain as starting point for expansion
+
+    Tries to map all mdl chains (optionally up to *n_mdl_chains* best ones)
+    to these references but initially does not perform full expansion but only
+    up to *seed_size*. The best scoring block for each reference is then used
+    for full expansion.
+    """
+
+    if seed_size is not None and seed_size < 1:
+        raise RuntimeError("seed_size must be None or >= 1")
+
+    if n_mdl_chains is not None and n_mdl_chains < 1:
+        raise RuntimeError("n_mdl_chains must be None or >= 1")
+
+    # one block per ref chain, i.e. a mapping that is extended by seed_size
+    starting_blocks = dict()
+    for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
+                                      the_greed.mdl_chem_groups):
+        for ref_ch in ref_chains:
+            best_lddt = 0.0
+            best_mapping = None
+            seeds = [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
+            if n_mdl_chains is not None and n_mdl_chains < len(seeds):
+                counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
+                tmp = [(a,b) for a,b in zip(counts, seeds)]
+                tmp.sort(reverse=True)
+                seeds = [item[1] for item in tmp[:n_mdl_chains]]
+            for s in seeds:
+                seed = {s[0]: s[1]}
+                seed = the_greed.ExtendMapping(seed, max_ext = seed_size)
+                seed_lddt = the_greed.lDDTFromFlatMap(seed)
+                if seed_lddt > best_lddt:
+                    best_lddt = seed_lddt
+                    best_mapping = seed
+            starting_blocks[ref_ch] = best_mapping
+
+    # estimate how many chains should get mapped
+    n_mappings = 0
+    for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
+                                      the_greed.mdl_chem_groups):
+        n_mappings += min(len(ref_chains), len(mdl_chains))
+
+    mapping = dict()
+
+    while len(mapping) < n_mappings:
+        best_lddt = 0.0
+        best_mapping = None
+
+        for ref_ch, seed in starting_blocks.items():
+            seed = the_greed.ExtendMapping(seed)
+            seed_lddt = the_greed.lDDTFromFlatMap(seed)
+            if seed_lddt > best_lddt:
+                best_lddt = seed_lddt
+                best_mapping = seed
+
+        if best_lddt == 0.0:
+            break # no proper mapping found anymore
+
+        mapping.update(best_mapping)
+        for ref_ch in mapping.keys():
+            if ref_ch in starting_blocks:
+                del starting_blocks[ref_ch]
+
+        # sanity check...
+        starting_blocks_mapped_ref_chains = set()
+        starting_blocks_mapped_mdl_chains = set()
+        for block_seed in starting_blocks.values():
+            for k,v in block_seed.items():
+                starting_block_mapped_ref_chains.add(k)
+                starting_block_mapped_mdl_chains.add(v)
+        for ref_ch, mdl_ch in mapping.items():
+            assert(ref_ch not in starting_blocks_mapped_ref_chains)
+            assert(mdl_ch not in starting_blocks_mapped_mdl_chains)
+
+    # translate mapping format and return
+    final_mapping = list()
+    for ref_chains in the_greed.ref_chem_groups:
+        mapped_mdl_chains = list()
+        for ref_ch in ref_chains:
+            if ref_ch in mapping:
+                mapped_mdl_chains.append(mapping[ref_ch])
+            else:
+                mapped_mdl_chains.append(None)
+        final_mapping.append(mapped_mdl_chains)
+
+    return final_mapping
 
 def _StructureSelection(ent):
     """Selects structure to only contain peptide and nucleotide residues
@@ -1083,7 +1187,7 @@ class _GreedySearcher(_lDDTDecomposer):
                 self.mdl_neighbors[ch_name].add(close_ch.GetName())
 
 
-    def ExtendMapping(self, mapping):
+    def ExtendMapping(self, mapping, max_ext = None):
 
         if len(mapping) == 0:
             raise RuntimError("Mapping must contain a starting point")
@@ -1126,6 +1230,9 @@ class _GreedySearcher(_lDDTDecomposer):
                 n_chains = len(newly_mapped_ref_chains)
                 if n_chains > 0 and n_chains % self.steep_opt_rate == 0:
                     mapping = self._SteepOpt(mapping, newly_mapped_ref_chains)
+
+            if max_ext is not None and len(newly_mapped_ref_chains) >= max_ext:
+                break
 
             max_n = 0
             max_mapping = None
