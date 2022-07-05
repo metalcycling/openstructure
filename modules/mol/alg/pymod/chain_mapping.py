@@ -158,14 +158,9 @@ class ChainMapper:
         chem_mapping, chem_group_alns = self.GetChemMapping(mdl)
 
         # check for the simplest case
-        only_one_to_one = True
-        for ref_chains, mdl_chains in zip(self.chem_groups, chem_mapping):
-            if len(ref_chains) != 1 or len(mdl_chains) not in [0, 1]:
-                only_one_to_one = False
-                break
-        if only_one_to_one:
-            # skip ref chem groups with no mapped mdl chain
-            return [(a,b) for a,b in zip(self.chem_groups, chem_mapping) if len(b) == 1]
+        one_to_one = _CheckOneToOneMapping(self.chem_groups, chem_mapping)
+        if one_to_one is not None:
+            return one_to_one
 
         # all possible ref/mdl alns given chem mapping
         ref_mdl_alns =  _GetRefMdlAlns(self.chem_groups,
@@ -179,7 +174,6 @@ class ChainMapper:
         best_lddt = -1.0
 
         for mapping in _ChainMappings(self.chem_groups, chem_mapping):
-
             # chain_mapping and alns as input for lDDT computation
             lddt_chain_mapping = dict()
             lddt_alns = dict()
@@ -225,14 +219,9 @@ class ChainMapper:
         chem_mapping, chem_group_alns = self.GetChemMapping(mdl)
 
         # check for the simplest case
-        only_one_to_one = True
-        for ref_chains, mdl_chains in zip(self.chem_groups, chem_mapping):
-            if len(ref_chains) != 1 or len(mdl_chains) not in [0, 1]:
-                only_one_to_one = False
-                break
-        if only_one_to_one:
-            # skip ref chem groups with no mapped mdl chain
-            return [(a,b) for a,b in zip(self.chem_groups, chem_mapping) if len(b) == 1]
+        one_to_one = _CheckOneToOneMapping(self.chem_groups, chem_mapping)
+        if one_to_one is not None:
+            return one_to_one
 
         ref_mdl_alns =  _GetRefMdlAlns(self.chem_groups,
                                        self.chem_group_alignments,
@@ -560,6 +549,38 @@ def _BlockGreedy(the_greed, seed_size, n_mdl_chains):
         final_mapping.append(mapped_mdl_chains)
 
     return final_mapping
+
+def _CheckOneToOneMapping(ref_chains, mdl_chains):
+    """ Checks whether we already have a perfect one to one mapping
+
+    That means each list in *ref_chains* has exactly one element and each
+    list in *mdl_chains* has either one element (it's mapped) or is empty
+    (ref chain has no mapped mdl chain). Returns None if no such mapping
+    can be found.
+
+    :param ref_chains: corresponds to :attr:`ChainMapper.chem_groups`
+    :type ref_chains: :class:`list` of :class:`list` of :class:`str`
+    :param mdl_chains: mdl chains mapped to chem groups in *ref_chains*, i.e.
+                       the return value of :func:`ChainMapper.GetChemMapping`
+    :type mdl_chains: class:`list` of :class:`list` of :class:`str`
+    :returns: A :class:`list` of :class:`list` if a one to one mapping is found,
+              None otherwise
+    """
+    only_one_to_one = True
+    one_to_one = list()
+    for ref, mdl in zip(ref_chains, mdl_chains):
+        if len(ref) == 1 and len(mdl) == 1:
+            one_to_one.append(mdl[0])
+        elif len(ref) == 1 and len(mdl) == 0:
+            one_to_one.append(None)
+        else:
+            only_one_to_one = False
+            break
+    if only_one_to_one:
+        return one_to_one
+    else:
+        return None
+
 
 def _StructureSelection(ent):
     """Selects structure to only contain peptide and nucleotide residues
