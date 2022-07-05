@@ -347,6 +347,17 @@ class ChainMapper:
         elif seed_strategy == "block":
             return _BlockGreedy(the_greed, block_seed_size, block_n_mdl_chains)
 
+    def GetNMappings(self, model):
+        """ Returns number of possible mappings
+
+        :param model: Model with chains that are mapped onto
+                      :attr:`ChainMapper.chem_groups`
+        :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
+        """
+        mdl = _StructureSelection(model)
+        chem_mapping, chem_group_alns = self.GetChemMapping(mdl)
+        return _NMappings(self.chem_groups, chem_mapping)
+
 
 def _FastGreedy(the_greed):
 
