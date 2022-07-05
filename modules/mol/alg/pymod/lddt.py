@@ -671,7 +671,7 @@ class lDDTScorer:
             if len(target_seq.GetGaplessString()) != len(target_rnums):
                 raise RuntimeError(f"Try to perform residue mapping for "
                                    f"model chain {model_ch_name} which "
-                                   f"maps to {target_ch_name} in target."
+                                   f"maps to {target_ch_name} in target. "
                                    f"Target sequence in alignment suggests "
                                    f"{len(target_seq.GetGaplessString())} "
                                    f"residues but {len(target_rnums)} are "
@@ -679,7 +679,7 @@ class lDDTScorer:
             if len(model_seq.GetGaplessString()) != len(ch.residues):
                 raise RuntimeError(f"Try to perform residue mapping for "
                                    f"model chain {model_ch_name} which "
-                                   f"maps to {target_ch_name} in target."
+                                   f"maps to {target_ch_name} in target. "
                                    f"Model sequence in alignment suggests "
                                    f"{len(model_seq.GetGaplessString())} "
                                    f"residues but {len(ch.residues)} are "
