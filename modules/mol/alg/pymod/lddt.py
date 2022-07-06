@@ -597,11 +597,12 @@ class lDDTScorer:
             residues = model.residues
             exp_prop = local_contact_prop + "_exp"
             conserved_prop = local_contact_prop + "_cons"
-            for idx in res_indices:
-                residues[idx].SetIntProp(exp_prop,
-                                         n_thresh * int(per_res_exp[idx]))
-                residues[idx].SetIntProp(conserved_prop,
-                                         int(np.sum(per_res_conserved[idx,:])))
+
+            for i, r_idx in enumerate(res_indices):
+                residues[r_idx].SetIntProp(exp_prop,
+                                           n_thresh * int(per_res_exp[i]))
+                residues[r_idx].SetIntProp(conserved_prop,
+                                           int(np.sum(per_res_conserved[i,:])))
 
         if return_dist_test:
             return lDDT, per_res_lDDT, lDDT_tot, lDDT_cons, res_indices, \
