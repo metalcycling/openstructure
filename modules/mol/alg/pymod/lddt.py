@@ -487,6 +487,7 @@ class lDDTScorer:
         for ch in model.chains:
             model_ch_name = ch.GetName()
             if model_ch_name not in chain_mapping:
+                current_model_res_idx += len(ch.residues)
                 continue # additional model chain which is not mapped
             target_ch_name = chain_mapping[model_ch_name]
 
