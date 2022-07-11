@@ -492,6 +492,8 @@ def _BlockGreedy(the_greed, seed_size, n_mdl_chains):
     starting_blocks = dict()
     for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
                                       the_greed.mdl_chem_groups):
+        if len(mdl_chains) == 0:
+            continue # nothing to map
         for ref_ch in ref_chains:
             best_lddt = 0.0
             best_mapping = None
