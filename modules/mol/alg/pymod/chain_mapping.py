@@ -1188,12 +1188,8 @@ class _GreedySearcher(_lDDTDecomposer):
                          inclusion_radius = inclusion_radius,
                          thresholds = thresholds)
         self.steep_opt_rate = steep_opt_rate
-        self.neighbors = dict()
+        self.neighbors = {k: set() for k in self.ref_chains}
         for k in self.interface_scorer.keys():
-            if k[0] not in self.neighbors:
-                self.neighbors[k[0]] = set()
-            if k[1] not in self.neighbors:
-                self.neighbors[k[1]] = set()
             self.neighbors[k[0]].add(k[1])
             self.neighbors[k[1]].add(k[0])
 
