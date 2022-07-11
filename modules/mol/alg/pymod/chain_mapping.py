@@ -1,4 +1,5 @@
 import itertools
+import copy
 
 import numpy as np
 
@@ -488,42 +489,40 @@ def _BlockGreedy(the_greed, seed_size, n_mdl_chains):
     if n_mdl_chains is not None and n_mdl_chains < 1:
         raise RuntimeError("n_mdl_chains must be None or >= 1")
 
-    # one block per ref chain, i.e. a mapping that is extended by seed_size
-    starting_blocks = dict()
-    for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
-                                      the_greed.mdl_chem_groups):
-        if len(mdl_chains) == 0:
-            continue # nothing to map
-        for ref_ch in ref_chains:
-            best_lddt = 0.0
-            best_mapping = None
-            seeds = [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
-            if n_mdl_chains is not None and n_mdl_chains < len(seeds):
-                counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
-                tmp = [(a,b) for a,b in zip(counts, seeds)]
-                tmp.sort(reverse=True)
-                seeds = [item[1] for item in tmp[:n_mdl_chains]]
-            for s in seeds:
-                seed = {s[0]: s[1]}
-                seed = the_greed.ExtendMapping(seed, max_ext = seed_size)
-                seed_lddt = the_greed.lDDTFromFlatMap(seed)
-                if seed_lddt > best_lddt:
-                    best_lddt = seed_lddt
-                    best_mapping = seed
-            starting_blocks[ref_ch] = best_mapping
-
-    # estimate how many chains should get mapped
-    n_mappings = 0
-    for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
-                                      the_greed.mdl_chem_groups):
-        n_mappings += min(len(ref_chains), len(mdl_chains))
+    ref_chem_groups = copy.deepcopy(the_greed.ref_chem_groups)
+    mdl_chem_groups = copy.deepcopy(the_greed.mdl_chem_groups)
 
     mapping = dict()
 
-    while len(mapping) < n_mappings:
+    something_happened = True
+    while something_happened:
+        something_happened = False
+
+        # one block per ref chain, i.e. a mapping that is extended by seed_size
+        starting_blocks = dict()
+        for ref_chains, mdl_chains in zip(ref_chem_groups, mdl_chem_groups):
+            if len(mdl_chains) == 0:
+                continue # nothing to map
+            for ref_ch in ref_chains:
+                best_lddt = 0.0
+                best_mapping = None
+                seeds = [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
+                if n_mdl_chains is not None and n_mdl_chains < len(seeds):
+                    counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
+                    tmp = [(a,b) for a,b in zip(counts, seeds)]
+                    tmp.sort(reverse=True)
+                    seeds = [item[1] for item in tmp[:n_mdl_chains]]
+                for s in seeds:
+                    seed = {s[0]: s[1]}
+                    seed = the_greed.ExtendMapping(seed, max_ext = seed_size)
+                    seed_lddt = the_greed.lDDTFromFlatMap(seed)
+                    if seed_lddt > best_lddt:
+                        best_lddt = seed_lddt
+                        best_mapping = seed
+                starting_blocks[ref_ch] = best_mapping
+
         best_lddt = 0.0
         best_mapping = None
-
         for ref_ch, seed in starting_blocks.items():
             seed = the_greed.ExtendMapping(seed)
             seed_lddt = the_greed.lDDTFromFlatMap(seed)
@@ -534,21 +533,14 @@ def _BlockGreedy(the_greed, seed_size, n_mdl_chains):
         if best_lddt == 0.0:
             break # no proper mapping found anymore
 
+        something_happened = True
         mapping.update(best_mapping)
-        for ref_ch in mapping.keys():
-            if ref_ch in starting_blocks:
-                del starting_blocks[ref_ch]
-
-        # sanity check...
-        starting_blocks_mapped_ref_chains = set()
-        starting_blocks_mapped_mdl_chains = set()
-        for block_seed in starting_blocks.values():
-            for k,v in block_seed.items():
-                starting_block_mapped_ref_chains.add(k)
-                starting_block_mapped_mdl_chains.add(v)
-        for ref_ch, mdl_ch in mapping.items():
-            assert(ref_ch not in starting_blocks_mapped_ref_chains)
-            assert(mdl_ch not in starting_blocks_mapped_mdl_chains)
+        for ref_ch, mdl_ch in best_mapping.items():
+            for group_idx in range(len(ref_chem_groups)):
+                if ref_ch in ref_chem_groups[group_idx]:
+                    ref_chem_groups[group_idx].remove(ref_ch)
+                if mdl_ch in mdl_chem_groups[group_idx]:
+                    mdl_chem_groups[group_idx].remove(mdl_ch)
 
     # translate mapping format and return
     final_mapping = list()
