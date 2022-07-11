@@ -814,7 +814,7 @@ class lDDTScorer:
             # throw away compound_lib info
             if r.chem_class.IsPeptideLinking():
                 self.compound_anames[r.name] = ["CA"]
-            elif r.chem_type.IsNucleotideLinking():
+            elif r.chem_class.IsNucleotideLinking():
                 self.compound_anames[r.name] = ["C3'"]
             else:
                 raise RuntimeError(f"Only support amino acids and nucleotides "
