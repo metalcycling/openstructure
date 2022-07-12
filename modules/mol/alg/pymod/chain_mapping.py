@@ -513,8 +513,10 @@ def _BlockGreedy(the_greed, seed_size, n_mdl_chains):
                     tmp.sort(reverse=True)
                     seeds = [item[1] for item in tmp[:n_mdl_chains]]
                 for s in seeds:
-                    seed = {s[0]: s[1]}
-                    seed = the_greed.ExtendMapping(seed, max_ext = seed_size)
+                    seed = dict(mapping)
+                    seed.update({s[0]: s[1]})
+                    # max_ext = seed_size-1 => start seed already has size 1
+                    seed = the_greed.ExtendMapping(seed, max_ext = seed_size-1)
                     seed_lddt = the_greed.lDDTFromFlatMap(seed)
                     if seed_lddt > best_lddt:
                         best_lddt = seed_lddt
