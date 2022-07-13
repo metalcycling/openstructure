@@ -80,7 +80,7 @@ class ChainMapper:
 
         Specifying if groups are poly-peptides/nucleotides, i.e. 
         :class:`ost.mol.ChemType.AMINOACIDS` or
-        :class:`ost.mol.ChemType.AMINOACIDS` 
+        :class:`ost.mol.ChemType.NUCLEOTIDES`
         
         :getter: Computed on first use (cached)
         :type: :class:`list` of :class:`ost.mol.ChemType`
