@@ -9,6 +9,7 @@ from scipy.special import binom # as of Python 3.8, the math module implements
 
 from ost import seq
 from ost import mol
+from ost import geom
 
 from ost.mol.alg import lddt
 
@@ -203,7 +204,9 @@ class ChainMapper:
         """Naively iterates all possible chain mappings and returns the best
 
         Maps *model* chain sequences to :attr:`~chem_groups` and performs all
-        possible permutations. The best mapping is selected based on lDDT score.
+        possible permutations. The best mapping is selected based on lDDT score
+        which is computed only on backbone atoms (CA for amino acids C3' for
+        Nucleotides).
 
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
@@ -348,6 +351,122 @@ class ChainMapper:
         elif seed_strategy == "block":
             return _BlockGreedy(the_greed, block_seed_size, block_n_mdl_chains)
 
+
+    def GetRigidMapping(self, model, single_chain_gdtts_thresh=0.5,
+                        subsampling=None):
+        """Identify chain mapping based on rigid superposition
+
+        Superposition and scoring is based on CA/C3' positions which are present
+        in all chains of a :attr:`ChainMapper.chem_group` as well as the *model*
+        chains which are mapped to that respective chem group.
+
+        Transformations to superpose *model* onto :attr:`ChainMapper.target`
+        are estimated using all possible combinations of target and model chains
+        within the same chem groups. For each transformation, the mapping is
+        extended by iteratively adding the model/target chain pair that adds
+        the most conserved contacts based on the GDT-TS metric (Number of
+        CA/C3' atoms within [8, 4, 2, 1] Angstrom). The mapping with highest
+        GDT-TS score is returned. However, that mapping is not guaranteed to be
+        complete (see *single_chain_gdtts_thresh*).
+
+        :param model: Model to map
+        :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
+        :param single_chain_gdtts_thresh: Minimal GDT-TS score for model/target
+                                          chain pair to be added to mapping.
+                                          Mapping extension for a given
+                                          transform stops when no pair fulfills
+                                          this threshold, potentially leading to
+                                          an incomplete mapping.
+        :type single_chain_gdtts_thresh: :class:`float`
+        :param subsampling: If given, only use an equally distributed subset
+                            of all CA/C3' positions for superposition/scoring.
+        :type subsampling: :class:`int`
+        :returns: A :class:`list` of :class:`list` that reflects
+                  :attr:`~chem_groups` but is filled with the respective model
+                  chains. Target chains without mapped model chains are set to
+                  None.
+        """
+
+        mdl = _StructureSelection(model)
+        chem_mapping, chem_group_alns = self.GetChemMapping(mdl)
+
+        trg_group_pos, mdl_group_pos = _GetRefPos(self.target, mdl,
+                                                  self.chem_group_alignments,
+                                                  chem_group_alns,
+                                                  max_pos = subsampling)
+
+        # get transforms of any mdl chain onto any trg chain in same chem group
+        transforms = list()
+        tot_n_contacts = 0
+        for trg_pos, mdl_pos in zip(trg_group_pos, mdl_group_pos):
+            for t in trg_pos:
+                for m in mdl_pos:
+                    if len(t) >= 3 and len(m) >= 3:
+                        assert(len(t) == len(m))
+                        res = mol.alg.SuperposeSVD(m, t)
+                        transforms.append(res.transformation)
+                        tot_n_contacts += len(trg_pos)
+
+        best_mapping = None
+        best_gdt = 0
+        for transform in transforms:
+            mapping = dict()
+            gdt_cache = dict() # to cache non-normalized gdt scores
+            for trg_pos, trg_chains, mdl_pos, mdl_chains in zip(trg_group_pos,
+                                                                self.chem_groups,
+                                                                mdl_group_pos,
+                                                                chem_mapping):
+                if len(trg_pos) == 0 or len(trg_pos[0]) == 0:
+                    continue # cannot compute valid gdt
+
+                n_contacts = 4 * len(trg_pos[0]) # for gdt normalization
+                mapped_mdl_chains = set()
+                while True:
+                    best_sc_mapping = None
+                    best_sc_gdt = 0.0
+                    for m_pos, m in zip(mdl_pos, mdl_chains):
+                        if m not in mapped_mdl_chains:
+                            for t_pos, t in zip(trg_pos, trg_chains):
+                                if t not in mapping:
+                                    if (t,m) in gdt_cache:
+                                        gdt = gdt_cache[(t,m)]
+                                    else:
+                                        t_m_pos = geom.Vec3List(m_pos)
+                                        t_m_pos.ApplyTransform(transform)
+                                        gdt = t_pos.GetGDTTS(t_m_pos, norm=False)
+                                        gdt_cache[(t,m)] = gdt
+                                    if gdt > best_sc_gdt:
+                                        best_sc_gdt = gdt
+                                        best_sc_mapping = (t, m)
+                    if best_sc_gdt/n_contacts > single_chain_gdtts_thresh:
+                        mapping[best_sc_mapping[0]] = best_sc_mapping[1]
+                        mapped_mdl_chains.add(best_sc_mapping[1])
+                    else:
+                        break
+
+            # compute overall gdt for this transform
+            gdt = 0
+            for t,m in mapping.items():
+                gdt += gdt_cache[(t,m)]
+
+            if gdt > best_gdt:
+                best_gdt = gdt
+                best_mapping = mapping
+
+        # translate mapping format and return
+        final_mapping = list()
+        for ref_chains in self.chem_groups:
+            mapped_mdl_chains = list()
+            for ref_ch in ref_chains:
+                if ref_ch in mapping:
+                    mapped_mdl_chains.append(best_mapping[ref_ch])
+                else:
+                    mapped_mdl_chains.append(None)
+            final_mapping.append(mapped_mdl_chains)
+
+        return final_mapping
+
+
     def GetNMappings(self, model):
         """ Returns number of possible mappings
 
@@ -362,15 +481,11 @@ class ChainMapper:
 
 def _FastGreedy(the_greed):
 
-    # estimate how many chains should get mapped
-    n_mappings = 0
-    for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
-                                      the_greed.mdl_chem_groups):
-        n_mappings += min(len(ref_chains), len(mdl_chains))
-
+    something_happened = True
     mapping = dict()
 
-    while len(mapping) < n_mappings:
+    while something_happened:
+        something_happened = False
         # search for best scoring starting point
         n_best = 0
         best_seed = None
@@ -391,6 +506,7 @@ def _FastGreedy(the_greed):
         # add seed to mapping and start the greed
         mapping[best_seed[0]] = best_seed[1]
         mapping = the_greed.ExtendMapping(mapping)
+        something_happened = True
 
 
     # translate mapping format and return
@@ -417,15 +533,11 @@ def _FullGreedy(the_greed, n_mdl_chains):
     if n_mdl_chains is not None and n_mdl_chains < 1:
         raise RuntimeError("n_mdl_chains must be None or >= 1")
 
-    # estimate how many chains should get mapped
-    n_mappings = 0
-    for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
-                                      the_greed.mdl_chem_groups):
-        n_mappings += min(len(ref_chains), len(mdl_chains))
-
+    something_happened = True
     mapping = dict()
 
-    while len(mapping) < n_mappings:
+    while something_happened:
+        something_happened = False
         # Try all possible starting points and keep the one giving the best lDDT
         best_lddt = 0.0
         best_mapping = None
@@ -435,7 +547,6 @@ def _FullGreedy(the_greed, n_mdl_chains):
                                           the_greed.mdl_chem_groups):
             for ref_ch in ref_chains:
                 if ref_ch not in mapped_ref_chains:
-
                     seeds = list()
                     for mdl_ch in mdl_chains:
                         if mdl_ch not in mapped_mdl_chains:
@@ -445,7 +556,6 @@ def _FullGreedy(the_greed, n_mdl_chains):
                         tmp = [(a,b) for a,b in zip(counts, seeds)]
                         tmp.sort(reverse=True)
                         seeds = [item[1] for item in tmp[:n_mdl_chains]]
-
                     for seed in seeds:
                         tmp_mapping = dict(mapping)
                         tmp_mapping[seed[0]] = seed[1]
@@ -458,6 +568,7 @@ def _FullGreedy(the_greed, n_mdl_chains):
         if best_lddt == 0.0:
             break # no proper mapping found anymore...
 
+        something_happened = True
         mapping = best_mapping
 
     # translate mapping format and return
@@ -557,6 +668,118 @@ def _BlockGreedy(the_greed, seed_size, n_mdl_chains):
 
     return final_mapping
 
+
+def _GetRefPos(trg, mdl, trg_msas, mdl_alns, max_pos = None):
+    """ Extracts reference positions which are present in trg and mdl
+    """
+
+    # select only backbone atoms, makes processing simpler later on
+    # (just select res.atoms[0].GetPos() as ref pos)
+    bb_trg = trg.Select("aname=\"CA\",\"C3'\"")
+    bb_mdl = mdl.Select("aname=\"CA\",\"C3'\"")
+
+    # mdl_alns are pairwise, let's construct MSAs
+    mdl_msas = list()
+    for aln_list in mdl_alns:
+        if len(aln_list) > 0:
+            tmp = aln_list[0].GetSequence(0)
+            ref_seq = seq.CreateSequence(tmp.GetName(), tmp.GetGaplessString())
+            mdl_msas.append(seq.alg.MergePairwiseAlignments(aln_list, ref_seq))
+        else:
+            mdl_msas.append(seq.CreateAlignment())
+
+    trg_pos = list()
+    mdl_pos = list()
+
+    for trg_msa, mdl_msa in zip(trg_msas, mdl_msas):
+
+        # make sure they have the same ref sequence (should be a given...)
+        assert(trg_msa.GetSequence(0).GetGaplessString() == \
+               mdl_msa.GetSequence(0).GetGaplessString())
+
+        # check which columns in MSAs are fully covered (indices relative to
+        # first sequence)
+        trg_indices = _GetFullyCoveredIndices(trg_msa)
+        mdl_indices = _GetFullyCoveredIndices(mdl_msa)
+
+        # get indices where both, mdl and trg, are fully covered
+        indices = sorted(list(trg_indices.intersection(mdl_indices)))
+
+        # subsample if necessary
+        if max_pos is not None and len(indices) > max_pos:
+            step = int(len(indices)/max_pos)
+            indices = [indices[i] for i in range(0, len(indices), step)]
+
+        # translate to column indices in the respective MSAs
+        trg_indices = _RefIndicesToColumnIndices(trg_msa, indices)
+        mdl_indices = _RefIndicesToColumnIndices(mdl_msa, indices)
+
+        # extract positions
+        trg_pos.append(list())
+        mdl_pos.append(list())
+        for s_idx in range(trg_msa.GetCount()):
+            trg_pos[-1].append(_ExtractMSAPos(trg_msa, s_idx, trg_indices,
+                                              bb_trg))
+        # first seq in mdl_msa is ref sequence in trg and does not belong to mdl
+        for s_idx in range(1, mdl_msa.GetCount()):
+            mdl_pos[-1].append(_ExtractMSAPos(mdl_msa, s_idx, mdl_indices,
+                                              bb_mdl))
+
+    return (trg_pos, mdl_pos)
+
+def _GetFullyCoveredIndices(msa):
+    """ Helper for _GetRefPos
+
+    Returns a set containing the indices relative to first sequence in msa which
+    are fully covered in all other sequences
+
+    --AA-A-A
+    -BBBB-BB
+    CCCC-C-C
+
+    => (0,1,3)
+    """
+    indices = set()
+    ref_idx = 0
+    for col in msa:
+        if sum([1 for olc in col if olc != '-']) == col.GetRowCount():
+            indices.add(ref_idx)
+        if col[0] != '-':
+            ref_idx += 1
+    return indices
+
+def _RefIndicesToColumnIndices(msa, indices):
+    """ Helper for _GetRefPos
+
+    Returns a list of mapped indices. indices refer to non-gap one letter
+    codes in the first msa sequence. The returnes mapped indices are translated
+    to the according msa column indices
+    """
+    ref_idx = 0
+    mapping = dict()
+    for col_idx, col in enumerate(msa):
+        if col[0] != '-':
+            mapping[ref_idx] = col_idx
+            ref_idx += 1
+    return [mapping[i] for i in indices]
+
+def _ExtractMSAPos(msa, s_idx, indices, view):
+    """ Helper for _GetRefPos
+
+    Returns a geom.Vec3List containing positions refering to given msa sequence.
+    => Chain with corresponding name is mapped onto sequence and the position of
+    the first atom of each residue specified in indices is extracted.
+    Indices refers to column indices in msa!
+    """
+    s = msa.GetSequence(s_idx)
+    s_v = view.Select(f"cname={s.GetName()}")
+
+    # sanity check
+    assert(len(s.GetGaplessString()) == len(s_v.residues))
+
+    residue_idx = [s.GetResidueIndex(i) for i in indices]
+    return geom.Vec3List([s_v.residues[i].atoms[0].pos for i in residue_idx])
+
 def _CheckOneToOneMapping(ref_chains, mdl_chains):
     """ Checks whether we already have a perfect one to one mapping
 
@@ -587,7 +810,6 @@ def _CheckOneToOneMapping(ref_chains, mdl_chains):
         return one_to_one
     else:
         return None
-
 
 def _StructureSelection(ent):
     """Selects structure to only contain peptide and nucleotide residues
