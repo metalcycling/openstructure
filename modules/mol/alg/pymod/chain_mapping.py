@@ -408,7 +408,6 @@ class ChainMapper:
 
         # get transforms of any mdl chain onto any trg chain in same chem group
         transforms = list()
-        tot_n_contacts = 0
         for trg_pos, mdl_pos in zip(trg_group_pos, mdl_group_pos):
             for t in trg_pos:
                 for m in mdl_pos:
@@ -416,7 +415,6 @@ class ChainMapper:
                         assert(len(t) == len(m))
                         res = mol.alg.SuperposeSVD(m, t)
                         transforms.append(res.transformation)
-                        tot_n_contacts += len(trg_pos)
 
         best_mapping = None
         best_gdt = 0
