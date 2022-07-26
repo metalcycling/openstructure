@@ -365,7 +365,7 @@ class ChainMapper:
             return _BlockGreedy(the_greed, block_seed_size, block_n_mdl_chains)
 
 
-    def GetRigidMapping(self, model, single_chain_gdtts_thresh=0.5,
+    def GetRigidMapping(self, model, single_chain_gdtts_thresh=0.4,
                         subsampling=None, first_complete=False):
         """Identify chain mapping based on rigid superposition
 
@@ -505,375 +505,8 @@ class ChainMapper:
         return _NMappings(self.chem_groups, chem_mapping)
 
 
-def _FastGreedy(the_greed):
-
-    something_happened = True
-    mapping = dict()
-
-    while something_happened:
-        something_happened = False
-        # search for best scoring starting point
-        n_best = 0
-        best_seed = None
-        mapped_ref_chains = set(mapping.keys())
-        mapped_mdl_chains = set(mapping.values())
-        for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
-                                          the_greed.mdl_chem_groups):
-            for ref_ch in ref_chains:
-                if ref_ch not in mapped_ref_chains:
-                    for mdl_ch in mdl_chains:
-                        if mdl_ch not in mapped_mdl_chains:
-                            n = the_greed.SCCounts(ref_ch, mdl_ch)
-                            if n > n_best:
-                                n_best = n
-                                best_seed = (ref_ch, mdl_ch)
-        if n_best == 0:
-            break # no proper seed found anymore...
-        # add seed to mapping and start the greed
-        mapping[best_seed[0]] = best_seed[1]
-        mapping = the_greed.ExtendMapping(mapping)
-        something_happened = True
-
-
-    # translate mapping format and return
-    final_mapping = list()
-    for ref_chains in the_greed.ref_chem_groups:
-        mapped_mdl_chains = list()
-        for ref_ch in ref_chains:
-            if ref_ch in mapping:
-                mapped_mdl_chains.append(mapping[ref_ch])
-            else:
-                mapped_mdl_chains.append(None)
-        final_mapping.append(mapped_mdl_chains)
-
-    return final_mapping
-
-
-def _FullGreedy(the_greed, n_mdl_chains):
-    """ Uses each reference chain as starting point for expansion
-
-    However, not all mdl chain are mapped onto these reference chains,
-    that's controlled by *n_mdl_chains*
-    """
-
-    if n_mdl_chains is not None and n_mdl_chains < 1:
-        raise RuntimeError("n_mdl_chains must be None or >= 1")
-
-    something_happened = True
-    mapping = dict()
-
-    while something_happened:
-        something_happened = False
-        # Try all possible starting points and keep the one giving the best lDDT
-        best_lddt = 0.0
-        best_mapping = None
-        mapped_ref_chains = set(mapping.keys())
-        mapped_mdl_chains = set(mapping.values())
-        for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
-                                          the_greed.mdl_chem_groups):
-            for ref_ch in ref_chains:
-                if ref_ch not in mapped_ref_chains:
-                    seeds = list()
-                    for mdl_ch in mdl_chains:
-                        if mdl_ch not in mapped_mdl_chains:
-                            seeds.append((ref_ch, mdl_ch))
-                    if n_mdl_chains is not None and n_mdl_chains < len(seeds):
-                        counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
-                        tmp = [(a,b) for a,b in zip(counts, seeds)]
-                        tmp.sort(reverse=True)
-                        seeds = [item[1] for item in tmp[:n_mdl_chains]]
-                    for seed in seeds:
-                        tmp_mapping = dict(mapping)
-                        tmp_mapping[seed[0]] = seed[1]
-                        tmp_mapping = the_greed.ExtendMapping(tmp_mapping)
-                        tmp_lddt = the_greed.lDDTFromFlatMap(tmp_mapping)
-                        if tmp_lddt > best_lddt:
-                            best_lddt = tmp_lddt
-                            best_mapping = tmp_mapping
-
-        if best_lddt == 0.0:
-            break # no proper mapping found anymore...
-
-        something_happened = True
-        mapping = best_mapping
-
-    # translate mapping format and return
-    final_mapping = list()
-    for ref_chains in the_greed.ref_chem_groups:
-        mapped_mdl_chains = list()
-        for ref_ch in ref_chains:
-            if ref_ch in mapping:
-                mapped_mdl_chains.append(mapping[ref_ch])
-            else:
-                mapped_mdl_chains.append(None)
-        final_mapping.append(mapped_mdl_chains)
-
-    return final_mapping
-
-
-def _BlockGreedy(the_greed, seed_size, n_mdl_chains):
-    """ Uses each reference chain as starting point for expansion
-
-    Tries to map all mdl chains (optionally up to *n_mdl_chains* best ones)
-    to these references but initially does not perform full expansion but only
-    up to *seed_size*. The best scoring block for each reference is then used
-    for full expansion.
-    """
-
-    if seed_size is not None and seed_size < 1:
-        raise RuntimeError("seed_size must be None or >= 1")
-
-    if n_mdl_chains is not None and n_mdl_chains < 1:
-        raise RuntimeError("n_mdl_chains must be None or >= 1")
-
-    ref_chem_groups = copy.deepcopy(the_greed.ref_chem_groups)
-    mdl_chem_groups = copy.deepcopy(the_greed.mdl_chem_groups)
-
-    mapping = dict()
-
-    something_happened = True
-    while something_happened:
-        something_happened = False
-
-        # one block per ref chain, i.e. a mapping that is extended by seed_size
-        starting_blocks = dict()
-        for ref_chains, mdl_chains in zip(ref_chem_groups, mdl_chem_groups):
-            if len(mdl_chains) == 0:
-                continue # nothing to map
-            for ref_ch in ref_chains:
-                best_lddt = 0.0
-                best_mapping = None
-                seeds = [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
-                if n_mdl_chains is not None and n_mdl_chains < len(seeds):
-                    counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
-                    tmp = [(a,b) for a,b in zip(counts, seeds)]
-                    tmp.sort(reverse=True)
-                    seeds = [item[1] for item in tmp[:n_mdl_chains]]
-                for s in seeds:
-                    seed = dict(mapping)
-                    seed.update({s[0]: s[1]})
-                    # max_ext = seed_size-1 => start seed already has size 1
-                    seed = the_greed.ExtendMapping(seed, max_ext = seed_size-1)
-                    seed_lddt = the_greed.lDDTFromFlatMap(seed)
-                    if seed_lddt > best_lddt:
-                        best_lddt = seed_lddt
-                        best_mapping = seed
-                starting_blocks[ref_ch] = best_mapping
-
-        best_lddt = 0.0
-        best_mapping = None
-        for ref_ch, seed in starting_blocks.items():
-            seed = the_greed.ExtendMapping(seed)
-            seed_lddt = the_greed.lDDTFromFlatMap(seed)
-            if seed_lddt > best_lddt:
-                best_lddt = seed_lddt
-                best_mapping = seed
-
-        if best_lddt == 0.0:
-            break # no proper mapping found anymore
-
-        something_happened = True
-        mapping.update(best_mapping)
-        for ref_ch, mdl_ch in best_mapping.items():
-            for group_idx in range(len(ref_chem_groups)):
-                if ref_ch in ref_chem_groups[group_idx]:
-                    ref_chem_groups[group_idx].remove(ref_ch)
-                if mdl_ch in mdl_chem_groups[group_idx]:
-                    mdl_chem_groups[group_idx].remove(mdl_ch)
-
-    # translate mapping format and return
-    final_mapping = list()
-    for ref_chains in the_greed.ref_chem_groups:
-        mapped_mdl_chains = list()
-        for ref_ch in ref_chains:
-            if ref_ch in mapping:
-                mapped_mdl_chains.append(mapping[ref_ch])
-            else:
-                mapped_mdl_chains.append(None)
-        final_mapping.append(mapped_mdl_chains)
-
-    return final_mapping
-
-
-def _GetRefPos(trg, mdl, trg_msas, mdl_alns, max_pos = None):
-    """ Extracts reference positions which are present in trg and mdl
-    """
-
-    # select only backbone atoms, makes processing simpler later on
-    # (just select res.atoms[0].GetPos() as ref pos)
-    bb_trg = trg.Select("aname=\"CA\",\"C3'\"")
-    bb_mdl = mdl.Select("aname=\"CA\",\"C3'\"")
-
-    # mdl_alns are pairwise, let's construct MSAs
-    mdl_msas = list()
-    for aln_list in mdl_alns:
-        if len(aln_list) > 0:
-            tmp = aln_list[0].GetSequence(0)
-            ref_seq = seq.CreateSequence(tmp.GetName(), tmp.GetGaplessString())
-            mdl_msas.append(seq.alg.MergePairwiseAlignments(aln_list, ref_seq))
-        else:
-            mdl_msas.append(seq.CreateAlignment())
-
-    trg_pos = list()
-    mdl_pos = list()
-
-    for trg_msa, mdl_msa in zip(trg_msas, mdl_msas):
-
-        # make sure they have the same ref sequence (should be a given...)
-        assert(trg_msa.GetSequence(0).GetGaplessString() == \
-               mdl_msa.GetSequence(0).GetGaplessString())
-
-        # check which columns in MSAs are fully covered (indices relative to
-        # first sequence)
-        trg_indices = _GetFullyCoveredIndices(trg_msa)
-        mdl_indices = _GetFullyCoveredIndices(mdl_msa)
-
-        # get indices where both, mdl and trg, are fully covered
-        indices = sorted(list(trg_indices.intersection(mdl_indices)))
-
-        # subsample if necessary
-        if max_pos is not None and len(indices) > max_pos:
-            step = int(len(indices)/max_pos)
-            indices = [indices[i] for i in range(0, len(indices), step)]
-
-        # translate to column indices in the respective MSAs
-        trg_indices = _RefIndicesToColumnIndices(trg_msa, indices)
-        mdl_indices = _RefIndicesToColumnIndices(mdl_msa, indices)
-
-        # extract positions
-        trg_pos.append(list())
-        mdl_pos.append(list())
-        for s_idx in range(trg_msa.GetCount()):
-            trg_pos[-1].append(_ExtractMSAPos(trg_msa, s_idx, trg_indices,
-                                              bb_trg))
-        # first seq in mdl_msa is ref sequence in trg and does not belong to mdl
-        for s_idx in range(1, mdl_msa.GetCount()):
-            mdl_pos[-1].append(_ExtractMSAPos(mdl_msa, s_idx, mdl_indices,
-                                              bb_mdl))
-
-    return (trg_pos, mdl_pos)
-
-def _GetFullyCoveredIndices(msa):
-    """ Helper for _GetRefPos
-
-    Returns a set containing the indices relative to first sequence in msa which
-    are fully covered in all other sequences
-
-    --AA-A-A
-    -BBBB-BB
-    CCCC-C-C
-
-    => (0,1,3)
-    """
-    indices = set()
-    ref_idx = 0
-    for col in msa:
-        if sum([1 for olc in col if olc != '-']) == col.GetRowCount():
-            indices.add(ref_idx)
-        if col[0] != '-':
-            ref_idx += 1
-    return indices
-
-def _RefIndicesToColumnIndices(msa, indices):
-    """ Helper for _GetRefPos
-
-    Returns a list of mapped indices. indices refer to non-gap one letter
-    codes in the first msa sequence. The returnes mapped indices are translated
-    to the according msa column indices
-    """
-    ref_idx = 0
-    mapping = dict()
-    for col_idx, col in enumerate(msa):
-        if col[0] != '-':
-            mapping[ref_idx] = col_idx
-            ref_idx += 1
-    return [mapping[i] for i in indices]
-
-def _ExtractMSAPos(msa, s_idx, indices, view):
-    """ Helper for _GetRefPos
-
-    Returns a geom.Vec3List containing positions refering to given msa sequence.
-    => Chain with corresponding name is mapped onto sequence and the position of
-    the first atom of each residue specified in indices is extracted.
-    Indices refers to column indices in msa!
-    """
-    s = msa.GetSequence(s_idx)
-    s_v = view.Select(f"cname={s.GetName()}")
-
-    # sanity check
-    assert(len(s.GetGaplessString()) == len(s_v.residues))
-
-    residue_idx = [s.GetResidueIndex(i) for i in indices]
-    return geom.Vec3List([s_v.residues[i].atoms[0].pos for i in residue_idx])
-
-def _CheckOneToOneMapping(ref_chains, mdl_chains):
-    """ Checks whether we already have a perfect one to one mapping
-
-    That means each list in *ref_chains* has exactly one element and each
-    list in *mdl_chains* has either one element (it's mapped) or is empty
-    (ref chain has no mapped mdl chain). Returns None if no such mapping
-    can be found.
-
-    :param ref_chains: corresponds to :attr:`ChainMapper.chem_groups`
-    :type ref_chains: :class:`list` of :class:`list` of :class:`str`
-    :param mdl_chains: mdl chains mapped to chem groups in *ref_chains*, i.e.
-                       the return value of :func:`ChainMapper.GetChemMapping`
-    :type mdl_chains: class:`list` of :class:`list` of :class:`str`
-    :returns: A :class:`list` of :class:`list` if a one to one mapping is found,
-              None otherwise
-    """
-    only_one_to_one = True
-    one_to_one = list()
-    for ref, mdl in zip(ref_chains, mdl_chains):
-        if len(ref) == 1 and len(mdl) == 1:
-            one_to_one.append(mdl[0])
-        elif len(ref) == 1 and len(mdl) == 0:
-            one_to_one.append(None)
-        else:
-            only_one_to_one = False
-            break
-    if only_one_to_one:
-        return one_to_one
-    else:
-        return None
-
-def _GetChemGroupAlignments(pep_seqs, nuc_seqs, aligner, seqid_thr=95.,
-                            gap_thr=0.1):
-    """Returns alignments with groups of chemically equivalent chains
-
-    :param pep_seqs: List of polypeptide sequences
-    :type pep_seqs: :class:`seq.SequenceList`
-    :param nuc_seqs: List of polynucleotide sequences
-    :type nuc_seqs: :class:`seq.SequenceList` 
-    :param seqid_thr: Threshold used to decide when two chains are identical.
-                      95 percent tolerates the few mutations crystallographers
-                      like to do.
-    :type seqid_thr:  :class:`float`
-    :param gap_thr: Additional threshold to avoid gappy alignments with high
-                    seqid. The reason for not just normalizing seqid by the
-                    longer sequence is that one sequence might be a perfect
-                    subsequence of the other but only cover half of it. This
-                    threshold checks for a maximum allowed fraction of gaps
-                    in any of the two sequences after stripping terminal gaps.
-    :type gap_thr: :class:`float`
-    :param aligner: Helper class to generate pairwise alignments
-    :type aligner: :class:`_Aligner`
-    :returns: Tuple with first element being an AlignmentList. Each alignment
-              represents a group of chemically equivalent chains and the first
-              sequence is the longest. Second element is a list of equivalent
-              length specifying the types of the groups. List elements are in
-              [:class:`ost.ChemType.AMINOACIDS`,
-              :class:`ost.ChemType.NUCLEOTIDES`] 
-    """
-    pep_groups = _GroupSequences(pep_seqs, seqid_thr, gap_thr, aligner,
-                                 mol.ChemType.AMINOACIDS)
-    nuc_groups = _GroupSequences(nuc_seqs, seqid_thr, gap_thr, aligner,
-                                 mol.ChemType.NUCLEOTIDES)
-    group_types = [mol.ChemType.AMINOACIDS] * len(pep_groups)
-    group_types += [mol.ChemType.NUCLEOTIDES] * len(nuc_groups)
-    groups = pep_groups
-    groups.extend(nuc_groups)
-    return (groups, group_types)
+# INTERNAL HELPERS
+##################
 
 def _ProcessStructure(ent):
     """ Entity processing for chain mapping
@@ -944,7 +577,9 @@ def _StructureSelection(ent):
     return view
 
 def _GetAtomSeqs(ent):
-    """Extracts and returns atomseqs for polypeptide/nucleotide chains in ent
+    """ Helper for _ProcessStructure
+
+    Extracts and returns atomseqs for polypeptide/nucleotide chains in ent
 
     :param ent: Entity for which you want to extract atomseqs
     :type ent: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
@@ -981,6 +616,147 @@ def _GetAtomSeqs(ent):
             raise RuntimeError("This shouldnt happen")
 
     return (polypep_seqs, polynuc_seqs)
+
+class _Aligner:
+    def __init__(self, pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
+                 pep_gap_ext = -2, nuc_subst_mat = seq.alg.NUC44,
+                 nuc_gap_open = -4, nuc_gap_ext = -4, resnum_aln = False):
+        """ Helper class to compute alignments
+
+        Sets default values for substitution matrix, gap open and gap extension
+        penalties. They are only used in default mode (Needleman-Wunsch aln).
+        If *resnum_aln* is True, only residue numbers of views that are attached
+        to input sequences are considered. 
+        """
+        self.pep_subst_mat = pep_subst_mat
+        self.pep_gap_open = pep_gap_open
+        self.pep_gap_ext = pep_gap_ext
+        self.nuc_subst_mat = nuc_subst_mat
+        self.nuc_gap_open = nuc_gap_open
+        self.nuc_gap_ext = nuc_gap_ext
+        self.resnum_aln = resnum_aln
+
+    def Align(self, s1, s2, chem_type=None):
+        if self.resnum_aln:
+            return self.ResNumAlign(s1, s2)
+        else:
+            if chem_type is None:
+                raise RuntimeError("Must specify chem_type for NW alignment")
+            return self.NWAlign(s1, s2, chem_type) 
+
+    def NWAlign(self, s1, s2, chem_type):
+        """ Returns pairwise alignment using Needleman-Wunsch algorithm
+    
+        :param s1: First sequence to align
+        :type s1: :class:`ost.seq.SequenceHandle`
+        :param s2: Second sequence to align
+        :type s2: :class:`ost.seq.SequenceHandle`
+        :param chem_type: Must be in [:class:`ost.mol.ChemType.AMINOACIDS`,
+                          :class:`ost.mol.ChemType.NUCLEOTIDES`], determines
+                          substitution matrix and gap open/extension penalties
+        :type chem_type: :class:`ost.mol.ChemType`
+        :returns: Alignment with s1 as first and s2 as second sequence 
+        """
+        if chem_type == mol.ChemType.AMINOACIDS:
+            return seq.alg.GlobalAlign(s1, s2, self.pep_subst_mat,
+                                       gap_open=self.pep_gap_open,
+                                       gap_ext=self.pep_gap_ext)[0]
+        elif chem_type == mol.ChemType.NUCLEOTIDES:
+            return seq.alg.GlobalAlign(s1, s2, self.nuc_subst_mat,
+                                       gap_open=self.nuc_gap_open,
+                                       gap_ext=self.nuc_gap_ext)[0]
+        else:
+            raise RuntimeError("Invalid ChemType")
+        return aln
+
+    def ResNumAlign(self, s1, s2):
+        """ Returns pairwise alignment using residue numbers of attached views
+    
+        :param s1: First sequence to align, must have :class:`ost.mol.EntityView`
+                   attached
+        :type s1: :class:`ost.seq.SequenceHandle`
+        :param s2: Second sequence to align, must have :class:`ost.mol.EntityView`
+                   attached
+        :type s2: :class:`ost.seq.SequenceHandle`
+        """
+        assert(s1.HasAttachedView())
+        assert(s2.HasAttachedView())
+        v1 = s1.GetAttachedView()
+        rnums1 = [r.GetNumber().GetNum() for r in v1.residues]
+        v2 = s2.GetAttachedView()
+        rnums2 = [r.GetNumber().GetNum() for r in v2.residues]
+
+        min_num = min(rnums1[0], rnums2[0])
+        max_num = max(rnums1[-1], rnums2[-1])
+        aln_length = max_num - min_num + 1
+
+        aln_s1 = ['-'] * aln_length
+        for r, rnum in zip(v1.residues, rnums1):
+            aln_s1[rnum-min_num] = r.one_letter_code
+
+        aln_s2 = ['-'] * aln_length
+        for r, rnum in zip(v2.residues, rnums2):
+            aln_s2[rnum-min_num] = r.one_letter_code
+
+        aln = seq.CreateAlignment()
+        aln.AddSequence(seq.CreateSequence(s1.GetName(), ''.join(aln_s1)))
+        aln.AddSequence(seq.CreateSequence(s2.GetName(), ''.join(aln_s2)))
+        return aln
+
+def _GetAlnProps(aln):
+    """Returns basic properties of *aln*
+
+    :param aln: Alignment to compute properties
+    :type aln: :class:`seq.AlignmentHandle`
+    :returns: Tuple with 3 elements. 1) sequence identify in range [0, 100] 
+              considering aligned columns 2) Fraction of gaps between
+              first and last aligned column in s1 4) same for s2. 
+    """
+    assert(aln.GetCount() == 2)
+    seqid = seq.alg.SequenceIdentity(aln)
+    n_gaps_1 = str(aln.GetSequence(0)).strip('-').count('-')
+    n_gaps_2 = str(aln.GetSequence(1)).strip('-').count('-')
+    gap_frac_1 = float(n_gaps_1)/len(aln.GetSequence(0).GetGaplessString())
+    gap_frac_2 = float(n_gaps_2)/len(aln.GetSequence(1).GetGaplessString())
+    return (seqid, gap_frac_1, gap_frac_2) 
+
+def _GetChemGroupAlignments(pep_seqs, nuc_seqs, aligner, seqid_thr=95.,
+                            gap_thr=0.1):
+    """Returns alignments with groups of chemically equivalent chains
+
+    :param pep_seqs: List of polypeptide sequences
+    :type pep_seqs: :class:`seq.SequenceList`
+    :param nuc_seqs: List of polynucleotide sequences
+    :type nuc_seqs: :class:`seq.SequenceList` 
+    :param seqid_thr: Threshold used to decide when two chains are identical.
+                      95 percent tolerates the few mutations crystallographers
+                      like to do.
+    :type seqid_thr:  :class:`float`
+    :param gap_thr: Additional threshold to avoid gappy alignments with high
+                    seqid. The reason for not just normalizing seqid by the
+                    longer sequence is that one sequence might be a perfect
+                    subsequence of the other but only cover half of it. This
+                    threshold checks for a maximum allowed fraction of gaps
+                    in any of the two sequences after stripping terminal gaps.
+    :type gap_thr: :class:`float`
+    :param aligner: Helper class to generate pairwise alignments
+    :type aligner: :class:`_Aligner`
+    :returns: Tuple with first element being an AlignmentList. Each alignment
+              represents a group of chemically equivalent chains and the first
+              sequence is the longest. Second element is a list of equivalent
+              length specifying the types of the groups. List elements are in
+              [:class:`ost.ChemType.AMINOACIDS`,
+              :class:`ost.ChemType.NUCLEOTIDES`] 
+    """
+    pep_groups = _GroupSequences(pep_seqs, seqid_thr, gap_thr, aligner,
+                                 mol.ChemType.AMINOACIDS)
+    nuc_groups = _GroupSequences(nuc_seqs, seqid_thr, gap_thr, aligner,
+                                 mol.ChemType.NUCLEOTIDES)
+    group_types = [mol.ChemType.AMINOACIDS] * len(pep_groups)
+    group_types += [mol.ChemType.NUCLEOTIDES] * len(nuc_groups)
+    groups = pep_groups
+    groups.extend(nuc_groups)
+    return (groups, group_types)
 
 def _GroupSequences(seqs, seqid_thr, gap_thr, aligner, chem_type):
     """Get list of alignments representing groups of equivalent sequences
@@ -1170,237 +946,47 @@ def _GetRefMdlAlns(ref_chem_groups, ref_chem_group_msas, mdl_chem_groups,
 
     return ref_mdl_alns
 
-class _Aligner:
-    def __init__(self, pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
-                 pep_gap_ext = -2, nuc_subst_mat = seq.alg.NUC44,
-                 nuc_gap_open = -4, nuc_gap_ext = -4, resnum_aln = False):
-        """ Helper class to compute alignments
+def _CheckOneToOneMapping(ref_chains, mdl_chains):
+    """ Checks whether we already have a perfect one to one mapping
 
-        Sets default values for substitution matrix, gap open and gap extension
-        penalties. They are only used in default mode (Needleman-Wunsch aln).
-        If *resnum_aln* is True, only residue numbers of views that are attached
-        to input sequences are considered. 
-        """
-        self.pep_subst_mat = pep_subst_mat
-        self.pep_gap_open = pep_gap_open
-        self.pep_gap_ext = pep_gap_ext
-        self.nuc_subst_mat = nuc_subst_mat
-        self.nuc_gap_open = nuc_gap_open
-        self.nuc_gap_ext = nuc_gap_ext
-        self.resnum_aln = resnum_aln
+    That means each list in *ref_chains* has exactly one element and each
+    list in *mdl_chains* has either one element (it's mapped) or is empty
+    (ref chain has no mapped mdl chain). Returns None if no such mapping
+    can be found.
 
-    def Align(self, s1, s2, chem_type=None):
-        if self.resnum_aln:
-            return self.ResNumAlign(s1, s2)
-        else:
-            if chem_type is None:
-                raise RuntimeError("Must specify chem_type for NW alignment")
-            return self.NWAlign(s1, s2, chem_type) 
-
-
-    def NWAlign(self, s1, s2, chem_type):
-        """ Returns pairwise alignment using Needleman-Wunsch algorithm
-    
-        :param s1: First sequence to align
-        :type s1: :class:`ost.seq.SequenceHandle`
-        :param s2: Second sequence to align
-        :type s2: :class:`ost.seq.SequenceHandle`
-        :param chem_type: Must be in [:class:`ost.mol.ChemType.AMINOACIDS`,
-                          :class:`ost.mol.ChemType.NUCLEOTIDES`], determines
-                          substitution matrix and gap open/extension penalties
-        :type chem_type: :class:`ost.mol.ChemType`
-        :returns: Alignment with s1 as first and s2 as second sequence 
-        """
-        if chem_type == mol.ChemType.AMINOACIDS:
-            return seq.alg.GlobalAlign(s1, s2, self.pep_subst_mat,
-                                       gap_open=self.pep_gap_open,
-                                       gap_ext=self.pep_gap_ext)[0]
-        elif chem_type == mol.ChemType.NUCLEOTIDES:
-            return seq.alg.GlobalAlign(s1, s2, self.nuc_subst_mat,
-                                       gap_open=self.nuc_gap_open,
-                                       gap_ext=self.nuc_gap_ext)[0]
-        else:
-            raise RuntimeError("Invalid ChemType")
-        return aln
-
-    def ResNumAlign(self, s1, s2):
-        """ Returns pairwise alignment using residue numbers of attached views
-    
-        :param s1: First sequence to align, must have :class:`ost.mol.EntityView`
-                   attached
-        :type s1: :class:`ost.seq.SequenceHandle`
-        :param s2: Second sequence to align, must have :class:`ost.mol.EntityView`
-                   attached
-        :type s2: :class:`ost.seq.SequenceHandle`
-        """
-        assert(s1.HasAttachedView())
-        assert(s2.HasAttachedView())
-        v1 = s1.GetAttachedView()
-        rnums1 = [r.GetNumber().GetNum() for r in v1.residues]
-        v2 = s2.GetAttachedView()
-        rnums2 = [r.GetNumber().GetNum() for r in v2.residues]
-
-        min_num = min(rnums1[0], rnums2[0])
-        max_num = max(rnums1[-1], rnums2[-1])
-        aln_length = max_num - min_num + 1
-
-        aln_s1 = ['-'] * aln_length
-        for r, rnum in zip(v1.residues, rnums1):
-            aln_s1[rnum-min_num] = r.one_letter_code
-
-        aln_s2 = ['-'] * aln_length
-        for r, rnum in zip(v2.residues, rnums2):
-            aln_s2[rnum-min_num] = r.one_letter_code
-
-        aln = seq.CreateAlignment()
-        aln.AddSequence(seq.CreateSequence(s1.GetName(), ''.join(aln_s1)))
-        aln.AddSequence(seq.CreateSequence(s2.GetName(), ''.join(aln_s2)))
-        return aln
-
-def _GetAlnProps(aln):
-    """Returns basic properties of *aln*
-
-    :param aln: Alignment to compute properties
-    :type aln: :class:`seq.AlignmentHandle`
-    :returns: Tuple with 3 elements. 1) sequence identify in range [0, 100] 
-              considering aligned columns 2) Fraction of gaps between
-              first and last aligned column in s1 4) same for s2. 
-    """
-    assert(aln.GetCount() == 2)
-    seqid = seq.alg.SequenceIdentity(aln)
-    n_gaps_1 = str(aln.GetSequence(0)).strip('-').count('-')
-    n_gaps_2 = str(aln.GetSequence(1)).strip('-').count('-')
-    gap_frac_1 = float(n_gaps_1)/len(aln.GetSequence(0).GetGaplessString())
-    gap_frac_2 = float(n_gaps_2)/len(aln.GetSequence(1).GetGaplessString())
-    return (seqid, gap_frac_1, gap_frac_2)    
-
-def _NChemGroupMappings(ref_chains, mdl_chains):
-    """ Number of mappings within one chem group
-
-    :param ref_chains: Reference chains
-    :type ref_chains: :class:`list` of :class:`str`
-    :param mdl_chains: Model chains that are mapped onto *ref_chains*
-    :type mdl_chains: :class:`list` of :class:`str`
-    :returns: Number of possible mappings of *mdl_chains* onto *ref_chains*
-    """
-    n_ref = len(ref_chains)
-    n_mdl = len(mdl_chains)
-    if n_ref == n_mdl:
-        return factorial(n_ref)
-    elif n_ref > n_mdl:
-        n_choose_k = binom(n_ref, n_mdl)
-        return n_choose_k * factorial(n_mdl)
-    else:
-        n_choose_k = binom(n_mdl, n_ref)
-        return n_choose_k * factorial(n_ref)
-
-def _NMappings(ref_chains, mdl_chains):
-    """ Number of mappings for a full chem mapping
-
-    :param ref_chains: Chem groups of reference
+    :param ref_chains: corresponds to :attr:`ChainMapper.chem_groups`
     :type ref_chains: :class:`list` of :class:`list` of :class:`str`
-    :param mdl_chains: Model chains that map onto those chem groups
-    :type mdl_chains: :class:`list` of :class:`list` of :class:`str`
-    :returns: Number of possible mappings of *mdl_chains* onto *ref_chains*
+    :param mdl_chains: mdl chains mapped to chem groups in *ref_chains*, i.e.
+                       the return value of :func:`ChainMapper.GetChemMapping`
+    :type mdl_chains: class:`list` of :class:`list` of :class:`str`
+    :returns: A :class:`list` of :class:`list` if a one to one mapping is found,
+              None otherwise
     """
-    assert(len(ref_chains) == len(mdl_chains))
-    n = 1
-    for a,b in zip(ref_chains, mdl_chains):
-        n *= _NChemGroupMappings(a,b)
-    return n
-
-def _NMappingsWithin(ref_chains, mdl_chains, max_mappings):
-    """ Check whether total number of mappings is smaller than given maximum
-
-    In principle the same as :func:`_NMappings` but it stops as soon as the
-    maximum is hit.
-
-    :param ref_chains: Chem groups of reference
-    :type ref_chains: :class:`list` of :class:`list` of :class:`str`
-    :param mdl_chains: Model chains that map onto those chem groups
-    :type mdl_chains: :class:`list` of :class:`list` of :class:`str`
-    :param max_mappings: Number of max allowed mappings
-    :returns: Whether number of possible mappings of *mdl_chains* onto
-              *ref_chains* is below or equal *max_mappings*.
-    """
-    assert(len(ref_chains) == len(mdl_chains))
-    n = 1
-    for a,b in zip(ref_chains, mdl_chains):
-        n *= _NChemGroupMappings(a,b)
-        if n > max_mappings:
-            return False
-    return True
-
-def _RefSmallerGenerator(ref_chains, mdl_chains):
-    """ Returns all possible ways to map mdl_chains onto ref_chains
-
-    Specific for the case where len(ref_chains) < len(mdl_chains)
-    """
-    for c in itertools.combinations(mdl_chains, len(ref_chains)):
-        for p in itertools.permutations(c):
-            yield p
-
-def _RefLargerGenerator(ref_chains, mdl_chains):
-    """ Returns all possible ways to map mdl_chains onto ref_chains
-
-    Specific for the case where len(ref_chains) > len(mdl_chains)
-    Ref chains without mapped mdl chain are assigned None
-    """
-    n_ref = len(ref_chains)
-    n_mdl = len(mdl_chains)
-    for c in itertools.combinations(range(n_ref), n_mdl):
-        for p in itertools.permutations(mdl_chains):
-            ret_list = [None] * n_ref
-            for idx, ch in zip(c, p):
-                ret_list[idx] = ch
-            yield ret_list
-
-def _ChainMappings(ref_chains, mdl_chains):
-    """Returns all possible ways to map *mdl_chains* onto fixed *ref_chains*
-
-    :param ref_chains: List of list of chemically equivalent chains in reference
-    :type ref_chains: :class:`list` of :class:`list`
-    :param mdl_chains: Equally long list of list of chemically equivalent chains
-                       in model that map on those ref chains.
-    :type mdl_chains: :class:`list` of :class:`list`
-    :returns: Iterator over all possible mappings of *mdl_chains* onto fixed
-              *ref_chains*. Potentially contains None as padding when number of
-              model chains for a certain mapping is smaller than the according
-              reference chains.
-              Example: _ChainMappings([['A', 'B', 'C'], ['D', 'E']],
-                                      [['x', 'y'], ['i', 'j']])
-              gives an iterator over: [(['x', 'y', None], ('i', 'j')),
-                                       (['x', 'y', None], ('j', 'i')),
-                                       (['y', 'x', None], ('i', 'j')),
-                                       (['y', 'x', None], ('j', 'i')),
-                                       (['x', None, 'y'], ('i', 'j')),
-                                       (['x', None, 'y'], ('j', 'i')),
-                                       (['y', None, 'x'], ('i', 'j')),
-                                       (['y', None, 'x'], ('j', 'i')),
-                                       ([None, 'x', 'y'], ('i', 'j')),
-                                       ([None, 'x', 'y'], ('j', 'i')),
-                                       ([None, 'y', 'x'], ('i', 'j')),
-                                       ([None, 'y', 'x'], ('j', 'i'))]
-    """
-    assert(len(ref_chains) == len(mdl_chains))
-    # one iterator per mapping representing all mdl combinations relative to
-    # reference
-    iterators = list()
+    only_one_to_one = True
+    one_to_one = list()
     for ref, mdl in zip(ref_chains, mdl_chains):
-        if len(ref) == len(mdl):
-            iterators.append(itertools.permutations(mdl))
-        elif len(ref) < len(mdl):
-            iterators.append(_RefSmallerGenerator(ref, mdl))
+        if len(ref) == 1 and len(mdl) == 1:
+            one_to_one.append(mdl[0])
+        elif len(ref) == 1 and len(mdl) == 0:
+            one_to_one.append(None)
         else:
-            iterators.append(_RefLargerGenerator(ref, mdl))
-
-    return itertools.product(*iterators)
-
+            only_one_to_one = False
+            break
+    if only_one_to_one:
+        return one_to_one
+    else:
+        return None
 
 class _lDDTDecomposer:
 
     def __init__(self, ref, mdl, ref_mdl_alns, inclusion_radius = 15.0,
                  thresholds = [0.5, 1.0, 2.0, 4.0]):
+        """ Compute backbone only lDDT scores for ref/mdl
+
+        Uses the pairwise decomposable property of backbone only lDDT and
+        implements a caching mechanism to efficiently enumerate different
+        chain mappings. 
+        """
 
         self.ref = ref
         self.mdl = mdl
@@ -1535,12 +1121,13 @@ class _lDDTDecomposer:
             self.interface_cache[k2] = conserved
         return self.interface_cache[k1]
 
-
 class _GreedySearcher(_lDDTDecomposer):
     def __init__(self, ref, mdl, ref_chem_groups, mdl_chem_groups,
                  ref_mdl_alns, inclusion_radius = 15.0,
                  thresholds = [0.5, 1.0, 2.0, 4.0],
                  steep_opt_rate = None):
+        """ Greedy extension of already existing but incomplete chain mappings
+        """
         super().__init__(ref, mdl, ref_mdl_alns,
                          inclusion_radius = inclusion_radius,
                          thresholds = thresholds)
@@ -1667,7 +1254,6 @@ class _GreedySearcher(_lDDTDecomposer):
 
         return mapping
 
-
     def _SteepOpt(self, mapping, chains_to_optimize=None):
 
         # just optimize ALL ref chains if nothing specified
@@ -1708,3 +1294,430 @@ class _GreedySearcher(_lDDTDecomposer):
                         break        
 
         return mapping
+
+def _FastGreedy(the_greed):
+
+    something_happened = True
+    mapping = dict()
+
+    while something_happened:
+        something_happened = False
+        # search for best scoring starting point
+        n_best = 0
+        best_seed = None
+        mapped_ref_chains = set(mapping.keys())
+        mapped_mdl_chains = set(mapping.values())
+        for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
+                                          the_greed.mdl_chem_groups):
+            for ref_ch in ref_chains:
+                if ref_ch not in mapped_ref_chains:
+                    for mdl_ch in mdl_chains:
+                        if mdl_ch not in mapped_mdl_chains:
+                            n = the_greed.SCCounts(ref_ch, mdl_ch)
+                            if n > n_best:
+                                n_best = n
+                                best_seed = (ref_ch, mdl_ch)
+        if n_best == 0:
+            break # no proper seed found anymore...
+        # add seed to mapping and start the greed
+        mapping[best_seed[0]] = best_seed[1]
+        mapping = the_greed.ExtendMapping(mapping)
+        something_happened = True
+
+
+    # translate mapping format and return
+    final_mapping = list()
+    for ref_chains in the_greed.ref_chem_groups:
+        mapped_mdl_chains = list()
+        for ref_ch in ref_chains:
+            if ref_ch in mapping:
+                mapped_mdl_chains.append(mapping[ref_ch])
+            else:
+                mapped_mdl_chains.append(None)
+        final_mapping.append(mapped_mdl_chains)
+
+    return final_mapping
+
+
+def _FullGreedy(the_greed, n_mdl_chains):
+    """ Uses each reference chain as starting point for expansion
+
+    However, not all mdl chain are mapped onto these reference chains,
+    that's controlled by *n_mdl_chains*
+    """
+
+    if n_mdl_chains is not None and n_mdl_chains < 1:
+        raise RuntimeError("n_mdl_chains must be None or >= 1")
+
+    something_happened = True
+    mapping = dict()
+
+    while something_happened:
+        something_happened = False
+        # Try all possible starting points and keep the one giving the best lDDT
+        best_lddt = 0.0
+        best_mapping = None
+        mapped_ref_chains = set(mapping.keys())
+        mapped_mdl_chains = set(mapping.values())
+        for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
+                                          the_greed.mdl_chem_groups):
+            for ref_ch in ref_chains:
+                if ref_ch not in mapped_ref_chains:
+                    seeds = list()
+                    for mdl_ch in mdl_chains:
+                        if mdl_ch not in mapped_mdl_chains:
+                            seeds.append((ref_ch, mdl_ch))
+                    if n_mdl_chains is not None and n_mdl_chains < len(seeds):
+                        counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
+                        tmp = [(a,b) for a,b in zip(counts, seeds)]
+                        tmp.sort(reverse=True)
+                        seeds = [item[1] for item in tmp[:n_mdl_chains]]
+                    for seed in seeds:
+                        tmp_mapping = dict(mapping)
+                        tmp_mapping[seed[0]] = seed[1]
+                        tmp_mapping = the_greed.ExtendMapping(tmp_mapping)
+                        tmp_lddt = the_greed.lDDTFromFlatMap(tmp_mapping)
+                        if tmp_lddt > best_lddt:
+                            best_lddt = tmp_lddt
+                            best_mapping = tmp_mapping
+
+        if best_lddt == 0.0:
+            break # no proper mapping found anymore...
+
+        something_happened = True
+        mapping = best_mapping
+
+    # translate mapping format and return
+    final_mapping = list()
+    for ref_chains in the_greed.ref_chem_groups:
+        mapped_mdl_chains = list()
+        for ref_ch in ref_chains:
+            if ref_ch in mapping:
+                mapped_mdl_chains.append(mapping[ref_ch])
+            else:
+                mapped_mdl_chains.append(None)
+        final_mapping.append(mapped_mdl_chains)
+
+    return final_mapping
+
+
+def _BlockGreedy(the_greed, seed_size, n_mdl_chains):
+    """ Uses each reference chain as starting point for expansion
+
+    Tries to map all mdl chains (optionally up to *n_mdl_chains* best ones)
+    to these references but initially does not perform full expansion but only
+    up to *seed_size*. The best scoring block for each reference is then used
+    for full expansion.
+    """
+
+    if seed_size is not None and seed_size < 1:
+        raise RuntimeError("seed_size must be None or >= 1")
+
+    if n_mdl_chains is not None and n_mdl_chains < 1:
+        raise RuntimeError("n_mdl_chains must be None or >= 1")
+
+    max_ext = None
+    if seed_size is not None:
+        # max_ext = seed_size-1 => start seed already has size 1
+        max_ext = seed_size - 1
+
+    ref_chem_groups = copy.deepcopy(the_greed.ref_chem_groups)
+    mdl_chem_groups = copy.deepcopy(the_greed.mdl_chem_groups)
+
+    mapping = dict()
+
+    something_happened = True
+    while something_happened:
+        something_happened = False
+
+        # one block per ref chain, i.e. a mapping that is extended by seed_size
+        starting_blocks = dict()
+        for ref_chains, mdl_chains in zip(ref_chem_groups, mdl_chem_groups):
+            if len(mdl_chains) == 0:
+                continue # nothing to map
+            for ref_ch in ref_chains:
+                best_lddt = 0.0
+                best_mapping = None
+                seeds = [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
+                if n_mdl_chains is not None and n_mdl_chains < len(seeds):
+                    counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
+                    tmp = [(a,b) for a,b in zip(counts, seeds)]
+                    tmp.sort(reverse=True)
+                    seeds = [item[1] for item in tmp[:n_mdl_chains]]
+                for s in seeds:
+                    seed = dict(mapping)
+                    seed.update({s[0]: s[1]})
+                    
+                    seed = the_greed.ExtendMapping(seed, max_ext = max_ext)
+                    seed_lddt = the_greed.lDDTFromFlatMap(seed)
+                    if seed_lddt > best_lddt:
+                        best_lddt = seed_lddt
+                        best_mapping = seed
+                starting_blocks[ref_ch] = best_mapping
+
+        best_lddt = 0.0
+        best_mapping = None
+        for ref_ch, seed in starting_blocks.items():
+            seed = the_greed.ExtendMapping(seed)
+            seed_lddt = the_greed.lDDTFromFlatMap(seed)
+            if seed_lddt > best_lddt:
+                best_lddt = seed_lddt
+                best_mapping = seed
+
+        if best_lddt == 0.0:
+            break # no proper mapping found anymore
+
+        something_happened = True
+        mapping.update(best_mapping)
+        for ref_ch, mdl_ch in best_mapping.items():
+            for group_idx in range(len(ref_chem_groups)):
+                if ref_ch in ref_chem_groups[group_idx]:
+                    ref_chem_groups[group_idx].remove(ref_ch)
+                if mdl_ch in mdl_chem_groups[group_idx]:
+                    mdl_chem_groups[group_idx].remove(mdl_ch)
+
+    # translate mapping format and return
+    final_mapping = list()
+    for ref_chains in the_greed.ref_chem_groups:
+        mapped_mdl_chains = list()
+        for ref_ch in ref_chains:
+            if ref_ch in mapping:
+                mapped_mdl_chains.append(mapping[ref_ch])
+            else:
+                mapped_mdl_chains.append(None)
+        final_mapping.append(mapped_mdl_chains)
+
+    return final_mapping
+
+def _GetRefPos(trg, mdl, trg_msas, mdl_alns, max_pos = None):
+    """ Extracts reference positions which are present in trg and mdl
+    """
+
+    # select only backbone atoms, makes processing simpler later on
+    # (just select res.atoms[0].GetPos() as ref pos)
+    bb_trg = trg.Select("aname=\"CA\",\"C3'\"")
+    bb_mdl = mdl.Select("aname=\"CA\",\"C3'\"")
+
+    # mdl_alns are pairwise, let's construct MSAs
+    mdl_msas = list()
+    for aln_list in mdl_alns:
+        if len(aln_list) > 0:
+            tmp = aln_list[0].GetSequence(0)
+            ref_seq = seq.CreateSequence(tmp.GetName(), tmp.GetGaplessString())
+            mdl_msas.append(seq.alg.MergePairwiseAlignments(aln_list, ref_seq))
+        else:
+            mdl_msas.append(seq.CreateAlignment())
+
+    trg_pos = list()
+    mdl_pos = list()
+
+    for trg_msa, mdl_msa in zip(trg_msas, mdl_msas):
+
+        # make sure they have the same ref sequence (should be a given...)
+        assert(trg_msa.GetSequence(0).GetGaplessString() == \
+               mdl_msa.GetSequence(0).GetGaplessString())
+
+        # check which columns in MSAs are fully covered (indices relative to
+        # first sequence)
+        trg_indices = _GetFullyCoveredIndices(trg_msa)
+        mdl_indices = _GetFullyCoveredIndices(mdl_msa)
+
+        # get indices where both, mdl and trg, are fully covered
+        indices = sorted(list(trg_indices.intersection(mdl_indices)))
+
+        # subsample if necessary
+        if max_pos is not None and len(indices) > max_pos:
+            step = int(len(indices)/max_pos)
+            indices = [indices[i] for i in range(0, len(indices), step)]
+
+        # translate to column indices in the respective MSAs
+        trg_indices = _RefIndicesToColumnIndices(trg_msa, indices)
+        mdl_indices = _RefIndicesToColumnIndices(mdl_msa, indices)
+
+        # extract positions
+        trg_pos.append(list())
+        mdl_pos.append(list())
+        for s_idx in range(trg_msa.GetCount()):
+            trg_pos[-1].append(_ExtractMSAPos(trg_msa, s_idx, trg_indices,
+                                              bb_trg))
+        # first seq in mdl_msa is ref sequence in trg and does not belong to mdl
+        for s_idx in range(1, mdl_msa.GetCount()):
+            mdl_pos[-1].append(_ExtractMSAPos(mdl_msa, s_idx, mdl_indices,
+                                              bb_mdl))
+
+    return (trg_pos, mdl_pos)
+
+def _GetFullyCoveredIndices(msa):
+    """ Helper for _GetRefPos
+
+    Returns a set containing the indices relative to first sequence in msa which
+    are fully covered in all other sequences
+
+    --AA-A-A
+    -BBBB-BB
+    CCCC-C-C
+
+    => (0,1,3)
+    """
+    indices = set()
+    ref_idx = 0
+    for col in msa:
+        if sum([1 for olc in col if olc != '-']) == col.GetRowCount():
+            indices.add(ref_idx)
+        if col[0] != '-':
+            ref_idx += 1
+    return indices
+
+def _RefIndicesToColumnIndices(msa, indices):
+    """ Helper for _GetRefPos
+
+    Returns a list of mapped indices. indices refer to non-gap one letter
+    codes in the first msa sequence. The returnes mapped indices are translated
+    to the according msa column indices
+    """
+    ref_idx = 0
+    mapping = dict()
+    for col_idx, col in enumerate(msa):
+        if col[0] != '-':
+            mapping[ref_idx] = col_idx
+            ref_idx += 1
+    return [mapping[i] for i in indices]
+
+def _ExtractMSAPos(msa, s_idx, indices, view):
+    """ Helper for _GetRefPos
+
+    Returns a geom.Vec3List containing positions refering to given msa sequence.
+    => Chain with corresponding name is mapped onto sequence and the position of
+    the first atom of each residue specified in indices is extracted.
+    Indices refers to column indices in msa!
+    """
+    s = msa.GetSequence(s_idx)
+    s_v = view.Select(f"cname={s.GetName()}")
+
+    # sanity check
+    assert(len(s.GetGaplessString()) == len(s_v.residues))
+
+    residue_idx = [s.GetResidueIndex(i) for i in indices]
+    return geom.Vec3List([s_v.residues[i].atoms[0].pos for i in residue_idx])
+
+def _NChemGroupMappings(ref_chains, mdl_chains):
+    """ Number of mappings within one chem group
+
+    :param ref_chains: Reference chains
+    :type ref_chains: :class:`list` of :class:`str`
+    :param mdl_chains: Model chains that are mapped onto *ref_chains*
+    :type mdl_chains: :class:`list` of :class:`str`
+    :returns: Number of possible mappings of *mdl_chains* onto *ref_chains*
+    """
+    n_ref = len(ref_chains)
+    n_mdl = len(mdl_chains)
+    if n_ref == n_mdl:
+        return factorial(n_ref)
+    elif n_ref > n_mdl:
+        n_choose_k = binom(n_ref, n_mdl)
+        return n_choose_k * factorial(n_mdl)
+    else:
+        n_choose_k = binom(n_mdl, n_ref)
+        return n_choose_k * factorial(n_ref)
+
+def _NMappings(ref_chains, mdl_chains):
+    """ Number of mappings for a full chem mapping
+
+    :param ref_chains: Chem groups of reference
+    :type ref_chains: :class:`list` of :class:`list` of :class:`str`
+    :param mdl_chains: Model chains that map onto those chem groups
+    :type mdl_chains: :class:`list` of :class:`list` of :class:`str`
+    :returns: Number of possible mappings of *mdl_chains* onto *ref_chains*
+    """
+    assert(len(ref_chains) == len(mdl_chains))
+    n = 1
+    for a,b in zip(ref_chains, mdl_chains):
+        n *= _NChemGroupMappings(a,b)
+    return n
+
+def _NMappingsWithin(ref_chains, mdl_chains, max_mappings):
+    """ Check whether total number of mappings is smaller than given maximum
+
+    In principle the same as :func:`_NMappings` but it stops as soon as the
+    maximum is hit.
+
+    :param ref_chains: Chem groups of reference
+    :type ref_chains: :class:`list` of :class:`list` of :class:`str`
+    :param mdl_chains: Model chains that map onto those chem groups
+    :type mdl_chains: :class:`list` of :class:`list` of :class:`str`
+    :param max_mappings: Number of max allowed mappings
+    :returns: Whether number of possible mappings of *mdl_chains* onto
+              *ref_chains* is below or equal *max_mappings*.
+    """
+    assert(len(ref_chains) == len(mdl_chains))
+    n = 1
+    for a,b in zip(ref_chains, mdl_chains):
+        n *= _NChemGroupMappings(a,b)
+        if n > max_mappings:
+            return False
+    return True
+
+def _RefSmallerGenerator(ref_chains, mdl_chains):
+    """ Returns all possible ways to map mdl_chains onto ref_chains
+
+    Specific for the case where len(ref_chains) < len(mdl_chains)
+    """
+    for c in itertools.combinations(mdl_chains, len(ref_chains)):
+        for p in itertools.permutations(c):
+            yield p
+
+def _RefLargerGenerator(ref_chains, mdl_chains):
+    """ Returns all possible ways to map mdl_chains onto ref_chains
+
+    Specific for the case where len(ref_chains) > len(mdl_chains)
+    Ref chains without mapped mdl chain are assigned None
+    """
+    n_ref = len(ref_chains)
+    n_mdl = len(mdl_chains)
+    for c in itertools.combinations(range(n_ref), n_mdl):
+        for p in itertools.permutations(mdl_chains):
+            ret_list = [None] * n_ref
+            for idx, ch in zip(c, p):
+                ret_list[idx] = ch
+            yield ret_list
+
+def _ChainMappings(ref_chains, mdl_chains):
+    """Returns all possible ways to map *mdl_chains* onto fixed *ref_chains*
+
+    :param ref_chains: List of list of chemically equivalent chains in reference
+    :type ref_chains: :class:`list` of :class:`list`
+    :param mdl_chains: Equally long list of list of chemically equivalent chains
+                       in model that map on those ref chains.
+    :type mdl_chains: :class:`list` of :class:`list`
+    :returns: Iterator over all possible mappings of *mdl_chains* onto fixed
+              *ref_chains*. Potentially contains None as padding when number of
+              model chains for a certain mapping is smaller than the according
+              reference chains.
+              Example: _ChainMappings([['A', 'B', 'C'], ['D', 'E']],
+                                      [['x', 'y'], ['i', 'j']])
+              gives an iterator over: [(['x', 'y', None], ('i', 'j')),
+                                       (['x', 'y', None], ('j', 'i')),
+                                       (['y', 'x', None], ('i', 'j')),
+                                       (['y', 'x', None], ('j', 'i')),
+                                       (['x', None, 'y'], ('i', 'j')),
+                                       (['x', None, 'y'], ('j', 'i')),
+                                       (['y', None, 'x'], ('i', 'j')),
+                                       (['y', None, 'x'], ('j', 'i')),
+                                       ([None, 'x', 'y'], ('i', 'j')),
+                                       ([None, 'x', 'y'], ('j', 'i')),
+                                       ([None, 'y', 'x'], ('i', 'j')),
+                                       ([None, 'y', 'x'], ('j', 'i'))]
+    """
+    assert(len(ref_chains) == len(mdl_chains))
+    # one iterator per mapping representing all mdl combinations relative to
+    # reference
+    iterators = list()
+    for ref, mdl in zip(ref_chains, mdl_chains):
+        if len(ref) == len(mdl):
+            iterators.append(itertools.permutations(mdl))
+        elif len(ref) < len(mdl):
+            iterators.append(_RefSmallerGenerator(ref, mdl))
+        else:
+            iterators.append(_RefLargerGenerator(ref, mdl))
+
+    return itertools.product(*iterators)
