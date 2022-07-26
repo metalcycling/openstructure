@@ -13,6 +13,7 @@ from ost import geom
 
 from ost.mol.alg import lddt
 
+
 class ChainMapper:
     def __init__(self, target, resnum_alignments=False):
         """Object to compute chain mappings
@@ -365,7 +366,7 @@ class ChainMapper:
 
 
     def GetRigidMapping(self, model, single_chain_gdtts_thresh=0.5,
-                        subsampling=None):
+                        subsampling=None, first_complete=False):
         """Identify chain mapping based on rigid superposition
 
         Superposition and scoring is based on CA/C3' positions which are present
@@ -393,12 +394,15 @@ class ChainMapper:
         :param subsampling: If given, only use an equally distributed subset
                             of all CA/C3' positions for superposition/scoring.
         :type subsampling: :class:`int`
+        :param first_complete: Avoid full enumeration and return first found
+                               mapping that covers all model chains or all
+                               target chains.
+        :type first_complete: :class:`bool`
         :returns: A :class:`list` of :class:`list` that reflects
                   :attr:`~chem_groups` but is filled with the respective model
                   chains. Target chains without mapped model chains are set to
                   None.
         """
-
         chem_mapping, chem_group_alns, mdl = self.GetChemMapping(model)
 
         trg_group_pos, mdl_group_pos = _GetRefPos(self.target, mdl,
@@ -407,53 +411,61 @@ class ChainMapper:
                                                   max_pos = subsampling)
 
         # get transforms of any mdl chain onto any trg chain in same chem group
+        # that fulfills gdtts threshold
         transforms = list()
-        for trg_pos, mdl_pos in zip(trg_group_pos, mdl_group_pos):
-            for t in trg_pos:
-                for m in mdl_pos:
-                    if len(t) >= 3 and len(m) >= 3:
-                        assert(len(t) == len(m))
-                        res = mol.alg.SuperposeSVD(m, t)
-                        transforms.append(res.transformation)
+        for trg_pos, trg_chains, mdl_pos, mdl_chains in zip(trg_group_pos,
+                                                            self.chem_groups,
+                                                            mdl_group_pos,
+                                                            chem_mapping):
+            for t_pos, t in zip(trg_pos, trg_chains):
+                for m_pos, m in zip(mdl_pos, mdl_chains):
+                    if len(t_pos) >= 3 and len(m_pos) >= 3:
+                        res = mol.alg.SuperposeSVD(m_pos, t_pos)
+                        t_m_pos = geom.Vec3List(m_pos)
+                        t_m_pos.ApplyTransform(res.transformation)
+                        gdt = t_pos.GetGDTTS(t_m_pos)
+                        if gdt >= single_chain_gdtts_thresh:
+                            transforms.append(res.transformation)
 
         best_mapping = dict()
         best_gdt = 0
         for transform in transforms:
             mapping = dict()
-            gdt_cache = dict() # to cache non-normalized gdt scores
+            mapped_mdl_chains = set()
+            gdt_cache = dict() # cache for non-normalized gdt scores
+
             for trg_pos, trg_chains, mdl_pos, mdl_chains in zip(trg_group_pos,
                                                                 self.chem_groups,
                                                                 mdl_group_pos,
                                                                 chem_mapping):
+
                 if len(trg_pos) == 0 or len(trg_pos[0]) == 0:
                     continue # cannot compute valid gdt
 
-                n_contacts = 4 * len(trg_pos[0]) # for gdt normalization
-                mapped_mdl_chains = set()
-                while True:
-                    best_sc_mapping = None
-                    best_sc_gdt = 0.0
-                    for m_pos, m in zip(mdl_pos, mdl_chains):
-                        if m not in mapped_mdl_chains:
-                            for t_pos, t in zip(trg_pos, trg_chains):
-                                if t not in mapping:
-                                    if (t,m) in gdt_cache:
-                                        gdt = gdt_cache[(t,m)]
-                                    else:
-                                        t_m_pos = geom.Vec3List(m_pos)
-                                        t_m_pos.ApplyTransform(transform)
-                                        gdt = t_pos.GetGDTTS(t_m_pos, norm=False)
-                                        gdt_cache[(t,m)] = gdt
-                                    if gdt > best_sc_gdt:
-                                        best_sc_gdt = gdt
-                                        best_sc_mapping = (t, m)
-                    if best_sc_gdt/n_contacts > single_chain_gdtts_thresh:
-                        mapping[best_sc_mapping[0]] = best_sc_mapping[1]
-                        mapped_mdl_chains.add(best_sc_mapping[1])
-                    else:
-                        break
+                n_gdt_contacts = 4 * len(trg_pos[0])
+                gdt_scores = list()
 
-            # compute overall gdt for this transform
+                t_mdl_pos = list()
+                for m_pos in mdl_pos:
+                    t_m_pos = geom.Vec3List(m_pos)
+                    t_m_pos.ApplyTransform(transform)
+                    t_mdl_pos.append(t_m_pos)
+
+                for t_pos, t in zip(trg_pos, trg_chains):
+                    for t_m_pos, m in zip(t_mdl_pos, mdl_chains):
+                        gdt = t_pos.GetGDTTS(t_m_pos)
+                        if gdt >= single_chain_gdtts_thresh:
+                            gdt_scores.append((gdt, (t,m)))
+                            gdt_cache[(t,m)] = n_gdt_contacts * gdt
+
+                gdt_scores.sort(reverse=True)
+                sorted_pairs = [item[1] for item in gdt_scores]
+                for p in sorted_pairs:
+                    if p[0] not in mapping and p[1] not in mapped_mdl_chains:
+                        mapping[p[0]] = p[1]
+                        mapped_mdl_chains.add(p[1])
+
+            # compute overall gdt for this transform (non-normalized gdt!!!)
             gdt = 0
             for t,m in mapping.items():
                 gdt += gdt_cache[(t,m)]
@@ -461,6 +473,12 @@ class ChainMapper:
             if gdt > best_gdt:
                 best_gdt = gdt
                 best_mapping = mapping
+
+                if first_complete:
+                    mdl_complete = len(mapping) == len(mdl.chains)
+                    trg_complete = len(mapping) == len(self.target.chains)
+                    if mdl_complete or trg_complete:
+                        break
 
         # translate mapping format and return
         final_mapping = list()
@@ -988,45 +1006,33 @@ def _GroupSequences(seqs, seqid_thr, gap_thr, aligner, chem_type):
               with longest sequence (reference) as first sequence.
     :rtype: :class:`ost.seq.AlignmentList`
     """
-    sim_seqs = list()
-    aln_cache = dict() # cache alignments to generate an MSA for each group
-                       # at the very end
-    for i, j in itertools.combinations(range(len(seqs)), 2):
-        aln  = aligner.Align(seqs[i], seqs[j], chem_type)
-        seqid, gap_frac_i, gap_frac_j = _GetAlnProps(aln)
-        if seqid >= seqid_thr and gap_frac_i < gap_thr and gap_frac_j < gap_thr:
-            sim_seqs.append((i, j))
-        aln_cache[(i,j)] = aln
-
-    # trivial case: no matching pairs
-    if len(sim_seqs) == 0:
-        aln_list = seq.AlignmentList()
-        for s in seqs:
-            aln_list.append(seq.CreateAlignment(s))
-        return aln_list
-
-    # merge transitive pairs
     groups = list()
-    for i, j in sim_seqs:
-        found = False
-        for g in groups:
-            if i in g or j in g:
-                found = True
-                g.add(i)
-                g.add(j)
-        if not found:
-            groups.append(set([i, j]))
+    for s_idx in range(len(seqs)):
+        matching_group = None
+        for g_idx in range(len(groups)):
+            for g_s_idx in range(len(groups[g_idx])):
+                aln  = aligner.Align(seqs[s_idx], seqs[groups[g_idx][g_s_idx]],
+                                     chem_type)
+                sid, frac_i, frac_j = _GetAlnProps(aln)
+                if sid >= seqid_thr and frac_i < gap_thr and frac_j < gap_thr:
+                    matching_group = g_idx
+                    break
+            if matching_group is not None:
+                break
+
+        if matching_group is None:
+            groups.append([s_idx])
+        else:
+            groups[matching_group].append(s_idx)
 
     # sort based on sequence length
     sorted_groups = list()
     for g in groups:
-        tmp = sorted([[len(seqs[i]), i] for i in g], reverse=True)
-        sorted_groups.append([x[1] for x in tmp])
-
-    # add all single chains
-    for i in range(len(seqs)):
-        if not any(i in g for g in sorted_groups):
-            sorted_groups.append([i])
+        if len(g) > 1:
+            tmp = sorted([[len(seqs[i]), i] for i in g], reverse=True)
+            sorted_groups.append([x[1] for x in tmp])
+        else:
+            sorted_groups.append(g)
 
     # translate from indices back to sequences and directly generate alignments
     # of the groups with the longest (first) sequence as reference
@@ -1040,13 +1046,7 @@ def _GroupSequences(seqs, seqid_thr, gap_thr, aligner, chem_type):
             alns = seq.AlignmentList()
             i = g[0]
             for j in g[1:]:
-                if (i,j) in aln_cache:
-                    alns.append(aln_cache[(i,j)])
-                else:
-                    # need to revert
-                    aln = aln_cache[(j,i)]
-                    alns.append(seq.CreateAlignment(aln.GetSequence(1),
-                                                    aln.GetSequence(0)))
+                alns.append(aligner.Align(seqs[i], seqs[j], chem_type))
             # and merge
             aln_list.append(seq.alg.MergePairwiseAlignments(alns, seqs[i]))
 
