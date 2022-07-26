@@ -152,7 +152,7 @@ Real Vec3List::GetGDTHA(const Vec3List& other, bool norm) const
       ++n;
     }
   }
-  return norm && !this->empty() ? static_cast<Real>(n)/this->size() : n;
+  return norm && !this->empty() ? static_cast<Real>(n)/(this->size()*4) : n;
 }
 
 Real Vec3List::GetGDTTS(const Vec3List& other, bool norm) const
@@ -178,7 +178,7 @@ Real Vec3List::GetGDTTS(const Vec3List& other, bool norm) const
       ++n;
     }
   }
-  return norm && !this->empty() ? static_cast<Real>(n)/this->size() : n;
+  return norm && !this->empty() ? static_cast<Real>(n)/(this->size()*4) : n;
 }
 
 std::pair<Line3, Real> Vec3List::FitCylinder(const Vec3& initial_direction) const
