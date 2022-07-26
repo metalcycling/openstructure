@@ -15,7 +15,10 @@ from ost.mol.alg import lddt
 
 
 class ChainMapper:
-    def __init__(self, target, resnum_alignments=False):
+    def __init__(self, target, resnum_alignments=False,
+                 pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
+                 pep_gap_ext = -2, nuc_subst_mat = seq.alg.NUC44,
+                 nuc_gap_open = -4, nuc_gap_ext = -4):
         """Object to compute chain mappings
 
         :param target: Target structure onto which models are mapped.
@@ -27,6 +30,24 @@ class ChainMapper:
                                   alignments. Relevant for :attr:`~chem_groups` 
                                   and related attributes.
         :type resnum_alignments: :class:`bool`        
+        :param pep_subst_mat: Substitution matrix to align peptide sequences,
+                              irrelevant if *resnum_alignments* is True
+        :type pep_subst_mat: :class:`ost.seq.alg.SubstWeightMatrix`
+        :param pep_gap_open: Gap open penalty to align peptide sequences,
+                             irrelevant if *resnum_alignments* is True
+        :type pep_gap_open: :class:`int`
+        :param pep_gap_ext: Gap extension penalty to align peptide sequences,
+                            irrelevant if *resnum_alignments* is True
+        :type pep_gap_ext: :class:`int`
+        :param nuc_subst_mat: Substitution matrix to align nucleotide sequences,
+                              irrelevant if *resnum_alignments* is True
+        :type nuc_subst_mat: :class:`ost.seq.alg.SubstWeightMatrix`
+        :param nuc_gap_open: Gap open penalty to align nucleotide sequences,
+                             irrelevant if *resnum_alignments* is True
+        :type nuc_gap_open: :class:`int`
+        :param nuc_gap_ext: Gap extension penalty to align nucleotide sequences,
+                            irrelevant if *resnum_alignments* is True
+        :type nuc_gap_ext: :class:`int`
         """
 
         # target structure preprocessing
@@ -34,7 +55,13 @@ class ChainMapper:
         _ProcessStructure(target)
 
         # helper class to generate pairwise alignments
-        self.aligner = _Aligner(resnum_aln = resnum_alignments)
+        self.aligner = _Aligner(resnum_aln = resnum_alignments,
+                                pep_subst_mat = pep_subst_mat,
+                                pep_gap_open = pep_gap_open,
+                                pep_gap_ext = pep_gap_ext,
+                                nuc_subst_mat = nuc_subst_mat,
+                                nuc_gap_open = nuc_gap_open,
+                                nuc_gap_ext = nuc_gap_ext)
 
         # lazy computed attributes
         self._chem_groups = None
