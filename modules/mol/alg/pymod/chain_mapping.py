@@ -416,7 +416,7 @@ class ChainMapper:
                         res = mol.alg.SuperposeSVD(m, t)
                         transforms.append(res.transformation)
 
-        best_mapping = None
+        best_mapping = dict()
         best_gdt = 0
         for transform in transforms:
             mapping = dict()
@@ -467,7 +467,7 @@ class ChainMapper:
         for ref_chains in self.chem_groups:
             mapped_mdl_chains = list()
             for ref_ch in ref_chains:
-                if ref_ch in mapping:
+                if ref_ch in best_mapping:
                     mapped_mdl_chains.append(best_mapping[ref_ch])
                 else:
                     mapped_mdl_chains.append(None)
