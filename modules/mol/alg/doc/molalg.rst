@@ -155,6 +155,15 @@ Local Distance Test scores (lDDT, DRMSD)
 .. currentmodule:: ost.mol.alg
 
 
+:mod:`chain_mapping <ost.mol.alg.chain_mapping>` -- Chain Mapping
+--------------------------------------------------------------------------------
+
+.. automodule:: ost.mol.alg.chain_mapping
+   :members:
+   :member-order: bysource
+   :synopsis: Chain mapping in assemblies
+
+.. currentmodule:: ost.mol.alg
 
 
 

@@ -1,3 +1,8 @@
+"""
+Chain mapping aims to identify a one-to-one relationship between chains in a
+reference structure and a model.
+"""
+
 import itertools
 import copy
 
@@ -15,58 +20,83 @@ from ost.mol.alg import lddt
 
 
 class ChainMapper:
+    """ Class to compute chain mappings
+
+    Chain mapping is a three step process:
+
+    * Group chemically identical chains in *target* using pairwise
+      alignments that are either computed with Needleman-Wunsch (NW) or
+      simply derived from residue numbers (*resnum_alignments* flag).
+      In case of NW, *pep_subst_mat*, *pep_gap_open* and *pep_gap_ext*
+      and their nucleotide equivalents are relevant. Two chains are
+      considered identical if they fulfill the thresholds given by
+      *pep_seqid_thr*, *pep_gap_thr*, their nucleotide equivalents
+      respectively. The grouping information is available as
+      attributes of this class.
+
+    * Map chains in an input model to these groups. Generating alignments
+      and the similarity criteria are the same as above. You can either
+      get the group mapping with :func:`GetChemMapping` or directly call
+      one of the full fletched one-to-one chain mapping functions which
+      execute that step internally.
+
+    * Obtain one-to-one mapping for chains in an input model and
+      *target* with one of the available mapping functions. Just to get an
+      idea of complexity. If *target* and *model* are octamers, there are
+      ``8! = 40320`` possible chain mappings.
+
+    :param target: Target structure onto which models are mapped.
+                   Computations happen on a selection only containing
+                   polypeptides and polynucleotides.
+    :type target: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
+    :param resnum_alignments: Use residue numbers instead of
+                              Needleman-Wunsch to compute pairwise
+                              alignments. Relevant for :attr:`~chem_groups` 
+                              and related attributes.
+    :type resnum_alignments: :class:`bool`
+    :param pep_seqid_thr: Threshold used to decide when two chains are
+                          identical. 95 percent tolerates the few mutations
+                          crystallographers like to do.
+    :type pep_seqid_thr:  :class:`float`
+    :param pep_gap_thr: Additional threshold to avoid gappy alignments with
+                        high seqid. The reason for not just normalizing
+                        seqid by the longer sequence is that one sequence
+                        might be a perfect subsequence of the other but only
+                        cover half of it. This threshold checks for a
+                        maximum allowed fraction of gaps in any of the two
+                        sequences after stripping terminal gaps.
+    :type pep_gap_thr:  :class:`float`
+    :param nuc_seqid_thr: Nucleotide equivalent for *pep_seqid_thr*
+    :type nuc_seqid_thr:  :class:`float`
+    :param nuc_gap_thr: Nucleotide equivalent for *nuc_gap_thr*
+    :type nuc_gap_thr:  :class:`float`
+    :param pep_subst_mat: Substitution matrix to align peptide sequences,
+                          irrelevant if *resnum_alignments* is True,
+                          defaults to seq.alg.BLOSUM100
+    :type pep_subst_mat: :class:`ost.seq.alg.SubstWeightMatrix`
+    :param pep_gap_open: Gap open penalty to align peptide sequences,
+                         irrelevant if *resnum_alignments* is True
+    :type pep_gap_open: :class:`int`
+    :param pep_gap_ext: Gap extension penalty to align peptide sequences,
+                        irrelevant if *resnum_alignments* is True
+    :type pep_gap_ext: :class:`int`
+    :param nuc_subst_mat: Nucleotide equivalent for *pep_subst_mat*,
+                          defaults to seq.alg.NUC44
+    :type nuc_subst_mat: :class:`ost.seq.alg.SubstWeightMatrix`
+    :param nuc_gap_open: Nucleotide equivalent for *pep_gap_open*
+    :type nuc_gap_open: :class:`int`
+    :param nuc_gap_ext: Nucleotide equivalent for *pep_gap_ext*
+    :type nuc_gap_ext: :class:`int`
+    """
     def __init__(self, target, resnum_alignments=False,
                  pep_seqid_thr = 95., pep_gap_thr = 0.1,
                  nuc_seqid_thr = 95., nuc_gap_thr = 0.1,
                  pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
                  pep_gap_ext = -2, nuc_subst_mat = seq.alg.NUC44,
                  nuc_gap_open = -4, nuc_gap_ext = -4):
-        """ Object to compute chain mappings
-
-        :param target: Target structure onto which models are mapped.
-                       Computations happen on a selection only containing
-                       polypeptides and polynucleotides.
-        :type target: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
-        :param resnum_alignments: Use residue numbers instead of
-                                  Needleman-Wunsch to compute pairwise
-                                  alignments. Relevant for :attr:`~chem_groups` 
-                                  and related attributes.
-        :type resnum_alignments: :class:`bool`
-        :param pep_seqid_thr: Threshold used to decide when two chains are
-                              identical. 95 percent tolerates the few mutations
-                              crystallographers like to do.
-        :type pep_seqid_thr:  :class:`float`
-        :param pep_gap_thr: Additional threshold to avoid gappy alignments with
-                            high seqid. The reason for not just normalizing
-                            seqid by the longer sequence is that one sequence
-                            might be a perfect subsequence of the other but only
-                            cover half of it. This threshold checks for a
-                            maximum allowed fraction of gaps in any of the two
-                            sequences after stripping terminal gaps.
-        :type pep_gap_thr:  :class:`float`
-        :param nuc_seqid_thr: Nucleotide equivalent for *pep_seqid_thr*
-        :type nuc_seqid_thr:  :class:`float`
-        :param nuc_gap_thr: Nucleotide equivalent for *nuc_gap_thr*
-        :type nuc_gap_thr:  :class:`float`
-        :param pep_subst_mat: Substitution matrix to align peptide sequences,
-                              irrelevant if *resnum_alignments* is True
-        :type pep_subst_mat: :class:`ost.seq.alg.SubstWeightMatrix`
-        :param pep_gap_open: Gap open penalty to align peptide sequences,
-                             irrelevant if *resnum_alignments* is True
-        :type pep_gap_open: :class:`int`
-        :param pep_gap_ext: Gap extension penalty to align peptide sequences,
-                            irrelevant if *resnum_alignments* is True
-        :type pep_gap_ext: :class:`int`
-        :param nuc_subst_mat: Nucleotide equivalent for *pep_subst_mat*
-        :type nuc_subst_mat: :class:`ost.seq.alg.SubstWeightMatrix`
-        :param nuc_gap_open: Nucleotide equivalent for *pep_gap_open*
-        :type nuc_gap_open: :class:`int`
-        :param nuc_gap_ext: Nucleotide equivalent for *pep_gap_ext*
-        :type nuc_gap_ext: :class:`int`
-        """
 
         # target structure preprocessing
-        self.target, self.polypep_seqs, self.polynuc_seqs = \
+        self._target, self._polypep_seqs, self._polynuc_seqs = \
         _ProcessStructure(target)
 
         # helper class to generate pairwise alignments
@@ -91,11 +121,39 @@ class ChainMapper:
         self._chem_group_types = None
 
     @property
-    def chem_groups(self):
-        """Groups of chemically equivalent poly-peptides/nucleotides in *target*
+    def target(self):
+        """Target structure that only contains peptides/nucleotides
 
-        Seq. id. > 95% is considered equivalent. First chain in group is the one
-        with longest sequence.
+        Contains only residues that have the backbone representatives
+        (CA for peptide and C3' for nucleotides) to avoid ATOMSEQ alignment
+        inconsistencies when switching between all atom and backbone only
+        representations.
+
+        :type: :class:`ost.mol.EntityView`
+        """
+        return self._target
+
+    @property
+    def polypep_seqs(self):
+        """Sequences of peptide chains in :attr:`~target`
+
+        :type: :class:`ost.seq.SequenceList`
+        """
+        return self._polypep_seqs
+
+    @property
+    def polynuc_seqs(self):
+        """Sequences of nucleotide chains in :attr:`~target`
+
+        :type: :class:`ost.seq.SequenceList`
+        """
+        return self._polynuc_seqs
+    
+    @property
+    def chem_groups(self):
+        """Groups of chemically equivalent chains in :attr:`~target`
+
+        First chain in group is the one with longest sequence.
       
         :getter: Computed on first use (cached)
         :type: :class:`list` of :class:`list` of :class:`str` (chain names)
@@ -218,9 +276,9 @@ class ChainMapper:
 
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
-        :param bb_only: lDDT considers only atoms of name "CA" (peptides) or
-                        "C3'" (nucleotides). Gives speed improvement but
-                        sidechains are not considered anymore.
+        :param bb_only: Only consider atoms of name "CA" (peptides) or "C3'"
+                        (nucleotides). Gives speed improvement but sidechains
+                        are not considered anymore.
         :type bb_only: :class:`bool`
         :param inclusion_radius: Inclusion radius for lDDT
         :type inclusion_radius: :class:`float`
@@ -278,9 +336,10 @@ class ChainMapper:
         """Naively iterates all possible chain mappings and returns the best
 
         Maps *model* chain sequences to :attr:`~chem_groups` and performs all
-        possible permutations. The best mapping is selected based on lDDT score
-        which is computed only on backbone atoms (CA for amino acids C3' for
-        Nucleotides).
+        possible permutations. The difference to :func:`GetNaivelDDTMapping` is
+        the use of extensive caching due to the pairwise decomposability of the
+        lDDT score when only backbone atoms (CA for amino acids C3' for
+        Nucleotides) are considered.
 
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
@@ -427,7 +486,7 @@ class ChainMapper:
         """Identify chain mapping based on rigid superposition
 
         Superposition and scoring is based on CA/C3' positions which are present
-        in all chains of a :attr:`ChainMapper.chem_group` as well as the *model*
+        in all chains of a :attr:`chem_groups` as well as the *model*
         chains which are mapped to that respective chem group.
 
         Transformations to superpose *model* onto :attr:`ChainMapper.target`
@@ -554,7 +613,7 @@ class ChainMapper:
         """ Returns number of possible mappings
 
         :param model: Model with chains that are mapped onto
-                      :attr:`ChainMapper.chem_groups`
+                      :attr:`chem_groups`
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
         """
         chem_mapping, chem_group_alns, mdl = self.GetChemMapping(model)
@@ -1780,3 +1839,6 @@ def _ChainMappings(ref_chains, mdl_chains):
             iterators.append(_RefLargerGenerator(ref, mdl))
 
     return itertools.product(*iterators)
+
+# specify public interface
+__all__ = ('ChainMapper',)
