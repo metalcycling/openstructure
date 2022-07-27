@@ -16,10 +16,12 @@ from ost.mol.alg import lddt
 
 class ChainMapper:
     def __init__(self, target, resnum_alignments=False,
+                 pep_seqid_thr = 95., pep_gap_thr = 0.1,
+                 nuc_seqid_thr = 95., nuc_gap_thr = 0.1,
                  pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
                  pep_gap_ext = -2, nuc_subst_mat = seq.alg.NUC44,
                  nuc_gap_open = -4, nuc_gap_ext = -4):
-        """Object to compute chain mappings
+        """ Object to compute chain mappings
 
         :param target: Target structure onto which models are mapped.
                        Computations happen on a selection only containing
@@ -29,7 +31,23 @@ class ChainMapper:
                                   Needleman-Wunsch to compute pairwise
                                   alignments. Relevant for :attr:`~chem_groups` 
                                   and related attributes.
-        :type resnum_alignments: :class:`bool`        
+        :type resnum_alignments: :class:`bool`
+        :param pep_seqid_thr: Threshold used to decide when two chains are
+                              identical. 95 percent tolerates the few mutations
+                              crystallographers like to do.
+        :type pep_seqid_thr:  :class:`float`
+        :param pep_gap_thr: Additional threshold to avoid gappy alignments with
+                            high seqid. The reason for not just normalizing
+                            seqid by the longer sequence is that one sequence
+                            might be a perfect subsequence of the other but only
+                            cover half of it. This threshold checks for a
+                            maximum allowed fraction of gaps in any of the two
+                            sequences after stripping terminal gaps.
+        :type pep_gap_thr:  :class:`float`
+        :param nuc_seqid_thr: Nucleotide equivalent for *pep_seqid_thr*
+        :type nuc_seqid_thr:  :class:`float`
+        :param nuc_gap_thr: Nucleotide equivalent for *nuc_gap_thr*
+        :type nuc_gap_thr:  :class:`float`
         :param pep_subst_mat: Substitution matrix to align peptide sequences,
                               irrelevant if *resnum_alignments* is True
         :type pep_subst_mat: :class:`ost.seq.alg.SubstWeightMatrix`
@@ -39,14 +57,11 @@ class ChainMapper:
         :param pep_gap_ext: Gap extension penalty to align peptide sequences,
                             irrelevant if *resnum_alignments* is True
         :type pep_gap_ext: :class:`int`
-        :param nuc_subst_mat: Substitution matrix to align nucleotide sequences,
-                              irrelevant if *resnum_alignments* is True
+        :param nuc_subst_mat: Nucleotide equivalent for *pep_subst_mat*
         :type nuc_subst_mat: :class:`ost.seq.alg.SubstWeightMatrix`
-        :param nuc_gap_open: Gap open penalty to align nucleotide sequences,
-                             irrelevant if *resnum_alignments* is True
+        :param nuc_gap_open: Nucleotide equivalent for *pep_gap_open*
         :type nuc_gap_open: :class:`int`
-        :param nuc_gap_ext: Gap extension penalty to align nucleotide sequences,
-                            irrelevant if *resnum_alignments* is True
+        :param nuc_gap_ext: Nucleotide equivalent for *pep_gap_ext*
         :type nuc_gap_ext: :class:`int`
         """
 
@@ -62,6 +77,12 @@ class ChainMapper:
                                 nuc_subst_mat = nuc_subst_mat,
                                 nuc_gap_open = nuc_gap_open,
                                 nuc_gap_ext = nuc_gap_ext)
+
+        # attributes
+        self.pep_seqid_thr = pep_seqid_thr
+        self.pep_gap_thr = pep_gap_thr
+        self.nuc_seqid_thr = nuc_seqid_thr
+        self.nuc_gap_thr = nuc_gap_thr
 
         # lazy computed attributes
         self._chem_groups = None
@@ -97,7 +118,12 @@ class ChainMapper:
         if self._chem_group_alignments is None:
             self._chem_group_alignments, self._chem_group_types = \
             _GetChemGroupAlignments(self.polypep_seqs, self.polynuc_seqs,
-                                    self.aligner)
+                                    self.aligner,
+                                    pep_seqid_thr=self.pep_seqid_thr,
+                                    pep_gap_thr=self.pep_gap_thr,
+                                    nuc_seqid_thr=self.nuc_seqid_thr,
+                                    nuc_gap_thr=self.nuc_gap_thr)
+
         return self._chem_group_alignments
 
     @property
@@ -131,7 +157,12 @@ class ChainMapper:
         if self._chem_group_types is None:
             self._chem_group_alignments, self._chem_group_types = \
             _GetChemGroupAlignments(self.polypep_seqs, self.polynuc_seqs,
-                                    self.aligner)            
+                                    self.aligner,
+                                    pep_seqid_thr=self.pep_seqid_thr,
+                                    pep_gap_thr=self.pep_gap_thr,
+                                    nuc_seqid_thr=self.nuc_seqid_thr,
+                                    nuc_gap_thr=self.nuc_gap_thr)
+
         return self._chem_group_types
         
     def GetChemMapping(self, model):
@@ -160,7 +191,8 @@ class ChainMapper:
             idx, aln = _MapSequence(self.chem_group_ref_seqs, 
                                     self.chem_group_types,
                                     s, mol.ChemType.AMINOACIDS,
-                                    95., 0.1, self.aligner)
+                                    self.pep_seqid_thr, self.pep_gap_thr,
+                                    self.aligner)
             if idx is not None:
                 mapping[idx].append(s.GetName())
                 alns[idx].append(aln)
@@ -169,13 +201,13 @@ class ChainMapper:
             idx, aln = _MapSequence(self.chem_group_ref_seqs, 
                                     self.chem_group_types,
                                     s, mol.ChemType.NUCLEOTIDES,
-                                    95., 0.1, self.aligner)
+                                    self.nuc_seqid_thr, self.nuc_gap_thr,
+                                    self.aligner)
             if idx is not None:
                 mapping[idx].append(s.GetName())
                 alns[idx].append(aln)
 
         return (mapping, alns, mdl)
-
 
     def GetNaivelDDTMapping(self, model, bb_only=False, inclusion_radius=15.0,
                             thresholds=[0.5, 1.0, 2.0, 4.0]):
@@ -289,7 +321,6 @@ class ChainMapper:
 
         return best_mapping
 
-
     def GetGreedylDDTMapping(self, model, inclusion_radius=15.0,
                              thresholds=[0.5, 1.0, 2.0, 4.0],
                              seed_strategy="fast", steep_opt_rate = None,
@@ -390,7 +421,6 @@ class ChainMapper:
             return _FullGreedy(the_greed, full_n_mdl_chains)
         elif seed_strategy == "block":
             return _BlockGreedy(the_greed, block_seed_size, block_n_mdl_chains)
-
 
     def GetRigidMapping(self, model, single_chain_gdtts_thresh=0.4,
                         subsampling=None, first_complete=False):
@@ -519,7 +549,6 @@ class ChainMapper:
             final_mapping.append(mapped_mdl_chains)
 
         return final_mapping
-
 
     def GetNMappings(self, model):
         """ Returns number of possible mappings
@@ -747,27 +776,32 @@ def _GetAlnProps(aln):
     gap_frac_2 = float(n_gaps_2)/len(aln.GetSequence(1).GetGaplessString())
     return (seqid, gap_frac_1, gap_frac_2) 
 
-def _GetChemGroupAlignments(pep_seqs, nuc_seqs, aligner, seqid_thr=95.,
-                            gap_thr=0.1):
+def _GetChemGroupAlignments(pep_seqs, nuc_seqs, aligner, pep_seqid_thr=95.,
+                            pep_gap_thr=0.1, nuc_seqid_thr=95.,
+                            nuc_gap_thr=0.1):
     """Returns alignments with groups of chemically equivalent chains
 
     :param pep_seqs: List of polypeptide sequences
     :type pep_seqs: :class:`seq.SequenceList`
     :param nuc_seqs: List of polynucleotide sequences
     :type nuc_seqs: :class:`seq.SequenceList` 
-    :param seqid_thr: Threshold used to decide when two chains are identical.
-                      95 percent tolerates the few mutations crystallographers
-                      like to do.
-    :type seqid_thr:  :class:`float`
-    :param gap_thr: Additional threshold to avoid gappy alignments with high
-                    seqid. The reason for not just normalizing seqid by the
-                    longer sequence is that one sequence might be a perfect
-                    subsequence of the other but only cover half of it. This
-                    threshold checks for a maximum allowed fraction of gaps
-                    in any of the two sequences after stripping terminal gaps.
-    :type gap_thr: :class:`float`
     :param aligner: Helper class to generate pairwise alignments
     :type aligner: :class:`_Aligner`
+    :param pep_seqid_thr: Threshold used to decide when two peptide chains are
+                          identical. 95 percent tolerates the few mutations
+                          crystallographers like to do.
+    :type pep_seqid_thr:  :class:`float`
+    :param pep_gap_thr: Additional threshold to avoid gappy alignments with high
+                        seqid. The reason for not just normalizing seqid by the
+                        longer sequence is that one sequence might be a perfect
+                        subsequence of the other but only cover half of it. This
+                        threshold checks for a maximum allowed fraction of gaps
+                        in any of the two sequences after stripping terminal gaps.
+    :type pep_gap_thr: :class:`float`
+    :param nuc_seqid_thr: Nucleotide equivalent of *pep_seqid_thr*
+    :type nuc_seqid_thr:  :class:`float`
+    :param nuc_gap_thr: Nucleotide equivalent of *nuc_gap_thr*
+    :type nuc_gap_thr: :class:`float`
     :returns: Tuple with first element being an AlignmentList. Each alignment
               represents a group of chemically equivalent chains and the first
               sequence is the longest. Second element is a list of equivalent
@@ -775,9 +809,9 @@ def _GetChemGroupAlignments(pep_seqs, nuc_seqs, aligner, seqid_thr=95.,
               [:class:`ost.ChemType.AMINOACIDS`,
               :class:`ost.ChemType.NUCLEOTIDES`] 
     """
-    pep_groups = _GroupSequences(pep_seqs, seqid_thr, gap_thr, aligner,
+    pep_groups = _GroupSequences(pep_seqs, pep_seqid_thr, pep_gap_thr, aligner,
                                  mol.ChemType.AMINOACIDS)
-    nuc_groups = _GroupSequences(nuc_seqs, seqid_thr, gap_thr, aligner,
+    nuc_groups = _GroupSequences(nuc_seqs, nuc_seqid_thr, nuc_gap_thr, aligner,
                                  mol.ChemType.NUCLEOTIDES)
     group_types = [mol.ChemType.AMINOACIDS] * len(pep_groups)
     group_types += [mol.ChemType.NUCLEOTIDES] * len(nuc_groups)
@@ -789,8 +823,6 @@ def _GroupSequences(seqs, seqid_thr, gap_thr, aligner, chem_type):
     """Get list of alignments representing groups of equivalent sequences
 
     :param seqid_thr: Threshold used to decide when two chains are identical.
-                      95 percent tolerates the few mutations crystallographers
-                      like to do.
     :type seqid_thr:  :class:`float`
     :param gap_thr: Additional threshold to avoid gappy alignments with high
                     seqid. The reason for not just normalizing seqid by the
