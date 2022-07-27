@@ -49,10 +49,22 @@ namespace {
         ostr_ << format("%10.4f") % atom.GetPos()[0]
               << format("%10.4f") % atom.GetPos()[1]
               << format("%10.4f ") % atom.GetPos()[2]
-              << format("%-3s") % atom.GetElement()
+              << format("%-3s") % SDFAtomWriter::FormatEle(atom.GetElement())
               << " 0  0  0  0  0  0"
               << std::endl;
         return true;
+      }
+
+      static String FormatEle(const String& ele) {
+        // OpenStructure has no strict requirements on lower or upper case
+        // for elements. However, some sdf readers (read: rdkit) want the first
+        // character to upper case, the rest in lower case.
+        String return_ele = ele;
+        if(!return_ele.empty()) return_ele[0] = toupper(return_ele[0]);
+        for(size_t i = 1; i < return_ele.size(); ++i) {
+          return_ele[i] = tolower(return_ele[i]);
+        }
+        return return_ele;
       }
     private:
       std::ostream&      ostr_;
