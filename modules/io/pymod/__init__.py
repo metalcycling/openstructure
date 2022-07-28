@@ -21,11 +21,21 @@ import os, tempfile, ftplib, http.client
 from ._ost_io import *
 from ost import mol, geom, conop, seq
 
-profiles=None
-
 class IOProfiles:
   def __init__(self):
-     self._dict={}
+    self._dict={}
+
+    if conop.GetDefaultLib():
+      processor = conop.RuleBasedProcessor(conop.GetDefaultLib())
+    else:
+      processor = conop.HeuristicProcessor()
+    self['STRICT'] = IOProfile(dialect='PDB', fault_tolerant=False,
+                               quack_mode=False, processor=processor.Copy())
+    self['SLOPPY'] = IOProfile(dialect='PDB', fault_tolerant=True,
+                               quack_mode=True, processor=processor.Copy())
+    self['CHARMM'] = IOProfile(dialect='CHARMM', fault_tolerant=True,
+                               quack_mode=False, processor=processor.Copy())
+    self['DEFAULT'] = 'STRICT'
 
   def __getitem__(self, key):
     return IOProfileRegistry.Instance().Get(key)
@@ -36,25 +46,32 @@ class IOProfiles:
     IOProfileRegistry.Instance().Set(key, value)
     self._dict[key]=value
 
+  def Get(self, key):
+    """ Getter which keeps compound library up to date
+
+    Keeps compound library for default profiles up to date. Reason for that is
+    that conop.SetDefaultLib() after importing io has no effect. Processors
+    (and the associated compound library) are set at import. Custom profiles,
+    i.e. profiles that are not defined in constructor of this class, are
+    returned as is without any update.
+    """
+    if key not in ['STRICT', 'SLOPPY', 'CHARMM', 'DEFAULT']:
+      return self[key].Copy()
+    prof = self[key].Copy()
+    if conop.GetDefaultLib():
+      processor = conop.RuleBasedProcessor(conop.GetDefaultLib())
+    else:
+      processor = conop.HeuristicProcessor()
+    prof.processor = processor
+    return prof
+
   def __len__(self):
     return len(self._dict)
 
   def __iter__(self):
     return self._dict.__iter__()
 
-if not profiles:
-  profiles=IOProfiles()
-  if conop.GetDefaultLib():
-    processor = conop.RuleBasedProcessor(conop.GetDefaultLib())
-  else:
-    processor = conop.HeuristicProcessor()
-  profiles['STRICT']=IOProfile(dialect='PDB', fault_tolerant=False,
-                               quack_mode=False, processor=processor.Copy())
-  profiles['SLOPPY']=IOProfile(dialect='PDB', fault_tolerant=True,
-                               quack_mode=True, processor=processor.Copy())
-  profiles['CHARMM']=IOProfile(dialect='CHARMM', fault_tolerant=True,
-                               quack_mode=False, processor=processor.Copy())
-  profiles['DEFAULT']='STRICT'
+profiles = IOProfiles()
 
 def _override(val1, val2):
   if val2!=None:
@@ -122,7 +139,7 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
     else:
       return val1
   if isinstance(profile, str):
-    prof=profiles[profile].Copy()
+    prof=profiles.Get(profile)
   elif isinstance(profile, IOProfile):
     prof=profile.Copy()
   else:
@@ -207,9 +224,9 @@ def SavePDB(models, filename, dialect=None,  pqr=False, profile='DEFAULT'):
   if not getattr(models, '__len__', None):
     models=[models]
   if isinstance(profile, str):
-    profile=profiles[profile].Copy()
+    profile=profiles.Get(profile)
   elif isinstance(profile, IOProfile):
-    profile.Copy()
+    profile = profile.Copy()
   else:
     raise TypeError('profile must be of type string or IOProfile, '+\
                     'instead of %s'%type(profile))
@@ -314,7 +331,7 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None, profile='DEFAULT'
     else:
       return val1
   if isinstance(profile, str):
-    prof = profiles[profile].Copy()
+    prof = profiles.Get(profile)
   else:
     prof = profile.Copy()
 
