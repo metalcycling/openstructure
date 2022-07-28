@@ -137,6 +137,9 @@ class ChainMapper:
     def polypep_seqs(self):
         """Sequences of peptide chains in :attr:`~target`
 
+        Respective :class:`EntityView` from *target* for each sequence s are
+        available as ``s.GetAttachedView()``
+
         :type: :class:`ost.seq.SequenceList`
         """
         return self._polypep_seqs
@@ -144,6 +147,9 @@ class ChainMapper:
     @property
     def polynuc_seqs(self):
         """Sequences of nucleotide chains in :attr:`~target`
+
+        Respective :class:`EntityView` from *target* for each sequence s are
+        available as ``s.GetAttachedView()``
 
         :type: :class:`ost.seq.SequenceList`
         """
@@ -168,7 +174,8 @@ class ChainMapper:
     def chem_group_alignments(self):
         """MSA for each group in :attr:`~chem_groups`
 
-        Sequences in MSAs exhibit same order as in :attr:`~chem_groups`
+        Sequences in MSAs exhibit same order as in :attr:`~chem_groups` and
+        have the respective :class:`EntityView` from *target* attached.
 
         :getter: Computed on first use (cached)
         :type: :class:`ost.seq.AlignmentList`
@@ -188,6 +195,9 @@ class ChainMapper:
     def chem_group_ref_seqs(self):
         """Reference (longest) sequence for each group in :attr:`~chem_groups`
 
+        Respective :class:`EntityView` from *target* for each sequence s are
+        available as ``s.GetAttachedView()``
+
         :getter: Computed on first use (cached)
         :type: :class:`ost.seq.SequenceList`
         """
@@ -196,8 +206,7 @@ class ChainMapper:
             for a in self.chem_group_alignments:
                 s = seq.CreateSequence(a.GetSequence(0).GetName(),
                                        a.GetSequence(0).GetGaplessString())
-                if a.GetSequence(0).HasAttachedView():
-                    s.AttachView(a.GetSequence(0).GetAttachedView())
+                s.AttachView(a.GetSequence(0).GetAttachedView())
                 self._chem_group_ref_seqs.AddSequence(s)
         return self._chem_group_ref_seqs
 
@@ -642,37 +651,7 @@ def _ProcessStructure(ent):
     """
     view = _StructureSelection(ent)
     polypep_seqs, polynuc_seqs = _GetAtomSeqs(view)
-
-    for s in polypep_seqs:
-        _AttachSeq(view, s)
-
-    for s in polynuc_seqs:
-        _AttachSeq(view, s)
-
     return (view, polypep_seqs, polynuc_seqs)
-
-def _AttachSeq(view, s):
-    """ Helper for _ProcessStructure
-
-    Attaches view of chain with name s.GetName() to s and does sanity checks on
-    residue numbers in that view
-    """
-    chain_view = view.Select(f"cname={s.GetName()}")
-
-    # check if no insertion codes are present in residue numbers
-    ins_codes = [r.GetNumber().GetInsCode() for r in chain_view.residues]
-    if len(set(ins_codes)) != 1 or ins_codes[0] != '\0':
-        raise RuntimeError("Residue numbers in input structures must not "
-                           "contain insertion codes")
-
-    # check if residue numbers are strictly increasing
-    nums = [r.GetNumber().GetNum() for r in chain_view.residues]
-    if not all(i < j for i, j in zip(nums, nums[1:])):
-        raise RuntimeError("Residue numbers in input structures must be "
-                           "strictly increasing for each chain")
-
-    # attach
-    s.AttachView(chain_view)
 
 def _StructureSelection(ent):
     """ Helper for _ProcessStructure
@@ -694,16 +673,18 @@ def _StructureSelection(ent):
 def _GetAtomSeqs(ent):
     """ Helper for _ProcessStructure
 
-    Extracts and returns atomseqs for polypeptide/nucleotide chains in ent
+    Extracts and returns atomseqs for polypeptide/nucleotide chains with 
+    attached :class:`ost.mol.EntityView`
 
     :param ent: Entity for which you want to extract atomseqs
     :type ent: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
     :returns: Two lists, first containing atomseqs for all polypeptide chains,
               the second is the same for polynucleotides
-    :raises: :class:`RuntimeError` if ent contains any residue which doesn't
-             evaluate True for `r.IsPeptideLinking() or r.IsNucleotideLinking()`
-             or when these two types are not strictly separated in different
-             chains.
+    :raises: :class:`RuntimeError` if ent contains any residue which evaluates
+             False for `r.IsPeptideLinking() or r.IsNucleotideLinking()`,
+             these two types are not strictly separated in different chains,
+             residue numbers in a chain are not strictly increasing or contain
+             insertion codes.
     """
     polypep_seqs = seq.CreateSequenceList()
     polynuc_seqs = seq.CreateSequenceList()
@@ -722,11 +703,25 @@ def _GetAtomSeqs(ent):
             raise RuntimeError("All residues must either be peptide_linking "
                                "or nucleotide_linking")
 
+        # check if no insertion codes are present in residue numbers
+        ins_codes = [r.GetNumber().GetInsCode() for r in ch.residues]
+        if len(set(ins_codes)) != 1 or ins_codes[0] != '\0':
+            raise RuntimeError("Residue numbers in input structures must not "
+                               "contain insertion codes")
+
+        # check if residue numbers are strictly increasing
+        nums = [r.GetNumber().GetNum() for r in ch.residues]
+        if not all(i < j for i, j in zip(nums, nums[1:])):
+            raise RuntimeError("Residue numbers in input structures must be "
+                               "strictly increasing for each chain")
+
         s = ''.join([r.one_letter_code for r in ch.residues])
+        s = seq.CreateSequence(ch.GetName(), s)
+        s.AttachView(ent.Select(f"cname={ch.GetName()}"))
         if n_pep == n_res:
-            polypep_seqs.AddSequence(seq.CreateSequence(ch.GetName(), s))
+            polypep_seqs.AddSequence(s)
         elif n_nuc == n_res:
-            polynuc_seqs.AddSequence(seq.CreateSequence(ch.GetName(), s))
+            polynuc_seqs.AddSequence(s)
         else:
             raise RuntimeError("This shouldnt happen")
 
@@ -950,8 +945,7 @@ def _GroupSequences(seqs, seqid_thr, gap_thr, aligner, chem_type):
         for aln_s_idx in range(aln_list[aln_idx].GetCount()):
             s_name = aln_list[aln_idx].GetSequence(aln_s_idx).GetName()
             s = seq_dict[s_name]
-            if s.HasAttachedView():
-                aln_list[aln_idx].AttachView(aln_s_idx, s.GetAttachedView())
+            aln_list[aln_idx].AttachView(aln_s_idx, s.GetAttachedView())
 
     return aln_list
 
