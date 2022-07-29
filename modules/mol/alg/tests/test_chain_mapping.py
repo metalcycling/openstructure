@@ -14,6 +14,21 @@ def _LoadFile(file_name):
   """Helper to avoid repeating input path over and over."""
   return io.LoadPDB(os.path.join('testfiles', file_name))
 
+def _CompareViews(v1, v2):
+  """Iterates over atoms of the two views and compares qualified names / pos
+  """
+  if len(v1.atoms) != len(v2.atoms):
+    return False
+  for a,b in zip(v1.atoms, v2.atoms):
+    if a.GetQualifiedName() != b.GetQualifiedName():
+      return False
+    a_p = a.GetPos()
+    b_p = b.GetPos()
+    d = a_p - b_p
+    if max([abs(d[0]), abs(d[1]), abs(d[2])]) > 0.001:
+      return False
+  return True
+
 class TestChainMapper(unittest.TestCase):
 
   def test_chem_grouping(self):
@@ -48,6 +63,15 @@ class TestChainMapper(unittest.TestCase):
     self.assertEqual(str(mapper.polynuc_seqs[0]), str(nuc_s_one))
     self.assertEqual(str(mapper.polynuc_seqs[1]), str(nuc_s_two))
 
+    for s in mapper.polypep_seqs:
+      self.assertTrue(s.HasAttachedView())
+    for s in mapper.polynuc_seqs:
+      self.assertTrue(s.HasAttachedView())
+    self.assertTrue(_CompareViews(mapper.polypep_seqs[0].GetAttachedView(), pep_view_one))
+    self.assertTrue(_CompareViews(mapper.polypep_seqs[1].GetAttachedView(), pep_view_two))
+    self.assertTrue(_CompareViews(mapper.polynuc_seqs[0].GetAttachedView(), nuc_view_one))
+    self.assertTrue(_CompareViews(mapper.polynuc_seqs[1].GetAttachedView(), nuc_view_two))
+
     # peptide sequences should be in the same group, the nucleotides not
     self.assertEqual(len(mapper.chem_group_alignments), 3)
     self.assertEqual(len(mapper.chem_groups), 3)
@@ -65,6 +89,11 @@ class TestChainMapper(unittest.TestCase):
     self.assertEqual(str(mapper.chem_group_ref_seqs[0]), str(pep_s_one))
     self.assertEqual(str(mapper.chem_group_ref_seqs[1]), str(nuc_s_one))
     self.assertEqual(str(mapper.chem_group_ref_seqs[2]), str(nuc_s_two))
+    for s in mapper.chem_group_ref_seqs:
+      self.assertTrue(s.HasAttachedView()) 
+    self.assertTrue(_CompareViews(mapper.chem_group_ref_seqs[0].GetAttachedView(), pep_view_one))
+    self.assertTrue(_CompareViews(mapper.chem_group_ref_seqs[1].GetAttachedView(), nuc_view_one))
+    self.assertTrue(_CompareViews(mapper.chem_group_ref_seqs[2].GetAttachedView(), nuc_view_two))
 
     # check chem_group_alignments attribute
     self.assertEqual(len(mapper.chem_group_alignments), 3)
@@ -79,6 +108,14 @@ class TestChainMapper(unittest.TestCase):
     self.assertEqual(s0.GetGaplessString(), str(nuc_s_one))
     s0 = mapper.chem_group_alignments[2].GetSequence(0)
     self.assertEqual(s0.GetGaplessString(), str(nuc_s_two))
+    self.assertTrue(mapper.chem_group_alignments[0].GetSequence(0).HasAttachedView())
+    self.assertTrue(mapper.chem_group_alignments[0].GetSequence(1).HasAttachedView())
+    self.assertTrue(mapper.chem_group_alignments[1].GetSequence(0).HasAttachedView())
+    self.assertTrue(mapper.chem_group_alignments[2].GetSequence(0).HasAttachedView())
+    self.assertTrue(_CompareViews(mapper.chem_group_alignments[0].GetSequence(0).GetAttachedView(), pep_view_one))
+    self.assertTrue(_CompareViews(mapper.chem_group_alignments[0].GetSequence(1).GetAttachedView(), pep_view_two))
+    self.assertTrue(_CompareViews(mapper.chem_group_alignments[1].GetSequence(0).GetAttachedView(), nuc_view_one))
+    self.assertTrue(_CompareViews(mapper.chem_group_alignments[2].GetSequence(0).GetAttachedView(), nuc_view_two))
 
     # ensure that error is triggered if there are insertion codes
     tmp_ent = ent.Copy()
@@ -130,6 +167,99 @@ class TestChainMapper(unittest.TestCase):
     mapper = ChainMapper(tmp_ent, nuc_gap_thr=0.0)
     self.assertEqual(len(mapper.polynuc_seqs), 3)
     self.assertEqual(len(mapper.chem_groups), 4)
+
+  def test_chem_mapping(self):
+
+    ref = _LoadFile("3l1p.1.pdb")
+    mdl = _LoadFile("3l1p.1_model.pdb")
+
+    # manually extract polypeptide and nucleotide views/sequences
+    ref_pep_view_one = ref.Select("cname=A")
+    ref_pep_view_two = ref.Select("cname=B")
+    ref_nuc_view_one = ref.Select("cname=C")
+    ref_nuc_view_two = ref.Select("cname=D")
+
+    ref_pep_s_one = ''.join([r.one_letter_code for r in ref_pep_view_one.residues])
+    ref_pep_s_one = seq.CreateSequence("A", ref_pep_s_one)
+    ref_pep_s_two = ''.join([r.one_letter_code for r in ref_pep_view_two.residues])
+    ref_pep_s_two = seq.CreateSequence("B", ref_pep_s_two)
+
+    ref_nuc_s_one = ''.join([r.one_letter_code for r in ref_nuc_view_one.residues])
+    ref_nuc_s_one = seq.CreateSequence("C", ref_nuc_s_one)
+    ref_nuc_s_two = ''.join([r.one_letter_code for r in ref_nuc_view_two.residues])
+    ref_nuc_s_two = seq.CreateSequence("D", ref_nuc_s_two)
+
+
+    mdl_pep_view_one = mdl.Select("cname=X")
+    mdl_pep_view_two = mdl.Select("cname=Y")
+    mdl_nuc_view_one = mdl.Select("cname=Z")
+
+    mdl_pep_s_one = ''.join([r.one_letter_code for r in mdl_pep_view_one.residues])
+    mdl_pep_s_one = seq.CreateSequence("X", mdl_pep_s_one)
+    mdl_pep_s_two = ''.join([r.one_letter_code for r in mdl_pep_view_two.residues])
+    mdl_pep_s_two = seq.CreateSequence("Y", mdl_pep_s_two)
+
+    mdl_nuc_s_one = ''.join([r.one_letter_code for r in mdl_nuc_view_one.residues])
+    mdl_nuc_s_one = seq.CreateSequence("Z", mdl_nuc_s_one)
+
+    mapper = ChainMapper(ref)
+
+    chem_mapping, alns, mdl_view = mapper.GetChemMapping(mdl)
+
+    self.assertEqual(len(mapper.chem_groups), 3)
+    self.assertEqual(len(chem_mapping), len(mapper.chem_groups))
+    self.assertEqual(chem_mapping[0], ['X', 'Y'])
+    self.assertEqual(chem_mapping[1], [])
+    self.assertEqual(chem_mapping[2], ['Z'])
+
+    self.assertEqual(len(alns), 3)
+    self.assertEqual(len(alns[0]), 2)
+    self.assertEqual(len(alns[1]), 0)
+    self.assertEqual(len(alns[2]), 1)
+
+    self.assertEqual(alns[0][0].GetSequence(0).GetGaplessString(), str(ref_pep_s_one))
+    self.assertEqual(alns[0][0].GetSequence(1).GetGaplessString(), str(mdl_pep_s_one))
+    self.assertEqual(alns[0][1].GetSequence(0).GetGaplessString(), str(ref_pep_s_one))
+    self.assertEqual(alns[0][1].GetSequence(1).GetGaplessString(), str(mdl_pep_s_two))
+    self.assertEqual(alns[2][0].GetSequence(0).GetGaplessString(), str(ref_nuc_s_two))
+    self.assertEqual(alns[2][0].GetSequence(1).GetGaplessString(), str(mdl_nuc_s_one))
+
+    self.assertTrue(alns[0][0].GetSequence(0).HasAttachedView())
+    self.assertTrue(alns[0][0].GetSequence(1).HasAttachedView())
+    self.assertTrue(alns[0][1].GetSequence(0).HasAttachedView())
+    self.assertTrue(alns[0][1].GetSequence(1).HasAttachedView())
+    self.assertTrue(alns[2][0].GetSequence(0).HasAttachedView())
+    self.assertTrue(alns[2][0].GetSequence(1).HasAttachedView())
+    self.assertTrue(_CompareViews(alns[0][0].GetSequence(0).GetAttachedView(),ref_pep_view_one))
+    self.assertTrue(_CompareViews(alns[0][0].GetSequence(1).GetAttachedView(),mdl_pep_view_one))
+    self.assertTrue(_CompareViews(alns[0][1].GetSequence(0).GetAttachedView(),ref_pep_view_one))
+    self.assertTrue(_CompareViews(alns[0][1].GetSequence(1).GetAttachedView(),mdl_pep_view_two))
+    self.assertTrue(_CompareViews(alns[2][0].GetSequence(0).GetAttachedView(),ref_nuc_view_two))
+    self.assertTrue(_CompareViews(alns[2][0].GetSequence(1).GetAttachedView(),mdl_nuc_view_one))
+
+  def test_chain_mapping(self):
+    ref = _LoadFile("3l1p.1.pdb")
+    mdl = _LoadFile("3l1p.1_model.pdb")
+    mapper = ChainMapper(ref)
+
+    # This is not supposed to be in depth algorithm testing, we just check
+    # whether the various algorithms return sensible chain mappings
+
+    naive_lddt_mapping = mapper.GetNaivelDDTMapping(mdl, bb_only=True)
+    self.assertEqual(naive_lddt_mapping, [['X', 'Y'],[None],['Z']])
+
+    decomposer_lddt_mapping = mapper.GetDecomposerlDDTMapping(mdl)
+    self.assertEqual(decomposer_lddt_mapping, [['X', 'Y'],[None],['Z']])
+
+    # the "fast" strategy produces actually a suboptimal mapping in this case...
+    greedy_lddt_mapping = mapper.GetGreedylDDTMapping(mdl, seed_strategy="fast")
+    self.assertEqual(greedy_lddt_mapping, [['Y', 'X'],[None],['Z']])
+
+    greedy_lddt_mapping = mapper.GetGreedylDDTMapping(mdl, seed_strategy="full")
+    self.assertEqual(greedy_lddt_mapping, [['X', 'Y'],[None],['Z']])
+
+    greedy_lddt_mapping = mapper.GetGreedylDDTMapping(mdl, seed_strategy="block")
+    self.assertEqual(greedy_lddt_mapping, [['X', 'Y'],[None],['Z']])
 
 
 if __name__ == "__main__":

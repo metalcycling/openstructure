@@ -1776,7 +1776,7 @@ def _RefSmallerGenerator(ref_chains, mdl_chains):
     """
     for c in itertools.combinations(mdl_chains, len(ref_chains)):
         for p in itertools.permutations(c):
-            yield p
+            yield list(p)
 
 def _RefLargerGenerator(ref_chains, mdl_chains):
     """ Returns all possible ways to map mdl_chains onto ref_chains
@@ -1793,6 +1793,19 @@ def _RefLargerGenerator(ref_chains, mdl_chains):
                 ret_list[idx] = ch
             yield ret_list
 
+def _RefEqualGenerator(ref_chains, mdl_chains):
+    """ Returns all possible ways to map mdl_chains onto ref_chains
+
+    Specific for the case where len(ref_chains) == len(mdl_chains)
+    """
+    for p in itertools.permutations(mdl_chains):
+        yield list(p)
+
+def _ConcatIterators(iterators):
+    for item in itertools.product(*iterators):
+        yield list(item)
+
+
 def _ChainMappings(ref_chains, mdl_chains):
     """Returns all possible ways to map *mdl_chains* onto fixed *ref_chains*
 
@@ -1807,18 +1820,18 @@ def _ChainMappings(ref_chains, mdl_chains):
               reference chains.
               Example: _ChainMappings([['A', 'B', 'C'], ['D', 'E']],
                                       [['x', 'y'], ['i', 'j']])
-              gives an iterator over: [(['x', 'y', None], ('i', 'j')),
-                                       (['x', 'y', None], ('j', 'i')),
-                                       (['y', 'x', None], ('i', 'j')),
-                                       (['y', 'x', None], ('j', 'i')),
-                                       (['x', None, 'y'], ('i', 'j')),
-                                       (['x', None, 'y'], ('j', 'i')),
-                                       (['y', None, 'x'], ('i', 'j')),
-                                       (['y', None, 'x'], ('j', 'i')),
-                                       ([None, 'x', 'y'], ('i', 'j')),
-                                       ([None, 'x', 'y'], ('j', 'i')),
-                                       ([None, 'y', 'x'], ('i', 'j')),
-                                       ([None, 'y', 'x'], ('j', 'i'))]
+              gives an iterator over: [[['x', 'y', None], ['i', 'j']],
+                                       [['x', 'y', None], ['j', 'i']],
+                                       [['y', 'x', None], ['i', 'j']],
+                                       [['y', 'x', None], ['j', 'i']],
+                                       [['x', None, 'y'], ['i', 'j']],
+                                       [['x', None, 'y'], ['j', 'i']],
+                                       [['y', None, 'x'], ['i', 'j']],
+                                       [['y', None, 'x'], ['j', 'i']],
+                                       [[None, 'x', 'y'], ['i', 'j']],
+                                       [[None, 'x', 'y'], ['j', 'i']],
+                                       [[None, 'y', 'x'], ['i', 'j']],
+                                       [[None, 'y', 'x'], ['j', 'i']]]
     """
     assert(len(ref_chains) == len(mdl_chains))
     # one iterator per mapping representing all mdl combinations relative to
@@ -1826,13 +1839,13 @@ def _ChainMappings(ref_chains, mdl_chains):
     iterators = list()
     for ref, mdl in zip(ref_chains, mdl_chains):
         if len(ref) == len(mdl):
-            iterators.append(itertools.permutations(mdl))
+            iterators.append(_RefEqualGenerator(ref, mdl))
         elif len(ref) < len(mdl):
             iterators.append(_RefSmallerGenerator(ref, mdl))
         else:
             iterators.append(_RefLargerGenerator(ref, mdl))
 
-    return itertools.product(*iterators)
+    return _ConcatIterators(iterators)
 
 # specify public interface
 __all__ = ('ChainMapper',)
