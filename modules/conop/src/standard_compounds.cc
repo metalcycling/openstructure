@@ -1133,7 +1133,7 @@ CompoundPtr MakeGCompound() {
 CompoundPtr MakeTCompound() {
   CompoundPtr c( new Compound("T"));
   c->SetOneLetterCode('T');
-  c->SetChemClass(mol::ChemClass('S'));
+  c->SetChemClass(mol::ChemClass('R'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C10 H15 N2 O8 P");
   AtomSpec atoms[] = {
