@@ -3,8 +3,8 @@
 using namespace std;
 
 // secondary structure    01234
-const char* SSmapProtein=" CHTE";
-const char* SSmapRNA    =" .<>";
+//const char* SSmapProtein=" CHTE";
+//const char* SSmapRNA    =" .<>";
 
 void print_help()
 {
@@ -45,6 +45,10 @@ void print_help()
 "             0: PDB format\n"
 "             2: xyz format\n"
 "             3: PDBx/mmCIF format\n"
+"    -het     Whether to read residues marked as 'HETATM' in addition to 'ATOM  '\n"
+"             0: (default) only align 'ATOM  ' residues\n"
+"             1: align both 'ATOM  ' and 'HETATM' residues\n"
+"\n"
     <<endl;
     exit(EXIT_SUCCESS);
 }
@@ -61,6 +65,7 @@ int main(int argc, char *argv[])
     int    ter_opt   =3;     // TER, END, or different chainID
     int    infmt_opt =-1;    // PDB format
     int    split_opt =0;     // do not split chain
+    int    het_opt=0;        // do not read HETATM residues
     string atom_opt  ="auto";// use C alpha atom for protein and C3' for RNA
     string mol_opt   ="auto";// auto-detect the molecule type as protein/RNA
     string suffix_opt="";    // set -suffix to empty
@@ -98,6 +103,10 @@ int main(int argc, char *argv[])
         {
             infmt_opt=atoi(argv[i + 1]); i++;
         }
+        else if ( !strcmp(argv[i],"-het") && i < (argc-1) )
+        {
+            het_opt=atoi(argv[i + 1]); i++;
+        }
         else xname=argv[i];
     }
 
@@ -106,9 +115,9 @@ int main(int argc, char *argv[])
     if (suffix_opt.size() && dir_opt.size()==0)
         PrintErrorAndQuit("-suffix is only valid if -dir is set");
     if (atom_opt.size()!=4)
-        PrintErrorAndQuit("ERROR! atom name must have 4 characters, including space.");
+        PrintErrorAndQuit("ERROR! Atom name must have 4 characters, including space.");
     if (mol_opt!="auto" && mol_opt!="protein" && mol_opt!="RNA")
-        PrintErrorAndQuit("ERROR! molecule type must be either RNA or protein.");
+        PrintErrorAndQuit("ERROR! Molecule type must be either RNA or protein.");
     else if (mol_opt=="protein" && atom_opt=="auto")
         atom_opt=" CA ";
     else if (mol_opt=="RNA" && atom_opt=="auto")
@@ -153,17 +162,16 @@ int main(int argc, char *argv[])
     int    xlen;                      // chain length
     int    xchainnum;                 // number of chains in a PDB file
     char   *seqx;                     // for the protein sequence 
-    int    *secx;                     // for the secondary structure 
+    char   *secx;                     // for the secondary structure 
     double **xa;                      // for input vectors xa[0...xlen-1][0..2] and
     vector<string> resi_vec;          // residue index for chain
-    string sequence;                  // secondary structure sequence
 
     /* loop over file names */
     for (i=0;i<chain_list.size();i++)
     {
         xname=chain_list[i];
         xchainnum=get_PDB_lines(xname, PDB_lines, chainID_list,
-            mol_vec, ter_opt, infmt_opt, atom_opt, split_opt);
+            mol_vec, ter_opt, infmt_opt, atom_opt, split_opt, het_opt);
         if (!xchainnum)
         {
             cerr<<"Warning! Cannot parse file: "<<xname
@@ -183,26 +191,15 @@ int main(int argc, char *argv[])
             }
             NewArray(&xa, xlen, 3);
             seqx = new char[xlen + 1];
-            secx = new int[xlen];
+            secx = new char[xlen + 1];
             xlen = read_PDB(PDB_lines[chain_i], xa, seqx, resi_vec, 0);
-            if (mol_vec[chain_i]>0) // RNA
-            {
-                make_sec(seqx,xa, xlen, secx,atom_opt);
-                for (l=0;l<PDB_lines[chain_i].size();l++)
-                    sequence+=SSmapRNA[secx[l]];
-            }
-            else //protein
-            {
-                make_sec(xa, xlen, secx);
-                for (l=0;l<PDB_lines[chain_i].size();l++)
-                    sequence+=SSmapProtein[secx[l]];
-            }
+            if (mol_vec[chain_i]>0) make_sec(seqx,xa, xlen, secx,atom_opt);
+            else make_sec(xa, xlen, secx); // protein
             
             cout<<'>'<<xname.substr(dir_opt.size(),
                 xname.size()-dir_opt.size()-suffix_opt.size())
-                <<chainID_list[chain_i]<<'\t'<<xlen<<'\n'<<sequence<<endl;
+                <<chainID_list[chain_i]<<'\t'<<xlen<<'\n'<<secx<<endl;
 
-            sequence.clear();
             PDB_lines[chain_i].clear();
             DeleteArray(&xa, xlen);
             delete [] seqx;

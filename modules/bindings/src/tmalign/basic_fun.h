@@ -7,11 +7,7 @@
 #include <math.h>
 #include <time.h>
 #include <string.h>
-// OST-NOTE: ifdef was added here since malloc.h isn't required for Linux/Mac
-//           and for some compilers (clang, gcc8) it isn't available
-#ifdef _WIN32
-#include <malloc.h>
-#endif
+//#include <malloc.h>
 
 #include <sstream>
 #include <iostream>
@@ -80,35 +76,36 @@ string AAmap(char A)
     if (A=='W') return "TRP";    
     if (A=='Y') return "TYR";
     if (A=='Z') return "GLX";
-    if ('a'<=A && A<='z') return "  "+toupper(A);
+    if ('a'<=A && A<='z') return "  "+string(1,char(toupper(A)));
     return "UNK";
 }
 
 char AAmap(const string &AA)
 {
-    if (AA.compare("ALA")==0) return 'A';
+    if (AA.compare("ALA")==0 || AA.compare("DAL")==0) return 'A';
     if (AA.compare("ASX")==0) return 'B';
-    if (AA.compare("CYS")==0) return 'C';
-    if (AA.compare("ASP")==0) return 'D';
-    if (AA.compare("GLU")==0) return 'E';
-    if (AA.compare("PHE")==0) return 'F';
+    if (AA.compare("CYS")==0 || AA.compare("DCY")==0) return 'C';
+    if (AA.compare("ASP")==0 || AA.compare("DAS")==0) return 'D';
+    if (AA.compare("GLU")==0 || AA.compare("DGL")==0) return 'E';
+    if (AA.compare("PHE")==0 || AA.compare("DPN")==0) return 'F';
     if (AA.compare("GLY")==0) return 'G';
-    if (AA.compare("HIS")==0) return 'H';
-    if (AA.compare("ILE")==0) return 'I';
-    if (AA.compare("LYS")==0) return 'K';
-    if (AA.compare("LEU")==0) return 'L';
-    if (AA.compare("MET")==0 || AA.compare("MSE")==0) return 'M';
-    if (AA.compare("ASN")==0) return 'N';
+    if (AA.compare("HIS")==0 || AA.compare("DHI")==0) return 'H';
+    if (AA.compare("ILE")==0 || AA.compare("DIL")==0) return 'I';
+    if (AA.compare("LYS")==0 || AA.compare("DLY")==0) return 'K';
+    if (AA.compare("LEU")==0 || AA.compare("DLE")==0) return 'L';
+    if (AA.compare("MET")==0 || AA.compare("MED")==0 ||
+        AA.compare("MSE")==0) return 'M';
+    if (AA.compare("ASN")==0 || AA.compare("DSG")==0) return 'N';
     if (AA.compare("PYL")==0) return 'O';
-    if (AA.compare("PRO")==0) return 'P';
-    if (AA.compare("GLN")==0) return 'Q';
-    if (AA.compare("ARG")==0) return 'R';
-    if (AA.compare("SER")==0) return 'S';
-    if (AA.compare("THR")==0) return 'T';
+    if (AA.compare("PRO")==0 || AA.compare("DPR")==0) return 'P';
+    if (AA.compare("GLN")==0 || AA.compare("DGN")==0) return 'Q';
+    if (AA.compare("ARG")==0 || AA.compare("DAR")==0) return 'R';
+    if (AA.compare("SER")==0 || AA.compare("DSN")==0) return 'S';
+    if (AA.compare("THR")==0 || AA.compare("DTH")==0) return 'T';
     if (AA.compare("SEC")==0) return 'U';
-    if (AA.compare("VAL")==0) return 'V';
-    if (AA.compare("TRP")==0) return 'W';    
-    if (AA.compare("TYR")==0) return 'Y';
+    if (AA.compare("VAL")==0 || AA.compare("DVA")==0) return 'V';
+    if (AA.compare("TRP")==0 || AA.compare("DTR")==0) return 'W';    
+    if (AA.compare("TYR")==0 || AA.compare("DTY")==0) return 'Y';
     if (AA.compare("GLX")==0) return 'Z';
 
     if (AA.compare(0,2," D")==0) return tolower(AA[2]);
@@ -124,7 +121,7 @@ void split(const string &line, vector<string> &line_vec,
     const char delimiter=' ')
 {
     bool within_word = false;
-    for (unsigned int pos=0;pos<line.size();pos++)
+    for (size_t pos=0;pos<line.size();pos++)
     {
         if (line[pos]==delimiter)
         {
@@ -142,8 +139,8 @@ void split(const string &line, vector<string> &line_vec,
 
 size_t get_PDB_lines(const string filename,
     vector<vector<string> >&PDB_lines, vector<string> &chainID_list,
-    vector<int> &mol_vec, const int ter_opt=3, const int infmt_opt=-1,
-    const string atom_opt="auto", const int split_opt=0)
+    vector<int> &mol_vec, const int ter_opt, const int infmt_opt,
+    const string atom_opt, const int split_opt, const int het_opt)
 {
     size_t i=0; // resi i.e. atom index
     string line;
@@ -159,13 +156,13 @@ size_t get_PDB_lines(const string filename,
     if (filename.size()>=3 && 
         filename.substr(filename.size()-3,3)==".gz")
     {
-        fin_gz.open("zcat "+filename);
+        fin_gz.open("zcat '"+filename+"'");
         compress_type=1;
     }
     else if (filename.size()>=4 && 
         filename.substr(filename.size()-4,4)==".bz2")
     {
-        fin_gz.open("bzcat "+filename);
+        fin_gz.open("bzcat '"+filename+"'");
         compress_type=2;
     }
     else fin.open(filename.c_str());
@@ -178,15 +175,18 @@ size_t get_PDB_lines(const string filename,
             else               getline(fin, line);
             if (infmt_opt==-1 && line.compare(0,5,"loop_")==0) // PDBx/mmCIF
                 return get_PDB_lines(filename,PDB_lines,chainID_list,
-                    mol_vec, ter_opt, 3, atom_opt, split_opt);
+                    mol_vec, ter_opt, 3, atom_opt, split_opt,het_opt);
             if (i > 0)
             {
                 if      (ter_opt>=1 && line.compare(0,3,"END")==0) break;
                 else if (ter_opt>=3 && line.compare(0,3,"TER")==0) break;
             }
             if (split_opt && line.compare(0,3,"END")==0) chainID=0;
-            if (line.compare(0, 6, "ATOM  ")==0 && line.size()>=54 &&
-               (line[16]==' ' || line[16]=='A'))
+            if (line.size()>=54 && (line[16]==' ' || line[16]=='A') && (
+                (line.compare(0, 6, "ATOM  ")==0) || 
+                (line.compare(0, 6, "HETATM")==0 && het_opt==1) ||
+                (line.compare(0, 6, "HETATM")==0 && het_opt==2 && 
+                 line.compare(17,3, "MSE")==0)))
             {
                 if (atom_opt=="auto")
                 {
@@ -208,12 +208,12 @@ size_t get_PDB_lines(const string filename,
                             if (chainID==' ')
                             {
                                 if (ter_opt>=1) i8_stream << ":_";
-                                else i8_stream<<':'<<model_idx<<":_";
+                                else i8_stream<<':'<<model_idx<<",_";
                             }
                             else
                             {
                                 if (ter_opt>=1) i8_stream << ':' << chainID;
-                                else i8_stream<<':'<<model_idx<<':'<<chainID;
+                                else i8_stream<<':'<<model_idx<<','<<chainID;
                             }
                             chainID_list.push_back(i8_stream.str());
                         }
@@ -234,12 +234,12 @@ size_t get_PDB_lines(const string filename,
                         if (chainID==' ')
                         {
                             if (ter_opt>=1) i8_stream << ":_";
-                            else i8_stream<<':'<<model_idx<<":_";
+                            else i8_stream<<':'<<model_idx<<",_";
                         }
                         else
                         {
                             if (ter_opt>=1) i8_stream << ':' << chainID;
-                            else i8_stream<<':'<<model_idx<<':'<<chainID;
+                            else i8_stream<<':'<<model_idx<<','<<chainID;
                         }
                         chainID_list.push_back(i8_stream.str());
                         PDB_lines.push_back(tmp_str_vec);
@@ -260,7 +260,7 @@ size_t get_PDB_lines(const string filename,
     }
     else if (infmt_opt==1) // SPICKER format
     {
-        int L=0;
+        size_t L=0;
         float x,y,z;
         stringstream i8_stream;
         while (compress_type?fin_gz.good():fin.good())
@@ -276,7 +276,7 @@ size_t get_PDB_lines(const string filename,
             chainID_list.push_back(i8_stream.str());
             PDB_lines.push_back(tmp_str_vec);
             mol_vec.push_back(0);
-            for (i=0;(int) i<L;i++)
+            for (i=0;i<L;i++)
             {
                 if (compress_type) fin_gz>>x>>y>>z;
                 else               fin   >>x>>y>>z;
@@ -293,7 +293,7 @@ size_t get_PDB_lines(const string filename,
     }
     else if (infmt_opt==2) // xyz format
     {
-        int L=0;
+        size_t L=0;
         stringstream i8_stream;
         while (compress_type?fin_gz.good():fin.good())
         {
@@ -308,7 +308,7 @@ size_t get_PDB_lines(const string filename,
             chainID_list.push_back(':'+line.substr(0,i));
             PDB_lines.push_back(tmp_str_vec);
             mol_vec.push_back(0);
-            for (i=0;(int) i<L;i++)
+            for (i=0;i<L;i++)
             {
                 if (compress_type) getline(fin_gz, line);
                 else               getline(fin, line);
@@ -343,12 +343,25 @@ size_t get_PDB_lines(const string filename,
         {
             if (compress_type) getline(fin_gz, line);
             else               getline(fin, line);
+            if (line.size()==0) continue;
             if (loop_) loop_ = line.compare(0,2,"# ");
             if (!loop_)
             {
                 if (line.compare(0,5,"loop_")) continue;
-                if (compress_type) getline(fin_gz, line);
-                else               getline(fin, line);
+                while(1)
+                {
+                    if (compress_type)
+                    {
+                        if (fin_gz.good()) getline(fin_gz, line);
+                        else PrintErrorAndQuit("ERROR! Unexpected end of "+filename);
+                    }
+                    else
+                    {
+                        if (fin.good()) getline(fin, line);
+                        else PrintErrorAndQuit("ERROR! Unexpected end of "+filename);
+                    }
+                    if (line.size()) break;
+                }
                 if (line.compare(0,11,"_atom_site.")) continue;
 
                 loop_=true;
@@ -360,6 +373,7 @@ size_t get_PDB_lines(const string filename,
                 {
                     if (compress_type) getline(fin_gz, line);
                     else               getline(fin, line);
+                    if (line.size()==0) continue;
                     if (line.compare(0,11,"_atom_site.")) break;
                     _atom_site[line.substr(11,line.size()-12)]=++atom_site_pos;
                 }
@@ -377,14 +391,19 @@ size_t get_PDB_lines(const string filename,
                     _atom_site.count("Cartn_z")==0)
                 {
                     loop_ = false;
-                    cerr<<"Warning! Missing one of the following _atom_site data items: group_PDB, label_atom_id, label_atom_id, auth_asym_id/label_asym_id, auth_seq_id/label_seq_id, Cartn_x, Cartn_y, Cartn_z"<<endl;
+                    cerr<<"Warning! Missing one of the following _atom_site data items: group_PDB, label_atom_id, label_comp_id, auth_asym_id/label_asym_id, auth_seq_id/label_seq_id, Cartn_x, Cartn_y, Cartn_z"<<endl;
                     continue;
                 }
             }
 
             line_vec.clear();
             split(line,line_vec);
-            if (line_vec[_atom_site["group_PDB"]]!="ATOM") continue;
+            if ((line_vec[_atom_site["group_PDB"]]!="ATOM" &&
+                 line_vec[_atom_site["group_PDB"]]!="HETATM") ||
+                (line_vec[_atom_site["group_PDB"]]=="HETATM" &&
+                 (het_opt==0 || 
+                 (het_opt==2 && line_vec[_atom_site["label_comp_id"]]!="MSE")))
+                ) continue;
             
             alt_id=".";
             if (_atom_site.count("label_alt_id")) // in 39.4 % of entries
@@ -435,9 +454,11 @@ size_t get_PDB_lines(const string filename,
                     if (split_opt==1 && ter_opt==0) chainID_list.push_back(
                         ':'+model_index);
                     else if (split_opt==2 && ter_opt==0)
-                        chainID_list.push_back(':'+model_index+':'+asym_id);
-                    else if (split_opt==2 && ter_opt==1)
+                        chainID_list.push_back(':'+model_index+','+asym_id);
+                    else //if (split_opt==2 && ter_opt==1)
                         chainID_list.push_back(':'+asym_id);
+                    //else
+                        //chainID_list.push_back("");
                 }
             }
 
@@ -452,9 +473,11 @@ size_t get_PDB_lines(const string filename,
                     if (split_opt==1 && ter_opt==0) chainID_list.push_back(
                         ':'+model_index);
                     else if (split_opt==2 && ter_opt==0)
-                        chainID_list.push_back(':'+model_index+':'+asym_id);
-                    else if (split_opt==2 && ter_opt==1)
+                        chainID_list.push_back(':'+model_index+','+asym_id);
+                    else //if (split_opt==2 && ter_opt==1)
                         chainID_list.push_back(':'+asym_id);
+                    //else
+                        //chainID_list.push_back("");
                 }
             }
             if (prev_asym_id!=asym_id) prev_asym_id=asym_id;
@@ -478,9 +501,9 @@ size_t get_PDB_lines(const string filename,
             i8_stream<<"ATOM  "
                 <<setw(5)<<i<<" "<<atom<<" "<<AA<<" "<<asym_id[0]
                 <<setw(5)<<resi.substr(0,5)<<"   "
-                <<setw(8)<<line_vec[_atom_site["Cartn_x"]]
-                <<setw(8)<<line_vec[_atom_site["Cartn_y"]]
-                <<setw(8)<<line_vec[_atom_site["Cartn_z"]];
+                <<setw(8)<<line_vec[_atom_site["Cartn_x"]].substr(0,8)
+                <<setw(8)<<line_vec[_atom_site["Cartn_y"]].substr(0,8)
+                <<setw(8)<<line_vec[_atom_site["Cartn_z"]].substr(0,8);
             PDB_lines.back().push_back(i8_stream.str());
             i8_stream.str(string());
         }
@@ -510,7 +533,7 @@ size_t get_FASTA_lines(const string filename,
 {
     string line;
     vector<string> tmp_str_vec;
-    unsigned int l;
+    size_t l;
     
     int compress_type=0; // uncompressed file
     ifstream fin;
@@ -518,13 +541,13 @@ size_t get_FASTA_lines(const string filename,
     if (filename.size()>=3 && 
         filename.substr(filename.size()-3,3)==".gz")
     {
-        fin_gz.open("zcat "+filename);
+        fin_gz.open("zcat '"+filename+"'");
         compress_type=1;
     }
     else if (filename.size()>=4 && 
         filename.substr(filename.size()-4,4)==".bz2")
     {
-        fin_gz.open("bzcat "+filename);
+        fin_gz.open("bzcat '"+filename+"'");
         compress_type=2;
     }
     else fin.open(filename.c_str());
@@ -582,64 +605,115 @@ int extract_aln_from_resi(vector<string> &sequence, char *seqx, char *seqy,
     int i2=0; // positions in resi_vec2
     int xlen=resi_vec1.size();
     int ylen=resi_vec2.size();
-    map<char,int> chainID_map1;
-    map<char,int> chainID_map2;
+    map<string,string> chainID_map1;
+    map<string,string> chainID_map2;
     if (byresi_opt==3)
     {
-        vector<char> chainID_vec;
-        char chainID;
+        vector<string> chainID_vec;
+        string chainID;
+        stringstream ss;
         int i;
         for (i=0;i<xlen;i++)
         {
-            chainID=resi_vec1[i][5];
+            chainID=resi_vec1[i].substr(5);
             if (!chainID_vec.size()|| chainID_vec.back()!=chainID)
             {
                 chainID_vec.push_back(chainID);
-                chainID_map1[chainID]=chainID_vec.size();
+                ss<<chainID_vec.size();
+                chainID_map1[chainID]=ss.str();
+                ss.str("");
             }
         }
         chainID_vec.clear();
         for (i=0;i<ylen;i++)
         {
-            chainID=resi_vec2[i][5];
+            chainID=resi_vec2[i].substr(5);
             if (!chainID_vec.size()|| chainID_vec.back()!=chainID)
             {
                 chainID_vec.push_back(chainID);
-                chainID_map2[chainID]=chainID_vec.size();
+                ss<<chainID_vec.size();
+                chainID_map2[chainID]=ss.str();
+                ss.str("");
             }
         }
-        chainID_vec.clear();
+        vector<string>().swap(chainID_vec);
     }
+    string chainID1="";
+    string chainID2="";
+    string chainID1_prev="";
+    string chainID2_prev="";
     while(i1<xlen && i2<ylen)
     {
-        if ((byresi_opt<=2 && resi_vec1[i1]==resi_vec2[i2]) || (byresi_opt==3
-             && resi_vec1[i1].substr(0,5)==resi_vec2[i2].substr(0,5)
-             && chainID_map1[resi_vec1[i1][5]]==chainID_map2[resi_vec2[i2][5]]))
+        if (byresi_opt==2)
         {
-            sequence[0]+=seqx[i1++];
-            sequence[1]+=seqy[i2++];
+            chainID1=resi_vec1[i1].substr(5);
+            chainID2=resi_vec2[i2].substr(5);
         }
-        else if (atoi(resi_vec1[i1].substr(0,4).c_str())<=
-                 atoi(resi_vec2[i2].substr(0,4).c_str()))
+        else if (byresi_opt==3)
         {
-            sequence[0]+=seqx[i1++];
-            sequence[1]+='-';
+            chainID1=chainID_map1[resi_vec1[i1].substr(5)];
+            chainID2=chainID_map2[resi_vec2[i2].substr(5)];
+        }
+
+        if (chainID1==chainID2)
+        {
+            if (atoi(resi_vec1[i1].substr(0,4).c_str())<
+                atoi(resi_vec2[i2].substr(0,4).c_str()))
+            {
+                sequence[0]+=seqx[i1++];
+                sequence[1]+='-';
+            }
+            else if (atoi(resi_vec1[i1].substr(0,4).c_str())>
+                     atoi(resi_vec2[i2].substr(0,4).c_str()))
+            {
+                sequence[0]+='-';
+                sequence[1]+=seqy[i2++];
+            }
+            else
+            {
+                sequence[0]+=seqx[i1++];
+                sequence[1]+=seqy[i2++];
+            }
+            chainID1_prev=chainID1;
+            chainID2_prev=chainID2;
         }
         else
         {
-            sequence[0]+='-';
-            sequence[1]+=seqy[i2++];
+            if (chainID1_prev==chainID1 && chainID2_prev!=chainID2)
+            {
+                sequence[0]+=seqx[i1++];
+                sequence[1]+='-';
+                chainID1_prev=chainID1;
+            }
+            else if (chainID1_prev!=chainID1 && chainID2_prev==chainID2)
+            {
+                sequence[0]+='-';
+                sequence[1]+=seqy[i2++];
+                chainID2_prev=chainID2;
+            }
+            else
+            {
+                sequence[0]+=seqx[i1++];
+                sequence[1]+=seqy[i2++];
+                chainID1_prev=chainID1;
+                chainID2_prev=chainID2;
+            }
         }
+        
     }
-    chainID_map1.clear();
-    chainID_map2.clear();
+    map<string,string>().swap(chainID_map1);
+    map<string,string>().swap(chainID_map2);
+    chainID1.clear();
+    chainID2.clear();
+    chainID1_prev.clear();
+    chainID2_prev.clear();
     return sequence[0].size();
 }
 
 int read_PDB(const vector<string> &PDB_lines, double **a, char *seq,
-    vector<string> &resi_vec, const int byresi_opt)
+    vector<string> &resi_vec, const int read_resi)
 {
-    unsigned int i;
+    size_t i;
     for (i=0;i<PDB_lines.size();i++)
     {
         a[i][0] = atof(PDB_lines[i].substr(30, 8).c_str());
@@ -647,9 +721,9 @@ int read_PDB(const vector<string> &PDB_lines, double **a, char *seq,
         a[i][2] = atof(PDB_lines[i].substr(46, 8).c_str());
         seq[i]  = AAmap(PDB_lines[i].substr(17, 3));
 
-        if (byresi_opt>=2) resi_vec.push_back(PDB_lines[i].substr(22,5)+
-                                              PDB_lines[i][21]);
-        if (byresi_opt==1) resi_vec.push_back(PDB_lines[i].substr(22,5));
+        if (read_resi>=2) resi_vec.push_back(PDB_lines[i].substr(22,5)+
+                                             PDB_lines[i][21]);
+        if (read_resi==1) resi_vec.push_back(PDB_lines[i].substr(22,5));
     }
     seq[i]='\0'; 
     return i;
@@ -699,7 +773,7 @@ string Trim(const string &inputString)
  * This function should only be called by main function, as it will
  * terminate a program if wrong alignment is given */
 void read_user_alignment(vector<string>&sequence, const string &fname_lign,
-    const bool I_opt)
+    const int i_opt)
 {
     if (fname_lign == "")
         PrintErrorAndQuit("Please provide a file name for option -i!");
@@ -729,10 +803,10 @@ void read_user_alignment(vector<string>&sequence, const string &fname_lign,
         PrintErrorAndQuit("ERROR: Fasta format is wrong, two proteins should be included.");
     if (sequence[0].size() != sequence[1].size())
         PrintErrorAndQuit("ERROR! FASTA file is wrong. The length in alignment should be equal for the two aligned proteins.");
-    if (I_opt)
+    if (i_opt==3)
     {
         int aligned_resNum=0;
-        for (unsigned int i=0;i<sequence[0].size();i++) 
+        for (size_t i=0;i<sequence[0].size();i++)
             aligned_resNum+=(sequence[0][i]!='-' && sequence[1][i]!='-');
         if (aligned_resNum<3)
             PrintErrorAndQuit("ERROR! Superposition is undefined for <3 aligned residues.");

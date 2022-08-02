@@ -4,6 +4,7 @@ from ost import settings
 from ost import testutils
 from ost.seq.alg import SequenceIdentity
 from ost.bindings import tmtools
+from ost.bindings import WrappedTMAlign
 
 class TestTMBindings(unittest.TestCase):
   
@@ -53,6 +54,24 @@ class TestTMBindings(unittest.TestCase):
     # transformation should be identity matrix (no transformation at all...)
     identity = geom.Mat4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
     self.assertEqual(tm_result.transform, identity)
+
+  def testWrappedTMAlign(self):
+
+    tm_result = WrappedTMAlign(self.protein.CreateFullView().chains[0],
+                               self.protein.CreateFullView().chains[0])
+
+    # model and reference are the same, we expect pretty good results
+    self.assertAlmostEqual(tm_result.rmsd, 0.0, places=4)
+    self.assertAlmostEqual(tm_result.tm_score, 1.0, places=4)
+    self.assertEqual(tm_result.aligned_length, len(self.protein.chains[0].residues))
+    self.assertEqual(SequenceIdentity(tm_result.alignment), 100.0)
+
+    # transformation should be identity matrix (no transformation at all...)
+    identity = geom.Mat4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
+    for i in range(4):
+      for j in range(4):
+        self.assertAlmostEqual(tm_result.transform[i,j], identity[i,j])
+
 
 
 if __name__ == "__main__":

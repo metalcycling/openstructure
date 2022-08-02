@@ -1,6 +1,7 @@
 #include "TMalign.h"
 
-/* entry function for se */
+/* entry function for se
+ * outfmt_opt>=2 should not parse sequence alignment */
 int se_main(
     double **xa, double **ya, const char *seqx, const char *seqy,
     double &TM1, double &TM2, double &TM3, double &TM4, double &TM5,
@@ -11,31 +12,32 @@ int se_main(
     double &TM_ali, double &rmsd_ali, int &n_ali, int &n_ali8,
     const int xlen, const int ylen, const vector<string> &sequence,
     const double Lnorm_ass, const double d0_scale, const bool i_opt,
-    const bool a_opt, const bool u_opt, const bool d_opt, const int mol_type)
+    const bool a_opt, const bool u_opt, const bool d_opt, const int mol_type,
+    const int outfmt_opt, int *invmap)
 {
     double D0_MIN;        //for d0
     double Lnorm;         //normalization length
     double score_d8,d0,d0_search,dcu0;//for TMscore search
-    double t[3]={0,0,0};  // dummy translation vection
-    double u[3][3]={{1,0,0},{0,1,0},{0,0,1}}; // dummy rotation matrix
     double **score;       // Input score table for dynamic programming
     bool   **path;        // for dynamic programming  
     double **val;         // for dynamic programming  
 
-    int *m1, *m2;
+    int *m1=NULL;
+    int *m2=NULL;
     double d;
-    m1=new int[xlen]; //alignd index in x
-    m2=new int[ylen]; //alignd index in y
+    if (outfmt_opt<2)
+    {
+        m1=new int[xlen]; //alignd index in x
+        m2=new int[ylen]; //alignd index in y
+    }
 
     /***********************/
     /* allocate memory     */
     /***********************/
-    int minlen = min(xlen, ylen);
     NewArray(&score, xlen+1, ylen+1);
     NewArray(&path, xlen+1, ylen+1);
     NewArray(&val, xlen+1, ylen+1);
-    int *invmap          = new int[ylen+1];
-    for(int i=0; i<ylen; i++) invmap[i]=-1;
+    //int *invmap          = new int[ylen+1];
 
     /* set d0 */
     parameter_set4search(xlen, ylen, D0_MIN, Lnorm,
@@ -52,13 +54,10 @@ int se_main(
             d0u, d0_search, mol_type); // set d0u
 
     /* perform alignment */
-    if (!i_opt)
-        NWDP_TM(path, val, xa, ya, xlen, ylen, t, u, d0*d0, 0, invmap);
+    for(int j=0; j<ylen; j++) invmap[j]=-1;
+    if (!i_opt) NWDP_SE(path, val, xa, ya, xlen, ylen, d0*d0, 0, invmap);
     else
     {
-        for (int j = 0; j < ylen; j++)// Set aligned position to be "-1"
-            invmap[j] = -1;
-
         int i1 = -1;// in C version, index starts from zero, not from one
         int i2 = -1;
         int L1 = sequence[0].size();
@@ -78,6 +77,8 @@ int se_main(
 
     rmsd0=TM1=TM2=TM3=TM4=TM5=0;
     int k=0;
+    n_ali=0;
+    n_ali8=0;
     for(int i=0,j=0; j<ylen; j++)
     {
         i=invmap[j];
@@ -85,10 +86,13 @@ int se_main(
         {
             n_ali++;
             d=sqrt(dist(&xa[i][0], &ya[j][0]));
-            if (d <= score_d8)
+            if (d <= score_d8 || i_opt)
             {
-                m1[k]=i;
-                m2[k]=j;
+                if (outfmt_opt<2)
+                {
+                    m1[k]=i;
+                    m2[k]=j;
+                }
                 k++;
                 TM2+=1/(1+(d/d0B)*(d/d0B)); // chain_1
                 TM1+=1/(1+(d/d0A)*(d/d0A)); // chain_2
@@ -107,6 +111,14 @@ int se_main(
     TM5/=ylen;
     if (n_ali8) rmsd0=sqrt(rmsd0/n_ali8);
 
+    if (outfmt_opt>=2)
+    {
+        DeleteArray(&score, xlen+1);
+        DeleteArray(&path, xlen+1);
+        DeleteArray(&val, xlen+1);
+        return 0;
+    }
+
     /* extract aligned sequence */
     int ali_len=xlen+ylen; //maximum length of alignment
     seqxA.assign(ali_len,'-');
@@ -115,6 +127,7 @@ int se_main(
     
     int kk=0, i_old=0, j_old=0;
     d=0;
+    Liden=0;
     for(int k=0; k<n_ali8; k++)
     {
         for(int i=i_old; i<m1[k]; i++)
@@ -168,7 +181,7 @@ int se_main(
     seqM =seqM.substr(0,kk);
 
     /* free memory */
-    delete [] invmap;
+    //delete [] invmap;
     delete [] m1;
     delete [] m2;
     DeleteArray(&score, xlen+1);

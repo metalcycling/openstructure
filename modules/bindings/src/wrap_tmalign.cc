@@ -48,8 +48,8 @@ TMAlignResult WrappedTMAlign(const geom::Vec3List& pos_one,
   char* seqy = new char[ylen+1];
   seqx[xlen] = '\0';
   seqy[ylen] = '\0';
-  int* secx = new int[xlen];
-  int* secy = new int[ylen];
+  char* secx = new char[xlen];
+  char* secy = new char[ylen];
 
   // use TMalign functionality to generate position arrays
   double** xa;
@@ -83,7 +83,6 @@ TMAlignResult WrappedTMAlign(const geom::Vec3List& pos_one,
   int a_opt = 0; 
   std::vector<String> sequence; 
   bool i_opt = false;
-  bool I_opt = false;
   double TMcut = -1; 
 
   // following variables are copied from the TMAlign source code
@@ -104,7 +103,7 @@ TMAlignResult WrappedTMAlign(const geom::Vec3List& pos_one,
   TMalign_main(xa, ya, seqx, seqy, secx, secy, t0, u0, TM1, TM2, TM3, TM4, TM5,
                d0_0, TM_0, d0A, d0B, d0u, d0a, d0_out, seqM, seqxA, seqyA,
                rmsd0, L_ali, Liden, TM_ali, rmsd_ali, n_ali, n_ali8, xlen, ylen, 
-               sequence, Lnorm_ass, d0_scale, i_opt, I_opt, a_opt, u_opt, d_opt, 
+               sequence, Lnorm_ass, d0_scale, i_opt, a_opt, u_opt, d_opt, 
                fast, 0, TMcut);
 
   // cleanup
