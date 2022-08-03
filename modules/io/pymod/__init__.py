@@ -360,8 +360,14 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
                   processing of molecular structures. Can either be a
                   :class:`str` specifying one of the default profiles
                   ['DEFAULT', 'SLOPPY', 'CHARMM', 'STRICT'] or an actual object
-                  of type :class:`ost.io.IOProfile`. See :doc:`profile` for more
-                  info.
+                  of type :class:`ost.io.IOProfile`. If a :class:`str` defines
+                  a default profile, :attr:`IOProfile.processor` is set to
+                  :class:`ost.conop.RuleBasedProcessor` with the currently
+                  set :class:`ost.conop.CompoundLib` available as
+                  :func:`ost.conop.GetDefaultLib()`. If no
+                  :class:`ost.conop.CompoundLib` is available,
+                  :class:`ost.conop.HeuristicProcessor` is used instead. See
+                  :doc:`profile` for more info.
   :type profile: :class:`str`/:class:`ost.io.IOProfile`
 
   :param remote: If set to True, the method tries to load the pdb from the 
