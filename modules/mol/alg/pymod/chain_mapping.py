@@ -491,7 +491,8 @@ class ChainMapper:
             return _BlockGreedy(the_greed, block_seed_size, block_n_mdl_chains)
 
     def GetRigidMapping(self, model, single_chain_gdtts_thresh=0.4,
-                        subsampling=None, first_complete=False):
+                        subsampling=None, first_complete=False,
+                        iterative_superposition=False):
         """Identify chain mapping based on rigid superposition
 
         Superposition and scoring is based on CA/C3' positions which are present
@@ -523,6 +524,12 @@ class ChainMapper:
                                mapping that covers all model chains or all
                                target chains.
         :type first_complete: :class:`bool`
+        :param iterative_superposition: Whether to compute inital
+                                        transformations with
+                                        :func:`ost.mol.alg.IterativeSuperposeSVD`
+                                        as oposed to
+                                        :func:`ost.mol.alg.SuperposeSVD`
+        :type iterative_superposition: :class:`bool`
         :returns: A :class:`list` of :class:`list` that reflects
                   :attr:`~chem_groups` but is filled with the respective model
                   chains. Target chains without mapped model chains are set to
@@ -545,7 +552,15 @@ class ChainMapper:
             for t_pos, t in zip(trg_pos, trg_chains):
                 for m_pos, m in zip(mdl_pos, mdl_chains):
                     if len(t_pos) >= 3 and len(m_pos) >= 3:
-                        res = mol.alg.SuperposeSVD(m_pos, t_pos)
+                        if iterative_superposition:
+                            try:
+                                res = mol.alg.IterativeSuperposeSVD(m_pos,t_pos)
+                            except:
+                                # potentially fails if an iteration tries to
+                                # superpose with < 3 positions => skip
+                                continue
+                        else:
+                            res = mol.alg.SuperposeSVD(m_pos,t_pos)
                         t_m_pos = geom.Vec3List(m_pos)
                         t_m_pos.ApplyTransform(res.transformation)
                         gdt = t_pos.GetGDTTS(t_m_pos)
@@ -1625,9 +1640,16 @@ def _GetRefPos(trg, mdl, trg_msas, mdl_alns, max_pos = None):
 
     for trg_msa, mdl_msa in zip(trg_msas, mdl_msas):
 
-        # make sure they have the same ref sequence (should be a given...)
-        assert(trg_msa.GetSequence(0).GetGaplessString() == \
-               mdl_msa.GetSequence(0).GetGaplessString())
+        if mdl_msa.GetCount() > 0:
+            # make sure they have the same ref sequence (should be a given...)
+            assert(trg_msa.GetSequence(0).GetGaplessString() == \
+                   mdl_msa.GetSequence(0).GetGaplessString())
+        else:
+            # if mdl_msa is empty, i.e. no model chain maps to the chem group
+            # represented by trg_msa, we just continue. The result will be
+            # empty position lists added to trg_pos and mdl_pos.
+            pass 
+
 
         # check which columns in MSAs are fully covered (indices relative to
         # first sequence)
