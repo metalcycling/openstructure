@@ -48,10 +48,7 @@ compounds such as ligands the HeuristicProcessor runs a distance-based
 connectivity algorithm that connects two atoms if they are closer than a certain
 threshold. The RuleBasedProcessor uses a connectivity library containing all
 molecular components present in the PDB files on PDB.org. The library can easily
-be extended with custom  connectivity information, if required. If a
-:doc:`compound library <compoundlib>` is present, the
-:class:`RuleBasedProcessor` is enabled by default, otherwise the
-:class:`HeuristicProcessor` is used as a fallback.
+be extended with custom  connectivity information, if required.
 
 
 .. class:: Processor
