@@ -112,9 +112,12 @@ def AlignToSEQRES(chain, seqres, try_resnum_first=False, validate=True):
           aln_seq[r1.number.num - 1] = r1.one_letter_code
           aligned_resnums.add(r1.number.num)
         else:
-          LogWarning('Sequence mismatch: chain has "' + r1.one_letter_code +
-                     '", while SEQRES is "' + seqres[r1.number.num - 1] +
-                     '" at the corresponding position.')
+          msg = 'Sequence mismatch: chain'
+          if len(view.GetName().strip()):
+            msg += f' ({view.GetName().strip()})'
+          msg += f' has {r1.one_letter_code}, while SEQRES is '
+          msg += f'{seqres[r1.number.num-1]} at the corresponding position.'
+          LogWarning(msg)
           try_resnum_first = False
           break
       else:
