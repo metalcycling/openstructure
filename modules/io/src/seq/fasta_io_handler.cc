@@ -111,7 +111,7 @@ void FastaIOHandler::Import(seq::SequenceList& aln,
         aln.AddSequence(seq);          
         seq_count+=1;
       } catch (seq::InvalidSequence& e) {
-        throw e;
+        throw seq::InvalidSequence("Failed for sequence with name " + name + ": " + e.what());
       }
     } else {
       throw IOException("Bad FASTA file: Sequence is empty.");

@@ -31,6 +31,9 @@ public:
   InvalidSequence()
     : Error("Sequence String contains illegal characters. Must "
                          "be one of [A-Za-z?-].") { }
+
+  InvalidSequence(const String& custom_msg)
+    : Error(custom_msg) {}
 };
 
 class DLLEXPORT InvalidAlignment : public Error {
