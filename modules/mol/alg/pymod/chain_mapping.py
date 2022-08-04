@@ -87,17 +87,24 @@ class ChainMapper:
     :type nuc_gap_open: :class:`int`
     :param nuc_gap_ext: Nucleotide equivalent for *pep_gap_ext*
     :type nuc_gap_ext: :class:`int`
+    :param min_pep_length: Minimal number of residues for a peptide chain to be
+                           considered in target and in models.
+    :type min_pep_length: :class:`int`
+    :param min_nuc_length: Minimal number of residues for a nucleotide chain to be
+                           considered in target and in models.
+    :type min_nuc_length: :class:`int` 
     """
     def __init__(self, target, resnum_alignments=False,
                  pep_seqid_thr = 95., pep_gap_thr = 0.1,
                  nuc_seqid_thr = 95., nuc_gap_thr = 0.1,
                  pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
                  pep_gap_ext = -2, nuc_subst_mat = seq.alg.NUC44,
-                 nuc_gap_open = -4, nuc_gap_ext = -4):
+                 nuc_gap_open = -4, nuc_gap_ext = -4,
+                 min_pep_length = 10, min_nuc_length = 4):
 
         # target structure preprocessing
         self._target, self._polypep_seqs, self._polynuc_seqs = \
-        _ProcessStructure(target)
+        _ProcessStructure(target, min_pep_length, min_nuc_length)
 
         # helper class to generate pairwise alignments
         self.aligner = _Aligner(resnum_aln = resnum_alignments,
@@ -113,6 +120,8 @@ class ChainMapper:
         self.pep_gap_thr = pep_gap_thr
         self.nuc_seqid_thr = nuc_seqid_thr
         self.nuc_gap_thr = nuc_gap_thr
+        self.min_pep_length = min_pep_length
+        self.min_nuc_length = min_nuc_length
 
         # lazy computed attributes
         self._chem_groups = None
@@ -249,7 +258,9 @@ class ChainMapper:
                   polynucleotides whose ATOMSEQ exactly matches the sequence
                   info in the returned alignments.
         """
-        mdl, mdl_pep_seqs, mdl_nuc_seqs = _ProcessStructure(model)
+        mdl, mdl_pep_seqs, mdl_nuc_seqs = _ProcessStructure(model,
+                                                            self.min_pep_length,
+                                                            self.min_nuc_length)
 
         mapping = [list() for x in self.chem_groups]
         alns = [seq.AlignmentList() for x in self.chem_groups]
@@ -645,7 +656,7 @@ class ChainMapper:
 # INTERNAL HELPERS
 ##################
 
-def _ProcessStructure(ent):
+def _ProcessStructure(ent, min_pep_length, min_nuc_length):
     """ Entity processing for chain mapping
 
     * Selects view containing peptide and nucleotide residues
@@ -653,6 +664,7 @@ def _ProcessStructure(ent):
     * Attaches corresponding :class:`ost.mol.EntityView` to each sequence
     * Ensures strictly increasing residue numbers without insertion codes
       in each chain
+    * filters chains by length
 
     :param ent: Entity to process
     :type ent: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
@@ -662,47 +674,16 @@ def _ProcessStructure(ent):
               returned view, sequences have :class:`ost.mol.EntityView` of
               according chains attached 3) same for polynucleotide chains
     """
-    view = _StructureSelection(ent)
-    polypep_seqs, polynuc_seqs = _GetAtomSeqs(view)
-    return (view, polypep_seqs, polynuc_seqs)
-
-def _StructureSelection(ent):
-    """ Helper for _ProcessStructure
-
-    Selects structure to only contain peptide and nucleotide residues
-
-    Additionally selects for residues that also contain the backbone
-    representatives (CA for peptide and C3' for nucleotides) to avoid ATOMSEQ
-    alignment inconsistencies when switching between all atom and backbone only
-    representations.
-    """
     query = "peptide=true or nucleotide=true and aname=\"CA\",\"C3'\""
     sel = ent.Select(query)
     view = ent.CreateEmptyView()
     for r in sel.residues:
         view.AddResidue(r.handle, mol.INCLUDE_ALL)
-    return view
 
-def _GetAtomSeqs(ent):
-    """ Helper for _ProcessStructure
-
-    Extracts and returns atomseqs for polypeptide/nucleotide chains with 
-    attached :class:`ost.mol.EntityView`
-
-    :param ent: Entity for which you want to extract atomseqs
-    :type ent: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
-    :returns: Two lists, first containing atomseqs for all polypeptide chains,
-              the second is the same for polynucleotides
-    :raises: :class:`RuntimeError` if ent contains any residue which evaluates
-             False for `r.IsPeptideLinking() or r.IsNucleotideLinking()`,
-             these two types are not strictly separated in different chains,
-             residue numbers in a chain are not strictly increasing or contain
-             insertion codes.
-    """
     polypep_seqs = seq.CreateSequenceList()
     polynuc_seqs = seq.CreateSequenceList()
 
-    for ch in ent.chains:
+    for ch in view.chains:
         n_res = len(ch.residues)
         n_pep = sum([r.IsPeptideLinking() for r in ch.residues])
         n_nuc = sum([r.IsNucleotideLinking() for r in ch.residues])
@@ -715,6 +696,13 @@ def _GetAtomSeqs(ent):
         if (n_pep + n_nuc) != n_res:
             raise RuntimeError("All residues must either be peptide_linking "
                                "or nucleotide_linking")
+
+        # filter out short chains
+        if n_pep > 0 and n_pep < min_pep_length:
+            continue
+
+        if n_nuc > 0 and n_nuc < min_nuc_length:
+            continue
 
         # check if no insertion codes are present in residue numbers
         ins_codes = [r.GetNumber().GetInsCode() for r in ch.residues]
@@ -730,7 +718,7 @@ def _GetAtomSeqs(ent):
 
         s = ''.join([r.one_letter_code for r in ch.residues])
         s = seq.CreateSequence(ch.GetName(), s)
-        s.AttachView(ent.Select(f"cname={ch.GetName()}"))
+        s.AttachView(view.Select(f"cname={ch.GetName()}"))
         if n_pep == n_res:
             polypep_seqs.AddSequence(s)
         elif n_nuc == n_res:
@@ -738,7 +726,13 @@ def _GetAtomSeqs(ent):
         else:
             raise RuntimeError("This shouldnt happen")
 
-    return (polypep_seqs, polynuc_seqs)
+    # select for chains for which we actually extracted the sequence
+    chain_names = [s.GetAttachedView().chains[0].name for s in polypep_seqs]
+    chain_names += [s.GetAttachedView().chains[0].name for s in polynuc_seqs]
+    query = f"cname={','.join(chain_names)}"
+    view = view.Select(query)
+
+    return (view, polypep_seqs, polynuc_seqs)
 
 class _Aligner:
     def __init__(self, pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
@@ -842,6 +836,7 @@ def _GetAlnPropsTwo(aln):
     return (seq.alg.SequenceIdentity(aln), float(n_aligned)/n_tot) 
 
 def _GetAlnPropsOne(aln):
+    
     """Returns basic properties of *aln* version one...
 
     :param aln: Alignment to compute properties
