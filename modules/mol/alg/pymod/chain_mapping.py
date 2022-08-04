@@ -1586,7 +1586,8 @@ def _BlockGreedy(the_greed, seed_size, n_mdl_chains):
                     if seed_lddt > best_lddt:
                         best_lddt = seed_lddt
                         best_mapping = seed
-                starting_blocks[ref_ch] = best_mapping
+                if best_mapping is not None:
+                    starting_blocks[ref_ch] = best_mapping
 
         best_lddt = 0.0
         best_mapping = None
