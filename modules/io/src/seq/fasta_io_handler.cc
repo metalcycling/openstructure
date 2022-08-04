@@ -46,6 +46,12 @@ void FastaIOHandler::Import(seq::SequenceList& aln,
 
 void FastaIOHandler::Export(const seq::ConstSequenceList& msa,
                             const boost::filesystem::path& loc) const {
+  // deliberately check for valid sequences BEFORE file is created on disk
+  for (int i=0; i<msa.GetCount(); ++i) {
+    if(msa[i].GetString().empty()) {
+      throw IOException("Cannot write FASTA file: Sequence is empty.");
+    }
+  }
   boost::filesystem::ofstream outfile(loc);
   this->Export(msa, outfile);
 }
@@ -111,7 +117,8 @@ void FastaIOHandler::Import(seq::SequenceList& aln,
         aln.AddSequence(seq);          
         seq_count+=1;
       } catch (seq::InvalidSequence& e) {
-        throw seq::InvalidSequence("Failed for sequence with name " + name + ": " + e.what());
+        throw seq::InvalidSequence("Failed for sequence \"" + name + "\" (" +
+                                   seq_string.str() + "): " + e.what());
       }
     } else {
       throw IOException("Bad FASTA file: Sequence is empty.");
@@ -127,6 +134,9 @@ void FastaIOHandler::Export(const seq::ConstSequenceList& seqs,
                             std::ostream& ostream) const
 {
   for (int i=0; i<seqs.GetCount(); ++i) {
+    if(seqs[i].GetString().empty()) {
+      throw IOException("Cannot write FASTA file: Sequence is empty.");
+    }
     ostream << ">" << seqs[i].GetName() << std::endl;
     ostream << seqs[i].GetString() << std::endl;
   }
