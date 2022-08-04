@@ -258,7 +258,6 @@ class ChainMapper:
             idx, aln = _MapSequence(self.chem_group_ref_seqs, 
                                     self.chem_group_types,
                                     s, mol.ChemType.AMINOACIDS,
-                                    self.pep_seqid_thr, self.pep_gap_thr,
                                     self.aligner)
             if idx is not None:
                 mapping[idx].append(s.GetName())
@@ -268,7 +267,6 @@ class ChainMapper:
             idx, aln = _MapSequence(self.chem_group_ref_seqs, 
                                     self.chem_group_types,
                                     s, mol.ChemType.NUCLEOTIDES,
-                                    self.nuc_seqid_thr, self.nuc_gap_thr,
                                     self.aligner)
             if idx is not None:
                 mapping[idx].append(s.GetName())
@@ -828,22 +826,36 @@ class _Aligner:
         aln.AddSequence(seq.CreateSequence(s2.GetName(), ''.join(aln_s2)))
         return aln
 
-def _GetAlnProps(aln):
-    """Returns basic properties of *aln*
+def _GetAlnPropsTwo(aln):
+    """Returns basic properties of *aln* version two...
+
+    :param aln: Alignment to compute properties
+    :type aln: :class:`seq.AlignmentHandle`
+    :returns: Tuple with 2 elements. 1) sequence identify in range [0, 100] 
+              considering aligned columns 2) Fraction of non-gap characters
+              in first sequence that are covered by non-gap characters in
+              second sequence.
+    """
+    assert(aln.GetCount() == 2)
+    n_tot = sum([1 for col in aln if col[0] != '-'])
+    n_aligned = sum([1 for col in aln if (col[0] != '-' and col[1] != '-')])
+    return (seq.alg.SequenceIdentity(aln), float(n_aligned)/n_tot) 
+
+def _GetAlnPropsOne(aln):
+    """Returns basic properties of *aln* version one...
 
     :param aln: Alignment to compute properties
     :type aln: :class:`seq.AlignmentHandle`
     :returns: Tuple with 3 elements. 1) sequence identify in range [0, 100] 
               considering aligned columns 2) Fraction of gaps between
-              first and last aligned column in s1 4) same for s2. 
+              first and last aligned column in s1 3) same for s2.
     """
     assert(aln.GetCount() == 2)
-    seqid = seq.alg.SequenceIdentity(aln)
     n_gaps_1 = str(aln.GetSequence(0)).strip('-').count('-')
     n_gaps_2 = str(aln.GetSequence(1)).strip('-').count('-')
     gap_frac_1 = float(n_gaps_1)/len(aln.GetSequence(0).GetGaplessString())
     gap_frac_2 = float(n_gaps_2)/len(aln.GetSequence(1).GetGaplessString())
-    return (seqid, gap_frac_1, gap_frac_2) 
+    return (seq.alg.SequenceIdentity(aln), gap_frac_1, gap_frac_2) 
 
 def _GetChemGroupAlignments(pep_seqs, nuc_seqs, aligner, pep_seqid_thr=95.,
                             pep_gap_thr=0.1, nuc_seqid_thr=95.,
@@ -917,7 +929,7 @@ def _GroupSequences(seqs, seqid_thr, gap_thr, aligner, chem_type):
             for g_s_idx in range(len(groups[g_idx])):
                 aln  = aligner.Align(seqs[s_idx], seqs[groups[g_idx][g_s_idx]],
                                      chem_type)
-                sid, frac_i, frac_j = _GetAlnProps(aln)
+                sid, frac_i, frac_j = _GetAlnPropsOne(aln)
                 if sid >= seqid_thr and frac_i < gap_thr and frac_j < gap_thr:
                     matching_group = g_idx
                     break
@@ -964,8 +976,14 @@ def _GroupSequences(seqs, seqid_thr, gap_thr, aligner, chem_type):
 
     return aln_list
 
-def _MapSequence(ref_seqs, ref_types, s, s_type, seqid_thr, gap_thr, aligner):
-    """Tries top map *s* onto any of the sequences in *ref_seqs* of equal type
+def _MapSequence(ref_seqs, ref_types, s, s_type, aligner):
+    """Tries top map *s* onto any of the sequences in *ref_seqs*
+
+    Computes alignments of *s* to each of the reference sequences of equal type
+    and sorts them by seqid*fraction_covered (seqid: sequence identity of
+    aligned columns in alignment, fraction_covered: Fraction of non-gap
+    characters in reference sequence that are covered by non-gap characters in
+    *s*). Best scoring mapping is returned.
 
     :param ref_seqs: Reference sequences 
     :type ref_seqs: :class:`ost.seq.SequenceList`
@@ -976,15 +994,6 @@ def _MapSequence(ref_seqs, ref_types, s, s_type, seqid_thr, gap_thr, aligner):
     :type s: :class:`ost.seq.SequenceHandle`
     :param s_type: Type of *s*, only try mapping to sequences in *ref_seqs*
                    with equal type as defined in *ref_types*
-    :param seqid_thr: Threshold used to decide whether sequence is mapped.
-    :type seqid_thr:  :class:`float`
-    :param gap_thr: Additional threshold to avoid gappy alignments with high
-                    seqid. The reason for not just normalizing seqid by the
-                    longer sequence is that one sequence might be a perfect
-                    subsequence of the other but only cover half of it. This
-                    threshold checks for a maximum allowed fraction of gaps
-                    in any of the two sequences after stripping terminal gaps.
-    :type gap_thr: :class:`float`
     :param aligner: Helper class to generate pairwise alignments
     :type aligner: :class:`_Aligner`
     :returns: Tuple with two elements. 1) index of sequence in *ref_seqs* to
@@ -994,22 +1003,19 @@ def _MapSequence(ref_seqs, ref_types, s, s_type, seqid_thr, gap_thr, aligner):
     :raises: :class:`RuntimeError` if mapping is ambiguous, i.e. *s*
              successfully maps to more than one sequence in *ref_seqs* 
     """
-    map_idx = None
-    map_aln = None
+    scored_alns = list()
     for ref_idx, ref_seq in enumerate(ref_seqs):
-        aln = aligner.Align(ref_seq, s, s_type)
-        seqid, gap_frac_i, gap_frac_j = _GetAlnProps(aln)
-        if seqid >= seqid_thr and gap_frac_i < gap_thr and gap_frac_j < gap_thr:
-            if map_idx is not None:
-                # match is ambiguous!
-                raise RuntimeError(f"Ambiguous mapping for mdl chain "
-                                   f"{s.GetName()}. Maps to chemically "
-                                   f"equivalent groups with ref sequences "
-                                   f"{ref_seqs[map_idx].GetName()} and "
-                                   f"{ref_seqs[ref_idx].GetName()}.")
-            map_idx = ref_idx
-            map_aln = aln
-    return (map_idx, map_aln)
+        if ref_types[ref_idx] == s_type:
+            aln = aligner.Align(ref_seq, s, s_type)
+            seqid, fraction_covered = _GetAlnPropsTwo(aln)
+            score = seqid * fraction_covered
+            scored_alns.append((score, ref_idx, aln))
+
+    if len(scored_alns) == 0:
+        return (None, None) # no mapping possible...
+
+    scored_alns = sorted(scored_alns, key=lambda x: x[0], reverse=True)
+    return (scored_alns[0][1], scored_alns[0][2])
 
 def _GetRefMdlAlns(ref_chem_groups, ref_chem_group_msas, mdl_chem_groups,
                    mdl_chem_group_alns):
