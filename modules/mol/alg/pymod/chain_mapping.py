@@ -93,6 +93,12 @@ class ChainMapper:
     :param min_nuc_length: Minimal number of residues for a nucleotide chain to be
                            considered in target and in models.
     :type min_nuc_length: :class:`int` 
+    :param n_max_naive: Max possible chain mappings that are enumerated in
+                        :func:`~GetNaivelDDTMapping` /
+                        :func:`~GetDecomposerlDDTMapping`. A
+                        :class:`RuntimeError` is raised in case of bigger
+                        complexity.
+    :type n_max_naive: :class:`int`
     """
     def __init__(self, target, resnum_alignments=False,
                  pep_seqid_thr = 95., pep_gap_thr = 0.1,
@@ -100,7 +106,8 @@ class ChainMapper:
                  pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
                  pep_gap_ext = -2, nuc_subst_mat = seq.alg.NUC44,
                  nuc_gap_open = -4, nuc_gap_ext = -4,
-                 min_pep_length = 10, min_nuc_length = 4):
+                 min_pep_length = 10, min_nuc_length = 4,
+                 n_max_naive = 1e8):
 
         # target structure preprocessing
         self._target, self._polypep_seqs, self._polynuc_seqs = \
@@ -122,6 +129,7 @@ class ChainMapper:
         self.nuc_gap_thr = nuc_gap_thr
         self.min_pep_length = min_pep_length
         self.min_nuc_length = min_nuc_length
+        self.n_max_naive = n_max_naive
 
         # lazy computed attributes
         self._chem_groups = None
@@ -325,7 +333,8 @@ class ChainMapper:
         best_mapping = None
         best_lddt = -1.0
 
-        for mapping in _ChainMappings(self.chem_groups, chem_mapping):
+        for mapping in _ChainMappings(self.chem_groups, chem_mapping,
+                                      self.n_max_naive):
             # chain_mapping and alns as input for lDDT computation
             lddt_chain_mapping = dict()
             lddt_alns = dict()
@@ -389,7 +398,8 @@ class ChainMapper:
         best_mapping = None
         best_lddt = -1.0
 
-        for mapping in _ChainMappings(self.chem_groups, chem_mapping):
+        for mapping in _ChainMappings(self.chem_groups, chem_mapping,
+                                      self.n_max_naive):
 
             lDDT = lddt_scorer.lDDT(self.chem_groups, mapping)
             if lDDT > best_lddt:
@@ -1830,7 +1840,7 @@ def _ConcatIterators(iterators):
         yield list(item)
 
 
-def _ChainMappings(ref_chains, mdl_chains):
+def _ChainMappings(ref_chains, mdl_chains, n_max=None):
     """Returns all possible ways to map *mdl_chains* onto fixed *ref_chains*
 
     :param ref_chains: List of list of chemically equivalent chains in reference
@@ -1838,6 +1848,9 @@ def _ChainMappings(ref_chains, mdl_chains):
     :param mdl_chains: Equally long list of list of chemically equivalent chains
                        in model that map on those ref chains.
     :type mdl_chains: :class:`list` of :class:`list`
+    :param n_max: Aborts and raises :class:`RuntimeError` if max number of
+                  mappings is above this threshold.
+    :type n_max: :class:`int`
     :returns: Iterator over all possible mappings of *mdl_chains* onto fixed
               *ref_chains*. Potentially contains None as padding when number of
               model chains for a certain mapping is smaller than the according
@@ -1858,6 +1871,11 @@ def _ChainMappings(ref_chains, mdl_chains):
                                        [[None, 'y', 'x'], ['j', 'i']]]
     """
     assert(len(ref_chains) == len(mdl_chains))
+
+    if n_max is not None:
+        if not _NMappingsWithin(ref_chains, mdl_chains, n_max):
+            raise RuntimeError(f"Too many mappings. Max allowed: {n_max}")
+
     # one iterator per mapping representing all mdl combinations relative to
     # reference
     iterators = list()
