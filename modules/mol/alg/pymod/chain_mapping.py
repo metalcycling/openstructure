@@ -104,8 +104,8 @@ class ChainMapper:
     def __init__(self, target, resnum_alignments=False,
                  pep_seqid_thr = 95., pep_gap_thr = 1.0,
                  nuc_seqid_thr = 95., nuc_gap_thr = 1.0,
-                 pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
-                 pep_gap_ext = -2, nuc_subst_mat = seq.alg.NUC44,
+                 pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -11,
+                 pep_gap_ext = -1, nuc_subst_mat = seq.alg.NUC44,
                  nuc_gap_open = -4, nuc_gap_ext = -4,
                  min_pep_length = 10, min_nuc_length = 4,
                  n_max_naive = 1e8):
