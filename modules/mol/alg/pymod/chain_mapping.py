@@ -59,12 +59,13 @@ class ChainMapper:
                           crystallographers like to do.
     :type pep_seqid_thr:  :class:`float`
     :param pep_gap_thr: Additional threshold to avoid gappy alignments with
-                        high seqid. The reason for not just normalizing
+                        high seqid. By default this is disabled (set to 1.0).
+                        This threshold checks for a maximum allowed fraction
+                        of gaps in any of the two sequences after stripping
+                        terminal gaps. The reason for not just normalizing
                         seqid by the longer sequence is that one sequence
                         might be a perfect subsequence of the other but only
-                        cover half of it. This threshold checks for a
-                        maximum allowed fraction of gaps in any of the two
-                        sequences after stripping terminal gaps.
+                        cover half of it. 
     :type pep_gap_thr:  :class:`float`
     :param nuc_seqid_thr: Nucleotide equivalent for *pep_seqid_thr*
     :type nuc_seqid_thr:  :class:`float`
@@ -101,8 +102,8 @@ class ChainMapper:
     :type n_max_naive: :class:`int`
     """
     def __init__(self, target, resnum_alignments=False,
-                 pep_seqid_thr = 95., pep_gap_thr = 0.1,
-                 nuc_seqid_thr = 95., nuc_gap_thr = 0.1,
+                 pep_seqid_thr = 95., pep_gap_thr = 1.0,
+                 nuc_seqid_thr = 95., nuc_gap_thr = 1.0,
                  pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
                  pep_gap_ext = -2, nuc_subst_mat = seq.alg.NUC44,
                  nuc_gap_open = -4, nuc_gap_ext = -4,
