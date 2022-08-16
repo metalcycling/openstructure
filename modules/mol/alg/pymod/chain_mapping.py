@@ -73,7 +73,7 @@ class ChainMapper:
     :type nuc_gap_thr:  :class:`float`
     :param pep_subst_mat: Substitution matrix to align peptide sequences,
                           irrelevant if *resnum_alignments* is True,
-                          defaults to seq.alg.BLOSUM100
+                          defaults to seq.alg.BLOSUM62
     :type pep_subst_mat: :class:`ost.seq.alg.SubstWeightMatrix`
     :param pep_gap_open: Gap open penalty to align peptide sequences,
                          irrelevant if *resnum_alignments* is True
@@ -104,7 +104,7 @@ class ChainMapper:
     def __init__(self, target, resnum_alignments=False,
                  pep_seqid_thr = 95., pep_gap_thr = 1.0,
                  nuc_seqid_thr = 95., nuc_gap_thr = 1.0,
-                 pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -11,
+                 pep_subst_mat = seq.alg.BLOSUM62, pep_gap_open = -11,
                  pep_gap_ext = -1, nuc_subst_mat = seq.alg.NUC44,
                  nuc_gap_open = -4, nuc_gap_ext = -4,
                  min_pep_length = 10, min_nuc_length = 4,
@@ -747,7 +747,7 @@ def _ProcessStructure(ent, min_pep_length, min_nuc_length):
     return (view, polypep_seqs, polynuc_seqs)
 
 class _Aligner:
-    def __init__(self, pep_subst_mat = seq.alg.BLOSUM100, pep_gap_open = -5,
+    def __init__(self, pep_subst_mat = seq.alg.BLOSUM62, pep_gap_open = -5,
                  pep_gap_ext = -2, nuc_subst_mat = seq.alg.NUC44,
                  nuc_gap_open = -4, nuc_gap_ext = -4, resnum_aln = False):
         """ Helper class to compute alignments
