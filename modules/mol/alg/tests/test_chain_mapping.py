@@ -261,6 +261,12 @@ class TestChainMapper(unittest.TestCase):
     greedy_lddt_mapping = mapper.GetGreedylDDTMapping(mdl, seed_strategy="block")
     self.assertEqual(greedy_lddt_mapping, [['X', 'Y'],[None],['Z']])
 
+    greedy_rigid_mapping = mapper.GetGreedyRigidMapping(mdl, strategy="single")
+    self.assertEqual(greedy_rigid_mapping, [['X', 'Y'],[None],['Z']])
+
+    greedy_rigid_mapping = mapper.GetGreedyRigidMapping(mdl, strategy="iterative")
+    self.assertEqual(greedy_rigid_mapping, [['X', 'Y'],[None],['Z']])
+
 
 if __name__ == "__main__":
   from ost import testutils
