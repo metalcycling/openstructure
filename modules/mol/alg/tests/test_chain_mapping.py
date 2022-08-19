@@ -245,11 +245,8 @@ class TestChainMapper(unittest.TestCase):
     # This is not supposed to be in depth algorithm testing, we just check
     # whether the various algorithms return sensible chain mappings
 
-    naive_lddt_mapping = mapper.GetNaivelDDTMapping(mdl, bb_only=True)
+    naive_lddt_mapping = mapper.GetNaivelDDTMapping(mdl)
     self.assertEqual(naive_lddt_mapping, [['X', 'Y'],[None],['Z']])
-
-    decomposer_lddt_mapping = mapper.GetDecomposerlDDTMapping(mdl)
-    self.assertEqual(decomposer_lddt_mapping, [['X', 'Y'],[None],['Z']])
 
     # the "fast" strategy produces actually a suboptimal mapping in this case...
     greedy_lddt_mapping = mapper.GetGreedylDDTMapping(mdl, seed_strategy="fast")

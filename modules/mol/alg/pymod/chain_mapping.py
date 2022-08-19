@@ -294,19 +294,16 @@ class ChainMapper:
 
         return (mapping, alns, mdl)
 
-    def GetNaivelDDTMapping(self, model, bb_only=False, inclusion_radius=15.0,
+    def GetNaivelDDTMapping(self, model, inclusion_radius=15.0,
                             thresholds=[0.5, 1.0, 2.0, 4.0]):
         """Naively iterates all possible chain mappings and returns the best
 
         Maps *model* chain sequences to :attr:`~chem_groups` and performs all
-        possible permutations. The best mapping is selected based on lDDT score.
+        possible permutations. The best mapping is selected based on backbone
+        only lDDT score (CA for amino acids C3' for Nucleotides).
 
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
-        :param bb_only: Only consider atoms of name "CA" (peptides) or "C3'"
-                        (nucleotides). Gives speed improvement but sidechains
-                        are not considered anymore.
-        :type bb_only: :class:`bool`
         :param inclusion_radius: Inclusion radius for lDDT
         :type inclusion_radius: :class:`float`
         :param thresholds: Thresholds for lDDT
@@ -329,85 +326,51 @@ class ChainMapper:
                                        chem_mapping,
                                        chem_group_alns)
 
-        # Setup scoring
-        lddt_scorer = lddt.lDDTScorer(self.target, bb_only = bb_only)
         best_mapping = None
         best_lddt = -1.0
 
-        for mapping in _ChainMappings(self.chem_groups, chem_mapping,
-                                      self.n_max_naive):
-            # chain_mapping and alns as input for lDDT computation
-            lddt_chain_mapping = dict()
-            lddt_alns = dict()
+        # Benchmarks on homo-oligomers indicate that full blown lDDT
+        # computation is faster up to tetramers => 4!=24 possible mappings.
+        # For stuff bigger than that, the decomposer approach should be used
+        if _NMappingsWithin(self.chem_groups, chem_mapping, 24):
+            # Setup scoring
+            lddt_scorer = lddt.lDDTScorer(self.target, bb_only = True)
+            for mapping in _ChainMappings(self.chem_groups, chem_mapping,
+                                          self.n_max_naive):
+                # chain_mapping and alns as input for lDDT computation
+                lddt_chain_mapping = dict()
+                lddt_alns = dict()
+                for ref_chem_group, mdl_chem_group, ref_aln in \
+                zip(self.chem_groups, mapping, self.chem_group_alignments):
+                    for ref_ch, mdl_ch in zip(ref_chem_group, mdl_chem_group):
+                        # some mdl chains can be None
+                        if mdl_ch is not None:
+                            lddt_chain_mapping[mdl_ch] = ref_ch
+                            lddt_alns[mdl_ch] = ref_mdl_alns[(ref_ch, mdl_ch)]
+                lDDT, _ = lddt_scorer.lDDT(mdl, thresholds=thresholds,
+                                           chain_mapping=lddt_chain_mapping,
+                                           residue_mapping = lddt_alns,
+                                           check_resnames = False)
+                if lDDT > best_lddt:
+                    best_mapping = mapping
+                    best_lddt = lDDT
 
-            for ref_chem_group, mdl_chem_group, ref_aln in \
-            zip(self.chem_groups, mapping, self.chem_group_alignments):
-                for ref_ch, mdl_ch in zip(ref_chem_group, mdl_chem_group):
-                    # some mdl chains can be None
-                    if mdl_ch is not None:
-                        lddt_chain_mapping[mdl_ch] = ref_ch
-                        lddt_alns[mdl_ch] = ref_mdl_alns[(ref_ch, mdl_ch)]
-
-            lDDT, _ = lddt_scorer.lDDT(mdl, thresholds=thresholds,
-                                       chain_mapping=lddt_chain_mapping,
-                                       residue_mapping = lddt_alns,
-                                       check_resnames = False)
-
-            if lDDT > best_lddt:
-                best_mapping = mapping
-                best_lddt = lDDT
-
-        return best_mapping
-
-    def GetDecomposerlDDTMapping(self, model, inclusion_radius=15.0,
-                                 thresholds=[0.5, 1.0, 2.0, 4.0]):
-        """Naively iterates all possible chain mappings and returns the best
-
-        Maps *model* chain sequences to :attr:`~chem_groups` and performs all
-        possible permutations. The difference to :func:`GetNaivelDDTMapping` is
-        the use of extensive caching due to the pairwise decomposability of the
-        lDDT score when only backbone atoms (CA for amino acids C3' for
-        Nucleotides) are considered.
-
-        :param model: Model to map
-        :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
-        :param inclusion_radius: Inclusion radius for lDDT
-        :type inclusion_radius: :class:`float`
-        :param thresholds: Thresholds for lDDT
-        :type thresholds: :class:`list` of :class:`float`
-        :returns: A :class:`list` of :class:`list` that reflects
-                  :attr:`~chem_groups` but is filled with the respective model
-                  chains. Target chains without mapped model chains are set to
-                  None.
-        """
-        chem_mapping, chem_group_alns, mdl = self.GetChemMapping(model)
-
-        # check for the simplest case
-        one_to_one = _CheckOneToOneMapping(self.chem_groups, chem_mapping)
-        if one_to_one is not None:
-            return one_to_one
-
-        ref_mdl_alns =  _GetRefMdlAlns(self.chem_groups,
-                                       self.chem_group_alignments,
-                                       chem_mapping,
-                                       chem_group_alns)
-
-        # Setup scoring
-        lddt_scorer = _lDDTDecomposer(self.target, mdl, ref_mdl_alns,
-                                      inclusion_radius=inclusion_radius,
-                                      thresholds = thresholds)
-        best_mapping = None
-        best_lddt = -1.0
-
-        for mapping in _ChainMappings(self.chem_groups, chem_mapping,
-                                      self.n_max_naive):
-
-            lDDT = lddt_scorer.lDDT(self.chem_groups, mapping)
-            if lDDT > best_lddt:
-                best_mapping = mapping
-                best_lddt = lDDT
+        else:
+            # Setup scoring
+            lddt_scorer = _lDDTDecomposer(self.target, mdl, ref_mdl_alns,
+                                          inclusion_radius=inclusion_radius,
+                                          thresholds = thresholds)
+            best_mapping = None
+            best_lddt = -1.0
+            for mapping in _ChainMappings(self.chem_groups, chem_mapping,
+                                          self.n_max_naive):
+                lDDT = lddt_scorer.lDDT(self.chem_groups, mapping)
+                if lDDT > best_lddt:
+                    best_mapping = mapping
+                    best_lddt = lDDT
 
         return best_mapping
+
 
     def GetGreedylDDTMapping(self, model, inclusion_radius=15.0,
                              thresholds=[0.5, 1.0, 2.0, 4.0],
