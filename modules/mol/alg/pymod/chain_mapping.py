@@ -360,8 +360,6 @@ class ChainMapper:
             lddt_scorer = _lDDTDecomposer(self.target, mdl, ref_mdl_alns,
                                           inclusion_radius=inclusion_radius,
                                           thresholds = thresholds)
-            best_mapping = None
-            best_lddt = -1.0
             for mapping in _ChainMappings(self.chem_groups, chem_mapping,
                                           self.n_max_naive):
                 lDDT = lddt_scorer.lDDT(self.chem_groups, mapping)
