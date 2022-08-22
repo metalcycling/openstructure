@@ -16,7 +16,7 @@
 // along with this library; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //------------------------------------------------------------------------------
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <ost/dyn_cast.hh>
 
 #include "gfx_node.hh"
@@ -156,7 +156,7 @@ void GfxNode::Remove(GfxObjP obj)
     obj->parent_.reset();
     if (this->IsAttachedToScene()) {
       Scene::Instance().NotifyObservers(bind(&SceneObserver::NodeRemoved, 
-                                             _1, obj));
+                                             boost::placeholders::_1, obj));
     }    
   }
 
@@ -174,7 +174,7 @@ void GfxNode::RemoveAll()
     if (!attached) 
       continue;
     Scene::Instance().NotifyObservers(bind(&SceneObserver::NodeRemoved, 
-                                           _1, *i));
+                                           boost::placeholders::_1, *i));
   }
   node_vector_.clear();
 }
@@ -211,7 +211,7 @@ void GfxNode::Remove(GfxNodeP node)
   }
   if (this->IsAttachedToScene()) {
     Scene::Instance().NotifyObservers(bind(&SceneObserver::NodeRemoved, 
-                                           _1, node));
+                                           boost::placeholders::_1, node));
   }
 }
 

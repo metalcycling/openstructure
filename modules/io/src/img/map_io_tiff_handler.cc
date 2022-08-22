@@ -29,7 +29,6 @@
 #include <stdarg.h>
 
 #include <boost/function.hpp>
-#include <boost/bind.hpp>
 
 #include <ost/img/image_state.hh>
 #include <ost/img/progress.hh>

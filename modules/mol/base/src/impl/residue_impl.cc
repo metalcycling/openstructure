@@ -23,12 +23,10 @@
 #include "residue_impl.hh"
 #include "atom_impl.hh"
 #include "entity_impl.hh"
-#include <boost/bind.hpp>
 #include <algorithm>
 #include "torsion_impl.hh"
 #include <ost/mol/impl/connector_impl.hh>
 
-using boost::bind;
 
 namespace ost { namespace mol { namespace impl {
 

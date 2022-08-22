@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <limits>
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <ost/log.hh>
 #include <ost/mol/bond_handle.hh>
 #include <ost/mol/chain_view.hh>
@@ -32,7 +32,6 @@
 #include "residue_view.hh"
 #include "residue_handle.hh"
 
-using boost::bind;
 
 namespace ost { namespace mol {
 
@@ -114,7 +113,7 @@ AtomView ResidueView::FindAtom(const String& atom_name) const {
   this->CheckValidity();
   const AtomViewList& l=data_->atoms;
   AtomViewList::const_iterator i;
-  i=std::find_if(l.begin(), l.end(), boost::bind(&AtomView::GetName, _1)==atom_name);
+  i=std::find_if(l.begin(), l.end(), boost::bind(&AtomView::GetName, boost::placeholders::_1)==atom_name);
   return i==data_->atoms.end() ? AtomView() : *i;
 }
 
@@ -122,7 +121,7 @@ AtomView ResidueView::ViewForHandle(const AtomHandle& handle) const {
   this->CheckValidity();
   const AtomViewList& l=data_->atoms;
   AtomViewList::const_iterator i;
-  i=std::find_if(l.begin(), l.end(), bind(&AtomView::GetHandle, _1)==handle);
+  i=std::find_if(l.begin(), l.end(), bind(&AtomView::GetHandle, boost::placeholders::_1)==handle);
   return i==data_->atoms.end() ? AtomView() : *i;
 }
 
@@ -166,7 +165,7 @@ void ResidueView::RemoveAtoms()
 {
   this->CheckValidity();
   std::for_each(data_->atoms.begin(), data_->atoms.end(),
-                bind(&AtomView::RemoveBonds, _1));
+                bind(&AtomView::RemoveBonds, boost::placeholders::_1));
   AtomViewList::iterator i;
   EntityView ev=this->GetEntity();
   for (i=data_->atoms.begin(); i!=data_->atoms.end(); ++i) {

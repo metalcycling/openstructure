@@ -32,7 +32,6 @@
 #include <ost/io/io_exception.hh>
 
 #include <boost/function.hpp>
-#include <boost/bind.hpp>
 
 #include "jpk_util.hh"
 #include "tiff_util.hh"

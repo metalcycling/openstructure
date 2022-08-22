@@ -22,7 +22,7 @@
  */
 #include <algorithm>
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/logic/tribool.hpp>
 
 #include <ost/log.hh>
@@ -44,7 +44,6 @@
 
 using boost::logic::tribool;
 using boost::logic::indeterminate;
-using boost::bind;
 
 
 
@@ -266,7 +265,7 @@ ChainView EntityView::FindChain(const String& chain_name) const{
   this->CheckValidity();
   ChainViewList::const_iterator i;
   i=std::find_if(data_->chains.begin(), data_->chains.end(),
-                 boost::bind(&ChainView::GetName, _1)==chain_name);
+                 boost::bind(&ChainView::GetName, boost::placeholders::_1)==chain_name);
   return (i!=data_->chains.end()) ? *i : ChainView();
 }
 
@@ -428,7 +427,7 @@ ChainView EntityView::ViewForHandle(const ChainHandle& chain) const {
   this->CheckValidity();
   ChainViewList::const_iterator i;
   i=std::find_if(data_->chains.begin(), data_->chains.end(),
-                 bind(&ChainView::GetHandle, _1)==chain);
+                 bind(&ChainView::GetHandle, boost::placeholders::_1)==chain);
   return (i!=data_->chains.end()) ? *i : ChainView();
 }
 

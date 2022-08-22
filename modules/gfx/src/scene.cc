@@ -30,7 +30,7 @@
 #include <sys/time.h>
 #endif
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -995,7 +995,7 @@ bool Scene::IsNameAvailable(const String& name) const
 
 void Scene::NodeAdded(const GfxNodeP& node)
 {
-  this->NotifyObservers(bind(&SceneObserver::NodeAdded, _1, node));
+  this->NotifyObservers(bind(&SceneObserver::NodeAdded, boost::placeholders::_1, node));
 }
 
 void Scene::ObjectChanged(const String& name)
@@ -1003,13 +1003,13 @@ void Scene::ObjectChanged(const String& name)
   FindObj fn(name);
   Apply(fn);
   if(fn.node) {
-    this->NotifyObservers(bind(&SceneObserver::NodeChanged, _1, fn.node));
+    this->NotifyObservers(bind(&SceneObserver::NodeChanged, boost::placeholders::_1, fn.node));
   }
 }
 
 void Scene::NodeTransformed(const GfxObjP& object)
 {
-  this->NotifyObservers(bind(&SceneObserver::NodeTransformed, _1, object));
+  this->NotifyObservers(bind(&SceneObserver::NodeTransformed, boost::placeholders::_1, object));
 }
 
 void Scene::SelectionChanged(const String& name, const mol::EntityView& sel)
@@ -1017,7 +1017,7 @@ void Scene::SelectionChanged(const String& name, const mol::EntityView& sel)
   FindObj fn(name);
   Apply(fn);
   if(fn.node) {
-    this->NotifyObservers(bind(&SceneObserver::SelectionChanged, _1, fn.node, sel));
+    this->NotifyObservers(bind(&SceneObserver::SelectionChanged, boost::placeholders::_1, fn.node, sel));
   }
 }
 
@@ -1026,7 +1026,7 @@ void Scene::RenderModeChanged(const String& name)
   FindObj fn(name);
   Apply(fn);
   if(fn.node) {
-    this->NotifyObservers(bind(&SceneObserver::RenderModeChanged, _1, fn.node));
+    this->NotifyObservers(bind(&SceneObserver::RenderModeChanged, boost::placeholders::_1, fn.node));
   }
 }
 
@@ -1034,7 +1034,7 @@ void Scene::Remove(const GfxNodeP& go)
 {
   if(!go) return;
   root_node_->Remove(go);
-  this->NotifyObservers(bind(&SceneObserver::NodeRemoved, _1,go));
+  this->NotifyObservers(bind(&SceneObserver::NodeRemoved, boost::placeholders::_1,go));
 }
 
 void Scene::RemoveAll()
@@ -1050,7 +1050,7 @@ void Scene::Remove(const String& name)
   if(fn.node) {
     root_node_->Remove(name);
     if(GfxObjP go = dyn_cast<GfxObj>(fn.node)) {
-      this->NotifyObservers(bind(&SceneObserver::NodeRemoved, _1, go));
+      this->NotifyObservers(bind(&SceneObserver::NodeRemoved, boost::placeholders::_1, go));
     }
   }
 }
@@ -1610,7 +1610,7 @@ void Scene::SetSelectionMode(uint m)
 {
   if (selection_mode_!=m) {
     selection_mode_=m;
-    this->NotifyObservers(bind(&SceneObserver::SelectionModeChanged, _1,
+    this->NotifyObservers(bind(&SceneObserver::SelectionModeChanged, boost::placeholders::_1,
                                selection_mode_));
   }
 

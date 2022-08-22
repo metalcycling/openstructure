@@ -28,7 +28,7 @@
 #include <ost/mol/chain_view.hh>
 #include <ost/mol/bond_handle.hh>
 #include <boost/regex.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 namespace ost { namespace io {
 
@@ -100,7 +100,8 @@ namespace {
       // get all neighboring atoms and sort them according to their atom index
       mol::AtomViewList atoms = atom.GetBondPartners();
       std::sort(atoms.begin(), atoms.end(), bind(&SDFBondWriter::CompareAtomIdx,
-                                                 this, _1, _2));
+                                                 this, boost::placeholders::_1,
+                                                 boost::placeholders::_2));
 
       // iterate all neighboring atoms and print bonds to all atoms with index
       // larger than current atom index

@@ -19,14 +19,12 @@
 #include <sstream>
 #include <numeric>
 
-#include <boost/bind.hpp>
 
 #include <ost/mol/mol.hh>
 
 #include "sequence_op.hh"
 
 
-using boost::bind;
 
 namespace ost { namespace seq {
 

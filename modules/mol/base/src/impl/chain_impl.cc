@@ -23,11 +23,10 @@
 #include "entity_impl.hh"
 #include <ost/mol/impl/atom_impl.hh>
 #include <ost/mol/entity_visitor.hh>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <algorithm>
 #include <numeric>
 
-using boost::bind;
 using std::accumulate;
 
 namespace ost { namespace mol { namespace impl {
@@ -380,7 +379,7 @@ int ChainImpl::GetIndexForResNum(const ResNum& number) const
       ResidueImplList::const_iterator k;    
       k=std::find_if(residue_list_.begin(), 
                      residue_list_.end(), 
-                     bind(&ResidueImpl::GetNumber, _1)==number);
+                     bind(&ResidueImpl::GetNumber, boost::placeholders::_1)==number);
 
       if (k==residue_list_.end())
         return -1;
@@ -426,7 +425,7 @@ int ChainImpl::GetIndex(const ResidueImplPtr& res) const
       ResidueImplList::const_iterator k=residue_list_.begin()-1;
       do {
         k=std::find_if(k+1, residue_list_.end(), 
-                       bind(&ResidueImpl::GetNumber, _1)==number);
+                       bind(&ResidueImpl::GetNumber, boost::placeholders::_1)==number);
       } while(k!=residue_list_.end() && (*k)!=res);
 
       if (k==residue_list_.end())

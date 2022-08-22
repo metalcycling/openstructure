@@ -29,10 +29,9 @@
 #include "chain_impl.hh"
 #include "torsion_impl.hh"
 #include <ost/mol/entity_visitor.hh>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <algorithm>
 
-using boost::bind;
 
 namespace ost {  namespace mol { namespace impl {
 
@@ -375,7 +374,7 @@ void AtomImpl::DeleteAllTorsions() {
     TorsionImplList& l = (*i)->GetTorsionList();
     TorsionImplList::iterator j;
     j=std::remove_if(l.begin(), l.end(),
-                     bind(&TorsionImpl::IsAtomInvolved, _1, shared_from_this()));
+                     bind(&TorsionImpl::IsAtomInvolved, boost::placeholders::_1, shared_from_this()));
     l.erase(j, l.end());
   }
 }
