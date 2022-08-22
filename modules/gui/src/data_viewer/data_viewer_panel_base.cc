@@ -599,7 +599,7 @@ void DataViewerPanelBase::mouseMoveEvent(QMouseEvent* event)
       }
     }
     update_rubberband_from_selection_();
-  } else if((event->buttons() == Qt::MidButton) && HasSelection()) {
+  } else if((event->buttons() == Qt::MiddleButton) && HasSelection()) {
     update_rubberband_from_selection_();
   }
   last_x_=event->x();
