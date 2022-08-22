@@ -435,9 +435,9 @@ void DataViewerPanelBase::paintEvent(QPaintEvent* event)
       // Partial fix for buggy MDI on OSX. QMdiSubwindows hidden behind the opaque active window
       // still receive QPaintEvents. Redrawing the hidden windows may deplete the pixmap cache.
       // hasFocus() avoids the depletion but doesn't avoid the redraw.
-      if (update_raster_image_ || ( !QPixmapCache::find(cache_key, pm) && hasFocus())) {
+      if (update_raster_image_ || ( !QPixmapCache::find(cache_key, &pm) && hasFocus())) {
       #else
-      if (update_raster_image_ || ( !QPixmapCache::find(cache_key, pm))) {
+      if (update_raster_image_ || ( !QPixmapCache::find(cache_key, &pm))) {
       #endif
         RasterImage ri(blocksize,blocksize);
         ri.Fill(GetObservedData(),zoom_level_,
