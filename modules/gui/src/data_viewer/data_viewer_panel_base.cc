@@ -610,7 +610,7 @@ void DataViewerPanelBase::mouseMoveEvent(QMouseEvent* event)
 void DataViewerPanelBase::wheelEvent(QWheelEvent* event)
 {
   if(!IsDataValid()) return;
-  if(event->delta()>0) {
+  if(event->angleDelta().y()>0) {
     zoom(-1);
   } else {
     zoom(1);

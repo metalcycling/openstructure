@@ -295,7 +295,7 @@ void SequenceViewer::FitToContents()
 
 void SequenceViewer::MouseWheelEvent(QWheelEvent* event)
 {
-  int delta = event->delta();
+  int delta = event->angleDelta().y();
   if (event->orientation() == Qt::Vertical) {
     if(delta>0){
       model_->ZoomIn();

@@ -485,7 +485,7 @@ void GLCanvas::keyReleaseEvent(QKeyEvent* event) {
 
 void GLCanvas::wheelEvent(QWheelEvent* event) {
   OnTransform(gfx::INPUT_COMMAND_TRANSZ,0,gfx::TRANSFORM_VIEW,
-              0.2*static_cast<Real>(-event->delta()));
+              0.2*static_cast<Real>(-event->angleDelta().y()));
 }
 
 bool GLCanvas::event(QEvent* event) {
