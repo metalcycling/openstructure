@@ -64,7 +64,7 @@ int ipow(int base, unsigned int exponent){
 }
 
 DataViewer::DataViewer(QWidget* p, const ImageHandle& data, const QString& name):
-  ost::gui::MainWindow(p,0),
+  ost::gui::MainWindow(p),
   name_(name),
   panel_(new DataViewerPanel(data,this)),
   ov_manager_(new OverlayManager(this)),
