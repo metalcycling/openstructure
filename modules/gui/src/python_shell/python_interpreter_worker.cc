@@ -21,6 +21,7 @@
 #include "python_interpreter_worker.hh"
 #include "python_interpreter.hh"
 
+
 namespace ost { namespace gui {
 
     namespace {
@@ -55,7 +56,7 @@ PythonInterpreterWorker::PythonInterpreterWorker():
   current_id_(),
   awake_(false)
 {
-  parse_expr_cmd_=bp::import("parser").attr("expr");
+  parse_expr_cmd_=bp::import("__main__").attr("__builtins__").attr("compile");
   main_namespace_ = bp::extract<bp::dict>(bp::import("__main__").attr("__dict__"));
   repr_=bp::import("__main__").attr("__builtins__").attr("repr");
   #ifndef _MSC_VER
@@ -98,16 +99,6 @@ unsigned int PythonInterpreterWorker::AddCommand(const QString& command)
   return command_id_;
 }
 
-bool PythonInterpreterWorker::is_simple_expression_(const QString& expr)
-{
-  try {
-    parse_expr_cmd_(bp::str(expr.toStdString()));
-    return true;
-  } catch(bp::error_already_set&) {
-    PyErr_Clear();
-    return false;
-  }
-}
 void PythonInterpreterWorker::run_command_(std::pair<unsigned int,QString> pair)
 {
   #ifndef _MSC_VER
@@ -148,7 +139,7 @@ void PythonInterpreterWorker::run_command_(std::pair<unsigned int,QString> pair)
 bool PythonInterpreterWorker::is_simple_expression(const QString& expr)
 {
   try {
-    parse_expr_cmd_(bp::str(expr.toStdString()));
+    parse_expr_cmd_(bp::str(expr.toStdString()), "<string>", "eval");
     return true;
   } catch(bp::error_already_set&) {
     PyErr_Clear();
