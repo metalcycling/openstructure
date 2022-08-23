@@ -1,3 +1,15 @@
+Changes in Release 2.4.0
+--------------------------------------------------------------------------------
+
+ * Add fast and flexible lDDT implementation. The new code is purely Python
+   based, natively supports complexes and is able to score DNA/RNA. The
+   deprecated lDDT implementation remains for consistency.
+ * Add algorithms to establish one to one mappings between chains in a reference
+   structure and a model.
+ * Substitution matrixes for RNA/DNA to compute alignments: seq.alg.IDENTITY and
+   seq.alg.NUC44
+ * Several minor bug fixes and improvements.
+
 Changes in Release 2.3.1
 --------------------------------------------------------------------------------
 
