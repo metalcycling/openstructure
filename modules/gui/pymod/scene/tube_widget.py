@@ -82,7 +82,7 @@ class TubeWidget(RenderModeWidget):
     self.radius_spinbox_.setSingleStep(0.1)
 
     self.radius_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.radius_slider_.setRange(min_radius*10.0, max_radius*10.0)
+    self.radius_slider_.setRange(int(min_radius*10.0), int(max_radius*10.0))
     self.radius_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.radius_slider_.setTickInterval(1)
     
@@ -94,7 +94,7 @@ class TubeWidget(RenderModeWidget):
     self.ratio_spinbox_.setDecimals(1)
     self.ratio_spinbox_.setSingleStep(0.1)
     self.ratio_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.ratio_slider_.setRange(min_ratio*10.0, max_ratio*10.0)
+    self.ratio_slider_.setRange(int(min_ratio*10.0), int(max_ratio*10.0))
     self.ratio_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.ratio_slider_.setTickInterval(2)
     
@@ -160,14 +160,14 @@ class TubeWidget(RenderModeWidget):
   def UpdateRadiusGui(self,value):
     value = round(value, 2)
     if(abs(value*10.0 - self.radius_slider_.value())>=self.radius_slider_.singleStep()):
-      self.radius_slider_.setValue(value*10.0)
+      self.radius_slider_.setValue(int(value*10.0))
     if(abs(value - self.radius_spinbox_.value())>=self.radius_spinbox_.singleStep()):
       self.radius_spinbox_.setValue(value)
   
   def UpdateRatioGui(self,value):
     value = round(value, 2)
     if(abs(value*10.0 - self.ratio_slider_.value())>=self.ratio_slider_.singleStep()):
-      self.ratio_slider_.setValue(value*10.0)
+      self.ratio_slider_.setValue(int(value*10.0))
     if(abs(value - self.ratio_spinbox_.value())>=self.ratio_spinbox_.singleStep()):
       self.ratio_spinbox_.setValue(value)
 
