@@ -3,7 +3,6 @@ import ost
 from ost import io, mol, settings, conop, seq
 # check if we can import: fails if numpy or scipy not available
 try:
-    from ost.mol.alg.qsscoring import *
     from ost.mol.alg.lddt import *
     from ost.mol.alg.scoring import *
 except ImportError:
@@ -79,25 +78,25 @@ class TestlDDT(unittest.TestCase):
         ent_full = _LoadFile("4br6.1.pdb")
         model = ent_full.Select('peptide=true')
         target = ent_full.Select('peptide=true and cname=A,B')
-        # we use functionality from QS-scorer to derive a mapping
-        qs_scorer = QSscorer(model, target)
+        # hardcoded chain mapping
+        chain_mapping = {"A": "A", "B": "B"}
         lddt_scorer = lDDTScorer(target)
-
+        
         score, per_res_scores = lddt_scorer.lDDT(model, 
-          chain_mapping=qs_scorer.chain_mapping)
+          chain_mapping=chain_mapping)
         self.assertAlmostEqual(score, 1.0, places=5)
 
         score, per_res_scores = lddt_scorer.lDDT(model, 
-          chain_mapping=qs_scorer.chain_mapping, no_interchain=True)
+          chain_mapping=chain_mapping, no_interchain=True)
         self.assertAlmostEqual(score, 1.0, places=5)
 
         score, per_res_scores = lddt_scorer.lDDT(model, 
-          chain_mapping=qs_scorer.chain_mapping, no_interchain=False,
+          chain_mapping=chain_mapping, no_interchain=False,
           penalize_extra_chains=True)
         self.assertAlmostEqual(score, 0.52084655, places=5)
 
         score, per_res_scores = lddt_scorer.lDDT(model, 
-          chain_mapping=qs_scorer.chain_mapping, no_interchain=True,
+          chain_mapping=chain_mapping, no_interchain=True,
           penalize_extra_chains=True)
         self.assertAlmostEqual(score, 0.499570048, places=5)
 
@@ -112,8 +111,8 @@ class TestlDDT(unittest.TestCase):
         for ch in model.chains:
             ed.RenumberChain(ch.handle, 42, True)
 
-        # we use functionality from QS-scorer to derive a mapping
-        qs_scorer = QSscorer(model, target)
+        # hardcoded chain mapping
+        chain_mapping = {"A": "A", "B": "B"}
         lddt_scorer = lDDTScorer(target)
 
         # naively running lDDT will fail, as residue-residue mapping happens
@@ -121,23 +120,23 @@ class TestlDDT(unittest.TestCase):
         # complaining about residue name mismatch
         with self.assertRaises(RuntimeError):
             score, per_res_scores = lddt_scorer.lDDT(model, 
-              chain_mapping=qs_scorer.chain_mapping, no_interchain=False,
+              chain_mapping=chain_mapping, no_interchain=False,
               penalize_extra_chains=True)
 
-        # we can rescue that with alignments from qsscorer
+        # we can rescue that with alignments
         res_map = dict()
-        for aln in qs_scorer.alignments:
-            model_chain_name = aln.GetSequence(0).GetName()
-            # we need to inverse the direction... qsscorer
-            # has first model sequence and then target sequence
-            # (at least the way we set it up above...)
-            new_aln = seq.CreateAlignment()
-            new_aln.AddSequence(aln.GetSequence(1))
-            new_aln.AddSequence(aln.GetSequence(0))
-            res_map[model_chain_name] = new_aln
+        for mdl_ch_name, trg_ch_name in chain_mapping.items():
+            mdl_ch = model.FindChain(mdl_ch_name)
+            trg_ch = target.FindChain(trg_ch_name)
+            mdl_seq = ''.join([r.one_letter_code for r in mdl_ch.residues])
+            mdl_seq = seq.CreateSequence(mdl_ch_name, mdl_seq)
+            trg_seq = ''.join([r.one_letter_code for r in trg_ch.residues])
+            trg_seq = seq.CreateSequence(trg_ch_name, trg_seq)
+            aln = seq.alg.GlobalAlign(trg_seq, mdl_seq, seq.alg.BLOSUM62)[0]
+            res_map[mdl_ch_name] = aln
 
         score, per_res_scores = lddt_scorer.lDDT(model, 
-              chain_mapping=qs_scorer.chain_mapping, no_interchain=False,
+              chain_mapping=chain_mapping, no_interchain=False,
               penalize_extra_chains=True, residue_mapping=res_map)
         self.assertAlmostEqual(score, 0.52084655, places=5)
 
