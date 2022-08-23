@@ -182,7 +182,7 @@ class TestHHblitsBindings(unittest.TestCase):
         self.assertEqual(len(elst_1), len(tlst))
         for i in range(0, len(elst_1)):
             if not elst_1[i].startswith(('FILE', 'COM', 'DATE')):
-                self.assertTrue(elst_1[i] == tlst[i] or elst_2[i] == tlst[i])
+                self.assertEqual(elst_2[i], tlst[i])
         os.remove(hhfile)
 
     def testA3mToProfileWithExistingFile(self):
