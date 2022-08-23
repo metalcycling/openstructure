@@ -34,12 +34,12 @@
 
 #include <iostream>
 
+#include <QDir>
 #include <QApplication>
 #include <QFontMetrics>
 #include <QClipboard>
 #include <QPainter>
 #include <QScrollBar>
-#include <QDirModel>
 #include <QStringList>
 #include <QDebug>
 #include <QMimeData>
