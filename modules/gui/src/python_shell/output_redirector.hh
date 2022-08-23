@@ -27,7 +27,7 @@
 */
 
 #include <ost/gui/module_config.hh>
-#include <QTime>
+#include <QElapsedTimer>
 #include <QString>
 #include <QObject>
 
@@ -45,7 +45,7 @@ signals:
   void OnOutput(const QString& output);
 private:
     QString  buffer_;
-    QTime timer_;
+    QElapsedTimer timer_;
 };
 
 }}//ns

@@ -51,6 +51,7 @@
 #include <QMenuBar>
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QScreen>
 namespace ost { namespace img { namespace gui {
 
 namespace {
@@ -312,7 +313,7 @@ void DataViewer::build(const ImageHandle& data)
   connect(panel_,SIGNAL(released()),this,SIGNAL(released()));
   
   if(!parentWidget()) {
-    resize(QApplication::desktop()->availableGeometry().adjusted(20,20,-20,-20).size());
+    resize(QGuiApplication::primaryScreen()->availableGeometry().adjusted(20,20,-20,-20).size());
   } else {
     resize(1100,800);
   }

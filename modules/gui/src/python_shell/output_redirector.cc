@@ -59,7 +59,7 @@ void OutputRedirector::Flush()
   if(! timer_.isValid()){
     return;
   }
-  timer_=QTime();
+  timer_=QElapsedTimer();
   QString output = buffer_;
   buffer_="";
   emit OnOutput(output);

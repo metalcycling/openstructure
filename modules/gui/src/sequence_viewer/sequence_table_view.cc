@@ -477,7 +477,7 @@ void SequenceTableView::keyPressEvent(QKeyEvent* event)
 }
 
 int SequenceTableView::sizeHintForColumn(int column) const {
-  return this->fontMetrics().width('W');
+  return this->fontMetrics().horizontalAdvance('W');
 }
 
 int SequenceTableView::sizeHintForRow(int row) const {

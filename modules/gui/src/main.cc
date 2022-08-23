@@ -33,6 +33,7 @@
 
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QScreen>
 #include <QAction>
 #include <QMenu>
 #include <QMenuBar>
@@ -56,7 +57,7 @@ namespace ost { namespace gui {
 
 QSize GostyMainWindow::GetDefaultSize()
 {
-  QRect desktop_geom=QApplication::desktop()->availableGeometry();
+  QRect desktop_geom=QGuiApplication::primaryScreen()->availableGeometry();
   if(desktop_geom.height() > desktop_geom.width()){
 	  return QSize(desktop_geom.width(),desktop_geom.width());
   }

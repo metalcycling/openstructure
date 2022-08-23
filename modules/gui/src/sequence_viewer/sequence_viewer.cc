@@ -296,17 +296,15 @@ void SequenceViewer::FitToContents()
 void SequenceViewer::MouseWheelEvent(QWheelEvent* event)
 {
   int delta = event->angleDelta().y();
-  if (event->orientation() == Qt::Vertical) {
-    if(delta>0){
-      model_->ZoomIn();
-      this->FitToContents();
-      seq_table_view_->viewport()->update();      
-    }
-    else if(delta<0){
-      model_->ZoomOut();
-      this->FitToContents();
-      seq_table_view_->viewport()->update();      
-    }
+  if(delta>0){
+    model_->ZoomIn();
+    this->FitToContents();
+    seq_table_view_->viewport()->update();      
+  }
+  else if(delta<0){
+    model_->ZoomOut();
+    this->FitToContents();
+    seq_table_view_->viewport()->update();      
   }
   event->accept();
 }
