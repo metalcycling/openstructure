@@ -172,11 +172,14 @@ class TestHHblitsBindings(unittest.TestCase):
         with open(hhfile) as tfh:
           tlst = tfh.readlines()
         with open("testfiles/test.hmm") as efh:
-          elst = efh.readlines()
-        self.assertEqual(len(elst), len(tlst))
-        for i in range(0, len(elst)):
-            if not elst[i].startswith(('FILE', 'COM', 'DATE')):
-                self.assertEqual(elst[i], tlst[i])
+          elst_1 = efh.readlines()
+        with open("testfiles/test_2.hmm") as efh:
+          elst_2 = efh.readlines()
+        assert(len(elst_1)==len(elst_2))
+        self.assertEqual(len(elst_1), len(tlst))
+        for i in range(0, len(elst_1)):
+            if not elst_1[i].startswith(('FILE', 'COM', 'DATE')):
+                self.assertTrue(elst_1[i] == tlst[i] or elst_2[i] == tlst[i])
         os.remove(hhfile)
 
     def testA3mToProfileWithExistingFile(self):
