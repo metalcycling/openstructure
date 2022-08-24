@@ -55,7 +55,7 @@ void export_profile_handle()
     .value("HMM_D2D", HMM_D2D)
   ;
 
-  class_<HMMData>("HMMData", init<>())
+  class_<HMMData, HMMDataPtr>("HMMData", init<>())
     .add_property("neff", &HMMData::GetNeff, &HMMData::SetNeff)
     .add_property("neff_i", &HMMData::GetNeff_I, &HMMData::SetNeff_I)
     .add_property("neff_d", &HMMData::GetNeff_D, &HMMData::SetNeff_D)
