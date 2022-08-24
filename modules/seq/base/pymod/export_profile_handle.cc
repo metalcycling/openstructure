@@ -67,6 +67,8 @@ void export_profile_handle()
     .add_property("entropy", &ProfileColumn::GetEntropy)
     .def("GetFreq", &ProfileColumn::GetFreq, (arg("aa")))
     .def("SetFreq", &ProfileColumn::SetFreq, (arg("aa"), arg("freq")))
+    .def("GetHMMData", &ProfileColumn::GetHMMData)
+    .def("SetHMMData", &ProfileColumn::SetHMMData)
     .add_property("hmm_data", &ProfileColumn::GetHMMData, &ProfileColumn::SetHMMData)
     .def("GetScore", &ProfileColumn::GetScore,
          (arg("other"), arg("null_model")))
