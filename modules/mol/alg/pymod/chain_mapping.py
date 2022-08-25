@@ -498,6 +498,12 @@ class ChainMapper:
         * **iterative**: Same as single except that the transformation gets
           updated with each added chain pair.
 
+        * **iterative_rmsd**: Same as iterative, i.e. the transformation gets
+          updated with each added chain pair. However,
+          **single_chain_gdtts_thresh** is only applied to derive the initial
+          transformations. After that, the minimal RMSD chain pair gets
+          iteratively added without applying any threshold.
+
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
         :param strategy: Strategy to extend mappings from initial transforms,
@@ -516,7 +522,8 @@ class ChainMapper:
         :type subsampling: :class:`int`
         :param first_complete: Avoid full enumeration and return first found
                                mapping that covers all model chains or all
-                               target chains.
+                               target chains. Has no effect on iterative_rmsd
+                               strategy.
         :type first_complete: :class:`bool`
         :param iterative_superposition: Whether to compute inital
                                         transformations with
@@ -530,7 +537,7 @@ class ChainMapper:
                   None.
         """
 
-        if strategy not in ["single", "iterative"]:
+        if strategy not in ["single", "iterative", "iterative_rmsd"]:
             raise RuntimeError("strategy must be \"single\" or \"iterative\"")
 
         chem_mapping, chem_group_alns, mdl = self.GetChemMapping(model)
@@ -560,6 +567,7 @@ class ChainMapper:
                             initial_transforms.append(transform)
                             initial_mappings.append((t,m))
 
+
         if strategy == "single":
             mapping = _SingleRigid(initial_transforms, initial_mappings,
                                    self.chem_groups, chem_mapping,
@@ -575,6 +583,12 @@ class ChainMapper:
                                       single_chain_gdtts_thresh,
                                       iterative_superposition, first_complete,
                                       len(self.target.chains), len(mdl.chains))
+
+        elif strategy == "iterative_rmsd":
+            mapping = _IterativeRigidRMSD(initial_transforms, initial_mappings,
+                                          self.chem_groups, chem_mapping,
+                                          trg_group_pos, mdl_group_pos,
+                                          iterative_superposition)
 
         # translate mapping format and return
         final_mapping = list()
@@ -1720,6 +1734,95 @@ def _IterativeRigid(initial_transforms, initial_mappings, chem_groups,
                 n = len(mapping)
                 if n == n_mdl_chains or n == n_trg_chains:
                     break
+
+    return best_mapping
+
+
+def _IterativeRigidRMSD(initial_transforms, initial_mappings, chem_groups,
+                        chem_mapping, trg_group_pos, mdl_group_pos,
+                        iterative_superposition):
+    """ Takes initial transforms and sequentially adds chain pairs with
+    lowest RMSD. With each added chain pair, the transform gets updated.
+    Thus the naming iterative. The mapping from the initial transform that
+    leads to best overall RMSD score is returned.
+    """
+
+    # to directly retrieve positions using chain names
+    trg_pos_dict = dict()
+    for trg_pos, trg_chains in zip(trg_group_pos, chem_groups):
+        for t_pos, t in zip(trg_pos, trg_chains):
+            trg_pos_dict[t] = t_pos
+    mdl_pos_dict = dict()
+    for mdl_pos, mdl_chains in zip(mdl_group_pos, chem_mapping):
+        for m_pos, m in zip(mdl_pos, mdl_chains):
+            mdl_pos_dict[m] = m_pos
+        
+    best_mapping = dict()
+    best_rmsd = float("inf")
+    best_transform = None
+    for initial_transform, initial_mapping in zip(initial_transforms,
+                                                  initial_mappings):
+        mapping = {initial_mapping[0]: initial_mapping[1]}
+        transform = geom.Mat4(initial_transform)
+        mapped_trg_pos = geom.Vec3List(trg_pos_dict[initial_mapping[0]])
+        mapped_mdl_pos = geom.Vec3List(mdl_pos_dict[initial_mapping[1]])
+
+        # the following variables contain the chains which are
+        # available for mapping
+        trg_chain_groups = [set(group) for group in chem_groups]
+        mdl_chain_groups = [set(group) for group in chem_mapping]
+
+        # search and kick out inital mapping
+        for group in trg_chain_groups:
+            if initial_mapping[0] in group:
+                group.remove(initial_mapping[0])
+                break
+        for group in mdl_chain_groups:
+            if initial_mapping[1] in group:
+                group.remove(initial_mapping[1])
+                break
+
+        something_happened = True
+        while something_happened:
+            # search for best mapping given current transform
+            something_happened=False
+            best_sc_mapping = None
+            best_sc_group_idx = None
+            best_sc_rmsd = float("inf")
+            group_idx = 0
+            for trg_chains, mdl_chains in zip(trg_chain_groups, mdl_chain_groups):
+                for t in trg_chains:
+                    t_pos = trg_pos_dict[t]
+                    for m in mdl_chains:
+                        m_pos = mdl_pos_dict[m]
+                        t_m_pos = geom.Vec3List(m_pos)
+                        t_m_pos.ApplyTransform(transform)
+                        rmsd = t_pos.GetRMSD(t_m_pos)
+                        if rmsd < best_sc_rmsd:
+                            best_sc_rmsd = rmsd
+                            best_sc_mapping = (t,m)
+                            best_sc_group_idx = group_idx
+                group_idx += 1
+
+            if best_sc_mapping is not None:
+                something_happened = True
+                mapping[best_sc_mapping[0]] = best_sc_mapping[1]
+                mapped_trg_pos.extend(trg_pos_dict[best_sc_mapping[0]])
+                mapped_mdl_pos.extend(mdl_pos_dict[best_sc_mapping[1]])
+                trg_chain_groups[best_sc_group_idx].remove(best_sc_mapping[0])
+                mdl_chain_groups[best_sc_group_idx].remove(best_sc_mapping[1])
+
+                transform = _GetTransform(mapped_mdl_pos, mapped_trg_pos,
+                                          iterative_superposition)
+
+        # compute overall RMSD for current transform
+        mapped_mdl_pos.ApplyTransform(transform)
+        rmsd = mapped_trg_pos.GetRMSD(mapped_mdl_pos)
+
+        if rmsd < best_rmsd:
+            best_rmsd = rmsd
+            best_mapping = mapping
+            best_transform = geom.Mat4(transform)
 
     return best_mapping
 
