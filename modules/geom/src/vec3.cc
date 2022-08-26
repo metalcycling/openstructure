@@ -181,6 +181,23 @@ Real Vec3List::GetGDTTS(const Vec3List& other, bool norm) const
   return norm && !this->empty() ? static_cast<Real>(n)/(this->size()*4) : n;
 }
 
+Real Vec3List::GetGDT(const Vec3List& other, Real thresh, bool norm) const
+{
+  if(this->size() != other.size()) {
+    String m = "Inconsistent sizes in Vec3List::GetNWithin";
+    throw GeomException(m);
+  }
+  int n = 0;
+  Real squared_thresh = thresh * thresh;
+  for(uint i = 0; i < this->size(); ++i) {
+    Real squared_d = geom::Length2((*this)[i] - other[i]);
+    if(squared_d < squared_thresh) {
+      ++n;
+    }
+  }
+  return norm && !this->empty() ? static_cast<Real>(n)/(this->size()) : n;
+}
+
 std::pair<Line3, Real> Vec3List::FitCylinder(const Vec3& initial_direction) const
   { 
     Vec3 center=this->GetCenter();

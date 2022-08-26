@@ -126,5 +126,6 @@ void export_Vec3()
     .def("GetRMSD", &Vec3List::GetRMSD,(arg("other")))
     .def("GetGDTHA", &Vec3List::GetGDTHA, (arg("other"), arg("norm")=true))
     .def("GetGDTTS", &Vec3List::GetGDTTS, (arg("other"), arg("norm")=true))
+    .def("GetGDT", &Vec3List::GetGDT, (arg("other"), arg("thresh"), arg("norm")=true))
   ;
 }
