@@ -568,128 +568,45 @@ class ChainMapper:
 
         return (mapping, alns, mdl)
 
-    def GetNaivelDDTMapping(self, model, inclusion_radius=15.0,
-                            thresholds=[0.5, 1.0, 2.0, 4.0]):
-        """Naively iterates all possible chain mappings and returns the best
 
-        Maps *model* chain sequences to :attr:`~chem_groups` and performs all
-        possible permutations. The best mapping is selected based on backbone
-        only lDDT score (CA for amino acids C3' for Nucleotides).
+    def GetlDDTMapping(self, model, inclusion_radius=15.0,
+                       thresholds=[0.5, 1.0, 2.0, 4.0], strategy="naive",
+                       steep_opt_rate = None, full_n_mdl_chains = None,
+                       block_seed_size = 5, block_blocks_per_chem_group = 5):
+        """ Identify chain mapping by optimizing lDDT score
 
-        :param model: Model to map
-        :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
-        :param inclusion_radius: Inclusion radius for lDDT
-        :type inclusion_radius: :class:`float`
-        :param thresholds: Thresholds for lDDT
-        :type thresholds: :class:`list` of :class:`float`
-        :returns: A :class:`MappingResult`
-        """
-        chem_mapping, chem_group_alns, mdl = self.GetChemMapping(model)
+        Maps *model* chain sequences to :attr:`~chem_groups` and find mapping
+        based on backbone only lDDT score (CA for amino acids C3' for
+        Nucleotides).
 
-        # all possible ref/mdl alns given chem mapping
-        ref_mdl_alns =  _GetRefMdlAlns(self.chem_groups,
-                                       self.chem_group_alignments,
-                                       chem_mapping,
-                                       chem_group_alns)
+        Either performs a naive search, i.e. enumerate all possible mappings or
+        executes a greedy strategy that tries to identify a (close to) optimal
+        mapping in an iterative way by starting from a start mapping (seed). In
+        each iteration, the one-to-one mapping that leads to highest increase
+        in number of conserved contacts is added with the additional requirement
+        that this added mapping must have non-zero interface counts towards the
+        already mapped chains. So basically we're "growing" the mapped structure
+        by only adding connected stuff.
 
-        # check for the simplest case
-        one_to_one = _CheckOneToOneMapping(self.chem_groups, chem_mapping)
-        if one_to_one is not None:
-            alns = dict()
-            for ref_group, mdl_group in zip(self.chem_groups, one_to_one):
-                for ref_ch, mdl_ch in zip(ref_group, mdl_group):
-                    if ref_ch is not None and mdl_ch is not None:
-                        aln = ref_mdl_alns[(ref_ch, mdl_ch)]
-                        aln.AttachView(0, self.target.Select(f"cname={ref_ch}"))
-                        aln.AttachView(1, mdl.Select(f"cname={mdl_ch}"))
-                        alns[(ref_ch, mdl_ch)] = aln
-            return MappingResult(self.target, mdl, self.chem_groups, one_to_one,
-                                 alns)
+        The available strategies:
 
-        best_mapping = None
-        best_lddt = -1.0
+        * **naive**: Enumerates all possible mappings and returns best        
 
-        # Benchmarks on homo-oligomers indicate that full blown lDDT
-        # computation is faster up to tetramers => 4!=24 possible mappings.
-        # For stuff bigger than that, the decomposer approach should be used
-        if _NMappingsWithin(self.chem_groups, chem_mapping, 24):
-            # Setup scoring
-            lddt_scorer = lddt.lDDTScorer(self.target, bb_only = True)
-            for mapping in _ChainMappings(self.chem_groups, chem_mapping,
-                                          self.n_max_naive):
-                # chain_mapping and alns as input for lDDT computation
-                lddt_chain_mapping = dict()
-                lddt_alns = dict()
-                for ref_chem_group, mdl_chem_group in zip(self.chem_groups,
-                                                          mapping):
-                    for ref_ch, mdl_ch in zip(ref_chem_group, mdl_chem_group):
-                        # some mdl chains can be None
-                        if mdl_ch is not None:
-                            lddt_chain_mapping[mdl_ch] = ref_ch
-                            lddt_alns[mdl_ch] = ref_mdl_alns[(ref_ch, mdl_ch)]
-                lDDT, _ = lddt_scorer.lDDT(mdl, thresholds=thresholds,
-                                           chain_mapping=lddt_chain_mapping,
-                                           residue_mapping = lddt_alns,
-                                           check_resnames = False)
-                if lDDT > best_lddt:
-                    best_mapping = mapping
-                    best_lddt = lDDT
+        * **greedy_fast**: perform all vs. all single chain lDDTs within the
+          respective ref/mdl chem groups. The mapping with highest number of
+          conserved contacts is selected as seed for greedy extension
 
-        else:
-            # Setup scoring
-            lddt_scorer = _lDDTDecomposer(self.target, mdl, ref_mdl_alns,
-                                          inclusion_radius=inclusion_radius,
-                                          thresholds = thresholds)
-            for mapping in _ChainMappings(self.chem_groups, chem_mapping,
-                                          self.n_max_naive):
-                lDDT = lddt_scorer.lDDT(self.chem_groups, mapping)
-                if lDDT > best_lddt:
-                    best_mapping = mapping
-                    best_lddt = lDDT
+        * **greedy_full**: try multiple seeds for greedy extension, i.e. try
+          all ref/mdl chain combinations within the respective chem groups and
+          retain the mapping leading to the best lDDT. Optionally, you can
+          reduce the number of mdl chains per ref chain to the
+          *full_n_mdl_chains* best scoring ones.
 
-        alns = dict()
-        for ref_group, mdl_group in zip(self.chem_groups, best_mapping):
-            for ref_ch, mdl_ch in zip(ref_group, mdl_group):
-                if ref_ch is not None and mdl_ch is not None:
-                    aln = ref_mdl_alns[(ref_ch, mdl_ch)]
-                    aln.AttachView(0, self.target.Select(f"cname={ref_ch}"))
-                    aln.AttachView(1, mdl.Select(f"cname={mdl_ch}"))
-                    alns[(ref_ch, mdl_ch)] = aln
-
-        return MappingResult(self.target, mdl, self.chem_groups, best_mapping,
-                             alns)
-
-    def GetGreedylDDTMapping(self, model, inclusion_radius=15.0,
-                             thresholds=[0.5, 1.0, 2.0, 4.0],
-                             seed_strategy="fast", steep_opt_rate = None,
-                             full_n_mdl_chains = None, block_seed_size = 5,
-                             block_blocks_per_chem_group = 5):
-        """Heuristic to lower the complexity of naive iteration
-
-        Maps *model* chain sequences to :attr:`~chem_groups` and extends these
-        start mappings (seeds) in a greedy way. In each iteration, the
-        one-to-one mapping that leads to highest increase in number of conserved
-        contacts is added with the additional requirement that this added
-        mapping must have non-zero interface counts towards the already mapped
-        chains. So basically we're "growing" the mapped structure by only adding
-        connected stuff.
-
-        Several strategies exist to identify the start seed(s):
-
-        * **fast**: perform all vs. all single chain lDDTs within the respective
-          ref/mdl chem groups. The mapping with highest number of conserved
-          contacts is selected as seed for extension
-
-        * **full**: try multiple seeds, i.e. try all ref/mdl chain combinations
-          within the respective chem groups and retain the mapping leading to
-          the best lDDT. Optionally, you can reduce the number of mdl chains per
-          ref chain to the *full_n_mdl_chains* best scoring ones.
-
-        * **block**: try multiple seeds, i.e. try all ref/mdl chain combinations
-          within the respective chem groups and compute single chain lDDTs. The
-          *block_blocks_per_chem_group* best scoring ones are extend by
-          *block_seed_size* chains and the best scoring one is exhaustively
-          extended.
+        * **greedy_block**: try multiple seeds for greedy extension, i.e. try
+          all ref/mdl chain combinations within the respective chem groups and
+          compute single chain lDDTs. The *block_blocks_per_chem_group* best
+          scoring ones are extend by *block_seed_size* chains and the best
+          scoring one is exhaustively extended.
 
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
@@ -697,11 +614,11 @@ class ChainMapper:
         :type inclusion_radius: :class:`float`
         :param thresholds: Thresholds for lDDT
         :type thresholds: :class:`list` of :class:`float`
-        :param seed_strategy: Strategy to pick starting seeds for expansion.
-                              Must be in ["fast", "full", "block"]
-
-        :type seed_strategy: :class:`str`
-        :param steep_opt_rate: If set, every *steep_opt_rate* mappings, a simple
+        :param strategy: Strategy to find mapping. Must be in ["naive",
+                         "greedy_fast", "greedy_full", "greedy_block"]
+        :type strategy: :class:`str`
+        :param steep_opt_rate: Only relevant for greedy strategies.
+                               If set, every *steep_opt_rate* mappings, a simple
                                optimization is executed with the goal of
                                avoiding local minima. The optimization
                                iteratively checks all possible swaps of mappings
@@ -709,14 +626,14 @@ class ChainMapper:
                                swaps that improve lDDT score. Iteration stops as
                                soon as no improvement can be achieved anymore.
         :type steep_opt_rate: :class:`int`
-        :param full_n_mdl_chains: Param for *full* seed strategy - Max number of
+        :param full_n_mdl_chains: Param for *greedy_full* strategy - Max number of
                                   mdl chains that are tried per ref chain. The
                                   default (None) tries all of them.
         :type full_n_mdl_chains: :class:`int`
-        :param block_seed_size: Param for *block* seed strategy - Initial seeds
+        :param block_seed_size: Param for *greedy_block* strategy - Initial seeds
                                 are extended by that number of chains.
         :type block_seed_size: :class:`int`
-        :param block_blocks_per_chem_group: Param for *block* seed strategy -
+        :param block_blocks_per_chem_group: Param for *greedy_block* strategy -
                                             Number of blocks per chem group that
                                             are extended in an initial search
                                             for high scoring local solutions.
@@ -724,9 +641,9 @@ class ChainMapper:
         :returns: A :class:`MappingResult`
         """
 
-        seed_strategies = ["fast", "full", "block"]
-        if seed_strategy not in seed_strategies:
-            raise RuntimeError(f"Seed strategy must be in {seed_strategies}")
+        strategies = ["naive", "greedy_fast", "greedy_full", "greedy_block"]
+        if strategy not in strategies:
+            raise RuntimeError(f"Strategy must be in {strategies}")
 
         chem_mapping, chem_group_alns, mdl = self.GetChemMapping(model)
 
@@ -749,19 +666,26 @@ class ChainMapper:
             return MappingResult(self.target, mdl, self.chem_groups, one_to_one,
                                  alns)
 
-        # setup greedy searcher
-        the_greed = _GreedySearcher(self.target, mdl, self.chem_groups,
-                                    chem_mapping, ref_mdl_alns,
-                                    inclusion_radius=inclusion_radius,
-                                    thresholds=thresholds,
-                                    steep_opt_rate=steep_opt_rate)
+        mapping = None
 
-        if seed_strategy == "fast":
-            mapping = _FastGreedy(the_greed)
-        elif seed_strategy == "full":
-            mapping = _FullGreedy(the_greed, full_n_mdl_chains)
-        elif seed_strategy == "block":
-            mapping = _BlockGreedy(the_greed, block_seed_size, block_blocks_per_chem_group)
+        if strategy == "naive":
+            mapping = _lDDTNaive(self.target, mdl, inclusion_radius, thresholds,
+                                 self.chem_groups, chem_mapping, ref_mdl_alns,
+                                 self.n_max_naive)
+        else:
+            # its one of the greedy strategies - setup greedy searcher
+            the_greed = _GreedySearcher(self.target, mdl, self.chem_groups,
+                                        chem_mapping, ref_mdl_alns,
+                                        inclusion_radius=inclusion_radius,
+                                        thresholds=thresholds,
+                                        steep_opt_rate=steep_opt_rate)
+            if strategy == "greedy_fast":
+                mapping = _lDDTGreedyFast(the_greed)
+            elif strategy == "greedy_full":
+                mapping = _lDDTGreedyFull(the_greed, full_n_mdl_chains)
+            elif strategy == "greedy_block":
+                mapping = _lDDTGreedyBlock(the_greed, block_seed_size,
+                                           block_blocks_per_chem_group)
 
         alns = dict()
         for ref_group, mdl_group in zip(self.chem_groups, mapping):
@@ -776,9 +700,9 @@ class ChainMapper:
                              alns)
 
 
-    def GetGreedyRigidMapping(self, model, strategy = "single",
-                              single_chain_gdtts_thresh=0.4, subsampling=None,
-                              first_complete=False, iterative_superposition=False):
+    def GetRigidMapping(self, model, strategy = "greedy_single",
+                        single_chain_gdtts_thresh=0.4, subsampling=None,
+                        first_complete=False, iterative_superposition=False):
         """Identify chain mapping based on rigid superposition
 
         Superposition and scoring is based on CA/C3' positions which are present
@@ -791,17 +715,17 @@ class ChainMapper:
 
         There are two extension strategies:
 
-        * **single**: Iteratively add the model/target chain pair that adds the
-          most conserved contacts based on the GDT-TS metric (Number of CA/C3'
-          atoms within [8, 4, 2, 1] Angstrom). The mapping with highest GDT-TS
-          score is returned. However, that mapping is not guaranteed to be
-          complete (see *single_chain_gdtts_thresh*).
+        * **greedy_single**: Iteratively add the model/target chain pair that
+          adds the most conserved contacts based on the GDT-TS metric
+          (Number of CA/C3' atoms within [8, 4, 2, 1] Angstrom). The mapping
+          with highest GDT-TS score is returned. However, that mapping is not
+          guaranteed to be complete (see *single_chain_gdtts_thresh*).
 
-        * **iterative**: Same as single except that the transformation gets
-          updated with each added chain pair.
+        * **greedy_iterative**: Same as single except that the transformation
+          gets updated with each added chain pair.
 
-        * **iterative_rmsd**: Same as iterative, i.e. the transformation gets
-          updated with each added chain pair. However,
+        * **greedy_iterative_rmsd**: Same as iterative, i.e. the transformation
+          gets updated with each added chain pair. However,
           **single_chain_gdtts_thresh** is only applied to derive the initial
           transformations. After that, the minimal RMSD chain pair gets
           iteratively added without applying any threshold.
@@ -824,8 +748,8 @@ class ChainMapper:
         :type subsampling: :class:`int`
         :param first_complete: Avoid full enumeration and return first found
                                mapping that covers all model chains or all
-                               target chains. Has no effect on iterative_rmsd
-                               strategy.
+                               target chains. Has no effect on
+                               greedy_iterative_rmsd strategy.
         :type first_complete: :class:`bool`
         :param iterative_superposition: Whether to compute inital
                                         transformations with
@@ -836,8 +760,9 @@ class ChainMapper:
         :returns: A :class:`MappingResult`
         """
 
-        if strategy not in ["single", "iterative", "iterative_rmsd"]:
-            raise RuntimeError("strategy must be \"single\" or \"iterative\"")
+        strategies = ["greedy_single", "greedy_iterative", "greedy_iterative_rmsd"]
+        if strategy not in strategies:
+            raise RuntimeError(f"strategy must be {strategies}")
 
         chem_mapping, chem_group_alns, mdl = self.GetChemMapping(model)
         ref_mdl_alns =  _GetRefMdlAlns(self.chem_groups,
@@ -885,7 +810,7 @@ class ChainMapper:
                             initial_mappings.append((t,m))
 
 
-        if strategy == "single":
+        if strategy == "greedy_single":
             mapping = _SingleRigid(initial_transforms, initial_mappings,
                                    self.chem_groups, chem_mapping,
                                    trg_group_pos, mdl_group_pos,
@@ -893,7 +818,7 @@ class ChainMapper:
                                    iterative_superposition, first_complete,
                                    len(self.target.chains), len(mdl.chains))
 
-        elif strategy == "iterative":
+        elif strategy == "greedy_iterative":
             mapping = _IterativeRigid(initial_transforms, initial_mappings,
                                       self.chem_groups, chem_mapping,
                                       trg_group_pos, mdl_group_pos,
@@ -901,7 +826,7 @@ class ChainMapper:
                                       iterative_superposition, first_complete,
                                       len(self.target.chains), len(mdl.chains))
 
-        elif strategy == "iterative_rmsd":
+        elif strategy == "greedy_iterative_rmsd":
             mapping = _IterativeRigidRMSD(initial_transforms, initial_mappings,
                                           self.chem_groups, chem_mapping,
                                           trg_group_pos, mdl_group_pos,
@@ -1905,7 +1830,53 @@ class _GreedySearcher(_lDDTDecomposer):
 
         return mapping
 
-def _FastGreedy(the_greed):
+
+def _lDDTNaive(trg, mdl, inclusion_radius, thresholds, chem_groups,
+               chem_mapping, ref_mdl_alns, n_max_naive):
+    """ Naively iterates all possible chain mappings and returns the best
+    """
+    best_mapping = None
+    best_lddt = -1.0
+
+    # Benchmarks on homo-oligomers indicate that full blown lDDT
+    # computation is faster up to tetramers => 4!=24 possible mappings.
+    # For stuff bigger than that, the decomposer approach should be used
+    if _NMappingsWithin(chem_groups, chem_mapping, 24):
+        # Setup scoring
+        lddt_scorer = lddt.lDDTScorer(trg, bb_only = True)
+        for mapping in _ChainMappings(chem_groups, chem_mapping, n_max_naive):
+            # chain_mapping and alns as input for lDDT computation
+            lddt_chain_mapping = dict()
+            lddt_alns = dict()
+            for ref_chem_group, mdl_chem_group in zip(chem_groups, mapping):
+                for ref_ch, mdl_ch in zip(ref_chem_group, mdl_chem_group):
+                    # some mdl chains can be None
+                    if mdl_ch is not None:
+                        lddt_chain_mapping[mdl_ch] = ref_ch
+                        lddt_alns[mdl_ch] = ref_mdl_alns[(ref_ch, mdl_ch)]
+            lDDT, _ = lddt_scorer.lDDT(mdl, thresholds=thresholds,
+                                       chain_mapping=lddt_chain_mapping,
+                                       residue_mapping = lddt_alns,
+                                       check_resnames = False)
+            if lDDT > best_lddt:
+                best_mapping = mapping
+                best_lddt = lDDT
+
+    else:
+        # Setup scoring
+        lddt_scorer = _lDDTDecomposer(trg, mdl, ref_mdl_alns,
+                                      inclusion_radius=inclusion_radius,
+                                      thresholds = thresholds)
+        for mapping in _ChainMappings(chem_groups, chem_mapping, n_max_naive):
+            lDDT = lddt_scorer.lDDT(chem_groups, mapping)
+            if lDDT > best_lddt:
+                best_mapping = mapping
+                best_lddt = lDDT
+
+    return best_mapping
+
+
+def _lDDTGreedyFast(the_greed):
 
     something_happened = True
     mapping = dict()
@@ -1949,7 +1920,7 @@ def _FastGreedy(the_greed):
     return final_mapping
 
 
-def _FullGreedy(the_greed, n_mdl_chains):
+def _lDDTGreedyFull(the_greed, n_mdl_chains):
     """ Uses each reference chain as starting point for expansion
 
     However, not all mdl chain are mapped onto these reference chains,
@@ -2011,7 +1982,7 @@ def _FullGreedy(the_greed, n_mdl_chains):
     return final_mapping
 
 
-def _BlockGreedy(the_greed, seed_size, blocks_per_chem_group):
+def _lDDTGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
     """ try multiple seeds, i.e. try all ref/mdl chain combinations within the
     respective chem groups and compute single chain lDDTs. The
     *blocks_per_chem_group* best scoring ones are extend by *seed_size* chains

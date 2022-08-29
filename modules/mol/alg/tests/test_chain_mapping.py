@@ -245,26 +245,26 @@ class TestChainMapper(unittest.TestCase):
     # This is not supposed to be in depth algorithm testing, we just check
     # whether the various algorithms return sensible chain mappings
 
-    naive_lddt_res = mapper.GetNaivelDDTMapping(mdl)
+    naive_lddt_res = mapper.GetlDDTMapping(mdl, strategy="naive")
     self.assertEqual(naive_lddt_res.mapping, [['X', 'Y'],[None],['Z']])
 
     # the "fast" strategy produces actually a suboptimal mapping in this case...
-    greedy_lddt_res = mapper.GetGreedylDDTMapping(mdl, seed_strategy="fast")
+    greedy_lddt_res = mapper.GetlDDTMapping(mdl, strategy="greedy_fast")
     self.assertEqual(greedy_lddt_res.mapping, [['Y', 'X'],[None],['Z']])
 
-    greedy_lddt_res = mapper.GetGreedylDDTMapping(mdl, seed_strategy="full")
+    greedy_lddt_res = mapper.GetlDDTMapping(mdl, strategy="greedy_full")
     self.assertEqual(greedy_lddt_res.mapping, [['X', 'Y'],[None],['Z']])
 
-    greedy_lddt_res = mapper.GetGreedylDDTMapping(mdl, seed_strategy="block")
+    greedy_lddt_res = mapper.GetlDDTMapping(mdl, strategy="greedy_block")
     self.assertEqual(greedy_lddt_res.mapping, [['X', 'Y'],[None],['Z']])
 
-    greedy_rigid_res = mapper.GetGreedyRigidMapping(mdl, strategy="single")
+    greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_single")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
-    greedy_rigid_res = mapper.GetGreedyRigidMapping(mdl, strategy="iterative")
+    greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_iterative")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
-    greedy_rigid_res = mapper.GetGreedyRigidMapping(mdl, strategy="iterative_rmsd")
+    greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_iterative_rmsd")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
 
