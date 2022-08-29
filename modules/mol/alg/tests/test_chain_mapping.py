@@ -245,24 +245,27 @@ class TestChainMapper(unittest.TestCase):
     # This is not supposed to be in depth algorithm testing, we just check
     # whether the various algorithms return sensible chain mappings
 
-    naive_lddt_mapping = mapper.GetNaivelDDTMapping(mdl)
-    self.assertEqual(naive_lddt_mapping, [['X', 'Y'],[None],['Z']])
+    naive_lddt_res = mapper.GetNaivelDDTMapping(mdl)
+    self.assertEqual(naive_lddt_res.mapping, [['X', 'Y'],[None],['Z']])
 
     # the "fast" strategy produces actually a suboptimal mapping in this case...
-    greedy_lddt_mapping = mapper.GetGreedylDDTMapping(mdl, seed_strategy="fast")
-    self.assertEqual(greedy_lddt_mapping, [['Y', 'X'],[None],['Z']])
+    greedy_lddt_res = mapper.GetGreedylDDTMapping(mdl, seed_strategy="fast")
+    self.assertEqual(greedy_lddt_res.mapping, [['Y', 'X'],[None],['Z']])
 
-    greedy_lddt_mapping = mapper.GetGreedylDDTMapping(mdl, seed_strategy="full")
-    self.assertEqual(greedy_lddt_mapping, [['X', 'Y'],[None],['Z']])
+    greedy_lddt_res = mapper.GetGreedylDDTMapping(mdl, seed_strategy="full")
+    self.assertEqual(greedy_lddt_res.mapping, [['X', 'Y'],[None],['Z']])
 
-    greedy_lddt_mapping = mapper.GetGreedylDDTMapping(mdl, seed_strategy="block")
-    self.assertEqual(greedy_lddt_mapping, [['X', 'Y'],[None],['Z']])
+    greedy_lddt_res = mapper.GetGreedylDDTMapping(mdl, seed_strategy="block")
+    self.assertEqual(greedy_lddt_res.mapping, [['X', 'Y'],[None],['Z']])
 
-    greedy_rigid_mapping = mapper.GetGreedyRigidMapping(mdl, strategy="single")
-    self.assertEqual(greedy_rigid_mapping, [['X', 'Y'],[None],['Z']])
+    greedy_rigid_res = mapper.GetGreedyRigidMapping(mdl, strategy="single")
+    self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
-    greedy_rigid_mapping = mapper.GetGreedyRigidMapping(mdl, strategy="iterative")
-    self.assertEqual(greedy_rigid_mapping, [['X', 'Y'],[None],['Z']])
+    greedy_rigid_res = mapper.GetGreedyRigidMapping(mdl, strategy="iterative")
+    self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
+
+    greedy_rigid_res = mapper.GetGreedyRigidMapping(mdl, strategy="iterative_rmsd")
+    self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
 
 if __name__ == "__main__":
