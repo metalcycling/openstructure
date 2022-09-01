@@ -267,6 +267,9 @@ class TestChainMapper(unittest.TestCase):
     greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_iterative_rmsd")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
+    naive_qsscore_res = mapper.GetQSScoreMapping(mdl, strategy="naive")
+    self.assertEqual(naive_qsscore_res.mapping, [['X', 'Y'],[None],['Z']])
+
 
 if __name__ == "__main__":
   from ost import testutils
