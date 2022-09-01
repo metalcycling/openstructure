@@ -225,9 +225,8 @@ class TestlDDTBS(unittest.TestCase):
         ref = _LoadFile("lddtbs_ref_1r8q.1.pdb")
 
         lddtbs_scorer = lDDTBSScorer(reference=ref, model=mdl)
-        score, ref_residues, mdl_residues = \
-        lddtbs_scorer.ScoreBS(ref.Select("rname=AFB"), radius = 5.0,
-                              lddt_radius = 12.0, return_mapping=True)
+        bs_repr = lddtbs_scorer.ScoreBS(ref.Select("rname=AFB"), radius = 5.0,
+                                        lddt_radius = 12.0)
 
         # select residues manually from reference
         for at in ref.Select("rname=AFB").atoms:
@@ -238,7 +237,7 @@ class TestlDDTBS(unittest.TestCase):
         ref_bs = ref.Select("grasdf:0=1")
         ref_bs = ref_bs.Select("peptide=true")
         ref_bs_names = [r.GetQualifiedName() for r in ref_bs.residues]
-        self.assertEqual(sorted(ref_bs_names), sorted(ref_residues))
+        self.assertEqual(sorted(ref_bs_names), sorted(bs_repr.ref_residues))
 
 
         # everything below basically computes lDDTBS manually and
@@ -271,7 +270,7 @@ class TestlDDTBS(unittest.TestCase):
 
         # compute and compare
         lddt_scorer = lDDTScorer(sc_ref_bs, inclusion_radius=12.0)
-        self.assertAlmostEqual(score, lddt_scorer.lDDT(sc_mdl_bs)[0])
+        self.assertAlmostEqual(bs_repr.lDDT, lddt_scorer.lDDT(sc_mdl_bs)[0])
 
 
 if __name__ == "__main__":
