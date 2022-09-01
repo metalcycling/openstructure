@@ -30,6 +30,7 @@ class MappingResult:
         self._model = model
         self._chem_groups = chem_groups
         self._mapping = mapping
+        self._alns = alns
 
     @property
     def target(self):
@@ -60,7 +61,6 @@ class MappingResult:
         """
         return self._chem_groups
 
-
     @property
     def mapping(self):
         """ Mapping of :attr:`model` chains onto :attr:`~target`
@@ -86,7 +86,7 @@ class MappingResult:
         :type: :class:`dict` with key: :class:`tuple` of :class:`str`, value:
                :class:`ost.seq.AlignmentHandle`
         """
-        return self._aln
+        return self._alns
 
 
 class ReprResult:
@@ -1081,11 +1081,18 @@ def _ProcessStructure(ent, min_pep_length, min_nuc_length):
               returned view, sequences have :class:`ost.mol.EntityView` of
               according chains attached 3) same for polynucleotide chains
     """
-    query = "peptide=true or nucleotide=true and aname=\"CA\",\"C3'\""
-    sel = ent.Select(query)
     view = ent.CreateEmptyView()
+    query = "(peptide=true or nucleotide=true) and aname=\"CA\",\"CB\",\"C3'\""
+    sel = ent.Select(query)
     for r in sel.residues:
-        view.AddResidue(r.handle, mol.INCLUDE_ALL)
+        if r.chem_class.IsNucleotideLinking():
+            view.AddResidue(r.handle, mol.INCLUDE_ALL)
+        elif r.chem_class.IsPeptideLinking():
+            if len(r.atoms) == 2:
+                view.AddResidue(r.handle, mol.INCLUDE_ALL)
+            elif r.name == "GLY":
+                if len(r.atoms) == 1 and r.atoms[0].name == "CA":
+                    view.AddResidue(r.handle, mol.INCLUDE_ALL)
 
     polypep_seqs = seq.CreateSequenceList()
     polynuc_seqs = seq.CreateSequenceList()
@@ -1501,9 +1508,9 @@ def _CheckOneToOneMapping(ref_chains, mdl_chains):
     one_to_one = list()
     for ref, mdl in zip(ref_chains, mdl_chains):
         if len(ref) == 1 and len(mdl) == 1:
-            one_to_one.append(mdl[0])
+            one_to_one.append(mdl)
         elif len(ref) == 1 and len(mdl) == 0:
-            one_to_one.append(None)
+            one_to_one.append([None])
         else:
             only_one_to_one = False
             break

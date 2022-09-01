@@ -134,18 +134,6 @@ Local Distance Test scores (lDDT, DRMSD)
     :rtype:  :class:`str`
 
 
-
-
-:mod:`qsscoring <ost.mol.alg.qsscoring>` -- Quaternary Structure (QS) scores
---------------------------------------------------------------------------------
-
-.. automodule:: ost.mol.alg.qsscoring
-   :members:
-   :synopsis: Scoring of quaternary structures
-
-.. currentmodule:: ost.mol.alg
-
-
 :mod:`scoring <ost.mol.alg.scoring>` -- Specialized scoring functions
 --------------------------------------------------------------------------------
 
@@ -166,6 +154,23 @@ Local Distance Test scores (lDDT, DRMSD)
 .. currentmodule:: ost.mol.alg
 
 
+:mod:`qsscoring <ost.mol.alg.qsscore>` -- QS score implementation
+--------------------------------------------------------------------------------
+
+.. warning::
+
+  The code that comes with
+  `Bertoni et al. <https://www.nature.com/articles/s41598-017-09654-8>`_ is
+  considered deprecated. QS score has been re-implemented to be tightly
+  integrated with the chain mapping algorithms. The old code is still available
+  and documented :doc:`here <qsscoring_deprecated>`.
+
+.. automodule:: ost.mol.alg.qsscore
+   :members:
+   :member-order: bysource
+   :synopsis: QS Score implementation
+
+.. currentmodule:: ost.mol.alg
 
 
 .. _steric-clashes:
