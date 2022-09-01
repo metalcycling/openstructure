@@ -63,7 +63,7 @@ class MappingResult:
 
     @property
     def mapping(self):
-        """ Mapping of :attr:`model` chains onto :attr:`~target`
+        """ Mapping of :attr:`~model` chains onto :attr:`~target`
 
         Exact same shape as :attr:`~chem_groups` but containing the names of the
         mapped chains in :attr:`~model`. May contain None for :attr:`~target`
@@ -87,6 +87,21 @@ class MappingResult:
                :class:`ost.seq.AlignmentHandle`
         """
         return self._alns
+
+    def JSONSummary(self):
+        """ Returns JSON serializable summary of results
+        """
+        json_dict = dict()
+        json_dict["chem_groups"] = self.chem_groups
+        json_dict["mapping"] = self.mapping
+        json_dict["alns"] = list()
+        for aln in self.alns.values():
+            trg_seq = aln.GetSequence(0)
+            mdl_seq = aln.GetSequence(1)
+            aln_dict = {"trg_ch": trg_seq.GetName(), "trg_seq": str(trg_seq),
+                        "mdl_ch": mdl_seq.GetName(), "mdl_seq": str(mdl_seq)}
+            json_dict["alns"].append(aln_dict)
+        return json_dict
 
 
 class ReprResult:
