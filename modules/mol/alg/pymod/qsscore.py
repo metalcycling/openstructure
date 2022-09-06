@@ -327,6 +327,16 @@ class QSScorer:
             flat_mapping.update({x: y for x, y in zip(a, b) if y is not None})
 
         # refers to equation 6 in Bertoni et al., 2017
+        nominator, denominator = self._FromFlatMapping(flat_mapping)
+
+        if denominator > 0.0:
+            return nominator / denominator
+        else:
+            return 0.0
+
+    def _FromFlatMapping(self, flat_mapping):
+
+        # refers to equation 6 in Bertoni et al., 2017
         nominator = 0.0
         denominator= 0.0
 
@@ -349,15 +359,18 @@ class QSScorer:
             if int2 not in processed_qsent2_interfaces:
                 denominator += self._InterfacePenalty2(int2)
 
-        if denominator > 0.0:
-            return nominator / denominator
-        else:
-            return 0.0
+        return (nominator, denominator)
 
     def _MappedInterfaceScores(self, int1, int2):
-        if (int1, int2) not in self._mapped_cache:
-            self._mapped_cache[(int1, int2)] = self._InterfaceScores(int1, int2)
-        return self._mapped_cache[(int1, int2)] 
+        key_one = (int1, int2)
+        if key_one in self._mapped_cache:
+            return self._mapped_cache[key_one]
+        key_two = ((int1[1], int1[0]), (int2[1], int2[0]))
+        if key_two in self._mapped_cache:
+            return self._mapped_cache[key_two]
+        nominator, denominator = self._InterfaceScores(int1, int2)
+        self._mapped_cache[key_one] = (nominator, denominator)
+        return (nominator, denominator) 
 
     def _InterfaceScores(self, int1, int2):
 
@@ -366,11 +379,10 @@ class QSScorer:
 
         # given two chain names a and b: if a < b, shape of pairwise distances is
         # (len(a), len(b)). However, if b > a, its (len(b), len(a)) => transpose
+        if int1[0] > int1[1]:
+            d1 = d1.transpose()
         if int2[0] > int2[1]:
             d2 = d2.transpose()
-
-        # should be given by design => no need to transpose d1
-        assert(int1[0] < int1[1])
 
         # indices of the first chain in the two interfaces
         mapped_indices_1_1, mapped_indices_1_2 = \

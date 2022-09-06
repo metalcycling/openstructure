@@ -245,6 +245,7 @@ class TestChainMapper(unittest.TestCase):
     # This is not supposed to be in depth algorithm testing, we just check
     # whether the various algorithms return sensible chain mappings
 
+    # lDDT based chain mappings
     naive_lddt_res = mapper.GetlDDTMapping(mdl, strategy="naive")
     self.assertEqual(naive_lddt_res.mapping, [['X', 'Y'],[None],['Z']])
 
@@ -258,18 +259,30 @@ class TestChainMapper(unittest.TestCase):
     greedy_lddt_res = mapper.GetlDDTMapping(mdl, strategy="greedy_block")
     self.assertEqual(greedy_lddt_res.mapping, [['X', 'Y'],[None],['Z']])
 
-    greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_single")
+
+    # QS score based chain mappings
+    naive_qsscore_res = mapper.GetQSScoreMapping(mdl, strategy="naive")
+    self.assertEqual(naive_qsscore_res.mapping, [['X', 'Y'],[None],['Z']])
+
+    greedy_qsscore_res = mapper.GetQSScoreMapping(mdl, strategy="greedy_fast")
+    self.assertEqual(naive_qsscore_res.mapping, [['X', 'Y'],[None],['Z']])
+
+    greedy_qsscore_res = mapper.GetQSScoreMapping(mdl, strategy="greedy_full")
+    self.assertEqual(naive_qsscore_res.mapping, [['X', 'Y'],[None],['Z']])
+
+    greedy_qsscore_res = mapper.GetQSScoreMapping(mdl, strategy="greedy_block")
+    self.assertEqual(naive_qsscore_res.mapping, [['X', 'Y'],[None],['Z']])
+
+
+    # rigid chain mappings
+    greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_single_gdtts")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
-    greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_iterative")
+    greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_iterative_gdtts")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
     greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_iterative_rmsd")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
-
-    naive_qsscore_res = mapper.GetQSScoreMapping(mdl, strategy="naive")
-    self.assertEqual(naive_qsscore_res.mapping, [['X', 'Y'],[None],['Z']])
-
 
 if __name__ == "__main__":
   from ost import testutils
