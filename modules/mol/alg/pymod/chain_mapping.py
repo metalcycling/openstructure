@@ -2388,7 +2388,7 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
 
         # try all possible mapping swaps. Swaps that improve the score are
         # immediately accepted and we start all over again
-        nominator, denominator = self._fromFlatMapping(mapping)
+        nominator, denominator = self._FromFlatMapping(mapping)
         current_score = 0.0
         if denominator != 0.0:
             current_score = nominator / denominator
