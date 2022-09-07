@@ -34,6 +34,9 @@ Local Distance Test scores (lDDT, DRMSD)
 
 .. autofunction:: ost.mol.alg.lddt.GetDefaultSymmetrySettings
 
+.. autoclass:: ost.mol.alg.lddt.CustomCompound
+  :members:
+
 .. function:: CheckStructure(ent, \
                              bond_table, \
                              angle_table, \
