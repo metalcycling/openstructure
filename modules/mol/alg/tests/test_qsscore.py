@@ -144,6 +144,17 @@ class TestQSScore(unittest.TestCase):
         qs_score = qs_scorer.GetQSScore(res.mapping)
         self.assertAlmostEqual(qs_score, 0.323, 2)
 
+    def test_hetero_model_switched_order(self):
+        # same as above but with switched order to test for symmetric behaviour
+        # of QS score
+        target = _LoadFile('1eud_mdl_partial-dimer.pdb') # BA, no symmetry
+        model = _LoadFile('1eud_ref.pdb')               # AB, no symmetry
+        mapper = ChainMapper(target)
+        res = mapper.GetRigidMapping(model, strategy="greedy_iterative_rmsd")
+        qs_scorer = QSScorer.FromMappingResult(res)
+        qs_score = qs_scorer.GetQSScore(res.mapping)
+        self.assertAlmostEqual(qs_score, 0.323, 2)
+
     def test_homo_1(self):
         # different stoichiometry SOD
         ent_1 = _LoadFile('4dvh.1.pdb') # A2, symmetry: C2
@@ -161,6 +172,17 @@ class TestQSScore(unittest.TestCase):
         # broken cyclic symmetry
         ent_1 = _LoadFile('4r7y.1.pdb')   # A6, symmetry: C6
         ent_2 = ent_1.Select('cname=A,B') # A2, no symmetry
+        mapper = ChainMapper(ent_1)
+        res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
+        qs_scorer = QSScorer.FromMappingResult(res)
+        qs_score = qs_scorer.GetQSScore(res.mapping)
+        self.assertAlmostEqual(qs_score, 1/6, 2)
+
+    def test_homo_2_switched_order(self):
+        # same as above but with switched order to test for symmetric behaviour
+        # of QS score
+        ent_2 = _LoadFile('4r7y.1.pdb')   # A6, symmetry: C6
+        ent_1 = ent_2.Select('cname=A,B') # A2, no symmetry
         mapper = ChainMapper(ent_1)
         res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
