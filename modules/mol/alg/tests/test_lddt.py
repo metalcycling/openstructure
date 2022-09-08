@@ -237,7 +237,8 @@ class TestlDDTBS(unittest.TestCase):
         ref_bs = ref.Select("grasdf:0=1")
         ref_bs = ref_bs.Select("peptide=true")
         ref_bs_names = [r.GetQualifiedName() for r in ref_bs.residues]
-        self.assertEqual(sorted(ref_bs_names), sorted(bs_repr.ref_residues))
+        repr_bs_names = [r.GetQualifiedName() for r in bs_repr.ref_residues]
+        self.assertEqual(sorted(ref_bs_names), sorted(repr_bs_names))
 
 
         # everything below basically computes lDDTBS manually and

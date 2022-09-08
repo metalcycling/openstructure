@@ -116,25 +116,19 @@ class ReprResult:
                  :func:`ChainMapper.GetRepr` whether this is backbone only or
                  full atom lDDT.
     :type lDDT: :class:`float`
-    :param ref_residues: Qualified names of ref structure, i.e. return values 
-                         of :func:`ost.mol.ResidueHandle.GetQualifiedName`
-    :type ref_residues: :class:`list` of :class:`str`
-    :param mdl_residues: Same for mdl residues
-    :type mdl_residues: :class:`list` of :class:`str`
-    :param ref_bb_pos: Representative backbone positions for reference residues.
-                       Thats CA positions for peptides and C3' positions for
-                       Nucleotides.
-    :type ref_bb_pos: :class:`geom.Vec3List`
+    :param ref_residues: The reference residues
+    :type ref_residues: :class:`list` of :class:`mol.alg.ResidueView`
+    :param mdl_residues: The model residues
+    :type mdl_residues: :class:`list` of :class:`mol.alg.ResidueView`
     """
-    def __init__(self, lDDT, ref_residues, mdl_residues, ref_bb_pos,
-                 mdl_bb_pos):
+    def __init__(self, lDDT, ref_residues, mdl_residues):
         self._lDDT = lDDT
         self._ref_residues = ref_residues
         self._mdl_residues = mdl_residues
-        self._ref_bb_pos = ref_bb_pos
-        self._mdl_bb_pos = mdl_bb_pos
 
         # lazily evaluated attributes
+        self._ref_bb_pos = None
+        self._mdl_bb_pos = None
         self._transform = None
         self._superposed_mdl_bb_pos = None
         self._bb_rmsd = None
@@ -157,21 +151,17 @@ class ReprResult:
     
     @property
     def ref_residues(self):
-        """ Qualified names of ref structure residues
+        """ The reference residues
 
-        The return values of :func:`ost.mol.ResidueHandle.GetQualifiedName`
-
-        :type: :class:`list` of :class:`str`
+        :type: :class:`list` of :class:`mol.alg.ResidueView`
         """
         return self._ref_residues
     
     @property
     def mdl_residues(self):
-        """ Qualified names of mdl structure residues
+        """ The model residues
 
-        The return values of :func:`ost.mol.ResidueHandle.GetQualifiedName`
-
-        :type: :class:`list` of :class:`str`
+        :type: :class:`list` of :class:`mol.alg.ResidueView`
         """
         return self._mdl_residues
     
@@ -183,6 +173,15 @@ class ReprResult:
 
         :type: :class:`geom.Vec3List`
         """
+        if self._ref_bb_pos is None:
+            self._ref_bb_pos = geom.Vec3List()
+            for r in self.ref_residues:
+                at = r.FindAtom("CA")
+                if not at.IsValid():
+                    at = r.FindAtom("C3'")
+                if not at.IsValid():
+                    raise RuntimeError("Something terrible happened... RUN...")
+                self._ref_bb_pos.append(at.GetPos())
         return self._ref_bb_pos
 
     @property
@@ -193,6 +192,15 @@ class ReprResult:
 
         :type: :class:`geom.Vec3List`
         """
+        if self._mdl_bb_pos is None:
+            self._mdl_bb_pos = geom.Vec3List()
+            for r in self.mdl_residues:
+                at = r.FindAtom("CA")
+                if not at.IsValid():
+                    at = r.FindAtom("C3'")
+                if not at.IsValid():
+                    raise RuntimeError("Something terrible happened... RUN...")
+                self._mdl_bb_pos.append(at.GetPos())
         return self._mdl_bb_pos
 
     @property
@@ -281,8 +289,8 @@ class ReprResult:
         if self._ost_query is None:
             chain_rnums = dict()
             for r in self.mdl_residues:
-                chname = r.split('.')[0]
-                rnum = r.split('.')[1][3:]
+                chname = r.GetChain().GetName()
+                rnum = r.GetNumber().GetNum()
                 if chname not in chain_rnums:
                     chain_rnums[chname] = list()
                 chain_rnums[chname].append(rnum)
@@ -297,8 +305,10 @@ class ReprResult:
         """
         json_dict = dict()
         json_dict["lDDT"] = self.lDDT
-        json_dict["ref_residues"] = self.ref_residues
-        json_dict["mdl_residues"] = self.mdl_residues
+        json_dict["ref_residues"] = [r.GetQualifiedName() for r in \
+                                     self.ref_residues]
+        json_dict["mdl_residues"] = [r.GetQualifiedName() for r in \
+                                     self.mdl_residues]
         json_dict["transform"] = list(self.transform.data)
         json_dict["bb_rmsd"] = self.bb_rmsd
         json_dict["gdt_8"] = self.gdt_8
@@ -1140,9 +1150,6 @@ class ChainMapper:
         for scored_mapping in scored_mappings:
             ref_residues = list()
             mdl_residues = list()
-            ref_bb_pos = geom.Vec3List()
-            mdl_bb_pos = geom.Vec3List()
-
             for ref_ch_group, mdl_ch_group in zip(substructure_chem_groups,
                                                   scored_mapping[1]):
                 for ref_ch, mdl_ch in zip(ref_ch_group, mdl_ch_group):
@@ -1150,21 +1157,11 @@ class ChainMapper:
                         aln = substructure_ref_mdl_alns[(ref_ch, mdl_ch)]
                         for col in aln:
                             if col[0] != '-' and col[1] != '-':
-                                ref_r = col.GetResidue(0)
-                                mdl_r = col.GetResidue(1)
-                                ref_residues.append(ref_r.GetQualifiedName())
-                                mdl_residues.append(mdl_r.GetQualifiedName())
-                                ref_at = ref_r.FindAtom("CA")
-                                if ref_at is None:
-                                    ref_at = ref_r.FindAtom("C3'")
-                                mdl_at = mdl_r.FindAtom("CA")
-                                if mdl_at is None:
-                                    mdl_at = mdl_r.FindAtom("C3'")
-                                ref_bb_pos.append(ref_at.GetPos())
-                                mdl_bb_pos.append(mdl_at.GetPos())
+                                ref_residues.append(col.GetResidue(0))
+                                mdl_residues.append(col.GetResidue(1))
 
             results.append(ReprResult(scored_mapping[0], ref_residues,
-                                      mdl_residues, ref_bb_pos, mdl_bb_pos))
+                                      mdl_residues))
         return results
 
     def GetNMappings(self, model):
