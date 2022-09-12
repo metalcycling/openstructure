@@ -2487,7 +2487,7 @@ def _QSScoreGreedyFull(the_greed, n_mdl_chains):
     while something_happened:
         something_happened = False
         # Try all possible starting points and keep the one giving the best QS score
-        best_score = 0.0
+        best_score = -1.0
         best_mapping = None
         mapped_ref_chains = set(mapping.keys())
         mapped_mdl_chains = set(mapping.values())
@@ -2516,11 +2516,11 @@ def _QSScoreGreedyFull(the_greed, n_mdl_chains):
                             best_score = tmp_score
                             best_mapping = tmp_mapping
 
-        if best_score == 0.0:
-            break # no proper mapping found anymore...
-
-        something_happened = True
-        mapping = best_mapping
+        if best_mapping is not None and len(best_mapping) > len(mapping):
+            # this even accepts extensions that lead to no increase in QS-score
+            # at least they make sense from an lDDT perspective
+            something_happened = True
+            mapping = best_mapping
 
     # translate mapping format and return
     final_mapping = list()
@@ -2577,7 +2577,7 @@ def _QSScoreGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
 
             # extend starting seeds to *seed_size* and retain best scoring block
             # for further extension
-            best_score = 0.0
+            best_score = -1.0
             best_mapping = None
             for s in seeds:
                 seed = dict(mapping)
@@ -2594,7 +2594,7 @@ def _QSScoreGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
                 starting_blocks.append(best_mapping)
 
         # fully expand initial starting blocks
-        best_score = 0.0
+        best_score = -1.0
         best_mapping = None
         for seed in starting_blocks:
             seed = the_greed.ExtendMapping(seed)
@@ -2606,17 +2606,17 @@ def _QSScoreGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
                 best_score = seed_score
                 best_mapping = seed
 
-        if best_score == 0.0:
-            break # no proper mapping found anymore
-
-        something_happened = True
-        mapping.update(best_mapping)
-        for ref_ch, mdl_ch in best_mapping.items():
-            for group_idx in range(len(ref_chem_groups)):
-                if ref_ch in ref_chem_groups[group_idx]:
-                    ref_chem_groups[group_idx].remove(ref_ch)
-                if mdl_ch in mdl_chem_groups[group_idx]:
-                    mdl_chem_groups[group_idx].remove(mdl_ch)
+        if best_mapping is not None and len(best_mapping) > len(mapping):
+            # this even accepts extensions that lead to no increase in QS-score
+            # at least they make sense from an lDDT perspective
+            something_happened = True
+            mapping.update(best_mapping)
+            for ref_ch, mdl_ch in best_mapping.items():
+                for group_idx in range(len(ref_chem_groups)):
+                    if ref_ch in ref_chem_groups[group_idx]:
+                        ref_chem_groups[group_idx].remove(ref_ch)
+                    if mdl_ch in mdl_chem_groups[group_idx]:
+                        mdl_chem_groups[group_idx].remove(mdl_ch)
 
     # translate mapping format and return
     final_mapping = list()
