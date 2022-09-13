@@ -22,14 +22,15 @@ class CustomCompound:
     def FromResidue(res):
         """ Construct custom compound from residue
 
-        :param res: Residue from which reference atom names are extracted
+        :param res: Residue from which reference atom names are extracted,
+                    hydrogen/deuterium atoms are filtered out
         :type res: :class:`ost.mol.ResidueView`/:class:`ost.mol.ResidueHandle`
         :returns: :class:`CustomCompound`
         """
-        atom_names = [a.GetName() for a in res.atoms]
-        if len(atom_names) != len(set(atom_names)):
+        at_names = [a.name for a in res.atoms if a.element not in ["H", "D"]]
+        if len(at_names) != len(set(at_names)):
             raise RuntimeError("Duplicate atoms detected in CustomCompound")
-        compound = CustomCompound(atom_names)
+        compound = CustomCompound(at_names)
         return compound
 
 class SymmetrySettings:
