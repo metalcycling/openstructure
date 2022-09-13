@@ -116,15 +116,16 @@ class ReprResult:
                  :func:`ChainMapper.GetRepr` whether this is backbone only or
                  full atom lDDT.
     :type lDDT: :class:`float`
-    :param ref_residues: The reference residues
-    :type ref_residues: :class:`list` of :class:`mol.alg.ResidueView`
-    :param mdl_residues: The model residues
-    :type mdl_residues: :class:`list` of :class:`mol.alg.ResidueView`
+    :param ref_view: The reference substructure
+    :type ref_view: :class:`mol.EntityView`
+    :param mdl_view: The matching counterpart in model
+    :type mdl_view: :class:`mol.EntityView`
     """
-    def __init__(self, lDDT, ref_residues, mdl_residues):
+    def __init__(self, lDDT, ref_view, mdl_view):
         self._lDDT = lDDT
-        self._ref_residues = ref_residues
-        self._mdl_residues = mdl_residues
+        assert(len(ref_view.residues) == len(mdl_view.residues))
+        self._ref_view = ref_view
+        self._mdl_view = mdl_view
 
         # lazily evaluated attributes
         self._ref_bb_pos = None
@@ -148,22 +149,38 @@ class ReprResult:
         :type: :class:`float`
         """
         return self._lDDT
+
+    @property
+    def ref_view(self):
+        """ View representing the reference substructure
+
+        :type: :class:`ost.mol.EntityView`
+        """
+        return self._ref_view
+
+    @property
+    def mdl_view(self):
+        """ View representing the matching counterpart in model
+
+        :type: :class:`ost.mol.EntityView`
+        """
+        return self._mdl_view
     
     @property
     def ref_residues(self):
         """ The reference residues
 
-        :type: :class:`list` of :class:`mol.alg.ResidueView`
+        :type: class:`mol.ResidueViewList`
         """
-        return self._ref_residues
+        return self.ref_view.residues
     
     @property
     def mdl_residues(self):
         """ The model residues
 
-        :type: :class:`list` of :class:`mol.alg.ResidueView`
+        :type: :class:`mol.ResidueViewList`
         """
-        return self._mdl_residues
+        return self.mdl_view.residues
     
     @property
     def ref_bb_pos(self):
@@ -293,7 +310,7 @@ class ReprResult:
                 rnum = r.GetNumber().GetNum()
                 if chname not in chain_rnums:
                     chain_rnums[chname] = list()
-                chain_rnums[chname].append(rnum)
+                chain_rnums[chname].append(str(rnum))
             chain_queries = list()
             for k,v in chain_rnums.items():
                 chain_queries.append(f"(cname={k} and rnum={','.join(v)})")
@@ -1155,8 +1172,8 @@ class ChainMapper:
         # finalize and return
         results = list()
         for scored_mapping in scored_mappings:
-            ref_residues = list()
-            mdl_residues = list()
+            ref_view = substructure.handle.CreateEmptyView()
+            mdl_view = mdl.handle.CreateEmptyView()
             for ref_ch_group, mdl_ch_group in zip(substructure_chem_groups,
                                                   scored_mapping[1]):
                 for ref_ch, mdl_ch in zip(ref_ch_group, mdl_ch_group):
@@ -1164,11 +1181,11 @@ class ChainMapper:
                         aln = substructure_ref_mdl_alns[(ref_ch, mdl_ch)]
                         for col in aln:
                             if col[0] != '-' and col[1] != '-':
-                                ref_residues.append(col.GetResidue(0))
-                                mdl_residues.append(col.GetResidue(1))
-
-            results.append(ReprResult(scored_mapping[0], ref_residues,
-                                      mdl_residues))
+                                ref_view.AddResidue(col.GetResidue(0),
+                                                    mol.ViewAddFlag.INCLUDE_ALL)
+                                mdl_view.AddResidue(col.GetResidue(1),
+                                                    mol.ViewAddFlag.INCLUDE_ALL)
+            results.append(ReprResult(scored_mapping[0], ref_view, mdl_view))
         return results
 
     def GetNMappings(self, model):
