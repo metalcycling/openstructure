@@ -569,7 +569,7 @@ The Handle Classes
     or longer for structures loaded from formats other than PDB.
     
     This property is read-only. To change the name of the residue, use
-    :meth:`EditorBase.SetResidueName`.
+    :meth:`~EditorBase.RenameResidue`.
   
   .. attribute:: number
   
@@ -1696,7 +1696,7 @@ The View Classes
     or longer for structures loaded from formats other than PDB.
   
     This property is read-only. To change the name of the residue, use
-    :meth:`EditorBase.SetResidueName`.
+    :meth:`~EditorBase.RenameResidue`.
 
   .. attribute:: number
 
