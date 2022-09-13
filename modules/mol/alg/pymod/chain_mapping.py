@@ -1089,6 +1089,9 @@ class ChainMapper:
         # strip the reference sequence in alignments to only contain
         # sequence from substructure
         substructure_ref_mdl_alns = dict()
+        mdl_views = dict()
+        for ch in mdl.chains:
+            mdl_views[ch.GetName()] = mdl.Select(f"cname={ch.GetName()}")
         for chem_group, mapping in zip(substructure_chem_groups,
                                        substructure_chem_mapping):
             for ref_ch in chem_group:
@@ -1104,9 +1107,13 @@ class ChainMapper:
                         tmp[idx_in_seq] = ref_seq[idx_in_seq]
                     ref_seq = seq.CreateSequence(ref_ch, ''.join(tmp))
                     ref_seq.AttachView(substructure.Select(f"cname={ref_ch}"))
+                    mdl_seq = full_aln.GetSequence(1)
+                    mdl_seq = seq.CreateSequence(mdl_seq.GetName(),
+                                                 mdl_seq.GetString())
+                    mdl_seq.AttachView(mdl_views[mdl_ch])
                     aln = seq.CreateAlignment()
                     aln.AddSequence(ref_seq)
-                    aln.AddSequence(full_aln.GetSequence(1))
+                    aln.AddSequence(mdl_seq)
                     substructure_ref_mdl_alns[(ref_ch, mdl_ch)] = aln
 
         lddt_scorer = lddt.lDDTScorer(substructure,
