@@ -116,13 +116,18 @@ class ReprResult:
                  :func:`ChainMapper.GetRepr` whether this is backbone only or
                  full atom lDDT.
     :type lDDT: :class:`float`
-    :param ref_view: The reference substructure
+    :param substructure: The full substructure for which we searched for a
+                         representation
+    :type substructure: :class:`ost.mol.EntityView`
+    :param ref_view: View pointing to the same underlying entity as
+                     *substructure* but only contains the stuff that is mapped
     :type ref_view: :class:`mol.EntityView`
     :param mdl_view: The matching counterpart in model
     :type mdl_view: :class:`mol.EntityView`
     """
-    def __init__(self, lDDT, ref_view, mdl_view):
+    def __init__(self, lDDT, substructure, ref_view, mdl_view):
         self._lDDT = lDDT
+        self._substructure = substructure
         assert(len(ref_view.residues) == len(mdl_view.residues))
         self._ref_view = ref_view
         self._mdl_view = mdl_view
@@ -151,8 +156,17 @@ class ReprResult:
         return self._lDDT
 
     @property
+    def substructure(self):
+        """ The full substructure for which we searched for a
+        representation
+
+        :type: :class:`ost.mol.EntityView`
+        """
+        return self._substructure
+
+    @property
     def ref_view(self):
-        """ View representing the reference substructure
+        """ View which contains the mapped subset of :attr:`substructure`
 
         :type: :class:`ost.mol.EntityView`
         """
@@ -160,7 +174,7 @@ class ReprResult:
 
     @property
     def mdl_view(self):
-        """ View representing the matching counterpart in model
+        """ The :attr:`ref_view` represention in the model
 
         :type: :class:`ost.mol.EntityView`
         """
@@ -1185,7 +1199,8 @@ class ChainMapper:
                                                     mol.ViewAddFlag.INCLUDE_ALL)
                                 mdl_view.AddResidue(col.GetResidue(1),
                                                     mol.ViewAddFlag.INCLUDE_ALL)
-            results.append(ReprResult(scored_mapping[0], ref_view, mdl_view))
+            results.append(ReprResult(scored_mapping[0], substructure,
+                                      ref_view, mdl_view))
         return results
 
     def GetNMappings(self, model):
