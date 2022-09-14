@@ -1521,4 +1521,88 @@ BOOST_AUTO_TEST_CASE(mmcif_pdbx_entity_branch_link_tests)
   BOOST_TEST_MESSAGE("  done.");
 }
 
+BOOST_AUTO_TEST_CASE(mmcif_atom_site_B_iso_or_equiv_tests)
+{
+  BOOST_TEST_MESSAGE("  Running mmcif_atom_site_B_iso_or_equiv_tests...");
+  mol::EntityHandle eh = mol::CreateEntity();
+  std::ifstream s("testfiles/mmcif/atom_site.mmcif");
+  IOProfile profile;
+  StarLoopDesc tmmcif_h;
+  TestMMCifReaderProtected tmmcif_p(s, eh, profile);
+  std::vector<StringRef> columns;
+
+  // set up dummy header to pre-set indices
+  SetAtomSiteHeader(&tmmcif_h);
+  // atom_site.auth_seq_id is not mandatory by standard but the reader,
+  // appears in 100% of PDB entries.
+  tmmcif_h.Add(StringRef("auth_seq_id", 11));
+  // atom_site.pdbx_PDB_ins_code is not mandatory by standard but the reader,
+  // but seems to be appear and set to '?' in PDB entries
+  tmmcif_h.Add(StringRef("pdbx_PDB_ins_code", 17));
+  tmmcif_h.Add(StringRef("B_iso_or_equiv", 14));
+  tmmcif_p.OnBeginLoop(tmmcif_h);
+
+  mol::AtomHandle a;
+
+  // check that the right values are read
+  BOOST_TEST_MESSAGE("          testing correct B-factors...");
+  {
+    // create dummy line to fetch B-factor
+    columns.push_back(StringRef("A", 1));
+    columns.push_back(StringRef("2", 1));
+    columns.push_back(StringRef(".", 1));
+    columns.push_back(StringRef("A", 1));
+    columns.push_back(StringRef("CA", 2));
+    columns.push_back(StringRef("VAL", 3));
+    columns.push_back(StringRef("1", 1));      // label_entity_id
+    columns.push_back(StringRef("1", 1));      // label_seq_id
+    columns.push_back(StringRef("C", 1));      // type_symbol
+    columns.push_back(StringRef("25.369", 6)); // Cartn_x
+    columns.push_back(StringRef("30.691", 6)); // Cartn_y
+    columns.push_back(StringRef("11.795", 6)); // Cartn_z
+    columns.push_back(StringRef("1", 1));      // auth_seq_id
+    columns.push_back(StringRef("?", 1));      // pdbx_PDB_ins_code
+    columns.push_back(StringRef("1.0", 3));    // B_iso_or_equiv
+
+    tmmcif_p.ParseAndAddAtom(columns);
+
+    a = eh.FindAtom("A", mol::ResNum(1), "CA");
+    BOOST_CHECK_EQUAL(a.GetBFactor(), 1.0);
+  }
+  BOOST_TEST_MESSAGE("          done.");
+  BOOST_TEST_MESSAGE("          testing blank B-factors...");
+  {
+    columns.pop_back();
+    columns.pop_back();
+    columns.pop_back();
+    columns.pop_back();
+    columns.pop_back();
+    columns.pop_back();
+    columns.pop_back();
+    columns.pop_back();
+    columns.pop_back();
+    columns.pop_back();
+    columns.pop_back();
+    columns.push_back(StringRef("C", 1));
+    columns.push_back(StringRef("VAL", 3));
+    columns.push_back(StringRef("1", 1));      // label_entity_id
+    columns.push_back(StringRef("1", 1));      // label_seq_id
+    columns.push_back(StringRef("C", 1));      // type_symbol
+    columns.push_back(StringRef("25.369", 6)); // Cartn_x
+    columns.push_back(StringRef("30.691", 6)); // Cartn_y
+    columns.push_back(StringRef("11.795", 6)); // Cartn_z
+    columns.push_back(StringRef("1", 1));      // auth_seq_id
+    columns.push_back(StringRef("?", 1));      // pdbx_PDB_ins_code
+    columns.push_back(StringRef(".", 1)); // B_iso_or_equiv
+
+    tmmcif_p.ParseAndAddAtom(columns);
+
+    a = eh.FindAtom("A", mol::ResNum(1), "C");
+    BOOST_CHECK_EQUAL(a.GetBFactor(), 0.0);
+  }
+  BOOST_TEST_MESSAGE("          done.");
+  BOOST_TEST_MESSAGE("  done.");
+}
+
+
 BOOST_AUTO_TEST_SUITE_END();
