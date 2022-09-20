@@ -1389,6 +1389,27 @@ class ChainMapper:
 
         return (view, polypep_seqs, polynuc_seqs)
 
+    def Align(self, s1, s2, stype):
+        """ Access to internal sequence alignment functionality
+
+        Alignment parameterization is setup at ChainMapper construction
+
+        :param s1: First sequence to align - must have view attached in case
+                   of resnum_alignments
+        :type s1: :class:`ost.seq.SequenceHandle`
+        :param s2: Second sequence to align - must have view attached in case
+                   of resnum_alignments
+        :type s2: :class:`ost.seq.SequenceHandle`
+        :param stype: Type of sequences to align, must be in
+                      [:class:`ost.mol.ChemType.AMINOACIDS`,
+                      :class:`ost.mol.ChemType.NUCLEOTIDES`]
+        :returns: Pairwise alignment of s1 and s2
+        """
+        if stype not in [mol.ChemType.AMINOACIDS, mol.ChemType.NUCLEOTIDES]:
+            raise RuntimeError("stype must be ost.mol.ChemType.AMINOACIDS or "
+                               "ost.mol.ChemType.NUCLEOTIDES")
+        return self.aligner.Align(s1, s2, chem_type = stype)
+
 
 # INTERNAL HELPERS
 ##################
@@ -1726,9 +1747,22 @@ def _GetRefMdlAlns(ref_chem_groups, ref_chem_group_msas, mdl_chem_groups,
                 # seq2: seq of ref chain
                 # seq3: seq of mdl chain
                 # => we need the alignment between seq2 and seq3
-                aln = seq.CreateAlignment(merged_aln.GetSequence(1),
-                                          merged_aln.GetSequence(2))
-                ref_mdl_alns[(ref_ch, mdl_ch)] = aln
+                s2 = merged_aln.GetSequence(1)
+                s3 = merged_aln.GetSequence(2)
+                # cut leading and trailing gap columns
+                a = 0 # number of leading gap columns
+                for idx in range(len(s2)):
+                    if s2[idx] != '-' or s3[idx] != '-':
+                        break
+                    a += 1
+                b = 0 # number of trailing gap columns
+                for idx in reversed(range(len(s2))):
+                    if s2[idx] != '-' or s3[idx] != '-':
+                        break
+                    b += 1
+                s2 = seq.CreateSequence(s2.GetName(), s2[a: len(s2)-b])
+                s3 = seq.CreateSequence(s3.GetName(), s3[a: len(s3)-b])
+                ref_mdl_alns[(ref_ch, mdl_ch)] = seq.CreateAlignment(s2, s3)
 
     return ref_mdl_alns
 

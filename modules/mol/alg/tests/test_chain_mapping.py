@@ -296,6 +296,57 @@ class TestChainMapper(unittest.TestCase):
     self.assertEqual(greedy_rigid_res.chem_groups[0][1], flat_map['Y'])
     self.assertEqual(greedy_rigid_res.chem_groups[2][0], flat_map['Z'])
 
+    # test Align function of ChainMapper
+    _, mdl_polypep_seqs, mdl_polynuc_seqs = mapper.ProcessStructure(mdl)
+    for x, ref_aln in greedy_rigid_res.alns.items():
+      ref_ch = x[0]
+      mdl_ch = x[1]
+
+      # search for that sequence in ref sequences as extracted from the mapper
+      ref_s = None
+      ref_s_type = None
+      for s in mapper.polypep_seqs:
+        if s.GetName() == ref_ch:
+          ref_s = s
+          ref_s_type = ost.mol.ChemType.AMINOACIDS
+          break
+      if ref_s is None:
+        for s in mapper.polynuc_seqs:
+          if s.GetName() == ref_ch:
+            ref_s = s
+            ref_s_type = ost.mol.ChemType.NUCLEOTIDES
+            break
+
+      # search for that sequence in mdl sequences as extracted from the
+      # ProcessStructure call before
+      mdl_s = None
+      mdl_s_type = None
+      for s in mdl_polypep_seqs:
+        if s.GetName() == mdl_ch:
+          mdl_s = s
+          mdl_s_type = ost.mol.ChemType.AMINOACIDS
+          break
+      if mdl_s is None:
+        for s in mdl_polynuc_seqs:
+          if s.GetName() == mdl_ch:
+            mdl_s = s
+            mdl_s_type = ost.mol.ChemType.NUCLEOTIDES
+            break
+
+      self.assertTrue(ref_s is not None)
+      self.assertTrue(mdl_s is not None)
+      self.assertEqual(ref_s_type, mdl_s_type)
+
+      aln = mapper.Align(ref_s, mdl_s, ref_s_type)
+      self.assertEqual(ref_aln.GetSequence(0).GetName(),
+                       aln.GetSequence(0).GetName())
+      self.assertEqual(ref_aln.GetSequence(1).GetName(),
+                       aln.GetSequence(1).GetName())
+      self.assertEqual(ref_aln.GetSequence(0).GetString(),
+                       aln.GetSequence(0).GetString())
+      self.assertEqual(ref_aln.GetSequence(1).GetString(),
+                       aln.GetSequence(1).GetString())
+
 
 if __name__ == "__main__":
   from ost import testutils
