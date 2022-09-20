@@ -89,6 +89,25 @@ class MappingResult:
         """
         return self._alns
 
+    def GetFlatMapping(self, mdl_as_key=False):
+        """ Returns flat mapping as :class:`dict` for all mapable chains
+
+        :param mdl_as_key: Default is target chain name as key and model chain
+                           name as value. This can be reversed with this flag.
+        :returns: :class:`dict` with :class:`str` as key/value that describe
+                  one-to-one mapping
+        """
+        flat_mapping = dict()
+        for trg_chem_group, mdl_chem_group in zip(self.chem_groups,
+                                                  self.mapping):
+            for a,b in zip(trg_chem_group, mdl_chem_group):
+                if a is not None and b is not None:
+                    if mdl_as_key:
+                        flat_mapping[b] = a
+                    else:
+                        flat_mapping[a] = b
+        return flat_mapping
+
     def JSONSummary(self):
         """ Returns JSON serializable summary of results
         """

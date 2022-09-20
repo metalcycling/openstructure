@@ -284,6 +284,19 @@ class TestChainMapper(unittest.TestCase):
     greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_iterative_rmsd")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
+    # test flat mapping functionality of MappingResult
+    flat_map = greedy_rigid_res.GetFlatMapping()
+    self.assertEqual(len(flat_map), 3)
+    self.assertEqual(flat_map[greedy_rigid_res.chem_groups[0][0]], 'X')
+    self.assertEqual(flat_map[greedy_rigid_res.chem_groups[0][1]], 'Y')
+    self.assertEqual(flat_map[greedy_rigid_res.chem_groups[2][0]], 'Z')
+    flat_map = greedy_rigid_res.GetFlatMapping(mdl_as_key=True)
+    self.assertEqual(len(flat_map), 3)
+    self.assertEqual(greedy_rigid_res.chem_groups[0][0], flat_map['X'])
+    self.assertEqual(greedy_rigid_res.chem_groups[0][1], flat_map['Y'])
+    self.assertEqual(greedy_rigid_res.chem_groups[2][0], flat_map['Z'])
+
+
 if __name__ == "__main__":
   from ost import testutils
   if testutils.SetDefaultCompoundLib():
