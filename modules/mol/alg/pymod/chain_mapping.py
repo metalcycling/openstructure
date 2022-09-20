@@ -1247,14 +1247,19 @@ class ChainMapper:
                                        check_resnames = False,
                                        no_intrachain = only_interchain)
 
+            if lDDT is None:
+                lDDT = 0.0 # that means, that we have not a single valid contact
+                           # in lDDT. For the code below to work, we just set it
+                           # to a terrible score => 0.0
+
             if len(scored_mappings) == 0:
                 scored_mappings.append((lDDT, mapping))
             elif len(scored_mappings) < topn:
                 scored_mappings.append((lDDT, mapping))
-                scored_mappings.sort(reverse=True)
+                scored_mappings.sort(reverse=True, key=lambda x: x[0])
             elif lDDT > scored_mappings[-1][0]:
                 scored_mappings.append((lDDT, mapping))
-                scored_mappings.sort(reverse=True)
+                scored_mappings.sort(reverse=True, key=lambda x: x[0])
                 scored_mappings = scored_mappings[:topn]
 
         # finalize and return
