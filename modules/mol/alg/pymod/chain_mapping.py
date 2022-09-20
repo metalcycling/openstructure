@@ -155,6 +155,8 @@ class ReprResult:
         # lazily evaluated attributes
         self._ref_bb_pos = None
         self._mdl_bb_pos = None
+        self._ref_full_bb_pos = None
+        self._mdl_full_bb_pos = None
         self._transform = None
         self._superposed_mdl_bb_pos = None
         self._bb_rmsd = None
@@ -225,14 +227,7 @@ class ReprResult:
         :type: :class:`geom.Vec3List`
         """
         if self._ref_bb_pos is None:
-            self._ref_bb_pos = geom.Vec3List()
-            for r in self.ref_residues:
-                at = r.FindAtom("CA")
-                if not at.IsValid():
-                    at = r.FindAtom("C3'")
-                if not at.IsValid():
-                    raise RuntimeError("Something terrible happened... RUN...")
-                self._ref_bb_pos.append(at.GetPos())
+            self._ref_bb_pos = self._GetBBPos(self.ref_residues)
         return self._ref_bb_pos
 
     @property
@@ -244,28 +239,52 @@ class ReprResult:
         :type: :class:`geom.Vec3List`
         """
         if self._mdl_bb_pos is None:
-            self._mdl_bb_pos = geom.Vec3List()
-            for r in self.mdl_residues:
-                at = r.FindAtom("CA")
-                if not at.IsValid():
-                    at = r.FindAtom("C3'")
-                if not at.IsValid():
-                    raise RuntimeError("Something terrible happened... RUN...")
-                self._mdl_bb_pos.append(at.GetPos())
+            self._mdl_bb_pos = self._GetBBPos(self.mdl_residues)
         return self._mdl_bb_pos
+
+    @property
+    def ref_full_bb_pos(self):
+        """ Representative backbone positions for reference residues.
+
+        Thats N, CA and C positions for peptides and O5', C5', C4', C3', O3'
+        positions for Nucleotides.
+
+        :type: :class:`geom.Vec3List`
+        """
+        if self._ref_full_bb_pos is None:
+            self._ref_full_bb_pos = self._GetFullBBPos(self.ref_residues)
+        return self._ref_full_bb_pos
+
+    @property
+    def mdl_full_bb_pos(self):
+        """ Representative backbone positions for reference residues.
+
+        Thats N, CA and C positions for peptides and O5', C5', C4', C3', O3'
+        positions for Nucleotides.
+
+        :type: :class:`geom.Vec3List`
+        """
+        if self._mdl_full_bb_pos is None:
+            self._mdl_full_bb_pos = self._GetFullBBPos(self.mdl_residues)
+        return self._mdl_full_bb_pos
 
     @property
     def transform(self):
         """ Transformation to superpose mdl residues onto ref residues
 
         Superposition computed as minimal RMSD superposition on
-        :attr:`ref_bb_pos` and :attr:`mdl_bb_pos`
+        :attr:`ref_bb_pos` and :attr:`mdl_bb_pos`. If number of positions is
+        smaller 3, the full_bb_pos equivalents are used instead.
 
         :type: :class:`ost.geom.Mat4`
         """
         if self._transform is None:
-            self._transform = _GetTransform(self.mdl_bb_pos, self.ref_bb_pos,
-                                            False)
+            if len(self.mdl_bb_pos) < 3:
+                self._transform = _GetTransform(self.mdl_full_bb_pos,
+                                                self.ref_full_bb_pos, False)
+            else:
+                self._transform = _GetTransform(self.mdl_bb_pos,
+                                                self.ref_bb_pos, False)
         return self._transform
 
     @property
@@ -369,9 +388,50 @@ class ReprResult:
         json_dict["ost_query"] = self.ost_query
         return json_dict
 
+    def _GetFullBBPos(self, residues):
+        """ Helper to extract full backbone positions
+        """
+        exp_pep_atoms = ["N", "CA", "C"]
+        exp_nuc_atoms = ["\"O5'\"", "\"C5'\"", "\"C4'\"", "\"C3'\"", "\"O3'\""]
+        bb_pos = geom.Vec3List()
+        for r in residues:
+            if r.GetChemType() == mol.ChemType.NUCLEOTIDES:
+                exp_atoms = exp_nuc_atoms
+            elif r.GetChemType() == mol.ChemType.AMINOACIDS:
+                exp_atoms = exp_pep_atoms
+            else:
+                raise RuntimeError("Something terrible happened... RUN...")
+            for aname in exp_atoms:
+                a = r.FindAtom(aname)
+                if not a.IsValid():
+                    raise RuntimeError("Something terrible happened... "
+                                       "RUN...")
+                bb_pos.append(a.GetPos())
+        return bb_pos
+
+    def _GetBBPos(self, residues):
+        """ Helper to extract single representative position for each residue
+        """
+        bb_pos = geom.Vec3List()
+        for r in residues:
+            at = r.FindAtom("CA")
+            if not at.IsValid():
+                at = r.FindAtom("C3'")
+            if not at.IsValid():
+                raise RuntimeError("Something terrible happened... RUN...")
+            bb_pos.append(at.GetPos())
+        return bb_pos
+
+
 
 class ChainMapper:
     """ Class to compute chain mappings
+
+    All algorithms are performed on processed structures which fulfill
+    criteria as given in constructor arguments (*min_pep_length*,
+    "min_nuc_length") and only contain residues which have all required backbone
+    atoms. for peptide residues thats N, CA, C and CB (no CB for GLY), for
+    nucleotide residues thats O5', C5', C4', C3' and O3'.
 
     Chain mapping is a three step process:
 
@@ -1238,7 +1298,10 @@ class ChainMapper:
 def _ProcessStructure(ent, min_pep_length, min_nuc_length):
     """ Entity processing for chain mapping
 
-    * Selects view containing peptide and nucleotide residues
+    * Selects view containing peptide and nucleotide residues which have 
+      required backbone atoms present - for peptide residues thats
+      N, CA, C and CB (no CB for GLY), for nucleotide residues thats
+      O5', C5', C4', C3' and O3'.
     * Extracts atom sequences for each chain in that view
     * Attaches corresponding :class:`ost.mol.EntityView` to each sequence
     * Ensures strictly increasing residue numbers without insertion codes
@@ -1254,17 +1317,24 @@ def _ProcessStructure(ent, min_pep_length, min_nuc_length):
               according chains attached 3) same for polynucleotide chains
     """
     view = ent.CreateEmptyView()
-    query = "(peptide=true or nucleotide=true) and aname=\"CA\",\"CB\",\"C3'\""
-    sel = ent.Select(query)
-    for r in sel.residues:
-        if r.chem_class.IsNucleotideLinking():
+    exp_pep_atoms = ["N", "CA", "C", "CB"]
+    exp_nuc_atoms = ["\"O5'\"", "\"C5'\"", "\"C4'\"", "\"C3'\"", "\"O3'\""]
+    pep_query = "peptide=true and aname=" + ','.join(exp_pep_atoms)
+    nuc_query = "nucleotide=true and aname=" + ','.join(exp_nuc_atoms)
+
+    pep_sel = ent.Select(pep_query)
+    for r in pep_sel.residues:
+        if len(r.atoms) == 4:
             view.AddResidue(r.handle, mol.INCLUDE_ALL)
-        elif r.chem_class.IsPeptideLinking():
-            if len(r.atoms) == 2:
+        elif r.name == "GLY" and len(r.atoms) == 3:
+            atom_names = [a.GetName() for a in r.atoms]
+            if sorted(atom_names) == ["C", "CA", "N"]:
                 view.AddResidue(r.handle, mol.INCLUDE_ALL)
-            elif r.name == "GLY":
-                if len(r.atoms) == 1 and r.atoms[0].name == "CA":
-                    view.AddResidue(r.handle, mol.INCLUDE_ALL)
+
+    nuc_sel = ent.Select(nuc_query)
+    for r in nuc_sel.residues:
+        if len(r.atoms) == 5:
+            view.AddResidue(r.handle, mol.INCLUDE_ALL)
 
     polypep_seqs = seq.CreateSequenceList()
     polynuc_seqs = seq.CreateSequenceList()
