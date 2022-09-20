@@ -1191,12 +1191,10 @@ class ChainMapper:
                                        no_intrachain = only_interchain)
 
             if len(scored_mappings) == 0:
-                if lDDT > 0.0:
-                    scored_mappings.append((lDDT, mapping))
+                scored_mappings.append((lDDT, mapping))
             elif len(scored_mappings) < topn:
-                if lDDT > 0.0:
-                    scored_mappings.append((lDDT, mapping))
-                    scored_mappings.sort(reverse=True)
+                scored_mappings.append((lDDT, mapping))
+                scored_mappings.sort(reverse=True)
             elif lDDT > scored_mappings[-1][0]:
                 scored_mappings.append((lDDT, mapping))
                 scored_mappings.sort(reverse=True)
