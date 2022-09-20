@@ -114,6 +114,7 @@ class MappingResult:
         json_dict = dict()
         json_dict["chem_groups"] = self.chem_groups
         json_dict["mapping"] = self.mapping
+        json_dict["flat_mapping"] = self.GetFlatMapping()
         json_dict["alns"] = list()
         for aln in self.alns.values():
             trg_seq = aln.GetSequence(0)
