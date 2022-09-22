@@ -10,6 +10,7 @@ set(OST_BINDINGS_UNIT_TESTS
   test_ialign.py
   test_lga.py
   test_hbplus.py
+  test_dockq.py
 )
 
 ost_unittest(MODULE bindings 
