@@ -1339,6 +1339,10 @@ class ChainMapper:
         polypep_seqs = seq.CreateSequenceList()
         polynuc_seqs = seq.CreateSequenceList()
 
+        if len(view.residues) == 0:
+            # no residues survived => return
+            return (view, polypep_seqs, polynuc_seqs)
+
         for ch in view.chains:
             n_res = len(ch.residues)
             n_pep = sum([r.IsPeptideLinking() for r in ch.residues])
