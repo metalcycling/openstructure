@@ -134,38 +134,20 @@ class QSEntity:
                                                   'euclidean')
         return self._pair_dist[key]
 
-class QSScorer:
-    """ Helper object to compute QS-score
-
-    It's conceptually tightly integrated into the mechanisms from the 
-    chain_mapping module. The prefered way to derive an object of type
-    :class:`QSScorer` is through the static constructor:
-    :func:`~FromMappingResult`. Example score computation including mapping:
+class QSScorerResult:
+    """
+    Holds data relevant for QS-score computation. Formulas for QS scores:
 
     ::
 
-        from ost.mol.alg.qsscore import QSScorer
-        from ost.mol.alg.chain_mapping import ChainMapper
-
-        ent_1 = io.LoadPDB("path_to_assembly_1.pdb")
-        ent_2 = io.LoadPDB("path_to_assembly_2.pdb")
-
-        chain_mapper = ChainMapper(ent_1)
-        mapping_result = chain_mapper.GetlDDTMapping(ent_2)
-        qs_scorer = QSScorer.FromMappingResult(mapping_result)
-        print("score:", qs_scorer.GetQSScore(mapping_result.mapping))
-
-
-    Formulas for QS scores:
-
-    ::
-  
+      - QS_best = weighted_scores / (weight_sum + weight_extra_mapped)
       - QS_global = weighted_scores / (weight_sum + weight_extra_all)
       -> weighted_scores = sum(w(min(d1,d2)) * (1 - abs(d1-d2)/12)) for shared
       -> weight_sum = sum(w(min(d1,d2))) for shared
+      -> weight_extra_mapped = sum(w(d)) for all mapped but non-shared
       -> weight_extra_all = sum(w(d)) for all non-shared
       -> w(d) = 1 if d <= 5, exp(-2 * ((d-5.0)/4.28)^2) else
-  
+
     In the formulas above:
 
     * "d": CA/CB-CA/CB distance of an "inter-chain contact" ("d1", "d2" for
@@ -178,10 +160,97 @@ class QSScorer:
       (fallback to CA-CA if :attr:`calpha_only` is True).
     * "w(d)": weighting function (prob. of 2 res. to interact given CB distance)
       from `Xu et al. 2009 <https://dx.doi.org/10.1016%2Fj.jmb.2008.06.002>`_.
+    """
+    def __init__(self, weighted_scores, weight_sum, weight_extra_mapped,
+                 weight_extra_all):
+        self._weighted_scores = weighted_scores
+        self._weight_sum = weight_sum
+        self._weight_extra_mapped = weight_extra_mapped
+        self._weight_extra_all = weight_extra_all
 
-    The actual QS-score computation in :func:`QSScorer.GetQSScore` implements
-    caching. Repeated computations with alternative chain mappings thus become
-    faster.
+    @property
+    def weighted_scores(self):
+        """ weighted_scores attribute as described in formula section above
+
+        :type: :class:`float`
+        """
+        return self._weighted_scores
+
+    @property
+    def weight_sum(self):
+        """ weight_sum attribute as described in formula section above
+
+        :type: :class:`float`
+        """
+        return self._weight_sum
+
+    @property
+    def weight_extra_mapped(self):
+        """ weight_extra_mapped attribute as described in formula section above
+
+        :type: :class:`float`
+        """
+        return self._weight_extra_mapped
+
+    @property
+    def weight_extra_all(self):
+        """ weight_extra_all attribute as described in formula section above
+
+        :type: :class:`float`
+        """
+        return self._weight_extra_all
+
+    @property
+    def QS_best(self):
+        """ QS_best - the actual score as described in formula section above
+
+        :type: :class:`float`
+        """
+        nominator = self.weighted_scores
+        denominator = self.weight_sum + self.weight_extra_mapped
+        if denominator != 0.0:
+            return nominator/denominator
+        else:
+            return 0.0
+
+    @property
+    def QS_global(self):
+        """ QS_global - the actual score as described in formula section above
+
+        :type: :class:`float`
+        """
+        nominator = self.weighted_scores
+        denominator = self.weight_sum + self.weight_extra_all
+        if denominator != 0.0:
+            return nominator/denominator
+        else:
+            return 0.0
+
+
+class QSScorer:
+    """ Helper object to compute QS-score
+
+    Tightly integrated into the mechanisms from the chain_mapping module.
+    The prefered way to derive an object of type :class:`QSScorer` is through
+    the static constructor: :func:`~FromMappingResult`. Example score
+    computation including mapping:
+
+    ::
+
+        from ost.mol.alg.qsscore import QSScorer
+        from ost.mol.alg.chain_mapping import ChainMapper
+
+        ent_1 = io.LoadPDB("path_to_assembly_1.pdb")
+        ent_2 = io.LoadPDB("path_to_assembly_2.pdb")
+
+        chain_mapper = ChainMapper(ent_1)
+        mapping_result = chain_mapper.GetlDDTMapping(ent_2)
+        qs_scorer = QSScorer.FromMappingResult(mapping_result)
+        score_result = qs_scorer.GetQSScore(mapping_result.mapping)
+        print("score:", score_result.QS_global)
+
+    QS-score computation in :func:`QSScorer.Score` implements caching.
+    Repeated computations with alternative chain mappings thus become faster.
 
     :param target: Structure designated as "target". Can be fetched from
                    :class:`ost.mol.alg.chain_mapping.MappingResult`
@@ -221,17 +290,16 @@ class QSScorer:
         # cache for mapped interface scores
         # key: tuple of tuple ((qsent1_ch1, qsent1_ch2),
         #                     ((qsent2_ch1, qsent2_ch2))
-        # value: tuple with two numbers referring to QS-score formalism
-        #        (equation 6 in Bertoni et al., 2017):
-        #        1: contribution of that interface to nominator
-        #        2: contribution of that interface to denominator
+        # value: tuple with four numbers referring to QS-score formalism
+        #        1: weighted_scores
+        #        2: weight_sum
+        #        3: weight_extra_mapped
+        #        4: weight_extra_all
         self._mapped_cache = dict()
 
         # cache for non-mapped interfaces in qsent1
         # key: tuple (qsent1_ch1, qsent1_ch2)
-        # value: contribution of that interface to second term in denominator in
-        #        equation 6 in Bertoni et al., 2017.
-        #        (sum of non-shared penalty of qsent1)
+        # value: contribution of that interface to weight_extra_all
         self._qsent_1_penalties = dict()
 
         # same for qsent2
@@ -291,10 +359,10 @@ class QSScorer:
         """
         return self._alns
     
-    def GetQSScore(self, mapping, check=True):
+    def Score(self, mapping, check=True):
         """ Computes QS-score given chain mapping
 
-        Again, the preferred way is to get this chain mapping is from an object
+        Again, the preferred way is to get *mapping* is from an object
         of type :class:`ost.mol.alg.chain_mapping.MappingResult`.
 
         :param mapping: see 
@@ -303,7 +371,7 @@ class QSScorer:
         :param check: Perform input checks, can be disabled for speed purposes
                       if you know what you're doing.
         :type check: :class:`bool`
-        :returns: The QS-Score
+        :returns: Result object of type :class:`QSScorerResult`
         """
 
         if check:
@@ -326,19 +394,21 @@ class QSScorer:
         for a, b in zip(self.chem_groups, mapping):
             flat_mapping.update({x: y for x, y in zip(a, b) if y is not None})
 
-        # refers to equation 6 in Bertoni et al., 2017
-        nominator, denominator = self._FromFlatMapping(flat_mapping)
+        return self.FromFlatMapping(flat_mapping)
 
-        if denominator > 0.0:
-            return nominator / denominator
-        else:
-            return 0.0
+    def FromFlatMapping(self, flat_mapping):
+        """ Same as :func:`Score` but with flat mapping
 
-    def _FromFlatMapping(self, flat_mapping):
+        :param flat_mapping: Dictionary with target chain names as keys and
+                             the mapped model chain names as value
+        :type flat_mapping: :class:`dict` with :class:`str` as key and value
+        :returns: Result object of type :class:`QSScorerResult`
+        """
 
-        # refers to equation 6 in Bertoni et al., 2017
-        nominator = 0.0
-        denominator= 0.0
+        weighted_scores = 0.0
+        weight_sum = 0.0
+        weight_extra_mapped = 0.0
+        weight_extra_all = 0.0
 
         # keep track of processed interfaces in qsent2
         processed_qsent2_interfaces = set()
@@ -346,20 +416,32 @@ class QSScorer:
         for int1 in self.qsent1.interacting_chains:
             if int1[0] in flat_mapping and int1[1] in flat_mapping:
                 int2 = (flat_mapping[int1[0]], flat_mapping[int1[1]])
-                a,b = self._MappedInterfaceScores(int1, int2)
-                nominator += a
-                denominator += b
+                a, b, c, d = self._MappedInterfaceScores(int1, int2)
+                weighted_scores += a
+                weight_sum += b
+                weight_extra_mapped += c
+                weight_extra_all += d
                 processed_qsent2_interfaces.add((min(int2[0], int2[1]),
                                                  max(int2[0], int2[1])))
             else:
-                denominator += self._InterfacePenalty1(int1)
+                weight_extra_all += self._InterfacePenalty1(int1)
 
-        # add penalties for non-mapped interfaces in qsent2
+        # process interfaces that only exist in qsent2
+        r_flat_mapping = {v:k for k,v in flat_mapping.items()} # reverse mapping...
         for int2 in self.qsent2.interacting_chains:
             if int2 not in processed_qsent2_interfaces:
-                denominator += self._InterfacePenalty2(int2)
+                if int2[0] in r_flat_mapping and int2[1] in r_flat_mapping:
+                    int1 = (r_flat_mapping[int2[0]], r_flat_mapping[int2[1]])
+                    a, b, c, d = self._MappedInterfaceScores(int1, int2)
+                    weighted_scores += a
+                    weight_sum += b
+                    weight_extra_mapped += c
+                    weight_extra_all += d
+                else:
+                    weight_extra_all += self._InterfacePenalty2(int2)
 
-        return (nominator, denominator)
+        return QSScorerResult(weighted_scores, weight_sum, weight_extra_mapped,
+                              weight_extra_all)
 
     def _MappedInterfaceScores(self, int1, int2):
         key_one = (int1, int2)
@@ -368,9 +450,12 @@ class QSScorer:
         key_two = ((int1[1], int1[0]), (int2[1], int2[0]))
         if key_two in self._mapped_cache:
             return self._mapped_cache[key_two]
-        nominator, denominator = self._InterfaceScores(int1, int2)
-        self._mapped_cache[key_one] = (nominator, denominator)
-        return (nominator, denominator) 
+
+        weighted_scores, weight_sum, weight_extra_mapped, weight_extra_all = \
+        self._InterfaceScores(int1, int2)
+        self._mapped_cache[key_one] = (weighted_scores, weight_sum, weight_extra_mapped,
+                                       weight_extra_all)
+        return (weighted_scores, weight_sum, weight_extra_mapped, weight_extra_all)
 
     def _InterfaceScores(self, int1, int2):
 
@@ -392,23 +477,30 @@ class QSScorer:
         self._IndexMapping(int1[1], int2[1])
 
         # get shared_masks - for this we first need to select the actual
-        # mapped positions to get a one-to-one relationshop and map it back
+        # mapped positions to get a one-to-one relationship and map it back
         # to the original mask size
-        mapped_idx_grid_1 = np.ix_(mapped_indices_1_1, mapped_indices_2_1)
-        mapped_idx_grid_2 = np.ix_(mapped_indices_1_2, mapped_indices_2_2)
-        mapped_d1 = d1[mapped_idx_grid_1]
-        mapped_d2 = d2[mapped_idx_grid_2]
-        assert(mapped_d1.shape == mapped_d2.shape)
         assert(self.qsent1.contact_d == self.qsent2.contact_d)
         contact_d = self.qsent1.contact_d
-        shared_mask = np.logical_and(mapped_d1 < contact_d,
-                                     mapped_d2 < contact_d)
+        mapped_idx_grid_1 = np.ix_(mapped_indices_1_1, mapped_indices_2_1)
+        mapped_idx_grid_2 = np.ix_(mapped_indices_1_2, mapped_indices_2_2)
+        mapped_d1_contacts = d1[mapped_idx_grid_1] < contact_d
+        mapped_d2_contacts = d2[mapped_idx_grid_2] < contact_d
+        assert(mapped_d1_contacts.shape == mapped_d2_contacts.shape)
+        shared_mask = np.logical_and(mapped_d1_contacts, mapped_d2_contacts)
         shared_mask_d1 = np.full(d1.shape, False, dtype=bool)
         shared_mask_d1[mapped_idx_grid_1] = shared_mask
         shared_mask_d2 = np.full(d2.shape, False, dtype=bool)
         shared_mask_d2[mapped_idx_grid_2] = shared_mask
 
-        # nominator and denominator contributions from shared contacts
+        # get mapped but nonshared masks
+        mapped_nonshared_mask_d1 = np.full(d1.shape, False, dtype=bool)
+        mapped_nonshared_mask_d1[mapped_idx_grid_1] = \
+        np.logical_and(np.logical_not(shared_mask), mapped_d1_contacts)
+        mapped_nonshared_mask_d2 = np.full(d2.shape, False, dtype=bool)
+        mapped_nonshared_mask_d2[mapped_idx_grid_2] = \
+        np.logical_and(np.logical_not(shared_mask), mapped_d2_contacts)
+
+        # contributions from shared contacts
         shared_d1 = d1[shared_mask_d1]
         shared_d2 = d2[shared_mask_d2]
         shared_min = np.minimum(shared_d1, shared_d2)
@@ -419,26 +511,40 @@ class QSScorer:
         weight_term[bigger_5_mask] = weights
         diff_term = np.subtract(np.ones(weight_term.shape[0]),
                                 shared_abs_diff_div_12)
-        nominator = np.sum(np.multiply(weight_term, diff_term))
-        denominator = np.sum(weight_term)
+        weighted_scores = np.sum(np.multiply(weight_term, diff_term))
+        weight_sum = np.sum(weight_term)
 
-        # denominator contribution from non shared contacts in interface one
-        contact_distances = d1[np.logical_and(np.logical_not(shared_mask_d1),
-                                              d1 < contact_d)]
+        # do weight_extra_all for interface one
+        nonshared_contact_mask_d1 = np.logical_and(np.logical_not(shared_mask_d1),
+                                                   d1 < contact_d)
+        contact_distances = d1[nonshared_contact_mask_d1]
         bigger_5 = contact_distances[contact_distances > 5]
-        denominator += np.sum(np.exp(-2.0*np.square((bigger_5-5.0)/4.28)))
+        weight_extra_all = np.sum(np.exp(-2.0*np.square((bigger_5-5.0)/4.28)))
         # add 1.0 for all contact distances <= 5.0
-        denominator += contact_distances.shape[0] - bigger_5.shape[0]
-
+        weight_extra_all += contact_distances.shape[0] - bigger_5.shape[0]
         # same for interface two
-        contact_distances = d2[np.logical_and(np.logical_not(shared_mask_d2),
-                                              d2 < contact_d)]
+        nonshared_contact_mask_d2 = np.logical_and(np.logical_not(shared_mask_d2),
+                                                   d2 < contact_d)
+        contact_distances = d2[nonshared_contact_mask_d2]
         bigger_5 = contact_distances[contact_distances > 5]
-        denominator += np.sum(np.exp(-2.0*np.square((bigger_5-5.0)/4.28)))
+        weight_extra_all += np.sum(np.exp(-2.0*np.square((bigger_5-5.0)/4.28)))
         # add 1.0 for all contact distances <= 5.0
-        denominator += contact_distances.shape[0] - bigger_5.shape[0]
+        weight_extra_all += contact_distances.shape[0] - bigger_5.shape[0]
 
-        return (nominator, denominator)
+        # do weight_extra_mapped for interface one
+        contact_distances = d1[mapped_nonshared_mask_d1]
+        bigger_5 = contact_distances[contact_distances > 5]
+        weight_extra_mapped = np.sum(np.exp(-2.0*np.square((bigger_5-5.0)/4.28)))
+        # add 1.0 for all contact distances <= 5.0
+        weight_extra_mapped += contact_distances.shape[0] - bigger_5.shape[0]
+        # same for interface two
+        contact_distances = d2[mapped_nonshared_mask_d2]
+        bigger_5 = contact_distances[contact_distances > 5]
+        weight_extra_mapped += np.sum(np.exp(-2.0*np.square((bigger_5-5.0)/4.28)))
+        # add 1.0 for all contact distances <= 5.0
+        weight_extra_mapped += contact_distances.shape[0] - bigger_5.shape[0]
+
+        return (weighted_scores, weight_sum, weight_extra_mapped, weight_extra_all)
 
     def _IndexMapping(self, ch1, ch2):
         """ Fetches aln and returns indices of (non-)aligned residues

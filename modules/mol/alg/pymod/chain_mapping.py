@@ -2467,11 +2467,10 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
             if max_ext is not None and len(newly_mapped_ref_chains) >= max_ext:
                 break
 
-            # nominator and denominator to determine current QS score
-            nominator, denominator = self._FromFlatMapping(mapping)
-            old_score = 0.0
-            if denominator != 0.0:
-                old_score = nominator/denominator
+            score_result = self.FromFlatMapping(mapping)
+            old_score = score_result.QS_global
+            nominator = score_result.weighted_scores
+            denominator = score_result.weight_sum + score_result.weight_extra_all
 
             max_diff = 0.0
             max_mapping = None
@@ -2487,9 +2486,10 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
                             # are added to mapping
                             int1 = (ref_ch, neighbor)
                             int2 = (mdl_ch, mapping[neighbor])
-                            a, b = self._MappedInterfaceScores(int1, int2)
-                            nominator_diff += a
-                            denominator_diff += b
+                            a, b, c, d = self._MappedInterfaceScores(int1, int2)
+                            nominator_diff += a # weighted_scores
+                            denominator_diff += b # weight_sum
+                            denominator_diff += d # weight_extra_all
                             # the respective interface penalties are subtracted
                             # from denominator
                             denominator_diff -= self._InterfacePenalty1(int1)
@@ -2552,10 +2552,8 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
 
         # try all possible mapping swaps. Swaps that improve the score are
         # immediately accepted and we start all over again
-        nominator, denominator = self._FromFlatMapping(mapping)
-        current_score = 0.0
-        if denominator != 0.0:
-            current_score = nominator / denominator
+        score_result = self.FromFlatMapping(mapping)
+        current_score = score_result.QS_global
         something_happened = True
         while something_happened:
             something_happened = False
@@ -2566,16 +2564,12 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
                     swapped_mapping = dict(mapping)
                     swapped_mapping[ch1] = mapping[ch2]
                     swapped_mapping[ch2] = mapping[ch1]
-                    a, b = self._FromFlatMapping(swapped_mapping)
-                    score = 0.0
-                    if b != 0.0:
-                        score = a/b
-                    if score > current_score:
+                    score_result = self.FromFlatMapping(swapped_mapping)
+                    if score_result.QS_global > current_score:
                         something_happened = True
                         mapping = swapped_mapping
-                        current_score = score
+                        current_score = score_result.QS_global
                         break        
-
         return mapping
 
 
@@ -2587,10 +2581,10 @@ def _QSScoreNaive(trg, mdl, chem_groups, chem_mapping, ref_mdl_alns, contact_d,
     # you'll just hit a wall when the number of possible mappings becomes large
     qs_scorer = qsscore.QSScorer(trg, chem_groups, mdl, ref_mdl_alns)
     for mapping in _ChainMappings(chem_groups, chem_mapping, n_max_naive):
-        score = qs_scorer.GetQSScore(mapping, check=False)
-        if score > best_score:
+        score_result = qs_scorer.Score(mapping, check=False)
+        if score_result.QS_global > best_score:
             best_mapping = mapping
-            best_score = score
+            best_score = score_result.QS_global
     return best_mapping
 
 
@@ -2675,12 +2669,9 @@ def _QSScoreGreedyFull(the_greed, n_mdl_chains):
                         tmp_mapping = dict(mapping)
                         tmp_mapping[seed[0]] = seed[1]
                         tmp_mapping = the_greed.ExtendMapping(tmp_mapping)
-                        a, b = the_greed._FromFlatMapping(tmp_mapping)
-                        tmp_score = 0.0
-                        if b != 0.0:
-                            tmp_score = a/b
-                        if tmp_score > best_score:
-                            best_score = tmp_score
+                        score_result = the_greed.FromFlatMapping(tmp_mapping)
+                        if score_result.QS_global > best_score:
+                            best_score = score_result.QS_global
                             best_mapping = tmp_mapping
 
         if best_mapping is not None and len(best_mapping) > len(mapping):
@@ -2750,12 +2741,9 @@ def _QSScoreGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
                 seed = dict(mapping)
                 seed.update({s[0]: s[1]})  
                 seed = the_greed.ExtendMapping(seed, max_ext = max_ext)
-                a, b = the_greed._FromFlatMapping(seed)
-                seed_score = 0.0
-                if b != 0.0:
-                    seed_score = a/b
-                if seed_score > best_score:
-                    best_score = seed_score
+                score_result = the_greed.FromFlatMapping(seed)
+                if score_result.QS_global > best_score:
+                    best_score = score_result.QS_global
                     best_mapping = seed
             if best_mapping != None:
                 starting_blocks.append(best_mapping)
@@ -2765,12 +2753,9 @@ def _QSScoreGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
         best_mapping = None
         for seed in starting_blocks:
             seed = the_greed.ExtendMapping(seed)
-            a, b = the_greed._FromFlatMapping(seed)
-            seed_score = 0.0
-            if b != 0.0:
-                seed_score = a/b
-            if seed_score > best_score:
-                best_score = seed_score
+            score_result = the_greed.FromFlatMapping(seed)
+            if score_result.QS_global > best_score:
+                best_score = score_result.QS_global
                 best_mapping = seed
 
         if best_mapping is not None and len(best_mapping) > len(mapping):

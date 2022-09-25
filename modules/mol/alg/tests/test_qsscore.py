@@ -80,8 +80,8 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(target)
         res = mapper.GetRigidMapping(model, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 0.472, places=2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.472, places=2)
 
     def test_hetero_case_1(self):
         # additional chains
@@ -90,8 +90,20 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(ent_1)
         res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 0.825, 2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.825, 2)
+        self.assertAlmostEqual(score_result.QS_best, 1.0, 2)
+
+    def test_hetero_case_1_switched_order(self):
+        # additional chains
+        ent_2 = _LoadFile('4ux8.1.pdb') # A2 B2 C2, symmetry: C2
+        ent_1 = _LoadFile('3fub.2.pdb') # A2 B2   , symmetry: C2
+        mapper = ChainMapper(ent_1)
+        res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
+        qs_scorer = QSScorer.FromMappingResult(res)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.825, 2)
+        self.assertAlmostEqual(score_result.QS_best, 1.0, 2)
 
     def test_HeteroCase1b(self):
         # as above but with assymetric unit of 3fub
@@ -101,8 +113,14 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(ent_1)
         res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 0.356, 2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.356, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.419, 2)
+
+    def test_HeteroCase1b_switched_order(self):
+        # chain mapping differs a bit when switching the order... I'm just
+        # too lazy...
+        pass
 
     def test_hetero_case_2(self):
         # different stoichiometry
@@ -111,8 +129,20 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(ent_1)
         res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 0.3131, 2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.3131, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.941, 2)
+
+    def test_hetero_case_2_switched_order(self):
+        # different stoichiometry
+        ent_2 = _LoadFile('1efu.1.pdb') # A2 B2, symmetry: C2
+        ent_1 = _LoadFile('4pc6.1.pdb') # A B  , no symmetry
+        mapper = ChainMapper(ent_1)
+        res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
+        qs_scorer = QSScorer.FromMappingResult(res)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.3131, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.941, 2)
 
     def test_hetero_case_3(self):
         # more chains
@@ -121,8 +151,20 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(ent_1)
         res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 0.359, 2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.359, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.958, 2)
+
+    def test_hetero_case_3_switched_order(self):
+        # more chains
+        ent_2 = _LoadFile('2vjt.1.pdb') # A6 B6, symmetry: D3
+        ent_1 = _LoadFile('3dbj.1.pdb') # A3 B3, symmetry: C3
+        mapper = ChainMapper(ent_1)
+        res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
+        qs_scorer = QSScorer.FromMappingResult(res)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.359, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.958, 2)
 
     def test_hetero_case_4(self):
         # inverted chains
@@ -131,8 +173,20 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(ent_1)
         res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 0.980, 2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.980, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.980, 2)
+
+    def test_hetero_case_4_switched_order(self):
+        # inverted chains
+        ent_2 = _LoadFile('3ia3.1.pdb') # AB, no symmetry
+        ent_1 = _LoadFile('3ia3.2.pdb') # BA, no symmetry
+        mapper = ChainMapper(ent_1)
+        res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
+        qs_scorer = QSScorer.FromMappingResult(res)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.980, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.980, 2)
 
     def test_hetero_model(self):
         # uncomplete model missing 2 third of the contacts
@@ -141,8 +195,9 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(target)
         res = mapper.GetRigidMapping(model, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 0.323, 2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.323, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.921, 2)
 
     def test_hetero_model_switched_order(self):
         # same as above but with switched order to test for symmetric behaviour
@@ -152,8 +207,9 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(target)
         res = mapper.GetRigidMapping(model, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 0.323, 2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.323, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.921, 2)
 
     def test_homo_1(self):
         # different stoichiometry SOD
@@ -165,8 +221,23 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(ent_1, pep_gap_open = -5, pep_gap_ext = -2)
         res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 0.147, 2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.147, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.866, 2)
+
+    def test_homo_1_switched_order(self):
+        # different stoichiometry SOD
+        ent_2 = _LoadFile('4dvh.1.pdb') # A2, symmetry: C2
+        ent_1 = _LoadFile('4br6.1.pdb') # A4, symmetry: D2
+        # original qsscoring uses other default values for gap_open and gap_extension
+        # penalties, let's use those to reproduce the old results as the alignments
+        # would differ otherwise
+        mapper = ChainMapper(ent_1, pep_gap_open = -5, pep_gap_ext = -2)
+        res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
+        qs_scorer = QSScorer.FromMappingResult(res)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 0.147, 2)
+        self.assertAlmostEqual(score_result.QS_best, 0.866, 2)
 
     def test_homo_2(self):
         # broken cyclic symmetry
@@ -175,8 +246,9 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(ent_1)
         res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 1/6, 2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 1/6, 2)
+        self.assertAlmostEqual(score_result.QS_best, 1.0, 2)
 
     def test_homo_2_switched_order(self):
         # same as above but with switched order to test for symmetric behaviour
@@ -186,8 +258,9 @@ class TestQSScore(unittest.TestCase):
         mapper = ChainMapper(ent_1)
         res = mapper.GetRigidMapping(ent_2, strategy="greedy_iterative_rmsd")
         qs_scorer = QSScorer.FromMappingResult(res)
-        qs_score = qs_scorer.GetQSScore(res.mapping)
-        self.assertAlmostEqual(qs_score, 1/6, 2)
+        score_result = qs_scorer.Score(res.mapping)
+        self.assertAlmostEqual(score_result.QS_global, 1/6, 2)
+        self.assertAlmostEqual(score_result.QS_best, 1.0, 2)
 
 if __name__ == "__main__":
     from ost import testutils
