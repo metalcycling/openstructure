@@ -272,13 +272,17 @@ def DockQ(dockq_exec, mdl, ref, mdl_ch1, mdl_ch2, ref_ch1,
 
     proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    shutil.rmtree(tmp_dir) # cleanup, no matter if DockQ executed successfully 
+    shutil.rmtree(tmp_dir) # cleanup, no matter if DockQ executed successfully
 
     if proc.returncode != 0:
         raise RuntimeError("DockQ run failed - returncode: " + \
-                           str(proc.return_code))
+                           str(proc.returncode) + ", stderr: " + \
+                           proc.stderr.decode() + ", stdout: " + \
+                           proc.stdout.decode())
 
     if proc.stderr.decode() != "":
-        raise RuntimeError("DockQ run failed - stderr: " + proc.stderr.decode())
+        raise RuntimeError("DockQ run failed - stderr: " + \
+                           proc.stderr.decode() + ", stdout: " + \
+                           proc.stdout.decode())
 
     return DockQResult.FromDockQOutput(proc.stdout.decode())
