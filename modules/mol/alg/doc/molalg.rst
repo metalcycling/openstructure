@@ -1356,7 +1356,8 @@ API
 
 .. function:: Molck(ent, lib, settings, [prune=True])
 
-  Runs Molck on provided entity.
+  Runs Molck on provided entity. Reprocesses *ent* with
+  :class:`ost.conop.HeuristicProcessor` and given *lib* once done.
 
   :param ent: Structure to check
   :type ent: :class:`~ost.mol.EntityHandle`
@@ -1369,8 +1370,7 @@ API
   :type prune: :class:`bool` 
 
 
-
-.. function:: MapNonStandardResidues(ent, lib)
+.. function:: MapNonStandardResidues(ent, lib, reprocess=True)
 
   Maps modified residues back to the parent amino acid, for example MSE -> MET.
 
@@ -1378,10 +1378,16 @@ API
   :type ent: :class:`~ost.mol.EntityHandle`
   :param lib: Compound library
   :type lib: :class:`~ost.conop.CompoundLib`
+  :param reprocess: The function generates a deep copy of *ent*. Highly
+                    recommended to enable *reprocess* that runs
+                    :class:`ost.conop.HeuristicProcessor` with given *lib*.
+                    If set to False, you'll have no connectivity etc. after
+                    calling this function.
 
 .. function:: RemoveAtoms(ent, lib, rm_unk_atoms=False, rm_non_std=False, \
                           rm_hyd_atoms=True, rm_oxt_atoms=False, \
-                          rm_zero_occ_atoms=False, colored=False)
+                          rm_zero_occ_atoms=False, colored=False,
+                          reprocess=True)
 
   Removes atoms and residues according to some criteria.
 
@@ -1395,6 +1401,11 @@ API
   :param rm_oxt_atoms: See :attr:`MolckSettings.rm_oxt_atoms`
   :param rm_zero_occ_atoms: See :attr:`MolckSettings.rm_zero_occ_atoms`
   :param colored: See :attr:`MolckSettings.colored`
+  :param reprocess: Removing atoms may impact certain annotations on the
+                    structure (chem class etc.) which are set by 
+                    :class:`ost.conop.Processor`. If set to True,
+                    a :class:`ost.conop.HeuristicProcessor` with given
+                    *lib* reprocesses *ent*.
 
 .. function:: CleanUpElementColumn(ent, lib)
 

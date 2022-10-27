@@ -12,7 +12,7 @@ using namespace ost::mol;
 
 namespace ost{ namespace mol{ namespace alg{
 
-void MapNonStandardResidues(EntityHandle& ent, CompoundLibPtr lib, bool log_diags) {
+void MapNonStandardResidues(EntityHandle& ent, CompoundLibPtr lib, bool reprocess) {
   // TODO: Maybe it is possible to make it in-place operation
 
   if(!lib) {
@@ -52,9 +52,11 @@ void MapNonStandardResidues(EntityHandle& ent, CompoundLibPtr lib, bool log_diag
     }
   }
   ent = new_ent;
-  // Since we didn't do it in-place: reprocess the new entity
-  RuleBasedProcessor pr(lib);
-  pr.Process(ent, log_diags);
+
+  if(reprocess) {
+    RuleBasedProcessor pr(lib);
+    pr.Process(ent, false);
+  }    
 }
 
 void RemoveAtoms(EntityHandle& ent,
@@ -64,7 +66,8 @@ void RemoveAtoms(EntityHandle& ent,
                  bool rm_hyd_atoms,
                  bool rm_oxt_atoms,
                  bool rm_zero_occ_atoms,
-                 bool colored /*=true*/){
+                 bool colored, /*=true*/
+                 bool reprocess){
 
   if(!lib) {
     throw ost::Error("Require valid compound library!");
@@ -140,6 +143,11 @@ void RemoveAtoms(EntityHandle& ent,
     }
     LOG_INFO(ss.str());
   }
+
+  if(reprocess) {
+    RuleBasedProcessor pr(lib);
+    pr.Process(ent, false);
+  }    
 }
 
 void CleanUpElementColumn(EntityHandle& ent, CompoundLibPtr lib){
@@ -191,7 +199,8 @@ void Molck(ost::mol::EntityHandle& ent,
               settings.rm_hyd_atoms,
               settings.rm_oxt_atoms,
               settings.rm_zero_occ_atoms,
-              settings.colored);
+              settings.colored,
+              false);
   if (settings.assign_elem)  {
     CleanUpElementColumn(ent, lib);
   } 
@@ -199,7 +208,11 @@ void Molck(ost::mol::EntityHandle& ent,
   if(prune) {
     ost::mol::XCSEditor edi = ent.EditXCS();
     edi.Prune();
-  }         
+  }
+
+  // reprocess
+  RuleBasedProcessor pr(lib);
+  pr.Process(ent, false);    
 }
 
 }}} // ns
