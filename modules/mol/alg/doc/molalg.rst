@@ -143,6 +143,10 @@ Local Distance Test scores (lDDT, DRMSD)
 .. autoclass:: ost.mol.alg.scoring.lDDTBSScorer
    :members:
 
+.. autoclass:: ost.mol.alg.scoring.Scorer
+   :members:
+   :member-order: bysource
+
 .. currentmodule:: ost.mol.alg
 
 
