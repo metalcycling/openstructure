@@ -164,6 +164,21 @@ TopologyPtr TopologyCreator::Create(ost::mol::EntityHandle& ent,
     if(hc){
       hc->ApplyOnBuildingBlock(block);
       hc->ApplyOnResidue(*i,ed);
+      // hack for AMBER forcefield
+      // GROMACS hijacks the hydrogen constructor to construct terminal oxygens
+      // in the case of the AMBER forcefield, their elements are thus set to H.
+      // Forcefields in general don't care about elements, they just care for
+      // atom types and their respective masses. There is no easy way to tell
+      // the hydrogen constructor that the element is not H. I just hardcode the
+      // AMBER case here. Please forgive me...
+      ost::mol::AtomHandle at = i->FindAtom("OC1");
+      if(at.IsValid()) {
+        at.SetElement("O");
+      }
+      at = i->FindAtom("OC2");
+      if(at.IsValid()) {
+        at.SetElement("O");
+      }
     }
     //check for n terminus
     if(i->HasProp("n_ter")){
