@@ -129,7 +129,7 @@ def _ParseVoronotaGlobal(lines):
 
 def _ParseVoronotaLocal(lines):
   local_aa_dict={}
-  chain_name_regex = r'c\<\D+\>'
+  chain_name_regex = r'c\<.+?\>'
   resnum_regex = r'r\<\d+\>'
   insertion_code_regex = r'i\<\D\>'
   for line in lines:
