@@ -613,6 +613,9 @@ class lDDTScorer:
             if n_exp > 0:
                 score = np.sum(per_res_conserved[idx,:]) / n_exp
                 per_res_lDDT[res_indices[idx]] = score
+            else:
+                per_res_lDDT[res_indices[idx]] = 0.0
+
 
         # do full model score
         if penalize_extra_chains:
