@@ -170,9 +170,9 @@ def GetBondParam(a1, a2, stereo_data):
     """ Returns mean and standard deviation for bond
 
     :param a1: First atom that defines bond
-    :type a1: :class:`mol.AtomView`/:class:`mol.AtomHandle`
+    :type a1: :class:`ost.mol.AtomView`/:class:`ost.mol.AtomHandle`
     :param a2: Second atom that defines bond
-    :type a2: :class:`mol.AtomView`/:class:`mol.AtomHandle`
+    :type a2: :class:`ost.mol.AtomView`/:class:`ost.mol.AtomHandle`
     :param stereo_data: Stereochemistry data
     :type stereo_data: :class:`dict`
     :returns: :class:`tuple` with mean and standard deviation. Values are None
@@ -201,11 +201,11 @@ def GetAngleParam(a1, a2, a3, stereo_data):
     """ Returns mean and standard deviation for angle
 
     :param a1: First atom that defines angle
-    :type a1: :class:`mol.AtomView`/:class:`mol.AtomHandle`
+    :type a1: :class:`ost.mol.AtomView`/:class:`ost.mol.AtomHandle`
     :param a2: Second atom that defines angle
-    :type a2: :class:`mol.AtomView`/:class:`mol.AtomHandle`
-    :param a3: Second atom that defines angle
-    :type a3: :class:`mol.AtomView`/:class:`mol.AtomHandle`
+    :type a2: :class:`ost.mol.AtomView`/:class:`ost.mol.AtomHandle`
+    :param a3: Third atom that defines angle
+    :type a3: :class:`ost.mol.AtomView`/:class:`ost.mol.AtomHandle`
     :param stereo_data: Stereochemistry data
     :type stereo_data: :class:`dict`
     :returns: :class:`tuple` with mean and standard deviation. Values are None
@@ -244,7 +244,7 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
     The default values are not very sensitive.
 
     :param ent: Entity for which you want to identify clashing atoms
-    :type ent: :class:`EntityHandle`/:class:`EntityView`
+    :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
     :param vdw_radii: Element based van der Waals radii. Only atoms of these
                       elements will be considered. If not given, default values
                       for all elements occuring in proteins/nucleotides are
@@ -259,7 +259,7 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
     :param disulfid_tolerance: The respective tolerance
     :type disulfid_dist: :class:`float`
     :returns: A :class:`list` of pairs. Each pair consists of two
-              :class:`mol.AtomView` from *ent* that are clashing.
+              :class:`ost.mol.AtomView` from *ent* that are clashing.
     """
 
     if vdw_radii is None:
@@ -312,14 +312,14 @@ def GetBadBonds(ent, stereo_data = None, tolerance=12):
     """ Identify unrealistic bonds
 
     :param ent: Entity for which you want to identify unrealistic bonds
-    :type ent: :class:`mol.EntityHandle`/:class:`mol.EntityView`
+    :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
     :param stereo_data: Stereochemistry data
     :type stereo_data: :class:`dict`
     :param tolerance: Bonds that devaiate more than *tolerance* times standard
                       deviation from expected mean are considered bad
     :type tolerance: :class:`int`
     :returns: :class:`list` of pairs. Each pair consists of two
-              :class:`mol.AtomHandle` from *ent* that represent bad bonds.
+              :class:`ost.mol.AtomHandle` from *ent* that represent bad bonds.
 
     """
     assert("bond_data" in stereo_data)
@@ -339,14 +339,14 @@ def GetBadAngles(ent, stereo_data = None, tolerance=12):
     """ Identify unrealistic angles
 
     :param ent: Entity for which you want to identify unrealistic angles
-    :type ent: :class:`mol.EntityHandle`/:class:`mol.EntityView`
+    :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
     :param stereo_data: Stereochemistry data
     :type stereo_data: :class:`dict`
     :param tolerance: Angles that devaiate more than *tolerance* times standard
                       deviation from expected mean are considered bad
     :type tolerance: :class:`int`
     :returns: :class:`list` of tuples. Each tuple consists of three
-              :class:`mol.AtomHandle` from *ent* that represent bad angles.
+              :class:`ost.mol.AtomHandle` from *ent* that represent bad angles.
     """
     assert("angle_data" in stereo_data)
     return_list = list()
