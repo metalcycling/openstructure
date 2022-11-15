@@ -259,7 +259,7 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
     :param disulfid_tolerance: The respective tolerance
     :type disulfid_dist: :class:`float`
     :returns: A :class:`list` of pairs. Each pair consists of two
-              :class:`ost.mol.AtomView` from *ent* that are clashing.
+              :class:`ost.mol.AtomHandle` from *ent* that are clashing.
     """
 
     if vdw_radii is None:
@@ -304,7 +304,7 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
                     hash_pair = (min(a_hash, ca_hash), max(a_hash, ca_hash))
                     if hash_pair not in done:
                         done.add(hash_pair)
-                        return_list.append((a, ca))
+                        return_list.append((a.handle, ca.handle))
     return return_list
 
 
@@ -360,3 +360,80 @@ def GetBadAngles(ent, stereo_data = None, tolerance=12):
             if diff > tolerance*std:
                 return_list.append(a)
     return return_list
+
+def StereoCheck(ent, stereo_data = None):
+    """ Remove atoms with stereochemical problems
+
+    Selects for peptide/nucleotides and calls :func:`GetClashes`,
+    :func:`GetBadBonds` and :func:`GetBadAngles` with default
+    parameters.
+
+    * Amino acids: Remove full residue if backbone atom is involved in
+      stereochemistry issue ("N", "CA", "C", "O"). Remove sidechain if any of
+      the sidechain atoms is involved in stereochemistry issues.
+    * Nucleotides: Remove full residue if backbone atom is involved in
+      stereochemistry issue ("P", "OP1", "OP2", "OP3", "O5'", "C5'", "C4'",
+      "C3'", "C2'", "C1'", "O4'", "O3'", "O2'"). Remove sidechain (base) if any
+      of the sidechain atoms is involved in stereochemistry issues.
+
+    :param ent: Entity to be stereochecked
+    :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+    :param stereo_data: Stereochemistry data
+    :type stereo_data: :class:`dict`
+    :returns: Tuple with four elements: 1) :class:`ost.mol.EntityView` of
+              *ent* processed as described above 2) Return value of
+              :func:`GetClashes` 3) return value of :func:`GetBadBonds`
+              4) return value of :func:`GetBadAngles`
+    """
+    sel = ent.Select("peptide=true or nucleotide=true")
+    clashes = GetClashes(sel)
+    bad_bonds = GetBadBonds(sel, stereo_data = stereo_data)
+    bad_angles = GetBadAngles(sel, stereo_data = stereo_data)
+
+    # set stereo problems as properties on an atom level
+    for clash in clashes:
+        clash[0].SetIntProp("stereo_problem", 1)
+        clash[1].SetIntProp("stereo_problem", 1)
+
+    for bond in bad_bonds:
+        bond[0].SetIntProp("stereo_problem", 1)
+        bond[1].SetIntProp("stereo_problem", 1)
+
+    for angle in bad_angles:
+        angle[0].SetIntProp("stereo_problem", 1)
+        angle[1].SetIntProp("stereo_problem", 1)
+        angle[2].SetIntProp("stereo_problem", 1)
+
+    # set stereo problems as properties on a residue level
+    bad_ent = ent.Select("gastereo_problem:0=1")
+    if len(bad_ent.residues) > 0:
+        pep_bb = set(["N", "CA", "C", "O"])
+        nuc_bb = set(["P", "OP1", "OP2", "OP3", "O5'", "C5'", "C4'", "C3'",
+                      "C2'", "C1'", "O4'", "O3'", "O2'"])
+
+        for r in bad_ent.residues:
+            bad_atoms = set([a.GetName() for a in r.atoms])
+            r.SetIntProp("stereo_problem", 1)
+            if r.GetChemType() == mol.ChemType.NUCLEOTIDES:
+                if len(nuc_bb.intersection(bad_atoms)) > 0:
+                    r.SetIntProp("stereo_problem_bb", 1)
+            elif r.GetChemType() == mol.ChemType.AMINOACIDS:
+                if len(pep_bb.intersection(bad_atoms)) > 0:
+                    r.SetIntProp("stereo_problem_bb", 1)
+
+        # explicitely add " as OpenStructure query language would not
+        # understand ' otherwise
+        nuc_bb = [f"\"{name}\"" for name in nuc_bb]
+
+        pep_query = f"(peptide=true and grstereo_problem:0=0) or "
+        pep_query += f"(peptide=true and grstereo_problem_bb:0=0 and "
+        pep_query += f"aname={','.join(pep_bb)})"
+        nuc_query = f"(nucleotide=true and grstereo_problem:0=0) or "
+        nuc_query += f"(nucleotide=true and grstereo_problem_bb:0=0 and "
+        nuc_query += f"aname={','.join(nuc_bb)})"
+        query = pep_query + " or " + nuc_query
+        return_view = sel.Select(query)
+    else:
+        return_view = sel
+
+    return return_view, clashes, bad_bonds, bad_angles
