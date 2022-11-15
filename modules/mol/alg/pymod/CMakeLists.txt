@@ -26,6 +26,7 @@ set(OST_MOL_ALG_PYMOD_MODULES
   qsscore.py
   scoring.py
   chain_mapping.py
+  stereochemistry.py
 )
 
 if (NOT ENABLE_STATIC)
