@@ -280,7 +280,7 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
     clash_ent = ent.Select("gaclash_check:0=1")
 
     max_radius = max(vdw_radii.values())
-    max_radius = max(max_radius, disulfid_dist)
+    max_radius = max(max_radius, 0.5*disulfid_dist)
     min_tolerance = min(tolerance, disulfid_tolerance)
     radius = 2*max_radius-min_tolerance
 
