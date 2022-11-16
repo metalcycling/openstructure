@@ -1,8 +1,10 @@
 import os
 import json
+import datetime
 
 import numpy as np
 
+import ost
 from ost import geom
 from ost import mol
 
@@ -163,21 +165,34 @@ def StereoDataFromMON_LIB(mon_lib_path, compounds=None):
         angle_data = _ParseAngleData(doc)
         data["bond_data"].update(bond_data)
         data["angle_data"].update(angle_data)
+
+    # add license info
+    copying_str = f"This data has been derived from the CCP4 MON_LIB on "
+    copying_str += f"{datetime.datetime.now()}. MON_LIB is licensed under "
+    copying_str += f"GNU LESSER GENERAL PUBLIC LICENSE Version 3. Consult the "
+    copying_str += f"latest CCP4 for the full license text."
+    data["COPYING"] = copying_str
+
     return data
 
 
-def GetBondParam(a1, a2, stereo_data):
+def GetBondParam(a1, a2, stereo_data = None):
     """ Returns mean and standard deviation for bond
 
     :param a1: First atom that defines bond
     :type a1: :class:`ost.mol.AtomView`/:class:`ost.mol.AtomHandle`
     :param a2: Second atom that defines bond
     :type a2: :class:`ost.mol.AtomView`/:class:`ost.mol.AtomHandle`
-    :param stereo_data: Stereochemistry data
+    :param stereo_data: Stereochemistry data, use return value of
+                        :func:`GetDefaultStereoData` if not given.
+                        If you call this function repeatedly, you
+                        really should provide *stereo_data*!
     :type stereo_data: :class:`dict`
     :returns: :class:`tuple` with mean and standard deviation. Values are None
               if respective bond is not found in *stereo_data*
     """
+    if stereo_data is None:
+        stereo_data = GetDefaultStereoData()
     if a1.GetResidue().GetHashCode() == a2.GetResidue().GetHashCode():
         # intra residue case, inter-residue case not yet implemented
         rname = a1.GetResidue().GetName()
@@ -197,7 +212,7 @@ def GetBondParam(a1, a2, stereo_data):
     return (None, None)
 
 
-def GetAngleParam(a1, a2, a3, stereo_data):
+def GetAngleParam(a1, a2, a3, stereo_data = None):
     """ Returns mean and standard deviation for angle
 
     :param a1: First atom that defines angle
@@ -206,11 +221,16 @@ def GetAngleParam(a1, a2, a3, stereo_data):
     :type a2: :class:`ost.mol.AtomView`/:class:`ost.mol.AtomHandle`
     :param a3: Third atom that defines angle
     :type a3: :class:`ost.mol.AtomView`/:class:`ost.mol.AtomHandle`
-    :param stereo_data: Stereochemistry data
+    :param stereo_data: Stereochemistry data, use return value of
+                        :func:`GetDefaultStereoData` if not given.
+                        If you call this function repeatedly, you
+                        really should provide *stereo_data*!
     :type stereo_data: :class:`dict`
     :returns: :class:`tuple` with mean and standard deviation. Values are None
               if respective angle is not found in *stereo_data*
     """
+    if stereo_data is None:
+        stereo_data = GetDefaultStereoData()
     h1 = a1.GetResidue().handle.GetHashCode()
     h2 = a2.GetResidue().handle.GetHashCode()
     h3 = a3.GetResidue().handle.GetHashCode()
@@ -313,7 +333,8 @@ def GetBadBonds(ent, stereo_data = None, tolerance=12):
 
     :param ent: Entity for which you want to identify unrealistic bonds
     :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
-    :param stereo_data: Stereochemistry data
+    :param stereo_data: Stereochemistry data, use return value of
+                        :func:`GetDefaultStereoData` if not given.
     :type stereo_data: :class:`dict`
     :param tolerance: Bonds that devaiate more than *tolerance* times standard
                       deviation from expected mean are considered bad
@@ -322,12 +343,14 @@ def GetBadBonds(ent, stereo_data = None, tolerance=12):
               :class:`ost.mol.AtomHandle` from *ent* that represent bad bonds.
 
     """
+    if stereo_data is None:
+        stereo_data = GetDefaultStereoData()
     assert("bond_data" in stereo_data)
     return_list = list()
     for b in ent.bonds:
         a1 = b.first
         a2 = b.second
-        mean, std = GetBondParam(a1, a2, stereo_data)
+        mean, std = GetBondParam(a1, a2, stereo_data = stereo_data)
         if None not in [mean, std]:
             diff = abs(mean-b.length)
             if diff > tolerance*std:
@@ -340,7 +363,8 @@ def GetBadAngles(ent, stereo_data = None, tolerance=12):
 
     :param ent: Entity for which you want to identify unrealistic angles
     :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
-    :param stereo_data: Stereochemistry data
+    :param stereo_data: Stereochemistry data, use return value of
+                        :func:`GetDefaultStereoData` if not given.
     :type stereo_data: :class:`dict`
     :param tolerance: Angles that devaiate more than *tolerance* times standard
                       deviation from expected mean are considered bad
@@ -348,10 +372,12 @@ def GetBadAngles(ent, stereo_data = None, tolerance=12):
     :returns: :class:`list` of tuples. Each tuple consists of three
               :class:`ost.mol.AtomHandle` from *ent* that represent bad angles.
     """
+    if stereo_data is None:
+        stereo_data = GetDefaultStereoData()
     assert("angle_data" in stereo_data)
     return_list = list()
     for a in _GetAngles(ent.bonds):
-        mean, std = GetAngleParam(a[0], a[1], a[2], stereo_data)
+        mean, std = GetAngleParam(a[0], a[1], a[2], stereo_data = stereo_data)
         if None not in [mean, std]:
             angle = geom.Angle(a[0].GetPos() - a[1].GetPos(),
                                a[2].GetPos() - a[1].GetPos())
@@ -378,13 +404,18 @@ def StereoCheck(ent, stereo_data = None):
 
     :param ent: Entity to be stereochecked
     :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
-    :param stereo_data: Stereochemistry data
+    :param stereo_data: Stereochemistry data, use return value of
+                        :func:`GetDefaultStereoData` if not given.
     :type stereo_data: :class:`dict`
     :returns: Tuple with four elements: 1) :class:`ost.mol.EntityView` of
               *ent* processed as described above 2) Return value of
               :func:`GetClashes` 3) return value of :func:`GetBadBonds`
               4) return value of :func:`GetBadAngles`
     """
+
+    if stereo_data is None:
+        stereo_data = GetDefaultStereoData()
+
     sel = ent.Select("peptide=true or nucleotide=true")
     clashes = GetClashes(sel)
     bad_bonds = GetBadBonds(sel, stereo_data = stereo_data)
@@ -437,3 +468,16 @@ def StereoCheck(ent, stereo_data = None):
         return_view = sel
 
     return return_view, clashes, bad_bonds, bad_angles
+
+def GetDefaultStereoData():
+    """ Get default stereo data derived from CCP4 MON_LIB
+
+    Used as default if not provided in :func:`GetBadBonds`, :func:`GetBadAngles`
+    and :func:`StereoCheck`.
+
+    MON_LIB is licensed under GNU LESSER GENERAL PUBLIC LICENSE Version 3.
+    Consult the latest CCP4 for the full license text.
+    """
+    data_path = os.path.join(ost.GetSharedDataPath(), "stereo_data.json")
+    with open(data_path, 'r') as fh:
+        return json.load(fh)
