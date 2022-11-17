@@ -688,8 +688,8 @@ def GetDefaultStereoLinkData():
 
     data["angle_data"]["NA"] = dict()
     data["angle_data"]["NA"]["O3'_P_O5'"] = [104.000, 1.500]
-    data["angle_data"]["NA"]["O3'_P_O1P"] = [108.000, 3.000]
-    data["angle_data"]["NA"]["O3'_P_O2P"] = [108.000, 3.000]
+    data["angle_data"]["NA"]["O3'_P_OP1"] = [108.000, 3.000]
+    data["angle_data"]["NA"]["O3'_P_OP2"] = [108.000, 3.000]
     data["angle_data"]["NA"]["C3'_O3'_P"] = [120.200, 1.500]
 
     # data for peptides - deliberately stolen from standard_geometry.cif file
