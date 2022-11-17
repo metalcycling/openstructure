@@ -1,5 +1,3 @@
-
-
 import unittest, os, sys
 import ost
 from ost import io, mol, settings, conop, seq
@@ -143,23 +141,45 @@ class TestStereochemistry(unittest.TestCase):
                                                   stereo_link_data = link_data)
             self.assertTrue(None not in param)
 
+    def test_StereoCheck(self):
+        """ Test StereoCheck
 
+        GetClashes, GetBadBonds and GetBadAngles get tested implicitely
+        """
+        ent = _LoadFile("10b2.pdb")
+        sterochecked_ent, clashes, bad_bonds, bad_angles = \
+        stereochemistry.StereoCheck(ent)
 
+        self.assertEqual(len(clashes), 0)
+        self.assertEqual(len(bad_bonds), 0)
+        self.assertEqual(len(bad_angles), 0)
 
+        phe_A_218 = ent.FindResidue("A", mol.ResNum(218))
+        c_B_75 = ent.FindResidue("B", mol.ResNum(75))
 
+        phe_at = phe_A_218.FindAtom("CD2")
+        c_at = c_B_75.FindAtom("C4'")
+        ed = ent.EditXCS()
+        ed.SetAtomPos(phe_at, 0.5*(phe_at.GetPos() + c_at.GetPos()))
 
+        stereochecked_ent, clashes, bad_bonds, bad_angles = \
+        stereochemistry.StereoCheck(ent)
 
+        self.assertEqual(len(clashes), 2)
+        self.assertEqual(len(bad_bonds), 2)
+        self.assertEqual(len(bad_angles), 2)
 
-
-
-
-
-
-
-
-
-
-
+        # c_B_75 gets completely removed as two backbone atoms are involved
+        # in clashes. phe_A_218 has the sidechain removed
+        self.assertEqual(len(ent.residues)-1,
+                         len(stereochecked_ent.residues))
+        c_B_75 = stereochecked_ent.FindResidue("B", mol.ResNum(75))
+        self.assertFalse(c_B_75.IsValid())
+        phe_A_218 = stereochecked_ent.FindResidue("A", mol.ResNum(218))
+        self.assertTrue(phe_A_218.IsValid())
+        phe_atoms = [a.GetName() for a in phe_A_218.atoms]
+        self.assertEqual(sorted(["N", "CA", "C", "O"]),
+                         sorted(phe_atoms))
 
 if __name__ == "__main__":
     from ost import testutils
@@ -167,5 +187,3 @@ if __name__ == "__main__":
         testutils.RunTests()
     else:
         print('No compound library available. Ignoring test_stereochemistry.py tests.')
-
-
