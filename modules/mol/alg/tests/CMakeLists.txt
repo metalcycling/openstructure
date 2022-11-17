@@ -10,6 +10,7 @@ set(OST_MOL_ALG_UNIT_TESTS
   test_sec_struct.py
   test_lddt.py
   test_qsscore.py
+  test_stereochemistry.py
 )
 
 if (COMPOUND_LIB)
