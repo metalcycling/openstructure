@@ -78,6 +78,61 @@ def _ParseBondData(doc):
     return data
 
 
+def _GetResidueType(atoms):
+    """ Identifies type in StereoLinkData
+
+    :param atoms: Atoms that define a bond or angle
+    :type atoms: :class:`list` of :class:`AtomHandle`
+    :returns: :class:`str` with which the respective parameters can be
+              accessed in default stereo link data, None if no match is found
+    """
+    residues = [a.GetResidue().handle for a in atoms]
+    chem_types = list(set([str(r.GetChemType()) for r in residues]))
+
+    if len(chem_types) == 1 and chem_types[0] == 'N':
+        return "NA"
+    elif len(chem_types) == 1 and chem_types[0] == 'A':
+        # in both cases, bond or angle, there should be exactly two residues
+        # involved
+        tmp = list()
+        r_hashes = set()
+        for r in residues:
+            h = r.GetHashCode()
+            if h not in r_hashes:
+                r_hashes.add(h)
+                tmp.append(r)
+        residues = tmp
+        if len(residues) != 2:
+            return None
+
+        # need to be sorted
+        if residues[0].GetNumber() > residues[1].GetNumber():
+            r0 = residues[1]
+            r1 = residues[0]
+        else:
+            r0 = residues[0]
+            r1 = residues[1]
+
+        if r1.GetName() == "GLY":
+            return "GLY"
+        elif r1.GetName() == "PRO":
+            a = r0.FindAtom("CA")
+            b = r0.FindAtom("C")
+            c = r1.FindAtom("N")
+            d = r1.FindAtom("CA")
+            if a.IsValid() and b.IsValid() and c.IsValid() and d.IsValid():
+                omega = geom.DihedralAngle(a.GetPos(), b.GetPos(),
+                                           c.GetPos(), d.GetPos())
+                if abs(omega) < 1.57:
+                    return "PRO_CIS"
+                else:
+                    return "PRO_TRANS"
+        else:
+            return "PEPTIDE"
+
+    return None
+
+
 def _ParseAngleData(doc):
     """ Parse stereochemistry data for angles
 
@@ -176,7 +231,7 @@ def StereoDataFromMON_LIB(mon_lib_path, compounds=None):
     return data
 
 
-def GetBondParam(a1, a2, stereo_data = None):
+def GetBondParam(a1, a2, stereo_data = None, stereo_link_data = None):
     """ Returns mean and standard deviation for bond
 
     :param a1: First atom that defines bond
@@ -188,31 +243,45 @@ def GetBondParam(a1, a2, stereo_data = None):
                         If you call this function repeatedly, you
                         really should provide *stereo_data*!
     :type stereo_data: :class:`dict`
+    :param stereo_link_data: Stereochemistry data, use return value of
+                             :func:`GetDefaultStereoLinkData` if not given.
+                             If you call this function repeatedly, you
+                             really should provide *stereo_link_data*!
+    :type stereo_link_data: :class:`dict`
     :returns: :class:`tuple` with mean and standard deviation. Values are None
               if respective bond is not found in *stereo_data*
     """
     if stereo_data is None:
         stereo_data = GetDefaultStereoData()
+    if stereo_link_data is None:
+        stereo_link_data = GetDefaultStereoLinkData()
+
+    residue_data = None
     if a1.GetResidue().GetHashCode() == a2.GetResidue().GetHashCode():
-        # intra residue case, inter-residue case not yet implemented
+        # intra residue case
         rname = a1.GetResidue().GetName()
+        if rname in stereo_data["bond_data"]:
+            residue_data = stereo_data["bond_data"][rname]
+    else:
+        # inter residue case
+        residue_type = _GetResidueType([a1, a2])
+        if residue_type is not None:
+            residue_data = stereo_link_data["bond_data"][residue_type]
+
+    if residue_data is not None:
         a1name = a1.GetName()
         a2name = a2.GetName()
-        if rname in stereo_data["bond_data"]:
-            key = a1name + "_" + a2name
-            if key in stereo_data["bond_data"][rname]:
-                mean = stereo_data["bond_data"][rname][key][0]
-                std = stereo_data["bond_data"][rname][key][1]
-                return (mean, std)
-            key = a2name + "_" + a1name
-            if key in stereo_data["bond_data"][rname]:
-                mean = stereo_data["bond_data"][rname][key][0]
-                std = stereo_data["bond_data"][rname][key][1]
-                return (mean, std)
+        key = a1name + "_" + a2name
+        if key in residue_data:
+            return (residue_data[key][0], residue_data[key][1])
+        key = a2name + "_" + a1name
+        if key in residue_data:
+            return (residue_data[key][0], residue_data[key][1])
+
     return (None, None)
 
 
-def GetAngleParam(a1, a2, a3, stereo_data = None):
+def GetAngleParam(a1, a2, a3, stereo_data = None, stereo_link_data = None):
     """ Returns mean and standard deviation for angle
 
     :param a1: First atom that defines angle
@@ -226,31 +295,43 @@ def GetAngleParam(a1, a2, a3, stereo_data = None):
                         If you call this function repeatedly, you
                         really should provide *stereo_data*!
     :type stereo_data: :class:`dict`
+    :param stereo_link_data: Stereochemistry data, use return value of
+                             :func:`GetDefaultStereoLinkData` if not given.
+                             If you call this function repeatedly, you
+                             really should provide *stereo_link_data*!
+    :type stereo_link_data: :class:`dict`
     :returns: :class:`tuple` with mean and standard deviation. Values are None
               if respective angle is not found in *stereo_data*
     """
     if stereo_data is None:
         stereo_data = GetDefaultStereoData()
+    if stereo_link_data is None:
+        stereo_link_data = GetDefaultStereoLinkData()
     h1 = a1.GetResidue().handle.GetHashCode()
     h2 = a2.GetResidue().handle.GetHashCode()
     h3 = a3.GetResidue().handle.GetHashCode()
+    residue_data = None
     if h1 == h2 and h2 == h3:
-        # intra residue case, inter-residue case not yet implemented
+        # intra residue case
         rname = a1.GetResidue().GetName()
+        if rname in stereo_data["angle_data"]:
+            residue_data = stereo_data["angle_data"][rname]
+    else:
+        # inter residue case
+        residue_type = _GetResidueType([a1, a2, a3])
+        if residue_type in stereo_link_data["angle_data"]:
+            residue_data = stereo_link_data["angle_data"][residue_type]
+
+    if residue_data is not None:
         a1name = a1.GetName()
         a2name = a2.GetName()
         a3name = a3.GetName()
-        if rname in stereo_data["angle_data"]:
-            key = a1name + "_" + a2name + "_" + a3name
-            if key in stereo_data["angle_data"][rname]:
-                mean = stereo_data["angle_data"][rname][key][0]
-                std = stereo_data["angle_data"][rname][key][1]
-                return (mean, std)
-            key = a3name + "_" + a2name + "_" + a1name
-            if key in stereo_data["angle_data"][rname]:
-                mean = stereo_data["angle_data"][rname][key][0]
-                std = stereo_data["angle_data"][rname][key][1]
-                return (mean, std)
+        key = a1name + "_" + a2name + "_" + a3name
+        if key in residue_data:
+            return (residue_data[key][0], residue_data[key][1])
+        key = a3name + "_" + a2name + "_" + a1name
+        if key in residue_data:
+            return (residue_data[key][0], residue_data[key][1])
     return (None, None)
 
 
@@ -328,7 +409,7 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
     return return_list
 
 
-def GetBadBonds(ent, stereo_data = None, tolerance=12):
+def GetBadBonds(ent, stereo_data = None, stereo_link_data = None, tolerance=12):
     """ Identify unrealistic bonds
 
     :param ent: Entity for which you want to identify unrealistic bonds
@@ -336,6 +417,9 @@ def GetBadBonds(ent, stereo_data = None, tolerance=12):
     :param stereo_data: Stereochemistry data, use return value of
                         :func:`GetDefaultStereoData` if not given.
     :type stereo_data: :class:`dict`
+    :param stereo_link_data: Stereochemistry data, use return value of
+                             :func:`GetDefaultStereoLinkData` if not given.
+    :type stereo_link_data: :class:`dict`
     :param tolerance: Bonds that devaiate more than *tolerance* times standard
                       deviation from expected mean are considered bad
     :type tolerance: :class:`int`
@@ -345,12 +429,14 @@ def GetBadBonds(ent, stereo_data = None, tolerance=12):
     """
     if stereo_data is None:
         stereo_data = GetDefaultStereoData()
-    assert("bond_data" in stereo_data)
+    if stereo_link_data is None:
+        stereo_link_data = GetDefaultStereoLinkData()
     return_list = list()
     for b in ent.bonds:
         a1 = b.first
         a2 = b.second
-        mean, std = GetBondParam(a1, a2, stereo_data = stereo_data)
+        mean, std = GetBondParam(a1, a2, stereo_data = stereo_data,
+                                 stereo_link_data = stereo_link_data)
         if None not in [mean, std]:
             diff = abs(mean-b.length)
             if diff > tolerance*std:
@@ -358,7 +444,8 @@ def GetBadBonds(ent, stereo_data = None, tolerance=12):
     return return_list
 
 
-def GetBadAngles(ent, stereo_data = None, tolerance=12):
+def GetBadAngles(ent, stereo_data = None, stereo_link_data = None,
+                 tolerance = 12):
     """ Identify unrealistic angles
 
     :param ent: Entity for which you want to identify unrealistic angles
@@ -366,6 +453,9 @@ def GetBadAngles(ent, stereo_data = None, tolerance=12):
     :param stereo_data: Stereochemistry data, use return value of
                         :func:`GetDefaultStereoData` if not given.
     :type stereo_data: :class:`dict`
+    :param stereo_link_data: Stereochemistry data, use return value of
+                             :func:`GetDefaultStereoLinkData` if not given.
+    :type stereo_link_data: :class:`dict`
     :param tolerance: Angles that devaiate more than *tolerance* times standard
                       deviation from expected mean are considered bad
     :type tolerance: :class:`int`
@@ -374,10 +464,12 @@ def GetBadAngles(ent, stereo_data = None, tolerance=12):
     """
     if stereo_data is None:
         stereo_data = GetDefaultStereoData()
-    assert("angle_data" in stereo_data)
+    if stereo_link_data is None:
+        stereo_link_data = GetDefaultStereoLinkData()
     return_list = list()
     for a in _GetAngles(ent.bonds):
-        mean, std = GetAngleParam(a[0], a[1], a[2], stereo_data = stereo_data)
+        mean, std = GetAngleParam(a[0], a[1], a[2], stereo_data = stereo_data,
+                                  stereo_link_data = stereo_link_data)
         if None not in [mean, std]:
             angle = geom.Angle(a[0].GetPos() - a[1].GetPos(),
                                a[2].GetPos() - a[1].GetPos())
@@ -387,7 +479,8 @@ def GetBadAngles(ent, stereo_data = None, tolerance=12):
                 return_list.append(a)
     return return_list
 
-def StereoCheck(ent, stereo_data = None):
+
+def StereoCheck(ent, stereo_data = None, stereo_link_data = None):
     """ Remove atoms with stereochemical problems
 
     Selects for peptide/nucleotides and calls :func:`GetClashes`,
@@ -407,12 +500,14 @@ def StereoCheck(ent, stereo_data = None):
     :param stereo_data: Stereochemistry data, use return value of
                         :func:`GetDefaultStereoData` if not given.
     :type stereo_data: :class:`dict`
+    :param stereo_link_data: Stereochemistry data, use return value of
+                             :func:`GetDefaultStereoLinkData` if not given.
+    :type stereo_link_data: :class:`dict`
     :returns: Tuple with four elements: 1) :class:`ost.mol.EntityView` of
               *ent* processed as described above 2) Return value of
               :func:`GetClashes` 3) return value of :func:`GetBadBonds`
               4) return value of :func:`GetBadAngles`
     """
-
     if stereo_data is None:
         stereo_data = GetDefaultStereoData()
 
@@ -469,6 +564,7 @@ def StereoCheck(ent, stereo_data = None):
 
     return return_view, clashes, bad_bonds, bad_angles
 
+
 def GetDefaultStereoData():
     """ Get default stereo data derived from CCP4 MON_LIB
 
@@ -481,3 +577,71 @@ def GetDefaultStereoData():
     data_path = os.path.join(ost.GetSharedDataPath(), "stereo_data.json")
     with open(data_path, 'r') as fh:
         return json.load(fh)
+
+
+def GetDefaultStereoLinkData():
+    """ Get default stereo data for links between compounds
+
+    Hardcoded from arbitrary sources, see comments in the code.
+    
+    :returns: Data for peptide bonds, nucleotide links and disulfid bonds that
+              are used as default if not provided in :func:`GetBadBonds`,
+              :func:`GetBadAngles` and :func:`StereoCheck`.
+    """
+    data = {"bond_data": dict(),
+            "angle_data": dict()}
+
+    # data for nucleotides - deliberately stolen from
+    # geostd (https://github.com/phenix-project/geostd) which is basically
+    # the Phenix equivalent for MON_LIB
+    # used file: $GEOSTD_DIR/rna_dna/chain_link_rna2p.cif
+    # Reason to not use the same data origin as peptides is that in CCP4
+    # there is a bit a more fine grained differentiation of NA types
+    # which makes things more complicated.
+    data["bond_data"]["NA"] = dict()
+    data["bond_data"]["NA"]["O3'_P"] = [1.607, 0.015]
+
+    data["angle_data"]["NA"] = dict()
+    data["angle_data"]["NA"]["O3'_P_O5'"] = [104.000, 1.500]
+    data["angle_data"]["NA"]["O3'_P_O1P"] = [108.000, 3.000]
+    data["angle_data"]["NA"]["O3'_P_O2P"] = [108.000, 3.000]
+    data["angle_data"]["NA"]["C3'_O3'_P"] = [120.200, 1.500]
+
+    # data for peptides - deliberately stolen from standard_geometry.cif file
+    # which is shipped with CCP4
+    # (_standard_geometry.version "Fri Feb 22 17:25:15 GMT 2013").
+    data["bond_data"]["PEPTIDE"] = dict()
+    data["bond_data"]["PEPTIDE"]["C_N"] = [1.336, 0.023]
+    data["bond_data"]["PEPTIDE"]["SG_SG"] = [2.033, 0.016]
+
+    data["bond_data"]["GLY"] = dict()
+    data["bond_data"]["GLY"]["C_N"] = [1.326, 0.018]
+
+    data["bond_data"]["PRO_CIS"] = dict()
+    data["bond_data"]["PRO_CIS"]["C_N"] = [1.338, 0.019]
+    data["bond_data"]["PRO_TRANS"] = dict()
+    data["bond_data"]["PRO_TRANS"]["C_N"] = [1.338, 0.019]
+
+    data["angle_data"]["PEPTIDE"] = dict()
+    data["angle_data"]["PEPTIDE"]["CA_C_N"] = [117.2, 2.2]
+    data["angle_data"]["PEPTIDE"]["O_C_N"] = [122.7, 1.6]
+    data["angle_data"]["PEPTIDE"]["C_N_CA"] = [121.7, 2.5]
+
+    data["angle_data"]["GLY"] = dict()
+    data["angle_data"]["GLY"]["CA_C_N"] = [116.2, 2.0]
+    data["angle_data"]["GLY"]["O_C_N"] = [123.2, 1.7]
+    data["angle_data"]["GLY"]["C_N_CA"] = [122.3, 2.1]
+
+    data["angle_data"]["PRO_TRANS"] = dict()
+    data["angle_data"]["PRO_TRANS"]["CA_C_N"] = [117.1, 2.8]
+    data["angle_data"]["PRO_TRANS"]["O_C_N"] = [121.1, 1.9]
+    data["angle_data"]["PRO_TRANS"]["C_N_CA"] = [119.3, 1.5]
+    data["angle_data"]["PRO_TRANS"]["C_N_CD"] = [128.4, 2.1]
+
+    data["angle_data"]["PRO_CIS"] = dict()
+    data["angle_data"]["PRO_CIS"]["CA_C_N"] = [117.1, 2.8]
+    data["angle_data"]["PRO_CIS"]["O_C_N"] = [121.1, 1.9]
+    data["angle_data"]["PRO_CIS"]["C_N_CA"] = [127.0, 2.4]
+    data["angle_data"]["PRO_CIS"]["C_N_CD"] = [120.6, 2.2]
+
+    return data
