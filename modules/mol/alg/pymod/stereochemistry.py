@@ -335,6 +335,90 @@ def GetAngleParam(a1, a2, a3, stereo_data = None, stereo_link_data = None):
     return (None, None)
 
 
+class ClashInfo:
+    """ Object to hold info on clash
+
+    Constructor arguments are available as attributes:
+
+    * a1
+    * a2
+    * dist
+    * tolerated_dist
+    """
+    def __init__(self, a1, a2, dist, tolerated_dist):
+        self.a1 = a1
+        self.a2 = a2
+        self.dist = dist
+        self.tolerated_dist = tolerated_dist
+
+    def ToJSON(self):
+        """ Return JSON serializable dict
+        """
+        return {"a1": self.a1.GetQualifiedName(),
+                "a2": self.a2.GetQualifiedName(),
+                "dist": self.dist,
+                "tolerated_dist": self.tolerated_dist}
+
+
+class BondViolationInfo:
+    """ Object to hold info on bond violation
+
+    Constructor arguments are available as attributes:
+
+    * a1
+    * a2
+    * length
+    * exp_length
+    * std
+    """
+    def __init__(self, a1, a2, length, exp_length, std):
+        self.a1 = a1
+        self.a2 = a2
+        self.length = length
+        self.exp_length = exp_length
+        self.std = std
+
+    def ToJSON(self):
+        """ Return JSON serializable dict
+        """
+        return {"a1": self.a1.GetQualifiedName(),
+                "a2": self.a2.GetQualifiedName(),
+                "length": self.length,
+                "exp_length": self.exp_length,
+                "std": self.std}
+
+
+class AngleViolationInfo:
+    """ Object to hold info on angle violation
+
+    Constructor arguments are available as attributes:
+
+    * a1
+    * a2
+    * a3
+    * angle
+    * exp_angle
+    * std
+    """
+    def __init__(self, a1, a2, a3, angle, exp_angle, std):
+        self.a1 = a1
+        self.a2 = a2
+        self.a3 = a3
+        self.angle = angle
+        self.exp_angle = exp_angle
+        self.std = std
+
+    def ToJSON(self):
+        """ Return JSON serializable dict
+        """
+        return {"a1": self.a1.GetQualifiedName(),
+                "a2": self.a2.GetQualifiedName(),
+                "a3": self.a3.GetQualifiedName(),
+                "angle": self.angle,
+                "exp_angle": self.exp_angle,
+                "std": self.std}
+
+
 def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
                disulfid_tolerance = 1.0):
     """ Identifies clashing atoms
@@ -359,8 +443,7 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
     :type disulfid_dist: :class:`float`
     :param disulfid_tolerance: The respective tolerance
     :type disulfid_dist: :class:`float`
-    :returns: A :class:`list` of pairs. Each pair consists of two
-              :class:`ost.mol.AtomHandle` from *ent* that are clashing.
+    :returns: A :class:`list` of :class:`ClashInfo`
     """
 
     if vdw_radii is None:
@@ -405,7 +488,8 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
                     hash_pair = (min(a_hash, ca_hash), max(a_hash, ca_hash))
                     if hash_pair not in done:
                         done.add(hash_pair)
-                        return_list.append((a.handle, ca.handle))
+                        return_list.append(ClashInfo(a.handle, ca.handle, d,
+                                                     thresh))
     return return_list
 
 
@@ -423,8 +507,7 @@ def GetBadBonds(ent, stereo_data = None, stereo_link_data = None, tolerance=12):
     :param tolerance: Bonds that devaiate more than *tolerance* times standard
                       deviation from expected mean are considered bad
     :type tolerance: :class:`int`
-    :returns: :class:`list` of pairs. Each pair consists of two
-              :class:`ost.mol.AtomHandle` from *ent* that represent bad bonds.
+    :returns: :class:`list` :class:`BondViolationInfo`
 
     """
     if stereo_data is None:
@@ -438,9 +521,9 @@ def GetBadBonds(ent, stereo_data = None, stereo_link_data = None, tolerance=12):
         mean, std = GetBondParam(a1, a2, stereo_data = stereo_data,
                                  stereo_link_data = stereo_link_data)
         if None not in [mean, std]:
-            diff = abs(mean-b.length)
-            if diff > tolerance*std:
-                return_list.append((a1, a2))
+            l = b.length
+            if abs(mean-l) > tolerance*std:
+                return_list.append(BondViolationInfo(a1, a2, l, mean, std))
     return return_list
 
 
@@ -459,8 +542,7 @@ def GetBadAngles(ent, stereo_data = None, stereo_link_data = None,
     :param tolerance: Angles that devaiate more than *tolerance* times standard
                       deviation from expected mean are considered bad
     :type tolerance: :class:`int`
-    :returns: :class:`list` of tuples. Each tuple consists of three
-              :class:`ost.mol.AtomHandle` from *ent* that represent bad angles.
+    :returns: :class:`list` of :class:`AngleViolationInfo`
     """
     if stereo_data is None:
         stereo_data = GetDefaultStereoData()
@@ -476,7 +558,8 @@ def GetBadAngles(ent, stereo_data = None, stereo_link_data = None,
             angle = angle/np.pi*180 # stereo params are in degrees
             diff = abs(mean-angle)
             if diff > tolerance*std:
-                return_list.append(a)
+                return_list.append(AngleViolationInfo(a[0], a[1], a[2], angle,
+                                                      mean, std))
     return return_list
 
 
@@ -518,17 +601,17 @@ def StereoCheck(ent, stereo_data = None, stereo_link_data = None):
 
     # set stereo problems as properties on an atom level
     for clash in clashes:
-        clash[0].SetIntProp("stereo_problem", 1)
-        clash[1].SetIntProp("stereo_problem", 1)
+        clash.a1.SetIntProp("stereo_problem", 1)
+        clash.a2.SetIntProp("stereo_problem", 1)
 
     for bond in bad_bonds:
-        bond[0].SetIntProp("stereo_problem", 1)
-        bond[1].SetIntProp("stereo_problem", 1)
+        bond.a1.SetIntProp("stereo_problem", 1)
+        bond.a2.SetIntProp("stereo_problem", 1)
 
     for angle in bad_angles:
-        angle[0].SetIntProp("stereo_problem", 1)
-        angle[1].SetIntProp("stereo_problem", 1)
-        angle[2].SetIntProp("stereo_problem", 1)
+        angle.a1.SetIntProp("stereo_problem", 1)
+        angle.a2.SetIntProp("stereo_problem", 1)
+        angle.a3.SetIntProp("stereo_problem", 1)
 
     # set stereo problems as properties on a residue level
     bad_ent = ent.Select("gastereo_problem:0=1")
