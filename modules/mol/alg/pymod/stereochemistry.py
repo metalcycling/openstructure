@@ -47,37 +47,6 @@ def _GetAngles(bonds):
     return angles
 
 
-def _ParseBondData(doc):
-    """ Parse stereochemistry data for bonds
-
-    That is expected distances and standard deviations from a
-    :class:`gemmi.Document`. Concatenates results form all loops with tags:
-    _chem_comp_bond.comp_id, _chem_comp_bond.atom_id_1,
-    _chem_comp_bond.atom_id_2, _chem_comp_bond.value_dist,
-    _chem_comp_bond.value_dist_esd
-
-    :param doc: Gemmi doc representing cif file opened with
-                gemmi.cif.read_file(filepath)
-    :type doc: :class:`gemmi.Document`
-    :returns: :class:`dict` with one key per compound, the respective value
-              is again a dict with key f"{at_1}_{at_2}" and value
-              [dist, dist_std].
-    """
-    data = dict()
-    for block in doc:
-        comp_id = block.find_values("_chem_comp_bond.comp_id")
-        at_1 = block.find_values("_chem_comp_bond.atom_id_1")
-        at_2 = block.find_values("_chem_comp_bond.atom_id_2")
-        dist = block.find_values("_chem_comp_bond.value_dist")
-        dist_std = block.find_values("_chem_comp_bond.value_dist_esd")
-        if None not in [comp_id, at_1, at_2, dist, dist_std]:
-            for a, b, c, d, e in zip(comp_id, at_1, at_2, dist, dist_std):
-                if a not in data:
-                    data[a] = dict()
-                data[a][f"{b}_{c}"] = [float(d), float(e)]
-    return data
-
-
 def _GetResidueType(atoms):
     """ Identifies type in StereoLinkData
 
@@ -133,6 +102,38 @@ def _GetResidueType(atoms):
     return None
 
 
+def _ParseBondData(doc):
+    """ Parse stereochemistry data for bonds
+
+    That is expected distances and standard deviations from a
+    :class:`gemmi.Document`. Concatenates results form all loops with tags:
+    _chem_comp_bond.comp_id, _chem_comp_bond.atom_id_1,
+    _chem_comp_bond.atom_id_2, _chem_comp_bond.value_dist,
+    _chem_comp_bond.value_dist_esd
+
+    :param doc: Gemmi doc representing cif file opened with
+                gemmi.cif.read_file(filepath)
+    :type doc: :class:`gemmi.Document`
+    :returns: :class:`dict` with one key per compound, the respective value
+              is again a dict with key f"{at_1}_{at_2}" and value
+              [dist, dist_std].
+    """
+    data = dict()
+    for block in doc:
+        comp_id = block.find_values("_chem_comp_bond.comp_id")
+        at_1 = block.find_values("_chem_comp_bond.atom_id_1")
+        at_2 = block.find_values("_chem_comp_bond.atom_id_2")
+        dist = block.find_values("_chem_comp_bond.value_dist")
+        dist_std = block.find_values("_chem_comp_bond.value_dist_esd")
+        if None not in [comp_id, at_1, at_2, dist, dist_std]:
+            for a, b, c, d, e in zip(comp_id, at_1, at_2, dist, dist_std):
+                if a not in data:
+                    data[a] = dict()
+                key = '_'.join([b.strip('\"'), c.strip('\"')])
+                data[a][key] = [float(d), float(e)]
+    return data
+
+
 def _ParseAngleData(doc):
     """ Parse stereochemistry data for angles
 
@@ -162,7 +163,8 @@ def _ParseAngleData(doc):
                                         angle_std):
                 if a not in data:
                     data[a] = dict()
-                data[a][f"{b}_{c}_{d}"] = [float(e), float(f)]
+                key = '_'.join([b.strip('\"'), c.strip('\"'), d.strip('\"')])
+                data[a][key] = [float(e), float(f)]
     return data
 
 
