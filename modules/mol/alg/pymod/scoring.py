@@ -8,10 +8,10 @@ from ost import geom
 from ost.mol.alg import lddt
 from ost.mol.alg import qsscore
 from ost.mol.alg import chain_mapping
+from ost.mol.alg import stereochemistry
 from ost.mol.alg.lddt import lDDTScorer
 from ost.mol.alg.qsscore import QSScorer
-from ost.io import ReadStereoChemicalPropsFile
-from ost.mol.alg import CheckStructure, Molck, MolckSettings
+from ost.mol.alg import Molck, MolckSettings
 from ost.bindings import dockq
 from ost.bindings import cadscore
 import numpy as np
@@ -189,6 +189,12 @@ class Scorer:
         # lazily evaluated attributes
         self._stereochecked_model = None
         self._stereochecked_target = None
+        self._model_clashes = None
+        self._model_bad_bonds = None
+        self._model_bad_angles = None
+        self._target_clashes = None
+        self._target_bad_bonds = None
+        self._target_bad_angles = None
         self._chain_mapper = None
         self._mapping = None
         self._model_interface_residues = None
@@ -256,15 +262,40 @@ class Scorer:
         :type: :class:`ost.mol.EntityView`
         """
         if self._stereochecked_model is None:
-            stereo_param = ReadStereoChemicalPropsFile()
-            self._stereochecked_model = \
-            self.model.CreateFullView().Select("peptide=true or nucleotide=true")
-            CheckStructure(self._stereochecked_model,
-                           stereo_param.bond_table,
-                           stereo_param.angle_table,
-                           stereo_param.nonbonded_table,
-                           12.0, 12.0)
+            self._do_stereochecks()
         return self._stereochecked_model
+
+    @property
+    def model_clashes(self):
+        """ Clashing model atoms
+
+        :type: :class:`list` of :class:`ost.mol.alg.stereochemistry.ClashInfo`
+        """
+        if self._model_clashes is None:
+            self._do_stereochecks()
+        return self._model_clashes
+
+    @property
+    def model_bad_bonds(self):
+        """ Model bonds with unexpected stereochemistry
+
+        :type: :class:`list` of
+               :class:`ost.mol.alg.stereochemistry.BondViolationInfo`
+        """
+        if self._model_bad_bonds is None:
+            self._do_stereochecks()
+        return self._model_bad_bonds
+
+    @property
+    def model_bad_angles(self):
+        """ Model angles with unexpected stereochemistry
+
+        :type: :class:`list` of
+               :class:`ost.mol.alg.stereochemistry.AngleViolationInfo`
+        """
+        if self._model_bad_angles is None:
+            self._do_stereochecks()
+        return self._model_bad_angles
 
     @property
     def stereochecked_target(self):
@@ -273,15 +304,40 @@ class Scorer:
         :type: :class:`ost.mol.EntityView`
         """
         if self._stereochecked_target is None:
-            stereo_param = ReadStereoChemicalPropsFile()
-            self._stereochecked_target = \
-            self.target.CreateFullView().Select("peptide=true or nucleotide=true")
-            CheckStructure(self._stereochecked_target,
-                           stereo_param.bond_table,
-                           stereo_param.angle_table,
-                           stereo_param.nonbonded_table,
-                           12.0, 12.0)
+            self._do_stereochecks()
         return self._stereochecked_target
+
+    @property
+    def target_clashes(self):
+        """ Clashing target atoms
+
+        :type: :class:`list` of :class:`ost.mol.alg.stereochemistry.ClashInfo`
+        """
+        if self._target_clashes is None:
+            self._do_stereochecks()
+        return self._target_clashes
+
+    @property
+    def target_bad_bonds(self):
+        """ Target bonds with unexpected stereochemistry
+
+        :type: :class:`list` of
+               :class:`ost.mol.alg.stereochemistry.BondViolationInfo`
+        """
+        if self._target_bad_bonds is None:
+            self._do_stereochecks()
+        return self._target_bad_bonds
+
+    @property
+    def target_bad_angles(self):
+        """ Target angles with unexpected stereochemistry
+
+        :type: :class:`list` of
+               :class:`ost.mol.alg.stereochemistry.AngleViolationInfo`
+        """
+        if self._target_bad_angles is None:
+            self._do_stereochecks()
+        return self._target_bad_angles
 
     @property
     def chain_mapper(self):
@@ -935,4 +991,23 @@ class Scorer:
             sel = repr_ent.Select(f"(cname={cname} and 8 <> [cname!={cname}])")
             result[cname] = [r.GetNumber().GetNum() for r in sel.residues]
         return result
-    
+
+    def _do_stereochecks(self):
+        """ Perform stereochemistry checks on model and target
+        """
+        data = stereochemistry.GetDefaultStereoData()
+        l_data = stereochemistry.GetDefaultStereoLinkData()
+
+        a, b, c, d = stereochemistry.StereoCheck(self.model, stereo_data = data,
+                                                 stereo_link_data = l_data)
+        self._stereochecked_model = a
+        self._model_clashes = b
+        self._model_bad_bonds = c
+        self._model_bad_angles = d
+
+        a, b, c, d = stereochemistry.StereoCheck(self.target, stereo_data = data,
+                                                 stereo_link_data = l_data)
+        self._stereochecked_target = a
+        self._target_clashes = b
+        self._target_bad_bonds = c
+        self._target_bad_angles = d
