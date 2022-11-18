@@ -342,10 +342,10 @@ class ClashInfo:
 
     Constructor arguments are available as attributes:
 
-    * a1
-    * a2
-    * dist
-    * tolerated_dist
+    * a1 (:class:`ost.mol.AtomHandle`)
+    * a2 (:class:`ost.mol.AtomHandle`)
+    * dist (:class:`float`)
+    * tolerated_dist (:class:`float`)
     """
     def __init__(self, a1, a2, dist, tolerated_dist):
         self.a1 = a1
@@ -367,11 +367,11 @@ class BondViolationInfo:
 
     Constructor arguments are available as attributes:
 
-    * a1
-    * a2
-    * length
-    * exp_length
-    * std
+    * a1 (:class:`ost.mol.AtomHandle`)
+    * a2 (:class:`ost.mol.AtomHandle`)
+    * length (:class:`float`)
+    * exp_length (:class:`float`)
+    * std (:class:`float`)
     """
     def __init__(self, a1, a2, length, exp_length, std):
         self.a1 = a1
@@ -395,12 +395,12 @@ class AngleViolationInfo:
 
     Constructor arguments are available as attributes:
 
-    * a1
-    * a2
-    * a3
-    * angle
-    * exp_angle
-    * std
+    * a1 (:class:`ost.mol.AtomHandle`)
+    * a2 (:class:`ost.mol.AtomHandle`)
+    * a3 (:class:`ost.mol.AtomHandle`)
+    * angle (:class:`float`)
+    * exp_angle (:class:`float`)
+    * std (:class:`float`)
     """
     def __init__(self, a1, a2, a3, angle, exp_angle, std):
         self.a1 = a1
@@ -457,8 +457,8 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
                                f"Got {ele}")
 
     # it would be elegant to just do a selection by the ele property. However,
-    # thats case sensitive so someone could define a vdw radius for Cl but
-    # the element of the atom is CL.
+    # thats case sensitive. So the element could be Cl but the vdw radii
+    # are all caps.
     elements = set([ele.upper() for ele in vdw_radii.keys()])
     for a in ent.atoms:
         if a.GetElement().upper() in elements:
