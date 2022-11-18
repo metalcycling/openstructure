@@ -181,6 +181,32 @@ class TestStereochemistry(unittest.TestCase):
         self.assertEqual(sorted(["N", "CA", "C", "O"]),
                          sorted(phe_atoms))
 
+        # reload and trigger the case where the nucleotide backbone remains
+        ent = _LoadFile("10b2.pdb")
+        c_B_75 = ent.FindResidue("B", mol.ResNum(75))
+        ser_A_219 = ent.FindResidue("A", mol.ResNum(219))
+        c_at = c_B_75.FindAtom("O2")
+        ser_at = ser_A_219.FindAtom("O")
+        ed = ent.EditXCS()
+        new_pos = ser_at.GetPos() + 0.6*(c_at.GetPos()-ser_at.GetPos())
+        ed.SetAtomPos(ser_at, new_pos)
+
+        stereochecked_ent, clashes, bad_bonds, bad_angles = \
+        stereochemistry.StereoCheck(ent)
+
+        self.assertEqual(len(clashes), 1)
+        self.assertEqual(len(bad_bonds), 1)
+        self.assertEqual(len(bad_angles), 1)
+
+        c_B_75 = stereochecked_ent.FindResidue("B", mol.ResNum(75))
+        self.assertTrue(c_B_75.IsValid())
+        ser_A_219 = stereochecked_ent.FindResidue("A", mol.ResNum(219))
+        self.assertFalse(ser_A_219.IsValid())
+        c_atoms = [a.GetName() for a in c_B_75.atoms]
+        exp_c_atoms = ["P", "OP1", "OP2", "O5'", "C5'", "C4'", "C3'",
+                       "C2'", "C1'", "O4'", "O3'", "O2'"]
+        self.assertEqual(sorted(c_atoms), sorted(exp_c_atoms))
+
 if __name__ == "__main__":
     from ost import testutils
     if testutils.SetDefaultCompoundLib():
