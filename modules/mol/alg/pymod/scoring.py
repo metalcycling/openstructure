@@ -1136,14 +1136,15 @@ class Scorer:
         full_trg_coverage = True
         trg_patch_one = self.target.CreateEmptyView()
         for r in mdl_patch_one.residues:
-            mdl_cname = r.GetChain().GetName()
-            aln = self.mapping.alns[(flat_mapping[mdl_cname], mdl_cname)]
             trg_r = None
-            for col in aln:
-                if col[0] != '-' and col[1] != '-':
-                    if col.GetResidue(1).GetNumber() == r.GetNumber():
-                        trg_r = col.GetResidue(0)
-                        break
+            mdl_cname = r.GetChain().GetName()
+            if mdl_cname in flat_mapping:
+                aln = self.mapping.alns[(flat_mapping[mdl_cname], mdl_cname)]
+                for col in aln:
+                    if col[0] != '-' and col[1] != '-':
+                        if col.GetResidue(1).GetNumber() == r.GetNumber():
+                            trg_r = col.GetResidue(0)
+                            break
             if trg_r is not None:
                 trg_patch_one.AddResidue(trg_r.handle,
                                          mol.ViewAddFlag.INCLUDE_ALL)
@@ -1152,14 +1153,15 @@ class Scorer:
     
         trg_patch_two = self.target.CreateEmptyView()
         for r in mdl_patch_two.residues:
-            mdl_cname = r.GetChain().GetName()
-            aln = self.mapping.alns[(flat_mapping[mdl_cname], mdl_cname)]
             trg_r = None
-            for col in aln:
-                if col[0] != '-' and col[1] != '-':
-                    if col.GetResidue(1).GetNumber() == r.GetNumber():
-                        trg_r = col.GetResidue(0)
-                        break
+            mdl_cname = r.GetChain().GetName()
+            if mdl_cname in flat_mapping:
+                aln = self.mapping.alns[(flat_mapping[mdl_cname], mdl_cname)]
+                for col in aln:
+                    if col[0] != '-' and col[1] != '-':
+                        if col.GetResidue(1).GetNumber() == r.GetNumber():
+                            trg_r = col.GetResidue(0)
+                            break
             if trg_r is not None:
                 trg_patch_two.AddResidue(trg_r.handle,
                                          mol.ViewAddFlag.INCLUDE_ALL)
