@@ -837,13 +837,14 @@ class Scorer:
                     #        => assign None
 
                     # fetch trg residue from non-stereochecked aln
-                    aln = self.mapping.alns[(flat_mapping[cname], cname)]
                     trg_r = None
-                    for col in aln:
-                        if col[0] != '-' and col[1] != '-':
-                            if col.GetResidue(1).GetNumber() == r.GetNumber():
-                                trg_r = col.GetResidue(0)
-                                break
+                    if cname in flat_mapping:
+                        aln = self.mapping.alns[(flat_mapping[cname], cname)]
+                        for col in aln:
+                            if col[0] != '-' and col[1] != '-':
+                                if col.GetResidue(1).number == r.number:
+                                    trg_r = col.GetResidue(0)
+                                    break
                     if trg_r is None:
                         local_lddt[cname][r.GetNumber().GetNum()] = None
                     else:
