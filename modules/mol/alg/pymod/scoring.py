@@ -799,21 +799,25 @@ class Scorer:
         trg_nuc_chains = [s.GetName() for s in self.chain_mapper.polynuc_seqs]
         trg_pep_chains = set(trg_pep_chains)
         trg_nuc_chains = set(trg_nuc_chains)
-        alns = dict()
+        lddt_alns = dict()
+        lddt_chain_mapping = dict()
         for mdl_ch, trg_ch in flat_mapping.items():
-            if trg_ch in trg_pep_chains:
-                stype = mol.ChemType.AMINOACIDS
-            elif trg_ch in trg_nuc_chains:
-                stype = mol.ChemType.NUCLEOTIDES
-            else:
-                raise RuntimeError("Chain name inconsistency... ask Gabriel")
-            alns[mdl_ch] = self.chain_mapper.Align(trg_seqs[trg_ch],
-                                                   mdl_seqs[mdl_ch],
-                                                   stype)
+            if mdl_ch in mdl_seqs and trg_ch in trg_seqs:
+                if trg_ch in trg_pep_chains:
+                    stype = mol.ChemType.AMINOACIDS
+                elif trg_ch in trg_nuc_chains:
+                    stype = mol.ChemType.NUCLEOTIDES
+                else:
+                    raise RuntimeError("Chain name inconsistency... ask "
+                                       "Gabriel")
+                lddt_alns[mdl_ch] = self.chain_mapper.Align(trg_seqs[trg_ch],
+                                                            mdl_seqs[mdl_ch],
+                                                            stype)
+                lddt_chain_mapping[mdl_ch] = trg_ch
 
         lddt_score = self.lddt_scorer.lDDT(self.stereochecked_model,
-                                           chain_mapping = flat_mapping,
-                                           residue_mapping = alns,
+                                           chain_mapping = lddt_chain_mapping,
+                                           residue_mapping = lddt_alns,
                                            check_resnames=False,
                                            local_lddt_prop="lddt")[0]
         local_lddt = dict()
