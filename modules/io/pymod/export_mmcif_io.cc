@@ -26,6 +26,7 @@ using namespace boost::python;
 #include <ost/io/mol/io_profile.hh>
 #include <ost/io/mol/mmcif_reader.hh>
 #include <ost/io/mol/mmcif_info.hh>
+#include <ost/io/mmcif_str.hh>
 using namespace ost;
 using namespace ost::io;
 using namespace ost::mol;
@@ -42,6 +43,16 @@ boost::python::list VecToList(std::vector<T>& vec){
 boost::python::list WrapGetNames(MMCifInfo *p){
   std::vector<String> names = p->GetEntityBranchChainNames();
   return VecToList<String>(names);
+}
+
+boost::python::tuple WrapMMCifStringToEntity(const String& mmcif,
+                                             const IOProfile& profile=IOProfile(),
+                                             bool process=false) {
+  std::tuple<mol::EntityHandle, MMCifInfo, ost::seq::SequenceList> res =
+  MMCifStringToEntity(mmcif, profile, process);
+  return boost::python::make_tuple(std::get<0>(res),
+                                   std::get<1>(res),
+                                   std::get<2>(res));
 }
 
 void export_mmcif_io()
@@ -436,4 +447,8 @@ void export_mmcif_io()
                   &MMCifInfo::SetObsoleteInfo)
     .add_property("revisions", &MMCifInfo::GetRevisions)
  ;
+
+  def("MMCifStrToEntity", &WrapMMCifStringToEntity, (arg("pdb_string"),
+                                                     arg("profile")=IOProfile(),
+                                                     arg("process")=false));
 }
