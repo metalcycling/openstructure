@@ -5,7 +5,6 @@
 
 #include "omf.hh"
 
-
 namespace{
 
   // some hash function we need for an unordered_map
@@ -303,25 +302,33 @@ namespace{
 
   // dump and load maps with string as key and ChainDataPtr as value
   void Load(std::istream& stream, 
-            std::map<String, ost::io::ChainDataPtr>& map) {
+            std::map<String, ost::io::ChainDataPtr>& map,
+            const std::vector<ost::io::ResidueDefinition>& res_def,
+            bool lossy, bool avg_bfactors, bool round_bfactors,
+            bool skip_ss) {
     uint32_t size;
     stream.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
     map.clear();
     for(uint i = 0; i < size; ++i) {
       ost::io::ChainDataPtr p(new ost::io::ChainData);
-      p->FromStream(stream);
+      p->FromStream(stream, res_def, lossy, avg_bfactors, round_bfactors,
+                    skip_ss);
       map[p->ch_name] = p;
     }
   }
 
   void Dump(std::ostream& stream, 
-            const std::map<String, ost::io::ChainDataPtr>& map) {
+            const std::map<String, ost::io::ChainDataPtr>& map,
+            const std::vector<ost::io::ResidueDefinition>& res_def,
+            bool lossy, bool avg_bfactors, bool round_bfactors,
+            bool skip_ss) {
     uint32_t size = map.size();
     stream.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
     for(auto it = map.begin(); it != map.end(); ++it) {
         // we don't dump the key (chain name), that's an attribute of the
         // chain itself anyway
-      it->second->ToStream(stream); 
+      it->second->ToStream(stream, res_def, lossy, avg_bfactors,
+                           round_bfactors, skip_ss); 
     }
   }
 
@@ -516,36 +523,47 @@ namespace{
     Dump(stream, run_length_encoded);
   }
 
-  void LoadPosVec(std::istream& stream, std::vector<Real>& vec) {
+  void LoadPosVec(std::istream& stream, std::vector<Real>& vec, bool lossy) {
     std::vector<int> delta_encoded;
     Load(stream, delta_encoded);
     std::vector<int> int_vec;
     DeltaDecoding(delta_encoded, int_vec);
-    IntToRealVec(int_vec, vec, 0.001);     
+    if(lossy) {
+      IntToRealVec(int_vec, vec, 0.1);  
+    } else {
+      IntToRealVec(int_vec, vec, 0.001);  
+    }
   }
 
-  void LoadPositions(std::istream& stream, geom::Vec3List& positions) {
+  void LoadPositions(std::istream& stream, geom::Vec3List& positions,
+                     bool lossy) {
     std::vector<Real> x_pos;
     std::vector<Real> y_pos;
     std::vector<Real> z_pos;
-    LoadPosVec(stream, x_pos);
-    LoadPosVec(stream, y_pos);
-    LoadPosVec(stream, z_pos);
+    LoadPosVec(stream, x_pos, lossy);
+    LoadPosVec(stream, y_pos, lossy);
+    LoadPosVec(stream, z_pos, lossy);
     positions.resize(x_pos.size());
     for(uint i = 0; i < positions.size(); ++i) {
       positions[i] = geom::Vec3(x_pos[i], y_pos[i], z_pos[i]);
     }
   }
 
-  void DumpPosVec(std::ostream& stream, const std::vector<Real>& vec) {
+  void DumpPosVec(std::ostream& stream, const std::vector<Real>& vec,
+                  bool lossy) {
     std::vector<int> int_vec;
-    RealToIntVec(vec, int_vec, 1000);
+    if(lossy) {
+      RealToIntVec(vec, int_vec, 10);  
+    } else {
+      RealToIntVec(vec, int_vec, 1000);
+    }
     std::vector<int> delta_compressed;
     DeltaEncoding(int_vec, delta_compressed);
     Dump(stream, delta_compressed);    
   }
 
-  void DumpPositions(std::ostream& stream, const geom::Vec3List& positions) {
+  void DumpPositions(std::ostream& stream, const geom::Vec3List& positions,
+                     bool lossy) {
     std::vector<Real> x_pos(positions.size());
     std::vector<Real> y_pos(positions.size());
     std::vector<Real> z_pos(positions.size());
@@ -554,12 +572,13 @@ namespace{
       y_pos[i] = positions[i][1];
       z_pos[i] = positions[i][2];
     }
-    DumpPosVec(stream, x_pos);
-    DumpPosVec(stream, y_pos);
-    DumpPosVec(stream, z_pos);
+    DumpPosVec(stream, x_pos, lossy);
+    DumpPosVec(stream, y_pos, lossy);
+    DumpPosVec(stream, z_pos, lossy);
   }
 
-  void LoadBFactors(std::istream& stream, std::vector<Real>& bfactors) {
+  void LoadBFactors(std::istream& stream, std::vector<Real>& bfactors,
+                    bool round_bfactors) {
 
     int8_t bfactor_encoding = 0;
     stream.read(reinterpret_cast<char*>(&bfactor_encoding), sizeof(int8_t));
@@ -568,21 +587,34 @@ namespace{
       Load(stream, delta_encoded);
       std::vector<int> int_vec;
       DeltaDecoding(delta_encoded, int_vec);
-      IntToRealVec(int_vec, bfactors, 0.01);
+      if(round_bfactors) {
+        IntToRealVec(int_vec, bfactors, 1.0);
+      } else {
+        IntToRealVec(int_vec, bfactors, 0.01);
+      }
     } else if(bfactor_encoding == 42) {
       std::vector<int> runlength_encoded;
       Load(stream, runlength_encoded);
       std::vector<int> int_vec;
       RunLengthDecoding(runlength_encoded, int_vec);
-      IntToRealVec(int_vec, bfactors, 0.01);
+      if(round_bfactors) {
+        IntToRealVec(int_vec, bfactors, 1.0);
+      } else {
+        IntToRealVec(int_vec, bfactors, 0.01);
+      }
     } else {
       throw ost::Error("Observed invalid bfactor encoding");
     }
   }
 
-  void DumpBFactors(std::ostream& stream, const std::vector<Real>& bfactors) {
+  void DumpBFactors(std::ostream& stream, const std::vector<Real>& bfactors,
+                    bool round_bfactors) {
     std::vector<int> int_vec;
-    RealToIntVec(bfactors, int_vec, 100);
+    if(round_bfactors) {
+      RealToIntVec(bfactors, int_vec, 1);
+    } else {
+      RealToIntVec(bfactors, int_vec, 100);
+    }
 
     // Hack: some structures (e.g. EM) have all bfactors set to 0.0
     // this efficiently compresses with runlength encoding.
@@ -850,35 +882,2147 @@ ChainData::ChainData(const ost::mol::ChainHandle& chain,
   }
 }
 
-void ChainData::ToStream(std::ostream& stream) const {
+void ChainData::ToStream(std::ostream& stream,
+                         const std::vector<ResidueDefinition>& res_def,
+                         bool lossy, bool avg_bfactors,
+                         bool round_bfactors, bool skip_ss) const {
   Dump(stream, ch_name);
   DumpResDefIndices(stream, res_def_indices);
   DumpRnums(stream, rnums);
   DumpInsertionCodes(stream, insertion_codes);
   DumpOccupancies(stream, occupancies);
-  DumpBFactors(stream, bfactors);
-  DumpPositions(stream, positions);
+  if(avg_bfactors) {
+    std::vector<Real> tmp;
+    int start = 0;
+    for(auto it = res_def_indices.begin(); it != res_def_indices.end(); ++it) {
+      int len = res_def[*it].anames.size();
+      int end = start + len;
+      Real avg = 0.0;
+      for(int i = start; i < end; ++i) {
+        avg += bfactors[i];
+      }
+      if(len > 0) {
+        avg /= len;
+      }
+      tmp.push_back(avg);
+      start += len;
+    }
+    DumpBFactors(stream, tmp, round_bfactors);
+  } else {
+    DumpBFactors(stream, bfactors, round_bfactors);
+  }
+
+  DumpPositions(stream, positions, lossy);
   DumpBonds(stream, bonds);
   DumpBondOrders(stream, bond_orders);
-  DumpIntVec(stream, sec_structures);
+  if(!skip_ss) {
+    DumpIntVec(stream, sec_structures);
+  }
 }
 
-void ChainData::FromStream(std::istream& stream) {
+void ChainData::FromStream(std::istream& stream,
+                           const std::vector<ResidueDefinition>& res_def,
+                           bool lossy, bool avg_bfactors, bool round_bfactors,
+                           bool skip_ss) {
+  
   Load(stream, ch_name);
   LoadResDefIndices(stream, res_def_indices);
   LoadRnums(stream, rnums);
   LoadInsertionCodes(stream, insertion_codes);
   LoadOccupancies(stream, occupancies);
-  LoadBFactors(stream, bfactors);
-  LoadPositions(stream, positions);
+  if(avg_bfactors) {
+    std::vector<Real> tmp;
+    LoadBFactors(stream, tmp, round_bfactors);
+    for(size_t i = 0; i < res_def_indices.size(); ++i) {
+      int len = res_def[res_def_indices[i]].anames.size();
+      Real bfac = tmp[i];
+      bfactors.insert(bfactors.end(), len, bfac);
+    }
+  } else {
+    LoadBFactors(stream, bfactors, round_bfactors);
+  }
+  LoadPositions(stream, positions, lossy);
   LoadBonds(stream, bonds);
   LoadBondOrders(stream, bond_orders);
-  LoadIntVec(stream, sec_structures);
+  if(skip_ss) {
+    sec_structures.assign(res_def_indices.size(), 'C');
+  } else {
+    LoadIntVec(stream, sec_structures);
+  }
 }
 
-OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent) {
+DefaultPepLib::DefaultPepLib() {
+
+  /* hardcoded constructor created with:
+
+  from ost import conop
+  def ProcessCompound(comp_name, lib, skip_oxt=True):
+      c = lib.FindCompound(comp_name)   
+      anames = list()
+      idx_mapper = dict()
+      element_mapper = dict()
+      for a_idx, a in enumerate(c.atom_specs):
+          if a.element == "H":
+              continue
+          if skip_oxt and a.name == "OXT":
+              continue
+          idx_mapper[a_idx] = a.name
+          anames.append(a.name)
+          element_mapper[a.name] = a.element
+      anames.sort()
+      bond_data = list()
+      for b in c.bond_specs:
+          idx_one = b.atom_one
+          idx_two = b.atom_two
+          if idx_one in idx_mapper and idx_two in idx_mapper:
+              aname_one = idx_mapper[idx_one]
+              aname_two = idx_mapper[idx_two]
+              idx_one = anames.index(aname_one)
+              idx_two = anames.index(aname_two)
+              if idx_one < idx_two:
+                  bond_data.append(((idx_one, idx_two), b.order))
+              else:
+                  bond_data.append(((idx_two, idx_one), b.order))
+      bond_data.sort()
+      print(f"  res_def = ResidueDefinition();")
+      print(f"  res_def.name = \"{comp_name}\";")
+      print(f"  res_def.olc = '{c.GetOneLetterCode()}';")
+      print(f"  res_def.chem_type = '{c.chem_type}';")
+      print(f"  res_def.chem_class = '{c.chem_class}';")
+      for aname in anames:
+          print(f"  res_def.anames.push_back(\"{aname}\");")
+      for aname in anames:
+          print(f"  res_def.elements.push_back(\"{element_mapper[aname]}\");")
+      print(f"  res_def.is_hetatm.assign({len(anames)}, false);")
+      for b in bond_data:
+          print(f"  res_def.bonds.push_back({b[0][0]});")
+          print(f"  res_def.bonds.push_back({b[0][1]});")
+      for b in bond_data:
+          print(f"  res_def.bond_orders.push_back({b[1]});")
+      print("  residue_definitions.push_back(res_def);")
+      print()
+  lib = conop.GetDefaultLib()
+  anames = ["ALA", "ARG", "ASN", "ASP", "GLN", "GLU", "LYS", "SER", "CYS", "MET",
+            "TRP", "TYR", "THR", "VAL", "ILE", "LEU", "GLY", "PRO", "HIS", "PHE"]
+  print("  ResidueDefinition res_def;");
+  for aname in anames:
+    ProcessCompound(aname, lib)
+    ProcessCompound(aname, lib, skip_oxt = False)
+  */
+
+  ResidueDefinition res_def;
+  res_def = ResidueDefinition();
+  res_def.name = "ALA";
+  res_def.olc = 'A';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(5, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(3);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ALA";
+  res_def.olc = 'A';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(6, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(3);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ARG";
+  res_def.olc = 'R';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("CZ");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("NE");
+  res_def.anames.push_back("NH1");
+  res_def.anames.push_back("NH2");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(11, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(10);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(9);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ARG";
+  res_def.olc = 'R';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("CZ");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("NE");
+  res_def.anames.push_back("NH1");
+  res_def.anames.push_back("NH2");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(12, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(10);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(11);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(9);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ASN";
+  res_def.olc = 'N';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("ND2");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OD1");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(8, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ASN";
+  res_def.olc = 'N';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("ND2");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OD1");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(9, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ASP";
+  res_def.olc = 'D';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OD1");
+  res_def.anames.push_back("OD2");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(8, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ASP";
+  res_def.olc = 'D';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OD1");
+  res_def.anames.push_back("OD2");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(9, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "GLN";
+  res_def.olc = 'Q';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("NE2");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OE1");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(9, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(8);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "GLN";
+  res_def.olc = 'Q';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("NE2");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OE1");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(10, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(8);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "GLU";
+  res_def.olc = 'E';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OE1");
+  res_def.anames.push_back("OE2");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(9, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(8);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "GLU";
+  res_def.olc = 'E';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OE1");
+  res_def.anames.push_back("OE2");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(10, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(8);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "LYS";
+  res_def.olc = 'K';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD");
+  res_def.anames.push_back("CE");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("NZ");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(9, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "LYS";
+  res_def.olc = 'K';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD");
+  res_def.anames.push_back("CE");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("NZ");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(10, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "SER";
+  res_def.olc = 'S';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OG");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(6, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "SER";
+  res_def.olc = 'S';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OG");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(7, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "CYS";
+  res_def.olc = 'C';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("SG");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("S");
+  res_def.is_hetatm.assign(6, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "CYS";
+  res_def.olc = 'C';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.anames.push_back("SG");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("S");
+  res_def.is_hetatm.assign(7, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(6);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "MET";
+  res_def.olc = 'M';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CE");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("SD");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("S");
+  res_def.is_hetatm.assign(8, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "MET";
+  res_def.olc = 'M';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CE");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.anames.push_back("SD");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("S");
+  res_def.is_hetatm.assign(9, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(8);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "TRP";
+  res_def.olc = 'W';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD1");
+  res_def.anames.push_back("CD2");
+  res_def.anames.push_back("CE2");
+  res_def.anames.push_back("CE3");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("CH2");
+  res_def.anames.push_back("CZ2");
+  res_def.anames.push_back("CZ3");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("NE1");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(14, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(13);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(11);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(12);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(12);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(10);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(10);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "TRP";
+  res_def.olc = 'W';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD1");
+  res_def.anames.push_back("CD2");
+  res_def.anames.push_back("CE2");
+  res_def.anames.push_back("CE3");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("CH2");
+  res_def.anames.push_back("CZ2");
+  res_def.anames.push_back("CZ3");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("NE1");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(15, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(13);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(14);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(11);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(12);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(12);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(10);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(10);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "TYR";
+  res_def.olc = 'Y';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD1");
+  res_def.anames.push_back("CD2");
+  res_def.anames.push_back("CE1");
+  res_def.anames.push_back("CE2");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("CZ");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OH");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(12, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(10);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(11);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "TYR";
+  res_def.olc = 'Y';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD1");
+  res_def.anames.push_back("CD2");
+  res_def.anames.push_back("CE1");
+  res_def.anames.push_back("CE2");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("CZ");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OH");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(13, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(10);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(12);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(11);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "THR";
+  res_def.olc = 'T';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CG2");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OG1");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(7, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(6);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "THR";
+  res_def.olc = 'T';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CG2");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OG1");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(8, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(6);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "VAL";
+  res_def.olc = 'V';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CG1");
+  res_def.anames.push_back("CG2");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(7, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "VAL";
+  res_def.olc = 'V';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CG1");
+  res_def.anames.push_back("CG2");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(8, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ILE";
+  res_def.olc = 'I';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD1");
+  res_def.anames.push_back("CG1");
+  res_def.anames.push_back("CG2");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(8, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ILE";
+  res_def.olc = 'I';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD1");
+  res_def.anames.push_back("CG1");
+  res_def.anames.push_back("CG2");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(9, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "LEU";
+  res_def.olc = 'L';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD1");
+  res_def.anames.push_back("CD2");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(8, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(5);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "LEU";
+  res_def.olc = 'L';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD1");
+  res_def.anames.push_back("CD2");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(9, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(5);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "GLY";
+  res_def.olc = 'G';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'P';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(4, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "GLY";
+  res_def.olc = 'G';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'P';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(5, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "PRO";
+  res_def.olc = 'P';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(7, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "PRO";
+  res_def.olc = 'P';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(8, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "HIS";
+  res_def.olc = 'H';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD2");
+  res_def.anames.push_back("CE1");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("ND1");
+  res_def.anames.push_back("NE2");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(10, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(7);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "HIS";
+  res_def.olc = 'H';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD2");
+  res_def.anames.push_back("CE1");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("ND1");
+  res_def.anames.push_back("NE2");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(11, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(10);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(7);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "PHE";
+  res_def.olc = 'F';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD1");
+  res_def.anames.push_back("CD2");
+  res_def.anames.push_back("CE1");
+  res_def.anames.push_back("CE2");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("CZ");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(11, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(10);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(8);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "PHE";
+  res_def.olc = 'F';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("C");
+  res_def.anames.push_back("CA");
+  res_def.anames.push_back("CB");
+  res_def.anames.push_back("CD1");
+  res_def.anames.push_back("CD2");
+  res_def.anames.push_back("CE1");
+  res_def.anames.push_back("CE2");
+  res_def.anames.push_back("CG");
+  res_def.anames.push_back("CZ");
+  res_def.anames.push_back("N");
+  res_def.anames.push_back("O");
+  res_def.anames.push_back("OXT");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("C");
+  res_def.elements.push_back("N");
+  res_def.elements.push_back("O");
+  res_def.elements.push_back("O");
+  res_def.is_hetatm.assign(12, false);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(10);
+  res_def.bonds.push_back(0);
+  res_def.bonds.push_back(11);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(1);
+  res_def.bonds.push_back(9);
+  res_def.bonds.push_back(2);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(3);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(4);
+  res_def.bonds.push_back(7);
+  res_def.bonds.push_back(5);
+  res_def.bonds.push_back(8);
+  res_def.bonds.push_back(6);
+  res_def.bonds.push_back(8);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  res_def.bond_orders.push_back(2);
+  res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+}
+
+OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent,
+                       uint8_t options) {
 
   OMFPtr omf(new OMF);
+  omf->options_ = options;
 
   //////////////////////////////////////////////////////////////////////////////
   // Generate kind of a "mini compound library"... Eeach unique residue gets  //
@@ -887,8 +3031,18 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent) {
 
   std::unordered_map<ResidueDefinition, int, ResidueDefinitionHash> res_def_map;
   std::unordered_map<unsigned long, int> res_idx_map;
-  ost::mol::ResidueHandleList res_list = ent.GetResidueList();
   int idx = 0;
+
+  if(omf->OptionSet(DEFAULT_PEPLIB)) {
+    omf->residue_definitions_ = DefaultPepLib::Instance().residue_definitions;
+    for(auto it = omf->residue_definitions_.begin();
+        it != omf->residue_definitions_.end(); ++it) {
+      res_def_map[*it] = idx;
+      ++idx;
+    }
+  }
+
+  ost::mol::ResidueHandleList res_list = ent.GetResidueList();
   for(auto it = res_list.begin(); it != res_list.end(); ++it) {
     ResidueDefinition def(*it);
     auto map_it = res_def_map.find(def);
@@ -935,14 +3089,33 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent) {
   for(auto bond_it = bond_list.begin(); bond_it != bond_list.end(); ++bond_it) {
     const ost::mol::AtomHandle& at_one = bond_it->GetFirst();
     const ost::mol::AtomHandle& at_two = bond_it->GetSecond();
-    if(at_one.GetResidue().GetChain() == at_two.GetResidue().GetChain()) {
-      if(at_one.GetResidue() != at_two.GetResidue()) {
-        int idx = chain_idx_map[at_one.GetResidue().GetChain().GetHashCode()];
-        inter_residue_bonds[idx].push_back(std::make_pair(at_one.GetHashCode(), 
-                                                          at_two.GetHashCode()));
-        inter_residue_bond_orders[idx].push_back(bond_it->GetBondOrder());
+    const ost::mol::ResidueHandle& res_one = at_one.GetResidue();
+    const ost::mol::ResidueHandle& res_two = at_two.GetResidue();
+    if(res_one.GetChain() == res_two.GetChain()) {
+      if(res_one != res_two) {
+          if(omf->OptionSet(INFER_PEP_BONDS)) {
+              if(res_one.IsPeptideLinking() && res_two.IsPeptideLinking()) {
+              String aname_one = at_one.GetName();
+              String aname_two = at_two.GetName();
+              if((aname_one == "C" && aname_two == "N" &&
+                  res_one.GetNext() == res_two) ||
+                 (aname_one == "N" && aname_two == "C" &&
+                  res_one.GetPrev() == res_two)) {
+                Real bond_length = bond_it->GetLength();
+                if(bond_length > Real(1.198) && bond_length < Real(1.474)) {
+                  // mean bond length (1.336) +- 6 stds (0.023)
+                  // this peptide bond can be inferred... skip...
+                  continue;
+                }
+              }
+            }
+          }
+          int idx = chain_idx_map[at_one.GetResidue().GetChain().GetHashCode()];
+          inter_residue_bonds[idx].push_back(std::make_pair(at_one.GetHashCode(), 
+                                                            at_two.GetHashCode()));
+          inter_residue_bond_orders[idx].push_back(bond_it->GetBondOrder());
       }
-    } else{
+    } else {
       int idx_one = chain_idx_map[at_one.GetResidue().GetChain().GetHashCode()];
       int idx_two = chain_idx_map[at_two.GetResidue().GetChain().GetHashCode()];
       interchain_bonds.push_back(std::make_pair(at_one.GetHashCode(),
@@ -985,9 +3158,10 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent) {
 }
 
 OMFPtr OMF::FromMMCIF(const ost::mol::EntityHandle& ent,
-                      const MMCifInfo& info) {
+                      const MMCifInfo& info,
+                      uint8_t options) {
 
-  OMFPtr p = OMF::FromEntity(ent);
+  OMFPtr p = OMF::FromEntity(ent, options);
   const std::vector<MMCifInfoBioUnit>& biounits = info.GetBioUnits();
   for(auto it = biounits.begin(); it != biounits.end(); ++it) {
     p->biounit_definitions_.push_back(BioUnitDefinition(*it));
@@ -1121,13 +3295,25 @@ void OMF::ToStream(std::ostream& stream) const {
 
   uint32_t magic_number = 42;
   stream.write(reinterpret_cast<char*>(&magic_number), sizeof(uint32_t));
-
-  uint32_t version = 1;
+  uint32_t version = 2;
   stream.write(reinterpret_cast<char*>(&version), sizeof(uint32_t));
+  stream.write(reinterpret_cast<const char*>(&options_), sizeof(uint8_t));
 
-  Dump(stream, residue_definitions_);
+  if(OptionSet(DEFAULT_PEPLIB)) {
+    // no need to dump the residue definitions from default lib
+    auto a = residue_definitions_.begin();
+    auto b = residue_definitions_.end();
+    int offset = DefaultPepLib::Instance().residue_definitions.size();
+    std::vector<ResidueDefinition> tmp(a + offset, b);
+    Dump(stream, tmp);
+  }
+  else {
+    Dump(stream, residue_definitions_);
+  }
+
   Dump(stream, biounit_definitions_);
-  Dump(stream, chain_data_);
+  Dump(stream, chain_data_, residue_definitions_, OptionSet(LOSSY),
+       OptionSet(AVG_BFACTORS), OptionSet(ROUND_BFACTORS), OptionSet(SKIP_SS));
   Dump(stream, bond_chain_names_);
   Dump(stream, bond_atoms_);
   Dump(stream, bond_orders_);
@@ -1143,15 +3329,31 @@ void OMF::FromStream(std::istream& stream) {
 
   uint32_t version;
   stream.read(reinterpret_cast<char*>(&version), sizeof(uint32_t));
-  if(version != 1) {
+  if(version != 1 && version != 2) {
     std::stringstream ss;
-    ss << "OST version only supports OMF version 1. Got "<<version;
+    ss << "OST version only supports OMF version 1 and 2. Got "<<version;
     throw ost::Error(ss.str());
   }
 
-  Load(stream, residue_definitions_);
+  if(version > 1) {
+    stream.read(reinterpret_cast<char*>(&options_), sizeof(uint8_t));
+  }
+
+  if(OptionSet(DEFAULT_PEPLIB)) {
+    // load residue definitions from default lib and append custom definitions
+    std::vector<ResidueDefinition> tmp;
+    Load(stream, tmp);
+    residue_definitions_ = DefaultPepLib::Instance().residue_definitions;
+    residue_definitions_.insert(residue_definitions_.end(),
+                                tmp.begin(), tmp.end());
+  }
+  else {
+    Load(stream, residue_definitions_);
+  }
+
   Load(stream, biounit_definitions_);
-  Load(stream, chain_data_);
+  Load(stream, chain_data_, residue_definitions_, OptionSet(LOSSY),
+       OptionSet(AVG_BFACTORS), OptionSet(ROUND_BFACTORS), OptionSet(SKIP_SS));
   Load(stream, bond_chain_names_);
   Load(stream, bond_atoms_);
   Load(stream, bond_orders_);
@@ -1212,6 +3414,25 @@ void OMF::FillChain(ost::mol::ChainHandle& chain, ost::mol::XCSEditor& ed,
     ed.Connect(added_atoms[data->bonds[2*bond_idx]], 
                added_atoms[data->bonds[2*bond_idx+1]], 
                data->bond_orders[bond_idx]);
+  }
+
+  if(OptionSet(INFER_PEP_BONDS)) {
+    ost::mol::ResidueHandleList res_list = chain.GetResidueList();
+    for(size_t i = 1; i < res_list.size(); ++i) {
+      if(res_list[i-1].IsPeptideLinking() && res_list[i].IsPeptideLinking()) {
+        const ost::mol::AtomHandle& c = res_list[i-1].FindAtom("C");
+        const ost::mol::AtomHandle& n = res_list[i].FindAtom("N");
+        if(c.IsValid() && n.IsValid()) {
+          Real d = geom::Distance(c.GetPos(), n.GetPos());
+          if(d > 0.991 && d < 1.681) {
+            // mean (1.336) +- 15 stds (0.023)
+            // This is an extremely loose threshold but makes sure to also handle
+            // inaccuracies that have been introduced with lossy compression
+            ed.Connect(c, n);
+          }
+        }
+      }
+    }
   }
 } 
 

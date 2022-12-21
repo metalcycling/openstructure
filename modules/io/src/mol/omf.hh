@@ -103,9 +103,15 @@ struct ChainData {
             const std::vector<int>& inter_residue_bond_orders,
             std::unordered_map<long, int>& atom_idx_mapper);
 
-  void ToStream(std::ostream& stream) const;
+  void ToStream(std::ostream& stream,
+                const std::vector<ResidueDefinition>& res_def,
+                bool lossy, bool avg_bfactors, bool round_bfactors,
+                bool skip_ss) const;
 
-  void FromStream(std::istream& stream);
+  void FromStream(std::istream& stream,
+                  const std::vector<ResidueDefinition>& res_def,
+                  bool lossy, bool avg_bfactors, bool round_bfactors,
+                  bool skip_ss);
 
   // chain features
   String ch_name;
@@ -127,14 +133,39 @@ struct ChainData {
   std::vector<int> bond_orders;
 };
 
+
+class DefaultPepLib{
+public:
+  static DefaultPepLib& Instance() {
+    static DefaultPepLib instance;
+    return instance;
+  }
+  std::vector<ResidueDefinition> residue_definitions;
+
+private:
+  DefaultPepLib();
+  DefaultPepLib(DefaultPepLib const& copy); 
+  DefaultPepLib& operator=(DefaultPepLib const& copy);
+};
+
+
 class OMF {
 
 public:
 
-  static OMFPtr FromEntity(const ost::mol::EntityHandle& ent);
+  enum OMFOption {DEFAULT_PEPLIB = 1, LOSSY = 2, AVG_BFACTORS = 4,
+                  ROUND_BFACTORS = 8, SKIP_SS = 16, INFER_PEP_BONDS = 32};
+
+  bool OptionSet(OMFOption opt) const {
+    return (opt & options_) == opt;
+  }
+
+  static OMFPtr FromEntity(const ost::mol::EntityHandle& ent,
+                           uint8_t options = 0);
 
   static OMFPtr FromMMCIF(const ost::mol::EntityHandle& ent,
-                          const MMCifInfo& info);
+                          const MMCifInfo& info,
+                          uint8_t options = 0);
 
   static OMFPtr FromFile(const String& fn);
 
@@ -152,7 +183,7 @@ public:
 
 private:
   // only construct with static functions
-  OMF() { }
+  OMF(): options_(0) { }
 
   void ToStream(std::ostream& stream) const;
 
@@ -174,6 +205,9 @@ private:
   std::vector<String> bond_chain_names_;
   std::vector<int> bond_atoms_;
   std::vector<int> bond_orders_;
+
+  // bitfield with options
+  uint8_t options_;
 };
 
 }} //ns
