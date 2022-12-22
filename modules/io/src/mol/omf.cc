@@ -3295,7 +3295,10 @@ void OMF::ToStream(std::ostream& stream) const {
 
   uint32_t magic_number = 42;
   stream.write(reinterpret_cast<char*>(&magic_number), sizeof(uint32_t));
-  uint32_t version = 2;
+  // We set it to the current version...
+  // If you loaded a structure from a previous version and you dump it again,
+  // the version will be updated.
+  uint32_t version = OMF_VERSION;
   stream.write(reinterpret_cast<char*>(&version), sizeof(uint32_t));
   stream.write(reinterpret_cast<const char*>(&options_), sizeof(uint8_t));
 
@@ -3335,7 +3338,9 @@ void OMF::FromStream(std::istream& stream) {
     throw ost::Error(ss.str());
   }
 
-  if(version > 1) {
+  version_ = version;
+
+  if(version_ > 1) {
     stream.read(reinterpret_cast<char*>(&options_), sizeof(uint8_t));
   }
 

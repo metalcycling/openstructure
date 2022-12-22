@@ -30,6 +30,8 @@
 
 namespace ost { namespace io {
 
+const int OMF_VERSION = 2;
+
 class ChainData;
 class BioUnitData;
 class OMF;
@@ -181,6 +183,10 @@ public:
 
   ost::mol::EntityHandle GetBU(int bu_idx) const;
 
+  int GetVersion() const { return version_; }
+
+  static int GetCurrentOMFVersion() { return OMF_VERSION; }
+
 private:
   // only construct with static functions
   OMF(): options_(0) { }
@@ -208,6 +214,8 @@ private:
 
   // bitfield with options
   uint8_t options_;
+
+  int version_;
 };
 
 }} //ns
