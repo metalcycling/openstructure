@@ -58,7 +58,8 @@ bool copy_atoms(ResidueView src_res, ResidueHandle dst_res, XCSEditor& edi,
 void transfer_residue_properties(ResidueView src, ResidueHandle dst) {
   dst.SetOneLetterCode(src.GetOneLetterCode());
   dst.SetSecStructure(src.GetSecStructure());
-  dst.SetChemClass(src.GetChemClass());  
+  dst.SetChemClass(src.GetChemClass());
+  dst.SetChemType(src.GetChemType());
   dst.SetIsProtein(src.IsProtein());
   dst.SetIsLigand(src.IsLigand());
 }
