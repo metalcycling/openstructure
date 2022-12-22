@@ -20,11 +20,12 @@ def compare_atoms(a1, a2, occupancy_thresh = 0.01, bfactor_thresh = 0.01,
 
 def compare_residues(r1, r2, at_occupancy_thresh = 0.01,
                      at_bfactor_thresh = 0.01, at_dist_thresh = 0.001,
-                     skip_ss = False):
+                     skip_ss = False, skip_rnums=False):
     if r1.GetName() != r2.GetName():
         return False
-    if r1.GetNumber() != r2.GetNumber():
-        return False
+    if skip_rnums is False:
+        if r1.GetNumber() != r2.GetNumber():
+            return False
     if skip_ss is False:
         if str(r1.GetSecStructure()) != str(r2.GetSecStructure()):
             return False
@@ -51,7 +52,7 @@ def compare_residues(r1, r2, at_occupancy_thresh = 0.01,
 
 def compare_chains(ch1, ch2, at_occupancy_thresh = 0.01,
                    at_bfactor_thresh = 0.01, at_dist_thresh = 0.001,
-                   skip_ss=False):
+                   skip_ss=False, skip_rnums=False):
     if len(ch1.residues) != len(ch2.residues):
         return False
     for r1, r2 in zip(ch1.residues, ch2.residues):
@@ -59,7 +60,7 @@ def compare_chains(ch1, ch2, at_occupancy_thresh = 0.01,
                                 at_occupancy_thresh = at_occupancy_thresh,
                                 at_bfactor_thresh = at_bfactor_thresh,
                                 at_dist_thresh = at_dist_thresh,
-                                skip_ss = skip_ss):
+                                skip_ss = skip_ss, skip_rnums=skip_rnums):
             return False
     return True
 
@@ -76,23 +77,27 @@ def compare_bonds(ent1, ent2):
 
 def compare_ent(ent1, ent2, at_occupancy_thresh = 0.01,
                 at_bfactor_thresh = 0.01, at_dist_thresh = 0.001,
-                skip_ss=False):
+                skip_ss=False, skip_cnames = False, skip_bonds = False,
+                skip_rnums=False):
     chain_names_one = [ch.GetName() for ch in ent1.chains]
     chain_names_two = [ch.GetName() for ch in ent2.chains]
-    if not sorted(chain_names_one) == sorted(chain_names_two):
-        return False
-    chain_names = chain_names_one
-    for chain_name in chain_names:
-        ch1 = ent1.FindChain(chain_name)
-        ch2 = ent2.FindChain(chain_name)
+    if skip_cnames:
+        # only check whether we have the same number of chains
+        if len(chain_names_one) != len(chain_names_two):
+            return False
+    else:
+        if chain_names_one != chain_names_two:
+            return False
+    for ch1, ch2 in zip(ent1.chains, ent2.chains):
         if not compare_chains(ch1, ch2,
                               at_occupancy_thresh = at_occupancy_thresh,
                               at_bfactor_thresh = at_bfactor_thresh,
                               at_dist_thresh = at_dist_thresh,
-                              skip_ss=skip_ss):
+                              skip_ss=skip_ss, skip_rnums=skip_rnums):
             return False
-    if not compare_bonds(ent1, ent2):
-        return False
+    if not skip_bonds:
+        if not compare_bonds(ent1, ent2):
+            return False
     return True
 
 class TestOMF(unittest.TestCase):
@@ -199,6 +204,40 @@ class TestOMF(unittest.TestCase):
 
         self.assertTrue(len(omf_infer_pep_bonds_bytes) < len(omf_bytes))
         self.assertTrue(compare_ent(self.ent, loaded_ent))
+
+    def test_multiple_BU(self):
+        ent, seqres, info = io.LoadMMCIF("testfiles/mmcif/3imj.cif.gz", 
+                                         seqres=True,
+                                         info=True)
+
+        omf = io.OMF.FromMMCIF(ent, info)
+        omf_bytes = omf.ToBytes()
+        omf_loaded = io.OMF.FromBytes(omf_bytes)
+
+        # there are quite some discrepancies between PDBize and OMF
+        # - chain names: PDBize has specific chain names for ligands and
+        #                water etc. OMF just iterates A, B, C, D, ...
+        # - skip_bonds: Thats qualified atom name based. PDBize used rnums
+        #               and insertion codes for waters...
+        # - skip_rnums: Again, insertion codes for waters...
+        self.assertTrue(compare_ent(omf_loaded.GetBU(0),
+                                    info.GetBioUnits()[0].PDBize(ent),
+                                    skip_cnames=True, skip_bonds=True,
+                                    skip_rnums=True))
+
+        self.assertTrue(compare_ent(omf_loaded.GetBU(1),
+                                    info.GetBioUnits()[1].PDBize(ent),
+                                    skip_cnames=True, skip_bonds=True,
+                                    skip_rnums=True))
+
+        # no check for the full guy... problem: PDBize throws all water
+        # molecules in the same chain, whereas OMF keeps them separate
+        # as in the chains from the assymetric unit... maybe needs some
+        # thinking on how to resolve discrepancies between PDBize and OMF
+        #self.assertTrue(compare_ent(omf_loaded.GetBU(2),
+        #                            info.GetBioUnits()[2].PDBize(ent),
+        #                            skip_cnames=True, skip_bonds=True,
+        #                            skip_rnums=True))
 
 if __name__== '__main__':
     from ost import testutils
