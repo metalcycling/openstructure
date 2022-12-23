@@ -679,11 +679,18 @@ The Handle Classes
     :type: :class:`SecStructure`
   
   .. attribute:: is_ligand
-  
-    Whether the residue is a ligand. When loading PDB structures, this property 
-    is set based on the HET records. This also means, that this property will 
-    most likely not be set properly for all except PDB files coming from 
-    pdb.org. Also available as :meth:`IsLigand`, :meth:`SetIsLigand`.
+
+    .. warning::
+      This property is meaningless on mmCIF files loaded with
+      :func:`ost.io.LoadMMCIF` with `seqres=False` (the default), or if no
+      default compound library is set.
+
+    Whether the residue is a ligand. When loading PDB structures, this property
+    is set based on the HET records. This also means, that this property will
+    most likely not be set properly for all except PDB files coming from
+    pdb.org. When loading MMCIF structures, this property is set based on
+    `seqres` information and differs from PDB structures.
+    Also available as :meth:`IsLigand`, :meth:`SetIsLigand`.
   
   .. attribute:: is_protein
   
