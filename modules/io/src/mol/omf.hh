@@ -95,7 +95,7 @@ struct BioUnitDefinition {
 
 struct ChainData {
 
-  ChainData() { }
+  ChainData(): ch_name(""), chain_type(ost::mol::CHAINTYPE_UNKNOWN) { }
 
   ChainData(const ost::mol::ChainHandle& chain,
             const std::vector<ResidueDefinition>& residue_definitions,
@@ -112,11 +112,12 @@ struct ChainData {
 
   void FromStream(std::istream& stream,
                   const std::vector<ResidueDefinition>& res_def,
-                  bool lossy, bool avg_bfactors, bool round_bfactors,
-                  bool skip_ss);
+                  int version, bool lossy, bool avg_bfactors,
+                  bool round_bfactors, bool skip_ss);
 
   // chain features
   String ch_name;
+  ost::mol::ChainType chain_type;
 
   // residue features
   std::vector<int> res_def_indices;

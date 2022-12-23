@@ -304,15 +304,15 @@ namespace{
   void Load(std::istream& stream, 
             std::map<String, ost::io::ChainDataPtr>& map,
             const std::vector<ost::io::ResidueDefinition>& res_def,
-            bool lossy, bool avg_bfactors, bool round_bfactors,
+            int version, bool lossy, bool avg_bfactors, bool round_bfactors,
             bool skip_ss) {
     uint32_t size;
     stream.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
     map.clear();
     for(uint i = 0; i < size; ++i) {
       ost::io::ChainDataPtr p(new ost::io::ChainData);
-      p->FromStream(stream, res_def, lossy, avg_bfactors, round_bfactors,
-                    skip_ss);
+      p->FromStream(stream, res_def, version, lossy, avg_bfactors,
+                    round_bfactors, skip_ss);
       map[p->ch_name] = p;
     }
   }
@@ -839,6 +839,7 @@ ChainData::ChainData(const ost::mol::ChainHandle& chain,
                      std::unordered_map<long, int>& atom_idx_mapper) {
 
   ch_name = chain.GetName();
+  chain_type = chain.GetType();
 
   // process residues
   ost::mol::ResidueHandleList res_list = chain.GetResidueList();
@@ -887,6 +888,11 @@ void ChainData::ToStream(std::ostream& stream,
                          bool lossy, bool avg_bfactors,
                          bool round_bfactors, bool skip_ss) const {
   Dump(stream, ch_name);
+  if(chain_type > std::numeric_limits<int8_t>::max()) {
+    throw ost::Error("ChainType out of bounds");
+  }
+  int8_t type = chain_type;
+  stream.write(reinterpret_cast<char*>(&type), sizeof(int8_t));
   DumpResDefIndices(stream, res_def_indices);
   DumpRnums(stream, rnums);
   DumpInsertionCodes(stream, insertion_codes);
@@ -922,10 +928,15 @@ void ChainData::ToStream(std::ostream& stream,
 
 void ChainData::FromStream(std::istream& stream,
                            const std::vector<ResidueDefinition>& res_def,
-                           bool lossy, bool avg_bfactors, bool round_bfactors,
-                           bool skip_ss) {
+                           int version, bool lossy, bool avg_bfactors,
+                           bool round_bfactors, bool skip_ss) {
   
   Load(stream, ch_name);
+  if(version >= 2) {
+    int8_t type;
+    stream.read(reinterpret_cast<char*>(&type), sizeof(int8_t));
+    chain_type = ost::mol::ChainType(type);
+  }
   LoadResDefIndices(stream, res_def_indices);
   LoadRnums(stream, rnums);
   LoadInsertionCodes(stream, insertion_codes);
@@ -3357,7 +3368,7 @@ void OMF::FromStream(std::istream& stream) {
   }
 
   Load(stream, biounit_definitions_);
-  Load(stream, chain_data_, residue_definitions_, OptionSet(LOSSY),
+  Load(stream, chain_data_, residue_definitions_, version_, OptionSet(LOSSY),
        OptionSet(AVG_BFACTORS), OptionSet(ROUND_BFACTORS), OptionSet(SKIP_SS));
   Load(stream, bond_chain_names_);
   Load(stream, bond_atoms_);
@@ -3371,6 +3382,7 @@ void OMF::FromStream(std::istream& stream) {
 void OMF::FillChain(ost::mol::ChainHandle& chain, ost::mol::XCSEditor& ed,
                     const ChainDataPtr data, geom::Mat4 t) const {
 
+  ed.SetChainType(chain, data->chain_type);
   geom::Vec3List* positions = &data->positions;
   geom::Vec3List transformed_positions; // only filled if non-identity transform
   if(t != geom::Mat4()) {
