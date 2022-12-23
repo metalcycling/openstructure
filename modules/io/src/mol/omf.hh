@@ -188,6 +188,16 @@ public:
 
   static int GetCurrentOMFVersion() { return OMF_VERSION; }
 
+  // data access without requirement of generating a full
+  // OpenStructure entity
+  std::vector<String> GetChainNames() const;
+
+  const geom::Vec3List& GetPositions(const String& cname) const;
+
+  const std::vector<Real>& GetBFactors(const String& cname) const;
+
+  String GetSequence(const String& cname) const;
+
 private:
   // only construct with static functions
   OMF(): options_(0) { }

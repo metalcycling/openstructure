@@ -3653,6 +3653,43 @@ void OMF::FillChain(ost::mol::ChainHandle& chain, ost::mol::XCSEditor& ed,
       }
     }
   }
-} 
+}
+
+std::vector<String> OMF::GetChainNames() const{
+  std::vector<String> chain_names;
+  for(auto it = chain_data_.begin(); it != chain_data_.end(); ++it) {
+    chain_names.push_back(it->first);
+  }
+  return chain_names;
+}
+
+const geom::Vec3List& OMF::GetPositions(const String& cname) const {
+  auto it = chain_data_.find(cname);
+  if(it == chain_data_.end()) {
+    throw ost::Error("Provided chain name not in OMF structure");
+  }
+  return it->second->positions;
+}
+
+const std::vector<Real>& OMF::GetBFactors(const String& cname) const {
+  auto it = chain_data_.find(cname);
+  if(it == chain_data_.end()) {
+    throw ost::Error("Provided chain name not in OMF structure");
+  }
+  return it->second->bfactors;
+}
+
+String OMF::GetSequence(const String& cname) const {
+  auto it = chain_data_.find(cname);
+  if(it == chain_data_.end()) {
+    throw ost::Error("Provided chain name not in OMF structure");
+  }
+  const std::vector<int>& indices = it->second->res_def_indices;
+  String sequence(indices.size(), 'X');
+  for(size_t i = 0; i < indices.size(); ++i) {
+    sequence[i] = residue_definitions_[indices[i]].olc;
+  }
+  return sequence;
+}
 
 }} //ns

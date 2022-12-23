@@ -26,6 +26,16 @@ using namespace ost::io;
 
 namespace{
 
+  template<typename T>
+  boost::python::list VecToList(const std::vector<T>& vec){
+    boost::python::list l;
+    for(typename std::vector<T>::const_iterator it=vec.begin();
+        it!=vec.end(); ++it){
+      l.append(*it);
+    }
+    return l;
+  }
+
   PyObject* wrap_to_bytes(OMFPtr omf) {
     String str = omf->ToString();
     return PyBytes_FromStringAndSize(str.c_str(), str.size());
@@ -34,6 +44,10 @@ namespace{
   OMFPtr wrap_from_bytes(boost::python::object obj) {
     String str(PyBytes_AsString(obj.ptr()), PyBytes_Size(obj.ptr()));
     return OMF::FromString(str);
+  }
+
+  boost::python::list wrap_get_chain_names(OMFPtr omf) {
+    return VecToList<String>(omf->GetChainNames());
   }
 
 }
@@ -59,5 +73,9 @@ void export_omf_io() {
     .def("GetAU", &OMF::GetAU)
     .def("GetAUChain", &OMF::GetAUChain)
     .def("GetBU", &OMF::GetBU)
+    .def("GetChainNames", &wrap_get_chain_names)
+    .def("GetPositions", &OMF::GetPositions, return_value_policy<reference_existing_object>(),(arg("cname")))
+    .def("GetBFactors", &OMF::GetBFactors, return_value_policy<reference_existing_object>(),(arg("cname")))
+    .def("GetSequence", &OMF::GetSequence, (arg("cname")))
   ;
 }
