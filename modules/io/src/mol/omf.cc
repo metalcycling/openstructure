@@ -967,7 +967,7 @@ DefaultPepLib::DefaultPepLib() {
   /* hardcoded constructor created with:
 
   from ost import conop
-  def ProcessCompound(comp_name, lib, skip_oxt=True):
+  def ProcessCompound(comp_name, lib, skip_oxt=True, ca_only=False):
       c = lib.FindCompound(comp_name)   
       anames = list()
       idx_mapper = dict()
@@ -976,6 +976,8 @@ DefaultPepLib::DefaultPepLib() {
           if a.element == "H":
               continue
           if skip_oxt and a.name == "OXT":
+              continue
+          if ca_only and a.name != "CA":
               continue
           idx_mapper[a_idx] = a.name
           anames.append(a.name)
@@ -1015,12 +1017,12 @@ DefaultPepLib::DefaultPepLib() {
   lib = conop.GetDefaultLib()
   anames = ["ALA", "ARG", "ASN", "ASP", "GLN", "GLU", "LYS", "SER", "CYS", "MET",
             "TRP", "TYR", "THR", "VAL", "ILE", "LEU", "GLY", "PRO", "HIS", "PHE"]
-  print("  ResidueDefinition res_def;");
+  print("  ResidueDefinition res_def;")
   for aname in anames:
     ProcessCompound(aname, lib)
     ProcessCompound(aname, lib, skip_oxt = False)
+    ProcessCompound(aname, lib, ca_only=True)
   */
-
   ResidueDefinition res_def;
   res_def = ResidueDefinition();
   res_def.name = "ALA";
@@ -1085,6 +1087,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ALA";
+  res_def.olc = 'A';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -1213,6 +1225,16 @@ DefaultPepLib::DefaultPepLib() {
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
+  res_def.name = "ARG";
+  res_def.olc = 'R';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
   res_def.name = "ASN";
   res_def.olc = 'N';
   res_def.chem_type = 'A';
@@ -1308,6 +1330,16 @@ DefaultPepLib::DefaultPepLib() {
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
+  res_def.name = "ASN";
+  res_def.olc = 'N';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
   res_def.name = "ASP";
   res_def.olc = 'D';
   res_def.chem_type = 'A';
@@ -1400,6 +1432,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "ASP";
+  res_def.olc = 'D';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -1508,6 +1550,16 @@ DefaultPepLib::DefaultPepLib() {
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
+  res_def.name = "GLN";
+  res_def.olc = 'Q';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
   res_def.name = "GLU";
   res_def.olc = 'E';
   res_def.chem_type = 'A';
@@ -1610,6 +1662,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "GLU";
+  res_def.olc = 'E';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -1718,6 +1780,16 @@ DefaultPepLib::DefaultPepLib() {
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
+  res_def.name = "LYS";
+  res_def.olc = 'K';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
   res_def.name = "SER";
   res_def.olc = 'S';
   res_def.chem_type = 'A';
@@ -1793,6 +1865,16 @@ DefaultPepLib::DefaultPepLib() {
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
+  res_def.name = "SER";
+  res_def.olc = 'S';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
   res_def.name = "CYS";
   res_def.olc = 'C';
   res_def.chem_type = 'A';
@@ -1865,6 +1947,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "CYS";
+  res_def.olc = 'C';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -1960,6 +2052,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "MET";
+  res_def.olc = 'M';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2130,6 +2232,16 @@ DefaultPepLib::DefaultPepLib() {
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
+  res_def.name = "TRP";
+  res_def.olc = 'W';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
   res_def.name = "TYR";
   res_def.olc = 'Y';
   res_def.chem_type = 'A';
@@ -2271,6 +2383,16 @@ DefaultPepLib::DefaultPepLib() {
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
+  res_def.name = "TYR";
+  res_def.olc = 'Y';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
   res_def.name = "THR";
   res_def.olc = 'T';
   res_def.chem_type = 'A';
@@ -2356,6 +2478,16 @@ DefaultPepLib::DefaultPepLib() {
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
+  res_def.name = "THR";
+  res_def.olc = 'T';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
   res_def.name = "VAL";
   res_def.olc = 'V';
   res_def.chem_type = 'A';
@@ -2438,6 +2570,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "VAL";
+  res_def.olc = 'V';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2536,6 +2678,16 @@ DefaultPepLib::DefaultPepLib() {
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
+  res_def.name = "ILE";
+  res_def.olc = 'I';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
   res_def.name = "LEU";
   res_def.olc = 'L';
   res_def.chem_type = 'A';
@@ -2628,6 +2780,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "LEU";
+  res_def.olc = 'L';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2686,6 +2848,16 @@ DefaultPepLib::DefaultPepLib() {
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
+  res_def.name = "GLY";
+  res_def.olc = 'G';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'P';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
   res_def.name = "PRO";
   res_def.olc = 'P';
   res_def.chem_type = 'A';
@@ -2774,6 +2946,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "PRO";
+  res_def.olc = 'P';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2895,6 +3077,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "HIS";
+  res_def.olc = 'H';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3026,6 +3218,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  residue_definitions.push_back(res_def);
+
+  res_def = ResidueDefinition();
+  res_def.name = "PHE";
+  res_def.olc = 'F';
+  res_def.chem_type = 'A';
+  res_def.chem_class = 'L';
+  res_def.anames.push_back("CA");
+  res_def.elements.push_back("C");
+  res_def.is_hetatm.assign(1, false);
   residue_definitions.push_back(res_def);
 }
 
