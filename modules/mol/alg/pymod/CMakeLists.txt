@@ -27,6 +27,7 @@ set(OST_MOL_ALG_PYMOD_MODULES
   scoring.py
   chain_mapping.py
   stereochemistry.py
+  ligand_scoring.py
 )
 
 if (NOT ENABLE_STATIC)
