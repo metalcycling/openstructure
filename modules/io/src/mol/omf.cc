@@ -174,10 +174,12 @@ namespace{
     int n = 0;
     int abs_min = std::abs(min);
     for(auto it = vec.begin(); it != vec.end(); ++it) {
-      if(*it > max) {
-        n += (*it/max + 1); 
-      } else if (*it < min) {
-        n += (std::abs(*it)/abs_min + 1);
+      if(*it >= max) {
+        n += *it/max;
+        ++n; 
+      } else if (*it <= min) {
+        n += std::abs(*it)/abs_min;
+        ++n;
       } else {
         ++n;
       }
@@ -186,10 +188,16 @@ namespace{
   }
 
   template<typename T>
-  void IntegerPacking(const std::vector<int>& in, std::vector<T>& out) {
+  void IntegerPacking(const std::vector<int>& in, std::vector<T>& out,
+                      int min, int max) {
 
-    int min = std::numeric_limits<T>::min();
-    int max = std::numeric_limits<T>::max();
+    if(min < std::numeric_limits<T>::min()) {
+      throw ost::Error("Invalid min val in IntegerPacking");
+    }
+
+    if(max > std::numeric_limits<T>::max()) {
+      throw ost::Error("Invalid max val in IntegerPacking");
+    }
 
     if(max <= min) {
       throw ost::Error("Min max error in IntegerPackingSize");
@@ -223,22 +231,29 @@ namespace{
   }
 
   template<typename T>
-  void IntegerUnpacking(const std::vector<T>& in, std::vector<int>& out) {
-    int min = std::numeric_limits<T>::min();
-    int max = std::numeric_limits<T>::max();
+  void IntegerUnpacking(const std::vector<T>& in, std::vector<int>& out,
+                        int min, int max) {
+
+    if(min < std::numeric_limits<T>::min()) {
+      throw ost::Error("Invalid min val in IntegerUnpacking");
+    }
+
+    if(max > std::numeric_limits<T>::max()) {
+      throw ost::Error("Invalid max val in IntegerUnpacking");
+    }
 
     if(max <= min) {
-      throw ost::Error("Min max error in IntegerPackingSize");
+      throw ost::Error("Min max error in IntegerUnpacking");
     }
 
     // We don't allow unsigned packing here => min must be negative,
     // max must be positive
     if(min >= 0) {
-      throw ost::Error("Min val in IntegerPacking must be negative");
+      throw ost::Error("Min val in IntegerUnpacking must be negative");
     }
 
     if(max <= 0) {
-      throw ost::Error("Max val in IntegerPacking must be positive");
+      throw ost::Error("Max val in IntegerUnpacking must be positive");
     }
 
     out.clear();
@@ -354,11 +369,13 @@ namespace{
     if(encoding == 8) {
       std::vector<int8_t> int8_vec;
       LoadIntVec(stream, int8_vec);
-      IntegerUnpacking(int8_vec, vec);
+      IntegerUnpacking(int8_vec, vec, std::numeric_limits<int8_t>::min(),
+                       std::numeric_limits<int8_t>::max());
     } else if(encoding == 16) {
       std::vector<int16_t> int16_vec;
       LoadIntVec(stream, int16_vec);
-      IntegerUnpacking(int16_vec, vec);
+      IntegerUnpacking(int16_vec, vec, std::numeric_limits<int16_t>::min(),
+                       std::numeric_limits<int16_t>::max());
     } else if(encoding == 32) {
       LoadIntVec(stream, vec);
     } else {
@@ -390,12 +407,16 @@ namespace{
       DumpIntVec(stream, vec);
     } else if(encoding == 16) {
       std::vector<int16_t> packed;
-      IntegerPacking(vec, packed);
+      IntegerPacking(vec, packed, std::numeric_limits<int16_t>::min(),
+                     std::numeric_limits<int16_t>::max());
       DumpIntVec(stream, packed);
     } else if(encoding == 8) {
       std::vector<int8_t> packed;
-      IntegerPacking(vec, packed);
+      IntegerPacking(vec, packed, std::numeric_limits<int8_t>::min(),
+                     std::numeric_limits<int8_t>::max());
       DumpIntVec(stream, packed);
+    } else {
+      throw ost::Error("AAAAAAAAaaaaaa!");
     }
   }
 
@@ -689,6 +710,104 @@ namespace{
   void DumpResDefIndices(std::ostream& stream, const std::vector<int>& indices) {
     Dump(stream, indices);
   }
+
+  void LoadSecStructures(std::istream& stream,
+                         std::vector<char>& sec_structures) {
+    std::vector<int> run_length_encoded;
+    Load(stream, run_length_encoded);
+    std::vector<int> transformed_sec_structures;
+    RunLengthDecoding(run_length_encoded, transformed_sec_structures);
+    sec_structures.clear();
+    sec_structures.reserve(transformed_sec_structures.size());
+    for(auto it = transformed_sec_structures.begin();
+        it != transformed_sec_structures.end(); ++it) {
+      switch(*it) {
+        case 0: {
+          sec_structures.push_back(ost::mol::SecStructure::ALPHA_HELIX);
+          break;
+        }
+        case 1: {
+          sec_structures.push_back(ost::mol::SecStructure::COIL);
+          break;
+        }
+        case 2: {
+          sec_structures.push_back(ost::mol::SecStructure::THREE_TEN_HELIX);
+          break;
+        }
+        case 3: {
+          sec_structures.push_back(ost::mol::SecStructure::TURN);
+          break;
+        }
+        case 4: {
+          sec_structures.push_back(ost::mol::SecStructure::EXTENDED);
+          break;
+        }
+        case 5: {
+          sec_structures.push_back(ost::mol::SecStructure::BETA_BRIDGE);
+          break;
+        }
+        case 6: {
+          sec_structures.push_back(ost::mol::SecStructure::BEND);
+          break;
+        }
+        case 7: {
+          sec_structures.push_back(ost::mol::SecStructure::PI_HELIX);
+          break;
+        }
+        default: {
+          throw ost::Error("Invalid sec structure observed");
+        }
+      }
+    }
+  }
+
+  void DumpSecStructures(std::ostream& stream,
+                         const std::vector<char>& sec_structures) {
+    std::vector<int> transformed_sec_structures;
+    transformed_sec_structures.reserve(sec_structures.size());
+    for(auto it = sec_structures.begin(); it != sec_structures.end(); ++it) {
+      switch(*it) {
+        case ost::mol::SecStructure::ALPHA_HELIX: {
+          transformed_sec_structures.push_back(0);
+          break;
+        }
+        case ost::mol::SecStructure::COIL: {
+          transformed_sec_structures.push_back(1);
+          break;
+        }
+        case ost::mol::SecStructure::THREE_TEN_HELIX: {
+          transformed_sec_structures.push_back(2);
+          break;
+        }
+        case ost::mol::SecStructure::TURN: {
+          transformed_sec_structures.push_back(3);
+          break;
+        }
+        case ost::mol::SecStructure::EXTENDED: {
+          transformed_sec_structures.push_back(4);
+          break;
+        }
+        case ost::mol::SecStructure::BETA_BRIDGE: {
+          transformed_sec_structures.push_back(5);
+          break;
+        }
+        case ost::mol::SecStructure::BEND: {
+          transformed_sec_structures.push_back(6);
+          break;
+        }
+        case ost::mol::SecStructure::PI_HELIX: {
+          transformed_sec_structures.push_back(7);
+          break;
+        }
+        default: {
+          throw ost::Error("Invalid sec structure observed");
+        }
+      }
+    }
+    std::vector<int> run_length_encoded;
+    RunLengthEncoding(transformed_sec_structures, run_length_encoded);
+    Dump(stream, run_length_encoded);
+  }
 }
 
 
@@ -922,7 +1041,7 @@ void ChainData::ToStream(std::ostream& stream,
   DumpBonds(stream, bonds);
   DumpBondOrders(stream, bond_orders);
   if(!skip_ss) {
-    DumpIntVec(stream, sec_structures);
+    DumpSecStructures(stream, sec_structures);
   }
 }
 
@@ -958,7 +1077,11 @@ void ChainData::FromStream(std::istream& stream,
   if(skip_ss) {
     sec_structures.assign(res_def_indices.size(), 'C');
   } else {
-    LoadIntVec(stream, sec_structures);
+    if(version >= 2) {
+      LoadSecStructures(stream, sec_structures);
+    } else {
+      LoadIntVec(stream, sec_structures);
+    }
   }
 }
 
