@@ -808,6 +808,26 @@ namespace{
     RunLengthEncoding(transformed_sec_structures, run_length_encoded);
     Dump(stream, run_length_encoded);
   }
+
+  void DumpName(std::ostream& stream, const String& name) {
+    if(name.size() > std::numeric_limits<uint8_t>::max()) {
+      std::stringstream ss;
+      ss << "Max name size that can be dumped is ";
+      ss << std::numeric_limits<uint8_t>::max << ". ";
+      ss << "got: "<<name<<std::endl;
+      throw ost::Error(ss.str());
+    }
+    uint8_t size = name.size();
+    stream.write(reinterpret_cast<char*>(&size), sizeof(uint8_t));
+    stream.write(reinterpret_cast<const char*>(&name[0]), size*sizeof(char));
+  }
+
+  void LoadName(std::istream& stream, String& name) {
+    uint8_t size;
+    stream.read(reinterpret_cast<char*>(&size), sizeof(uint8_t));
+    name.resize(size);
+    stream.read(reinterpret_cast<char*>(&name[0]), size*sizeof(uint8_t));
+  }
 }
 
 
@@ -3358,7 +3378,9 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent,
                        uint8_t options) {
 
   OMFPtr omf(new OMF);
+  omf->name_ = ent.GetName();
   omf->options_ = options;
+  omf->version_ = OMF_VERSION;
 
   //////////////////////////////////////////////////////////////////////////////
   // Generate kind of a "mini compound library"... Eeach unique residue gets  //
@@ -3538,6 +3560,7 @@ String OMF::ToString() const {
 
 ost::mol::EntityHandle OMF::GetAU() const{
   ost::mol::EntityHandle ent = mol::CreateEntity();
+  ent.SetName(name_);
   ost::mol::XCSEditor ed = ent.EditXCS(mol::BUFFERED_EDIT);
 
   for(auto it = chain_data_.begin(); it!=chain_data_.end(); ++it) {
@@ -3563,6 +3586,9 @@ ost::mol::EntityHandle OMF::GetAUChain(const String& name) const{
     throw ost::Error("No chain of name " + name);
   }
   ost::mol::EntityHandle ent = mol::CreateEntity();
+  std::stringstream ss;
+  ss << name_ << " " << name;
+  ent.SetName(ss.str());
   ost::mol::XCSEditor ed = ent.EditXCS(mol::BUFFERED_EDIT);
   ost::mol::ChainHandle ch = ed.InsertChain(name);  
   this->FillChain(ch, ed, chain_data_.at(name));
@@ -3576,6 +3602,9 @@ ost::mol::EntityHandle OMF::GetBU(int bu_idx) const{
 
   const BioUnitDefinition& bu = biounit_definitions_[bu_idx];
   ost::mol::EntityHandle ent = mol::CreateEntity();
+  std::stringstream ss;
+  ss << name_ << " " << bu_idx;
+  ent.SetName(ss.str());
   ost::mol::XCSEditor ed = ent.EditXCS(mol::BUFFERED_EDIT);
 
   std::vector<String> au_chain_names;
@@ -3634,9 +3663,10 @@ void OMF::ToStream(std::ostream& stream) const {
   // We set it to the current version...
   // If you loaded a structure from a previous version and you dump it again,
   // the version will be updated.
-  uint32_t version = OMF_VERSION;
+  uint32_t version = version_;
   stream.write(reinterpret_cast<char*>(&version), sizeof(uint32_t));
   stream.write(reinterpret_cast<const char*>(&options_), sizeof(uint8_t));
+  DumpName(stream, name_);
 
   if(OptionSet(DEFAULT_PEPLIB)) {
     // no need to dump the residue definitions from default lib
@@ -3678,6 +3708,7 @@ void OMF::FromStream(std::istream& stream) {
 
   if(version_ > 1) {
     stream.read(reinterpret_cast<char*>(&options_), sizeof(uint8_t));
+    LoadName(stream, name_);
   }
 
   if(OptionSet(DEFAULT_PEPLIB)) {

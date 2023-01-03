@@ -190,6 +190,9 @@ public:
 
   // data access without requirement of generating a full
   // OpenStructure entity
+
+  String GetName() const { return name_; }
+
   std::vector<String> GetChainNames() const;
 
   const geom::Vec3List& GetPositions(const String& cname) const;
@@ -210,6 +213,7 @@ private:
                  const ChainDataPtr data, 
                  geom::Mat4 transform = geom::Mat4()) const;
 
+  String name_;
   std::vector<ResidueDefinition> residue_definitions_;
   std::vector<BioUnitDefinition> biounit_definitions_;
   std::map<String, ChainDataPtr> chain_data_;
