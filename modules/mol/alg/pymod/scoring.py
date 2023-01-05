@@ -172,7 +172,7 @@ class Scorer:
 
         if molck_settings is None:
             molck_settings = MolckSettings(rm_unk_atoms=True,
-                                           rm_non_std=True,
+                                           rm_non_std=False,
                                            rm_hyd_atoms=True,
                                            rm_oxt_atoms=True,
                                            rm_zero_occ_atoms=False,
