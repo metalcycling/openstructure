@@ -209,7 +209,8 @@ class LigandScorer:
             else:
                 raise RuntimeError("Ligands should be given as Entity or Residue")
 
-        new_editor.UpdateICS()
+        if new_editor is not None:
+            new_editor.UpdateICS()
         return extracted_ligands
 
 
