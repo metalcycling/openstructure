@@ -39,9 +39,9 @@ class TestLigandScoring(unittest.TestCase):
         assert len(sc.model_ligands) == 1
         
         # Ensure the residues are not copied
-        assert len(sc._target.Select("rname=MG").residues) == 2
-        assert len(sc._target.Select("rname=G3D").residues) == 2
-        assert len(sc._model.Select("rname=G3D").residues) == 1
+        assert len(sc.target.Select("rname=MG").residues) == 2
+        assert len(sc.target.Select("rname=G3D").residues) == 2
+        assert len(sc.model.Select("rname=G3D").residues) == 1
 
         # Pass residue handles
         trg_lig = [trg.FindResidue("F", 1), trg.FindResidue("H", 1)]
@@ -52,9 +52,9 @@ class TestLigandScoring(unittest.TestCase):
         assert len(sc.model_ligands) == 1
 
         # Ensure the residues are not copied
-        assert len(sc._target.Select("rname=ZN").residues) == 1
-        assert len(sc._target.Select("rname=G3D").residues) == 2
-        assert len(sc._model.Select("rname=G3D").residues) == 1
+        assert len(sc.target.Select("rname=ZN").residues) == 1
+        assert len(sc.target.Select("rname=G3D").residues) == 2
+        assert len(sc.model.Select("rname=G3D").residues) == 1
 
 
     def test_init_sdf_ligands(self):
@@ -99,4 +99,4 @@ if __name__ == "__main__":
     if testutils.SetDefaultCompoundLib():
         testutils.RunTests()
     else:
-        print('No compound lib available. Ignoring test_chain_mapping.py tests.')
+        print('No compound lib available. Ignoring test_ligand_scoring.py tests.')
