@@ -9,7 +9,7 @@ class LigandScorer:
     scores available from ost.mol.alg.
 
     Mostly expects cleaned up structures (you can use the
-    `~ost.mol.alg.scoring.Scorer` outputs for that).
+    :class:`~ost.mol.alg.scoring.Scorer` outputs for that).
 
     :param model: Model structure - a deep copy is available as :attr:`model`.
                   No additional processing (ie. Molck), checks,
@@ -21,7 +21,7 @@ class LigandScorer:
                   is performed on the input.
     :type target: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
     :param model_ligands: Model ligands, as a list of
-                  :class:`ost.mol.ResidueHandle`s belonging to the model
+                  :class:`ost.mol.ResidueHandle` belonging to the model
                   entity. Can be instantiated with either a :class:list of
                   :class:`ost.mol.ResidueHandle`/:class:`ost.mol.ResidueView`
                   or of :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`.
@@ -31,7 +31,7 @@ class LigandScorer:
                   entities loaded from mmCIF).
     :type model_ligands: :class:`list`
     :param target_ligands: Target ligands, as a list of
-                  :class:`ost.mol.ResidueHandle`s belonging to the target
+                  :class:`ost.mol.ResidueHandle` belonging to the target
                   entity. Can be instanciated either a :class:list of
                   :class:`ost.mol.ResidueHandle`/:class:`ost.mol.ResidueView`
                   or of :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`

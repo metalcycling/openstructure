@@ -115,6 +115,16 @@ Local Distance Test scores (lDDT, DRMSD)
 .. currentmodule:: ost.mol.alg
 
 
+:mod:`ligand_scoring <ost.mol.alg.ligand_scoring>` -- Ligand scoring functions
+--------------------------------------------------------------------------------
+
+.. autoclass:: ost.mol.alg.ligand_scoring.LigandScorer
+   :members:
+   :member-order: bysource
+
+.. currentmodule:: ost.mol.alg
+
+
 :mod:`chain_mapping <ost.mol.alg.chain_mapping>` -- Chain Mapping
 --------------------------------------------------------------------------------
 
