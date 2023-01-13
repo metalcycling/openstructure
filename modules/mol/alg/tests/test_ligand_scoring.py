@@ -12,14 +12,83 @@ except ImportError:
 
 class TestLigandScoring(unittest.TestCase):
 
-    def test_extract_ligands(self):
+    def test_extract_ligands_mmCIF(self):
         """Test that we can extract ligands from mmCIF files.
         """
-
-        trg = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"))
-        mdl = io.LoadMMCIF(os.path.join('testfiles', "P84080_model_02.cif.gz"))
+        trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
+        mdl, mdl_seqres = io.LoadMMCIF(os.path.join('testfiles', "P84080_model_02.cif.gz"), seqres=True)
 
         sc = LigandScorer(mdl, trg, None, None)
+
+        assert len(sc.target_ligands) == 7
+        assert len(sc.model_ligands) == 1
+
+    def test_init_given_ligands(self):
+        """Test that we can instantiate the scorer with ligands contained in
+        the target and model entity and given in a list.
+        """
+        trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
+        mdl, mdl_seqres = io.LoadMMCIF(os.path.join('testfiles', "P84080_model_02.cif.gz"), seqres=True)
+
+        # Pass entity views
+        trg_lig = [trg.Select("rname=MG"), trg.Select("rname=G3D")]
+        mdl_lig = [mdl.Select("rname=G3D")]
+        sc = LigandScorer(mdl, trg, mdl_lig, trg_lig)
+
+        assert len(sc.target_ligands) == 4
+        assert len(sc.model_ligands) == 1
+        
+        # Ensure the residues are not copied
+        assert len(sc._target.Select("rname=MG").residues) == 2
+        assert len(sc._target.Select("rname=G3D").residues) == 2
+        assert len(sc._model.Select("rname=G3D").residues) == 1
+
+        # Pass residue handles
+        trg_lig = [trg.FindResidue("F", 1), trg.FindResidue("H", 1)]
+        mdl_lig = [mdl.FindResidue("L_2", 1)]
+        sc = LigandScorer(mdl, trg, mdl_lig, trg_lig)
+
+        assert len(sc.target_ligands) == 2
+        assert len(sc.model_ligands) == 1
+
+        # Ensure the residues are not copied
+        assert len(sc._target.Select("rname=ZN").residues) == 1
+        assert len(sc._target.Select("rname=G3D").residues) == 2
+        assert len(sc._model.Select("rname=G3D").residues) == 1
+
+
+    def test_init_sdf_ligands(self):
+        """Test that we can instantiate the scorer with ligands from separate SDF files.
+
+        In order to setup the ligand SDF files, the following code was used:
+        for prefix in [os.path.join('testfiles', x) for x in ["1r8q", "P84080_model_02"]]:
+            trg = io.LoadMMCIF("%s.cif.gz" % prefix)
+            trg_prot = trg.Select("protein=True")
+            io.SavePDB(trg_prot, "%s_protein.pdb.gz" % prefix)
+            lig_num = 0
+            for chain in trg.chains:
+                if chain.chain_type == mol.ChainType.CHAINTYPE_NON_POLY:
+                    lig_sel = trg.Select("cname=%s" % chain.name)
+                    lig_ent = mol.CreateEntityFromView(lig_sel, False)
+                    io.SaveEntity(lig_ent, "%s_ligand_%d.sdf" % (prefix, lig_num))
+                    lig_num += 1
+        """
+        mdl = io.LoadPDB(os.path.join('testfiles', "P84080_model_02_nolig.pdb"))
+        mdl_ligs = [io.LoadEntity(os.path.join('testfiles', "P84080_model_02_ligand_0.sdf"))]
+        trg = io.LoadPDB(os.path.join('testfiles', "1r8q_protein.pdb.gz"))
+        trg_ligs = [io.LoadEntity(os.path.join('testfiles', "1r8q_ligand_%d.sdf" % i)) for i in range(7)]
+
+        # Pass entities
+        sc = LigandScorer(mdl, trg, mdl_ligs, trg_ligs)
+
+        assert len(sc.target_ligands) == 7
+        assert len(sc.model_ligands) == 1
+
+        # Pass residues
+        mdl_ligs_res = [mdl_ligs[0].residues[0]]
+        trg_ligs_res = [res for ent in trg_ligs for res in ent.residues]
+
+        sc = LigandScorer(mdl, trg, mdl_ligs_res, trg_ligs_res)
 
         assert len(sc.target_ligands) == 7
         assert len(sc.model_ligands) == 1

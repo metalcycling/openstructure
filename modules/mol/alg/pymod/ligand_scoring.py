@@ -20,15 +20,19 @@ class LigandScorer:
                   No additional processing (ie. Molck), checks or sanitization
                   is performed on the input.
     :type target: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
-    :param model_ligands: Model ligands, either a :class:list of
+    :param model_ligands: Model ligands, as a list of
+                  :class:`ost.mol.ResidueHandle`s belonging to the model
+                  entity. Can be instantiated with either a :class:list of
                   :class:`ost.mol.ResidueHandle`/:class:`ost.mol.ResidueView`
-                  or of :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
-                  containing a single residue each. If `None`, ligands will be
-                  extracted from the `model` entity, from chains with
-                  :class:`~ost.mol.ChainType` `CHAINTYPE_NON_POLY` (this is
-                  normally set properly in entities loaded from mmCIF).
+                  or of :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`.
+                  If `None`, ligands will be extracted from the `model` entity,
+                  from chains with :class:`~ost.mol.ChainType`
+                  `CHAINTYPE_NON_POLY` (this is normally set properly in
+                  entities loaded from mmCIF).
     :type model_ligands: :class:`list`
-    :param target_ligands: Target ligands, either a :class:list of
+    :param target_ligands: Target ligands, as a list of
+                  :class:`ost.mol.ResidueHandle`s belonging to the target
+                  entity. Can be instanciated either a :class:list of
                   :class:`ost.mol.ResidueHandle`/:class:`ost.mol.ResidueView`
                   or of :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
                   containing a single residue each. If `None`, ligands will be
@@ -46,38 +50,35 @@ class LigandScorer:
                          lazily as required.
     :type chain_mapper:  :class:`ost.mol.alg.chain_mapping.ChainMapper`
 
-
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
                  resnum_alignments=False, chain_mapper=None):
 
         if isinstance(model, mol.EntityView):
-            self._model = mol.CreateEntityFromView(model, False)
+            self.model = mol.CreateEntityFromView(model, False)
         elif isinstance(model, mol.EntityHandle):
-            self._model = model.Copy()
+            self.model = model.Copy()
         else:
             raise RuntimeError("model must be of type EntityView/EntityHandle")
 
         if isinstance(target, mol.EntityView):
-            self._target = mol.CreateEntityFromView(target, False)
+            self.target = mol.CreateEntityFromView(target, False)
         elif isinstance(target, mol.EntityHandle):
-            self._target = target.Copy()
+            self.target = target.Copy()
         else:
             raise RuntimeError("model must be of type EntityView/EntityHandle")
 
         # Extract ligands from target
         if target_ligands is None:
-            self.target_ligands = self._extract_ligands(self._target)
+            self.target_ligands = self._extract_ligands(self.target)
         else:
-            # TODO: sanitize given ligands
-            self.target_ligands = target_ligands
+            self.target_ligands = self._prepare_ligands(self.target, target, target_ligands)
 
         # Extract ligands from model
         if model_ligands is None:
-            self.model_ligands = self._extract_ligands(self._model)
+            self.model_ligands = self._extract_ligands(self.model)
         else:
-            # TODO: sanitize given ligands
-            self.model_ligands = target_ligands
+            self.model_ligands = self._prepare_ligands(self.model, model, model_ligands)
 
         self._chain_mapper = chain_mapper
         self.resnum_alignments = resnum_alignments
@@ -134,3 +135,82 @@ class LigandScorer:
                     extracted_ligands.append(residue)
         return extracted_ligands
 
+    @staticmethod
+    def _prepare_ligands(new_entity, old_entity, ligands):
+        """Prepare the ligands given into a list of ResidueHandles which are
+        part of the copied entity, suitable for the model_ligands and
+        target_ligands properties.
+
+        This function takes a list of ligands as (Entity|Residue)(Handle|View).
+        Entities can contain multiple ligands, which will be considered as
+        separate ligands.
+
+        Ligands which are part of the entity are simply fetched in the new
+        copied entity. Otherwise, they are copied over to the copied entity.
+
+        If
+        Copy ligands into the new copied entity, if needed.
+
+
+
+        and prepares the list of ligands to be returned as a list of
+        ResidueHandles which are part of the copied entity, and suitable for
+        model_ligands and target_ligands.
+
+        Multiple ligands can be supplied at once in an entity.
+        """
+        extracted_ligands = []
+
+        next_chain_num = 1
+        new_editor = None
+
+        def _copy_residue(handle):
+            """ Copy the residue handle into the new chain.
+            Return the new residue handle."""
+            nonlocal next_chain_num, new_editor
+
+            # Instanciate the editor
+            if new_editor is None:
+                new_editor = new_entity.EditXCS()
+
+            # Add a new chain
+            new_chain = None
+            while new_chain is None:
+                try:
+                    new_chain = new_editor.InsertChain(str(next_chain_num))
+                    next_chain_num += 1
+                    break
+                except Exception:
+                    next_chain_num += 1
+            # Add the residue with residue number 1
+            new_res = new_editor.AppendResidue(new_chain, handle, deep=True)
+            new_res.SetIsLigand(True)
+            new_editor.SetResidueNumber(new_res, mol.ResNum(1))
+            return new_res
+
+        def _process_ligand_residue(res):
+            """Copy or fetch the residue. Return the residue handle."""
+            if res.entity.handle == old_entity.handle:
+                # Residue is already in copied entity. We only need to grab it
+                new_res = new_entity.FindResidue(res.chain.name, res.number)
+            else:
+                # Residue is not part of the entity, need to copy it first
+                new_res = _copy_residue(res.handle)
+            return new_res
+
+        for ligand in ligands:
+            if isinstance(ligand, mol.EntityHandle) or isinstance(ligand, mol.EntityView):
+                for residue in ligand.residues:
+                    new_residue = _process_ligand_residue(residue)
+                    extracted_ligands.append(new_residue)
+            elif isinstance(ligand, mol.ResidueHandle) or isinstance(ligand, mol.ResidueView):
+                new_residue = _process_ligand_residue(ligand)
+                extracted_ligands.append(new_residue)
+            else:
+                raise RuntimeError("Ligands should be given as Entity or Residue")
+
+        new_editor.UpdateICS()
+        return extracted_ligands
+
+
+__all__ = ["LigandScorer"]
