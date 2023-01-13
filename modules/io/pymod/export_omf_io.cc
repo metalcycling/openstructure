@@ -73,6 +73,7 @@ void export_omf_io() {
     .def("GetAU", &OMF::GetAU)
     .def("GetAUChain", &OMF::GetAUChain)
     .def("GetBU", &OMF::GetBU)
+    .def("GetName", &OMF::GetName)
     .def("GetChainNames", &wrap_get_chain_names)
     .def("GetPositions", &OMF::GetPositions, return_value_policy<reference_existing_object>(),(arg("cname")))
     .def("GetBFactors", &OMF::GetBFactors, return_value_policy<reference_existing_object>(),(arg("cname")))

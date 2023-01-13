@@ -78,7 +78,13 @@ def compare_bonds(ent1, ent2):
 def compare_ent(ent1, ent2, at_occupancy_thresh = 0.01,
                 at_bfactor_thresh = 0.01, at_dist_thresh = 0.001,
                 skip_ss=False, skip_cnames = False, skip_bonds = False,
-                skip_rnums=False):
+                skip_rnums=False, bu_idx = None):
+    if bu_idx is not None:
+        if ent1.GetName() + ' ' + str(bu_idx) != ent2.GetName():
+            return False
+    else:
+        if ent1.GetName() != ent2.GetName():
+            return False
     chain_names_one = [ch.GetName() for ch in ent1.chains]
     chain_names_two = [ch.GetName() for ch in ent2.chains]
     if skip_cnames:
@@ -109,6 +115,7 @@ class TestOMF(unittest.TestCase):
         self.ent = ent
         self.seqres = seqres
         self.info = info
+        self.ent.SetName("This is a name 123")
 
     def test_AU(self):
         omf = io.OMF.FromMMCIF(self.ent, self.info)
@@ -220,15 +227,15 @@ class TestOMF(unittest.TestCase):
         # - skip_bonds: Thats qualified atom name based. PDBize used rnums
         #               and insertion codes for waters...
         # - skip_rnums: Again, insertion codes for waters...
-        self.assertTrue(compare_ent(omf_loaded.GetBU(0),
-                                    info.GetBioUnits()[0].PDBize(ent),
+        self.assertTrue(compare_ent(info.GetBioUnits()[0].PDBize(ent),
+                                    omf_loaded.GetBU(0),
                                     skip_cnames=True, skip_bonds=True,
-                                    skip_rnums=True))
+                                    skip_rnums=True, bu_idx = 0))
 
-        self.assertTrue(compare_ent(omf_loaded.GetBU(1),
-                                    info.GetBioUnits()[1].PDBize(ent),
+        self.assertTrue(compare_ent(info.GetBioUnits()[1].PDBize(ent),
+                                    omf_loaded.GetBU(1),
                                     skip_cnames=True, skip_bonds=True,
-                                    skip_rnums=True))
+                                    skip_rnums=True, bu_idx = 1))
 
         # no check for the full guy... problem: PDBize throws all water
         # molecules in the same chain, whereas OMF keeps them separate
