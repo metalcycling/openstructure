@@ -130,6 +130,9 @@ ChainImplPtr EntityImpl::InsertChain(const String& chain_name, const ChainImplPt
 {
   ChainImplPtr dst_chain=this->InsertChain(chain_name);
   dst_chain->Assign(*chain.get());
+  // Copy non generic properties
+  dst_chain->SetDescription(chain->GetDescription());
+  dst_chain->SetType(chain->GetType());
   if(deep)
   {
       ResidueImplList::iterator it=chain->GetResidueList().begin(),
