@@ -169,23 +169,25 @@ class LigandScorer:
             Return the new residue handle."""
             nonlocal next_chain_num, new_editor
 
+            # Does a residue with the same name already exist?
+            already_exists = new_entity.FindResidue(handle.chain.name,
+                                                    handle.number).IsValid()
+            if already_exists:
+                msg = "A residue number %s already exists in chain %s" %(
+                    handle.number, handle.chain.name)
+                raise RuntimeError(msg)
+
             # Instanciate the editor
             if new_editor is None:
                 new_editor = new_entity.EditXCS()
 
-            # Add a new chain
-            new_chain = None
-            while new_chain is None:
-                try:
-                    new_chain = new_editor.InsertChain(str(next_chain_num))
-                    next_chain_num += 1
-                    break
-                except Exception:
-                    next_chain_num += 1
-            # Add the residue with residue number 1
+            # Get or create the chain
+            new_chain = new_entity.FindChain(handle.chain.name)
+            if not new_chain.IsValid():
+                new_chain = new_editor.InsertChain(handle.chain.name)
+            # Add the residue with its original residue number
             new_res = new_editor.AppendResidue(new_chain, handle, deep=True)
             new_res.SetIsLigand(True)
-            new_editor.SetResidueNumber(new_res, mol.ResNum(1))
             return new_res
 
         def _process_ligand_residue(res):

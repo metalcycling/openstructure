@@ -56,7 +56,6 @@ class TestLigandScoring(unittest.TestCase):
         assert len(sc.target.Select("rname=G3D").residues) == 2
         assert len(sc.model.Select("rname=G3D").residues) == 1
 
-
     def test_init_sdf_ligands(self):
         """Test that we can instantiate the scorer with ligands from separate SDF files.
 
@@ -92,6 +91,29 @@ class TestLigandScoring(unittest.TestCase):
 
         assert len(sc.target_ligands) == 7
         assert len(sc.model_ligands) == 1
+
+    def test_init_reject_duplicate_ligands(self):
+        """Test that we reject input if multiple ligands with the same chain
+         name/residue number are given.
+        """
+        mdl = io.LoadPDB(os.path.join('testfiles', "P84080_model_02_nolig.pdb"))
+        mdl_ligs = [io.LoadEntity(os.path.join('testfiles', "P84080_model_02_ligand_0.sdf"))]
+        trg = io.LoadPDB(os.path.join('testfiles', "1r8q_protein.pdb.gz"))
+        trg_ligs = [io.LoadEntity(os.path.join('testfiles', "1r8q_ligand_%d.sdf" % i)) for i in range(7)]
+
+        # Reject identical model ligands
+        with self.assertRaises(RuntimeError):
+            sc = LigandScorer(mdl, trg, [mdl_ligs[0], mdl_ligs[0]], trg_ligs)
+
+        # Reject identical target ligands
+        lig0 = trg_ligs[0]
+        lig1 = trg_ligs[1]
+        ed1 = lig1.EditXCS()
+        ed1.RenameChain(lig1.chains[0], lig0.chains[0].name)
+        ed1.SetResidueNumber(lig1.residues[0], lig0.residues[0].number)
+        with self.assertRaises(RuntimeError):
+            sc = LigandScorer(mdl, trg, mdl_ligs, [lig0, lig1])
+
 
 
 if __name__ == "__main__":
