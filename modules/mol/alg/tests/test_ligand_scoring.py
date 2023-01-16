@@ -5,8 +5,8 @@ from ost import io, mol
 try:
     from ost.mol.alg.ligand_scoring import *
 except ImportError:
-    print("Failed to import ligand_scoring.py. Happens when numpy or scipy " \
-          "missing. Ignoring test_ligand_scoring.py tests.")
+    print("Failed to import ligand_scoring.py. Happens when numpy, scipy or "
+          "networkx is missing. Ignoring test_ligand_scoring.py tests.")
     sys.exit(0)
 
 
@@ -114,6 +114,14 @@ class TestLigandScoring(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             sc = LigandScorer(mdl, trg, mdl_ligs, [lig0, lig1])
 
+    def test_ResidueToGraph(self):
+        """Test that ResidueToGraph works as expected
+        """
+        mdl_lig = io.LoadEntity(os.path.join('testfiles', "P84080_model_02_ligand_0.sdf"))
+
+        graph = ResidueToGraph(mdl_lig.residues[0])
+        assert len(graph.edges) == 34
+        assert len(graph.nodes) == 32
 
 
 if __name__ == "__main__":

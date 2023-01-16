@@ -28,6 +28,7 @@ RUN apt-get update -y && apt-get install -y cmake \
                                             python3-numpy \
                                             python3-scipy \
                                             python3-pandas \
+                                            python3-networkx \
                                             doxygen \
                                             swig \
                                             clustalw \
