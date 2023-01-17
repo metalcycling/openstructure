@@ -198,6 +198,28 @@ Real Vec3List::GetGDT(const Vec3List& other, Real thresh, bool norm) const
   return norm && !this->empty() ? static_cast<Real>(n)/(this->size()) : n;
 }
 
+Real Vec3List::GetMinDist(const Vec3List& other) const {
+  Real min = std::numeric_limits<Real>::max();
+  for(size_t i = 0; i < this->size(); ++i) {
+    for(size_t j = 0; j < other.size(); ++j) {
+      min = std::min(min, geom::Length2((*this)[i] - other[j]));
+    }
+  }
+  return std::sqrt(min);
+}
+
+bool Vec3List::IsWithin(const Vec3List& other, Real dist) const {
+  Real squared_dist = dist*dist;
+  for(size_t i = 0; i < this->size(); ++i) {
+    for(size_t j = 0; j < other.size(); ++j) {
+      if(geom::Length2((*this)[i] - other[j]) <= squared_dist) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 std::pair<Line3, Real> Vec3List::FitCylinder(const Vec3& initial_direction) const
   { 
     Vec3 center=this->GetCenter();
