@@ -44,6 +44,7 @@ void export_Bond()
     .add_property("bond_order",
                   &BondHandle::GetBondOrder,
                   &BondHandle::SetBondOrder)
+    .add_property("valid", &BondHandle::IsValid)
     .def("GetFirst", &BondHandle::GetFirst)    
     .def("GetSecond",&BondHandle::GetSecond)
     .def("GetOther",&BondHandle::GetOther)
@@ -55,6 +56,8 @@ void export_Bond()
     .def(self == self)
     .def(self != self)
     .def(self_ns::str(self))
+    .def("__hash__", &BondHandle::GetHashCode)
+    .add_property("hash_code", &BondHandle::GetHashCode)
   ;    
   generic_prop_def<BondHandle>(bond_handle);
   class_<BondHandleList>("BondHandleList", no_init)
