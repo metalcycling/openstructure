@@ -1249,8 +1249,8 @@ class Scorer:
         t = self._qs_ent_from_patches(trg_patch_one, trg_patch_two)
         dockq_result = dockq.DockQ(t, m, "A", "B", "A", "B")
         if dockq_result["nnat"] > 0:
-            return 0.0
-        return dockq_result["DockQ"]
+            return dockq_result["DockQ"]
+        return 0.0
 
     def _qs_ent_from_patches(self, patch_one, patch_two):
         """ Constructs Entity with two chains named "A" and "B""
