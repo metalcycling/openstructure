@@ -37,6 +37,22 @@ class LigandScorer:
     SWISS-MODEL), but it will most likely not work for most entities loaded
     from PDB files.
 
+    Unlike most of OpenStructure, this class does not assume that the ligands
+    (either in the model or the target) are part of the PDB component
+    dictionary. They may have arbitrary residue names. Residue names do not
+    have to match between the model and the target.
+    It is up to the caller to ensure that the connectivity of atoms is properly
+    set before passing any ligands to this class. Ligands with improper
+    connectivity will lead to bogus results.
+
+    Note, however, that atom names should be unique within a residue (ie two
+    distinct atoms cannot have the same atom name).
+
+    This only applies to the ligand. The rest of the model and target
+    structures (protein, nucleic acids) must still follow the usual rules and
+    contain only residues from the compound library.
+
+
     :param model: Model structure - a deep copy is available as :attr:`model`.
                   No additional processing (ie. Molck), checks,
                   stereochemistry checks or sanitization is performed on the
