@@ -134,6 +134,12 @@ class TestLigandScoring(unittest.TestCase):
         # Check an arbitrary node
         assert [a for a in graph.adj["14"].keys()] == ["13", "29"]
 
+        graph = ResidueToGraph(mdl_lig.residues[0], by_atom_index=True)
+        assert len(graph.edges) == 34
+        assert len(graph.nodes) == 32
+        # Check an arbitrary node
+        assert [a for a in graph.adj[13].keys()] == [12, 28]
+
     def test__ComputeSymmetries(self):
         """Test that _ComputeSymmetries works.
         """

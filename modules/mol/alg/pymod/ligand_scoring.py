@@ -308,15 +308,32 @@ class LigandScorer:
                     pass
 
 
-def ResidueToGraph(residue):
+def ResidueToGraph(residue, by_atom_index=False):
     """Return a NetworkX graph representation of the residue.
 
-    Nodes are labeled with the Atom's :attr:`~ost.mol.AtomHandle.element`"""
+    :param residue: the residue from which to derive the graph
+    :type residue: :class:`ost.mol.ResidueHandle` or
+                   :class:`ost.mol.ResidueView`
+    :param by_atom_index: Set this parameter to True if you need the nodes to
+                          be labeled by atom index (within the residue).
+                          Otherwise, if False, the nodes will be labeled by
+                          atom names.
+    :type by_atom_index: :class:`bool`
+
+    Nodes are labeled with the Atom's :attr:`~ost.mol.AtomHandle.element`
+    """
     nxg = networkx.Graph()
     nxg.add_nodes_from([a.name for a in residue.atoms], element=[a.element for a in residue.atoms])
     # This will list all edges twice - once for every atom of the pair.
-    # But as of NetworkX 3.0 adding the same edge twice has no effect so we're good.
+    # But as of NetworkX 3.0 adding the same edge twice has no effect, so we're good.
     nxg.add_edges_from([(b.first.name, b.second.name) for a in residue.atoms for b in a.GetBondList()])
+
+    if by_atom_index:
+        nxg = networkx.relabel_nodes(nxg,
+                                     {a: b for a, b in zip(
+                                         [a.name for a in residue.atoms],
+                                         range(len(residue.atoms)))},
+                                     True)
     return nxg
 
 
@@ -398,25 +415,14 @@ def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
                           to refer to atom index (within the residue).
                           Otherwise, if False, the symmetries refer to atom
                           names.
+    :type by_atom_index: :class:`bool`
     :raises: :class:`NoSymmetryError` when no symmetry can be found.
 
     """
 
     # Get the Graphs of the ligands
-    model_graph = ResidueToGraph(model_ligand)
-    target_graph = ResidueToGraph(target_ligand)
-
-    if by_atom_index:
-        networkx.relabel_nodes(model_graph,
-                               {a: b for a, b in zip(
-                                   [a.name for a in model_ligand.atoms],
-                                   range(len(model_ligand.atoms)))},
-                               False)
-        networkx.relabel_nodes(target_graph,
-                               {a: b for a, b in zip(
-                                   [a.name for a in target_ligand.atoms],
-                                   range(len(target_ligand.atoms)))},
-                               False)
+    model_graph = ResidueToGraph(model_ligand, by_atom_index=by_atom_index)
+    target_graph = ResidueToGraph(target_ligand, by_atom_index=by_atom_index)
 
     # Note the argument order (model, target) which differs from spyrmsd.
     # This is because a subgraph of model is isomorphic to target - but not the opposite
