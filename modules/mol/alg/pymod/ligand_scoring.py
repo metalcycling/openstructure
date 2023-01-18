@@ -4,6 +4,7 @@ import numpy as np
 import networkx
 
 from ost import mol
+from ost import geom
 from ost import LogError, LogWarning, LogScript, LogInfo, LogVerbose, LogDebug
 from ost.mol.alg import chain_mapping
 
@@ -303,4 +304,142 @@ def ResidueToGraph(residue):
     return nxg
 
 
-__all__ = ["LigandScorer", "ResidueToGraph"]
+def LigandRMSD(model_ligand, target_ligand, transformation=geom.Mat4(),
+               substructure_match=False):
+    """Calculate symmetry-corrected RMSD.
+
+    Binding site superposition must be computed separately and passed as
+    `transformation`.
+
+    :param model_ligand: The model ligand
+    :type model_ligand: :class:`ost.mol.ResidueHandle` or
+                        :class:`ost.mol.ResidueView`
+    :param target_ligand: The target ligand
+    :type target_ligand: :class:`ost.mol.ResidueHandle` or
+                         :class:`ost.mol.ResidueView`
+    :param transformation: Optional transformation to apply on each atom
+                           position of model_ligand.
+    :type transformation: :class:`ost.geom.Mat4`
+    :param substructure_match: Set this to True to allow partial target
+                               ligand.
+    :type substructure_match: :class:`bool`
+    :rtype: :class:`float`
+    :raises: :class:`NoSymmetryError` when no symmetry can be found.
+    """
+
+    symmetries = _ComputeSymmetries(model_ligand, target_ligand,
+                                    substructure_match=substructure_match,
+                                    by_atom_index=True)
+
+    best_rmsd = float('inf')
+    for i, (trg_sym, mdl_sym) in enumerate(symmetries):
+        # Prepare Entities for RMSD
+        trg_lig_rmsd_ent = mol.CreateEntity()
+        trg_lig_rmsd_editor = trg_lig_rmsd_ent.EditXCS()
+        trg_lig_rmsd_chain = trg_lig_rmsd_editor.InsertChain("_")
+        trg_lig_rmsd_res = trg_lig_rmsd_editor.AppendResidue(trg_lig_rmsd_chain, "LIG")
+
+        mdl_lig_rmsd_ent = mol.CreateEntity()
+        mdl_lig_rmsd_editor = mdl_lig_rmsd_ent.EditXCS()
+        mdl_lig_rmsd_chain = mdl_lig_rmsd_editor.InsertChain("_")
+        mdl_lig_rmsd_res = mdl_lig_rmsd_editor.AppendResidue(mdl_lig_rmsd_chain, "LIG")
+
+        for mdl_anum, trg_anum in zip(mdl_sym, trg_sym):
+            # Rename model atoms according to symmetry
+            trg_atom = target_ligand.atoms[trg_anum]
+            mdl_atom = model_ligand.atoms[mdl_anum]
+            # Add atoms in the correct order to the RMSD entities
+            trg_lig_rmsd_editor.InsertAtom(trg_lig_rmsd_res, trg_atom.name, trg_atom.pos)
+            mdl_lig_rmsd_editor.InsertAtom(mdl_lig_rmsd_res, mdl_atom.name, mdl_atom.pos)
+
+        trg_lig_rmsd_editor.UpdateICS()
+        mdl_lig_rmsd_editor.UpdateICS()
+
+        rmsd = mol.alg.CalculateRMSD(mdl_lig_rmsd_ent.CreateFullView(),
+                                     trg_lig_rmsd_ent.CreateFullView(),
+                                     transformation)
+        if rmsd < best_rmsd:
+            best_rmsd = rmsd
+
+    return best_rmsd
+
+
+def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
+                       by_atom_index=False):
+    """Return a list of symmetries (isomorphisms) of the model onto the target
+    residues.
+
+    :param model_ligand: The model ligand
+    :type model_ligand: :class:`ost.mol.ResidueHandle` or
+                        :class:`ost.mol.ResidueView`
+    :param target_ligand: The target ligand
+    :type target_ligand: :class:`ost.mol.ResidueHandle` or
+                         :class:`ost.mol.ResidueView`
+    :param substructure_match: Set this to True to allow partial ligands
+                               in the reference.
+    :type substructure_match: :class:`bool`
+    :param by_atom_index: Set this parameter to True if you need the symmetries
+                          to refer to atom index (within the residue).
+                          Otherwise, if False, the symmetries refer to atom
+                          names.
+    :raises: :class:`NoSymmetryError` when no symmetry can be found.
+
+    """
+
+    # Get the Graphs of the ligands
+    model_graph = ResidueToGraph(model_ligand)
+    target_graph = ResidueToGraph(target_ligand)
+
+    if by_atom_index:
+        networkx.relabel_nodes(model_graph,
+                               {a: b for a, b in zip(
+                                   [a.name for a in model_ligand.atoms],
+                                   range(len(model_ligand.atoms)))},
+                               False)
+        networkx.relabel_nodes(target_graph,
+                               {a: b for a, b in zip(
+                                   [a.name for a in target_ligand.atoms],
+                                   range(len(target_ligand.atoms)))},
+                               False)
+
+    # Note the argument order (model, target) which differs from spyrmsd.
+    # This is because a subgraph of model is isomorphic to target - but not the opposite
+    # as we only consider partial ligands in the reference.
+    # Make sure to generate the symmetries correctly in the end
+    GM = networkx.algorithms.isomorphism.GraphMatcher(
+        model_graph, target_graph, node_match=lambda x, y:
+        x["element"] == y["element"])
+    if GM.is_isomorphic():
+        symmetries = [
+            (list(isomorphism.values()), list(isomorphism.keys()))
+                for isomorphism in GM.isomorphisms_iter()]
+        assert len(symmetries) > 0
+        LogDebug("Found %s isomorphic mappings (symmetries)" % len(symmetries))
+    elif GM.subgraph_is_isomorphic() and substructure_match:
+        symmetries = [(list(isomorphism.values()), list(isomorphism.keys())) for isomorphism in
+                      GM.subgraph_isomorphisms_iter()]
+        assert len(symmetries) > 0
+        # Assert that all the atoms in the target are part of the substructure
+        assert len(symmetries[0][0]) == len(target_ligand.atoms)
+        LogDebug("Found %s subgraph isomorphisms (symmetries)" % len(symmetries))
+    elif GM.subgraph_is_isomorphic():
+        LogDebug("Found subgraph isomorphisms (symmetries), but"
+                 " ignoring because substructure_match=False")
+        raise NoSymmetryError("No symmetry between %s and %s" % (
+            str(model_ligand), str(target_ligand)))
+    else:
+        LogDebug("Found no isomorphic mappings (symmetries)")
+        raise NoSymmetryError("No symmetry between %s and %s" % (
+            str(model_ligand), str(target_ligand)))
+
+    return symmetries
+
+
+class NoSymmetryError(Exception):
+    """Exception to be raised when no symmetry can be found
+
+    Those are cases we might want to capture for default behavior.
+    """
+    pass
+
+__all__ = ["LigandScorer", "ResidueToGraph", "LigandRMSD", "NoSymmetryError"]

@@ -1,9 +1,10 @@
 import unittest, os, sys
 
-from ost import io, mol
+from ost import io, mol, geom
 # check if we can import: fails if numpy or scipy not available
 try:
     from ost.mol.alg.ligand_scoring import *
+    import ost.mol.alg.ligand_scoring
 except ImportError:
     print("Failed to import ligand_scoring.py. Happens when numpy, scipy or "
           "networkx is missing. Ignoring test_ligand_scoring.py tests.")
@@ -122,6 +123,86 @@ class TestLigandScoring(unittest.TestCase):
         graph = ResidueToGraph(mdl_lig.residues[0])
         assert len(graph.edges) == 34
         assert len(graph.nodes) == 32
+        # Check an arbitrary node
+        assert [a for a in graph.adj["14"].keys()] == ["13", "29"]
+
+    def test__ComputeSymmetries(self):
+        """Test that _ComputeSymmetries works.
+        """
+        trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
+        mdl, mdl_seqres = io.LoadMMCIF(os.path.join('testfiles', "P84080_model_02.cif.gz"), seqres=True)
+
+        trg_mg1 = trg.FindResidue("E", 1)
+        trg_g3d1 = trg.FindResidue("F", 1)
+        trg_afb1 = trg.FindResidue("G", 1)
+        trg_g3d2 = trg.FindResidue("J", 1)
+        mdl_g3d = mdl.FindResidue("L_2", 1)
+
+        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1)
+        assert len(sym) == 72
+
+        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1, by_atom_index=True)
+        assert len(sym) == 72
+
+        # Test that it works with views and only consider atoms in the view
+        # Skip PA, PB and O[1-3]A and O[1-3]B in target and model
+        # We assume atom index are fixed and won't change
+        trg_g3d1_sub = trg_g3d1.Select("aindex>6019").residues[0]
+        mdl_g3d_sub = mdl_g3d.Select("aindex>1447").residues[0]
+
+        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1_sub)
+        assert len(sym) == 6
+
+        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1_sub, by_atom_index=True)
+        assert len(sym) == 6
+
+        # Substructure matches
+        self.skipTest("Substructure matches don't work yet")
+        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1_sub, substructure_match=True)
+        assert len(sym) == 6
+
+        # Missing atoms only allowed in target, not in model
+        with self.assertRaises(NoSymmetryError):
+            ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1, substructure_match=True)
+
+    def test_LigandRMSD(self):
+        """Test that LigandRMSD works.
+        """
+        trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
+        mdl, mdl_seqres = io.LoadMMCIF(os.path.join('testfiles', "P84080_model_02.cif.gz"), seqres=True)
+
+        trg_mg1 = trg.FindResidue("E", 1)
+        trg_g3d1 = trg.FindResidue("F", 1)
+        trg_afb1 = trg.FindResidue("G", 1)
+        trg_g3d2 = trg.FindResidue("J", 1)
+        mdl_g3d = mdl.FindResidue("L_2", 1)
+
+        rmsd = LigandRMSD(mdl_g3d, trg_g3d1)
+        self.assertAlmostEqual(rmsd, 2.21341e-06, 10)
+        rmsd = LigandRMSD(mdl_g3d, trg_g3d2)
+        self.assertAlmostEqual(rmsd, 61.21325, 4)
+
+        # Ensure we raise a NoSymmetryError if the ligand is wrong
+        with self.assertRaises(NoSymmetryError):
+            LigandRMSD(mdl_g3d, trg_mg1)
+        with self.assertRaises(NoSymmetryError):
+            LigandRMSD(mdl_g3d, trg_afb1)
+
+        # Assert that transform works
+        trans = geom.Mat4(-0.999256, 0.00788487, -0.0377333, -15.4397,
+                          0.0380652, 0.0473315, -0.998154, 29.9477,
+                          -0.00608426, -0.998848, -0.0475963, 28.8251,
+                          0, 0, 0, 1)
+        rmsd = LigandRMSD(mdl_g3d, trg_g3d2, transformation=trans)
+        self.assertAlmostEqual(rmsd, 0.293972, 5)
+
+        # Assert that substructure matches work
+        self.skipTest("Substructure matches don't work yet")
+        trg_g3d1_sub = trg_g3d1.Select("aindex>6019").residues[0] # Skip PA, PB and O[1-3]A and O[1-3]B.
+        mdl_g3d_sub = mdl_g3d.Select("aindex>1447").residues[0] # Skip PA, PB and O[1-3]A and O[1-3]B.
+        with self.assertRaises(NoSymmetryError):
+            LigandRMSD(mdl_g3d, trg_g3d1_sub)  # no full match
+        rmsd = LigandRMSD(mdl_g3d, trg_g3d1_sub, substructure_match=True)
 
 
 if __name__ == "__main__":
