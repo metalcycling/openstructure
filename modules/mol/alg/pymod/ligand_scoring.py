@@ -4,6 +4,7 @@ import numpy as np
 import networkx
 
 from ost import mol
+from ost import LogError, LogWarning, LogScript, LogInfo, LogVerbose, LogDebug
 from ost.mol.alg import chain_mapping
 
 
@@ -18,21 +19,36 @@ class LigandScorer:
         (e.g. use ``pip install numpy networkx``)
 
     Mostly expects cleaned up structures (you can use the
-    :class:`~ost.mol.alg.scoring.Scorer` outputs for that).
+    :class:`~ost.mol.alg.scoring.Scorer` outputs for that). In addition,
+    you probably want to remove hydrogen atoms from the structures before
+    calling this function. You can do this easily with a selection:
+
+        target_noH = target.Select("ele != H")
+        model_noH = model.Select("ele != H")
+        LigandScorer(model_noH, target_noH, ...)
+
+    Make sure to remove hydrogen atoms from the ligands too.
+
+    The class generally assumes that the
+    :attr:`~ost.mol.ResidueHandle.is_ligand` property is properly set on all
+    the ligand atoms, and only ligand atoms. This is typically the case for
+    entities loaded from mmCIF (tested with mmCIF files from the PDB and
+    SWISS-MODEL), but it will most likely not work for most entities loaded
+    from PDB files.
 
     :param model: Model structure - a deep copy is available as :attr:`model`.
                   No additional processing (ie. Molck), checks,
                   stereochemistry checks or sanitization is performed on the
-                  input.
+                  input. Hydrogen atoms are kept.
     :type model: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
     :param target: Target structure - a deep copy is available as :attr:`target`.
                   No additional processing (ie. Molck), checks or sanitization
-                  is performed on the input.
+                  is performed on the input. Hydrogen atoms are kept.
     :type target: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
     :param model_ligands: Model ligands, as a list of
-                  :class:`ost.mol.ResidueHandle` belonging to the model
+                  :class:`~ost.mol.ResidueHandle` belonging to the model
                   entity. Can be instantiated with either a :class:list of
-                  :class:`ost.mol.ResidueHandle`/:class:`ost.mol.ResidueView`
+                  :class:`~ost.mol.ResidueHandle`/:class:`ost.mol.ResidueView`
                   or of :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`.
                   If `None`, ligands will be extracted from the `model` entity,
                   from chains with :class:`~ost.mol.ChainType`
@@ -40,9 +56,9 @@ class LigandScorer:
                   entities loaded from mmCIF).
     :type model_ligands: :class:`list`
     :param target_ligands: Target ligands, as a list of
-                  :class:`ost.mol.ResidueHandle` belonging to the target
+                  :class:`~ost.mol.ResidueHandle` belonging to the target
                   entity. Can be instanciated either a :class:list of
-                  :class:`ost.mol.ResidueHandle`/:class:`ost.mol.ResidueView`
+                  :class:`~ost.mol.ResidueHandle`/:class:`ost.mol.ResidueView`
                   or of :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
                   containing a single residue each. If `None`, ligands will be
                   extracted from the `target` entity, from chains with
@@ -141,7 +157,9 @@ class LigandScorer:
                     if mol.InSequence(residue, residue.next):
                         raise RuntimeError("Connected residues in non polymer "
                                            "chain %s" % (chain.name))
+                    residue.SetIsLigand(True)  # just in case
                     extracted_ligands.append(residue)
+                    LogVerbose("Detected residue %s as ligand" % residue)
         return extracted_ligands
 
     @staticmethod
@@ -156,17 +174,6 @@ class LigandScorer:
 
         Ligands which are part of the entity are simply fetched in the new
         copied entity. Otherwise, they are copied over to the copied entity.
-
-        If
-        Copy ligands into the new copied entity, if needed.
-
-
-
-        and prepares the list of ligands to be returned as a list of
-        ResidueHandles which are part of the copied entity, and suitable for
-        model_ligands and target_ligands.
-
-        Multiple ligands can be supplied at once in an entity.
         """
         extracted_ligands = []
 
@@ -186,7 +193,7 @@ class LigandScorer:
                     handle.number, handle.chain.name)
                 raise RuntimeError(msg)
 
-            # Instanciate the editor
+            # Instantiate the editor
             if new_editor is None:
                 new_editor = new_entity.EditXCS()
 
@@ -196,7 +203,6 @@ class LigandScorer:
                 new_chain = new_editor.InsertChain(handle.chain.name)
             # Add the residue with its original residue number
             new_res = new_editor.AppendResidue(new_chain, handle, deep=True)
-            new_res.SetIsLigand(True)
             return new_res
 
         def _process_ligand_residue(res):
@@ -207,6 +213,7 @@ class LigandScorer:
             else:
                 # Residue is not part of the entity, need to copy it first
                 new_res = _copy_residue(res.handle)
+            new_res.SetIsLigand(True)
             return new_res
 
         for ligand in ligands:
@@ -285,7 +292,9 @@ class LigandScorer:
 
 
 def ResidueToGraph(residue):
-    """Return a NetworkX graph representation of the residue."""
+    """Return a NetworkX graph representation of the residue.
+
+    Nodes are labeled with the Atom's :attr:`~ost.mol.AtomHandle.element`"""
     nxg = networkx.Graph()
     nxg.add_nodes_from([a.name for a in residue.atoms], element=[a.element for a in residue.atoms])
     # This will list all edges twice - once for every atom of the pair.
