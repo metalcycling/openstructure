@@ -888,7 +888,14 @@ class Scorer:
                     mdl_ch2 = flat_mapping[trg_ch2]
                     aln1 = self.mapping.alns[(trg_ch1, mdl_ch1)]
                     aln2 = self.mapping.alns[(trg_ch2, mdl_ch2)]
-                    res = dockq.DockQ(self.model, self.target, mdl_ch1, mdl_ch2,
+                    # we're operating on the model/target from the MappingResult
+                    # as their ATOMSEQ corresponds to the alignments above.
+                    # Residues that do not contain all atoms required for
+                    # ChainMapper (e.g. N, CA, C, CB) are removed which triggers
+                    # a mismatch error in DockQ
+                    model = self.mapping.model
+                    target = self.mapping.target
+                    res = dockq.DockQ(model, target, mdl_ch1, mdl_ch2,
                                       trg_ch1, trg_ch2, ch1_aln=aln1,
                                       ch2_aln=aln2)
                     if res["nnat"] > 0:
