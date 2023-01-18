@@ -999,7 +999,7 @@ The Handle Classes
     
     See :attr:`bonds`
     
-    :rtype: :class:`BondHandleList`
+    :rtype: :class:`BondHandleList` (list of :class:`BondHandle`)
 
   .. method:: GetBondPartners()
     
@@ -1097,7 +1097,106 @@ The Handle Classes
   
     See :attr:`valid`
 
-  
+
+.. class:: BondHandle
+
+  Represents a chemical bond between two atoms (first and second).
+
+  .. attribute:: first
+  .. attribute:: second
+
+    Atoms involved in the bond. No assumptions about the order should be made.
+    With the internal coordinate system enabled, first and second may even be
+    swapped when rebuilding the internal connectivity tree. Also available as
+    :meth:`GetFirst` and :meth:`GetSecond`.
+
+    :type: :class:`AtomHandle`
+
+  .. attribute:: pos
+
+    Midpoint between the two atoms (transformed coordinates). Also available as
+    :meth:`GetPos`.
+
+    :type: :class:`~ost.geom.Vec3`
+
+  .. attribute:: length
+
+    Length of the bond. Also available as :meth:`GetLength`.
+
+    :type: float
+
+  .. attribute:: bond_order
+
+    The bond order. Possible values:
+
+      * ``1`` - single bond
+      * ``2`` - double bond
+      * ``3`` - triple bond
+      * ``4`` - aromatic bond
+
+    Also available as :meth:`GetBondOrder`.
+
+    :type: int
+
+  .. attribute:: hash_code
+
+    A unique identifier for this bond handle.  Also available as :meth:`GetHashCode`.
+
+    :type: int
+
+  .. attribute:: valid
+
+    Validity of handle.  Also available as :meth:`IsValid`.
+
+    :type: bool
+
+  .. method:: GetFirst()
+
+    See :attr:`first`
+
+  .. method:: GetSecond()
+
+    See :attr:`second`
+
+  .. method:: GetPos()
+
+    See :attr:`pos`
+
+  .. method:: GetLength()
+
+    See :attr:`length`
+
+  .. method:: GetBondOrder()
+
+    See :attr:`bond_order`
+
+  .. method:: GetOther(other_atom)
+
+    Get the other atom. Returns the one of the two atoms that does not match
+    the given one.
+
+    :param other_atom: The other atom
+    :type  other_atom: :class:`AtomHandle`
+    :rtype: :class:`AtomHandle`
+
+  .. method:: SetBondOrder(order)
+
+    Set the bond order. See :meth:`GetBondOrder`.
+
+    :param order: The bond order
+    :type  order: :class:`int`
+
+    See :attr:`bond_order`
+
+  .. method:: IsValid()
+
+    See :attr:`valid`
+
+  .. method:: GetHashCode()
+
+    See :attr:`hash_code`
+
+
 The View Classes
 --------------------------------------------------------------------------------
 
@@ -1411,7 +1510,7 @@ The View Classes
 
     See :attr:`bonds`
     
-    :rtype: :class:`BondHandleList`
+    :rtype: :class:`BondHandleList` (list of :class:`BondHandle`)
 
   .. method:: GetHandle()
   

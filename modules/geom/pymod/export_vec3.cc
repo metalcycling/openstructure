@@ -127,5 +127,7 @@ void export_Vec3()
     .def("GetGDTHA", &Vec3List::GetGDTHA, (arg("other"), arg("norm")=true))
     .def("GetGDTTS", &Vec3List::GetGDTTS, (arg("other"), arg("norm")=true))
     .def("GetGDT", &Vec3List::GetGDT, (arg("other"), arg("thresh"), arg("norm")=true))
+    .def("GetMinDist", &Vec3List::GetMinDist, (arg("other")))
+    .def("IsWithin", &Vec3List::IsWithin, (arg("other"), arg("dist")))
   ;
 }

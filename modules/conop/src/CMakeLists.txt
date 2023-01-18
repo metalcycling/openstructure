@@ -50,7 +50,7 @@ if (COMPOUND_LIB)
     install(FILES ${TO} DESTINATION "share/openstructure")
   else()
     message(FATAL_ERROR "${COMPOUND_LIB} does not exist. \n"
-            "Pass -DCOMPOUND_LIB=NONE if you would like to build "
+            "Pass -DCOMPOUND_LIB=OFF if you would like to build "
             "OpenStructure without a compound library")
   endif()
 

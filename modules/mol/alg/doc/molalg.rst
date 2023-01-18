@@ -155,6 +155,14 @@ Local Distance Test scores (lDDT, DRMSD)
 .. currentmodule:: ost.mol.alg
 
 
+:mod:`DockQ <ost.mol.alg.dockq>` -- DockQ implementation
+--------------------------------------------------------------------------------
+
+.. autofunction:: ost.mol.alg.dockq.DockQ
+
+.. currentmodule:: ost.mol.alg
+
+
 .. _steric-clashes:
 
 Steric Clashes

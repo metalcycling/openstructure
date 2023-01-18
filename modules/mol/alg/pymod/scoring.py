@@ -9,10 +9,10 @@ from ost.mol.alg import lddt
 from ost.mol.alg import qsscore
 from ost.mol.alg import chain_mapping
 from ost.mol.alg import stereochemistry
+from ost.mol.alg import dockq
 from ost.mol.alg.lddt import lDDTScorer
 from ost.mol.alg.qsscore import QSScorer
 from ost.mol.alg import Molck, MolckSettings
-from ost.bindings import dockq
 from ost.bindings import cadscore
 import numpy as np
 
@@ -114,11 +114,6 @@ class Scorer:
                                        to optimize for QS-score. Everything
                                        above is treated with a heuristic.
     :type naive_chain_mapping_thresh: :class:`int` 
-    :param dockq_exec: Explicit path to DockQ.py script from DockQ installation
-                       from https://github.com/bjornwallner/DockQ. If not given,
-                       DockQ.py must be in PATH if any of the DockQ related
-                       attributes is requested.
-    :type dockq_exec: :class:`str`
     :param cad_score_exec: Explicit path to voronota-cadscore executable from
                            voronota installation from 
                            https://github.com/kliment-olechnovic/voronota. If
@@ -128,7 +123,7 @@ class Scorer:
     """
     def __init__(self, model, target, resnum_alignments=False,
                  molck_settings = None, naive_chain_mapping_thresh=12,
-                 dockq_exec = None, cad_score_exec = None):
+                 cad_score_exec = None):
 
         if isinstance(model, mol.EntityView):
             self._model = mol.CreateEntityFromView(model, False)
@@ -183,7 +178,6 @@ class Scorer:
         Molck(self._target, conop.GetDefaultLib(), molck_settings)
         self.resnum_alignments = resnum_alignments
         self.naive_chain_mapping_thresh = naive_chain_mapping_thresh
-        self.dockq_exec = dockq_exec
         self.cad_score_exec = cad_score_exec
 
         # lazily evaluated attributes
@@ -868,12 +862,6 @@ class Scorer:
                                "that are consistent between target and model "
                                "chains, i.e. only work if resnum_alignments "
                                "is True at Scorer construction.")
-        try:
-            dockq_exec = settings.Locate("DockQ.py",
-                                         explicit_file_name=self.dockq_exec)
-        except Exception as e:
-            raise RuntimeError("DockQ.py must be in PATH for DockQ "
-                               "scoring") from e
 
         flat_mapping = self.mapping.GetFlatMapping()
         # list of [trg_ch1, trg_ch2, mdl_ch1, mdl_ch2]
@@ -896,38 +884,22 @@ class Scorer:
             if trg_ch1 in flat_mapping and trg_ch2 in flat_mapping:
                 mdl_ch1 = flat_mapping[trg_ch1]
                 mdl_ch2 = flat_mapping[trg_ch2]
-                try:
-                    res = dockq.DockQ(dockq_exec, self.model, self.target,
-                                      mdl_ch1, mdl_ch2, trg_ch1, trg_ch2)
-                except Exception as e:
-                    if "AssertionError: length of native is zero" in str(e):
-                        # happens if target interface has no native contacts
-                        continue
-                    else:
-                        raise
-
-                if res.native_contacts > 0:
+                res = dockq.DockQ(self.model, self.target, mdl_ch1, mdl_ch2,
+                                  trg_ch1, trg_ch2)
+                if res["nnat"] > 0:
                     self._dockq_interfaces.append((trg_ch1, trg_ch2,
                                                    mdl_ch1, mdl_ch2))
-                    self._dockq_native_contacts.append(res.native_contacts)
-                    self._dockq_scores.append(res.DockQ)
+                    self._dockq_native_contacts.append(res["nnat"])
+                    self._dockq_scores.append(res["DockQ"])
             else:
                 # interface which is not covered by mdl... let's run DockQ with
                 # trg as trg/mdl in order to get the native contacts out
-                try:
-                    res = dockq.DockQ(dockq_exec, self.target, self.target,
-                                      trg_ch1, trg_ch2, trg_ch1, trg_ch2)
-                    counts = res.native_contacts
-                    if counts > 0:
-                        self._dockq_nonmapped_interfaces.append((trg_ch1,
-                                                                 trg_ch2))
-                        self._dockq_nonmapped_interfaces_counts.append(counts)
-                except Exception as e:
-                    if "AssertionError: length of native is zero" in str(e):
-                        # happens if target interface has no native contacts
-                        continue
-                    else:
-                        raise
+                res = dockq.DockQ(self.target, self.target,
+                                  trg_ch1, trg_ch2, trg_ch1, trg_ch2)
+                if res["nnat"] > 0:
+                    self._dockq_nonmapped_interfaces.append((trg_ch1,
+                                                             trg_ch2))
+                    self._dockq_nonmapped_interfaces_counts.append(res["nnat"])
 
         # there are 4 types of combined scores
         # - simple average
@@ -1268,27 +1240,12 @@ class Scorer:
         :type trg_patch_two: :class:`ost.mol.EntityView`
         :returns: DockQ score
         """
-        if not self.resnum_alignments:
-            raise RuntimeError("DockQ computations rely on residue numbers "
-                               "that are consistent between target and model "
-                               "chains, i.e. only work if resnum_alignments "
-                               "is True at Scorer construction.")
-        try:
-            dockq_exec = settings.Locate("DockQ.py",
-                                         explicit_file_name=self.dockq_exec)
-        except Exception as e:
-            raise RuntimeError("DockQ.py must be in PATH for DockQ "
-                               "scoring") from e
         m = self._qs_ent_from_patches(mdl_patch_one, mdl_patch_two)
         t = self._qs_ent_from_patches(trg_patch_one, trg_patch_two)
-        try:
-            dockq_result = dockq.DockQ(dockq_exec, t, m, "A", "B", "A", "B")
-        except Exception as e:
-            if "AssertionError: length of native is zero" in str(e):
-                return 0.0
-            else:
-                raise
-        return dockq_result.DockQ
+        dockq_result = dockq.DockQ(t, m, "A", "B", "A", "B")
+        if dockq_result["nnat"] > 0:
+            return dockq_result["DockQ"]
+        return 0.0
 
     def _qs_ent_from_patches(self, patch_one, patch_two):
         """ Constructs Entity with two chains named "A" and "B""

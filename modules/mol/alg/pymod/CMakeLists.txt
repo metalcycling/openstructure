@@ -28,6 +28,7 @@ set(OST_MOL_ALG_PYMOD_MODULES
   chain_mapping.py
   stereochemistry.py
   ligand_scoring.py
+  dockq.py
 )
 
 if (NOT ENABLE_STATIC)
