@@ -1015,8 +1015,6 @@ The Handle Classes
     :type  other_atom: :class:`AtomHandle`
     :rtype: :class:`BondHandle`
 
-
-
   .. method:: GetBondCount()
     
     :rtype: int
