@@ -23,6 +23,8 @@ class TestLigandScoring(unittest.TestCase):
 
         assert len(sc.target_ligands) == 7
         assert len(sc.model_ligands) == 1
+        assert len([r for r in sc.target.residues if r.is_ligand]) == 7
+        assert len([r for r in sc.model.residues if r.is_ligand]) == 1
 
     def test_init_given_ligands(self):
         """Test that we can instantiate the scorer with ligands contained in
@@ -38,6 +40,9 @@ class TestLigandScoring(unittest.TestCase):
 
         assert len(sc.target_ligands) == 4
         assert len(sc.model_ligands) == 1
+        # IsLigand flag should still be set even on not selected ligands
+        assert len([r for r in sc.target.residues if r.is_ligand]) == 7
+        assert len([r for r in sc.model.residues if r.is_ligand]) == 1
         
         # Ensure the residues are not copied
         assert len(sc.target.Select("rname=MG").residues) == 2
@@ -83,6 +88,9 @@ class TestLigandScoring(unittest.TestCase):
 
         assert len(sc.target_ligands) == 7
         assert len(sc.model_ligands) == 1
+        # Ensure we set the is_ligand flag
+        assert len([r for r in sc.target.residues if r.is_ligand]) == 7
+        assert len([r for r in sc.model.residues if r.is_ligand]) == 1
 
         # Pass residues
         mdl_ligs_res = [mdl_ligs[0].residues[0]]
