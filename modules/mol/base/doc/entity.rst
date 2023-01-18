@@ -691,6 +691,8 @@ The Handle Classes
     pdb.org. When loading MMCIF structures, this property is set based on
     `seqres` information and differs from PDB structures.
     Also available as :meth:`IsLigand`, :meth:`SetIsLigand`.
+
+    :type: bool
   
   .. attribute:: is_protein
   
@@ -700,6 +702,8 @@ The Handle Classes
     available as :meth:`IsProtein`, :meth:`SetIsProtein`. In contrast to
     :meth:`IsPeptideLinking` this excludes residues which are not connected to
     neighbouring residues such as CA-only residues or badly positioned ones.
+
+    :type: bool
 
   .. attribute:: peptide_linking
   
@@ -856,6 +860,28 @@ The Handle Classes
   .. method:: IsValid()
   
     See :attr:`valid`
+
+  .. method:: IsLigand()
+
+    See :attr:`is_ligand`
+
+  .. method:: SetIsLigand()
+
+    Set the :meth:`IsLigand` flag explicitly.
+
+    :param ligand: Whether this residue is a ligand or not
+    :type  ligand: bool
+
+  .. method:: IsProtein()
+
+    See :attr:`is_protein`
+
+  .. method:: SetIsProtein()
+
+    Set the :meth:`IsProtein` flag explicitly.
+
+    :param protein: Whether this residue is a protein or not
+    :type  protein: bool
 
 
 .. class:: AtomHandle
