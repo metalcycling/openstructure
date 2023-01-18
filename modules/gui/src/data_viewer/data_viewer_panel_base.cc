@@ -1071,7 +1071,11 @@ void DataViewerPanelBase::draw_pixel_values(QPainter& painter)
         unsigned char rgb = (rv>130.0) ? 0 : 255;
         painter.setPen(QColor(rgb,rgb,rgb));
         int string_h=painter.fontMetrics().height();
+#if (QT_VERSION < QT_VERSION_CHECK(5,11,0))
+        int string_w=painter.fontMetrics().width(value_string);
+#else
         int string_w=painter.fontMetrics().horizontalAdvance(value_string);
+#endif
         painter.drawText(p.x() - string_w/2, p.y() + string_h/2, value_string);
       }
     }
@@ -1087,7 +1091,11 @@ void DataViewerPanelBase::draw_pixel_values(QPainter& painter)
         unsigned char rgb = (rv>130.0) ? 0 : 255;
         painter.setPen(QColor(rgb,rgb,rgb));
         int string_h=painter.fontMetrics().height();
+#if (QT_VERSION < QT_VERSION_CHECK(5,11,0))
+        int string_w=painter.fontMetrics().width(value_string);
+#else
         int string_w=painter.fontMetrics().horizontalAdvance(value_string);
+#endif
         painter.drawText(p.x() - string_w/2, p.y() + string_h/2, value_string);
       }
     }
