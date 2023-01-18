@@ -886,8 +886,11 @@ class Scorer:
                 if trg_ch1 in flat_mapping and trg_ch2 in flat_mapping:
                     mdl_ch1 = flat_mapping[trg_ch1]
                     mdl_ch2 = flat_mapping[trg_ch2]
+                    aln1 = self.mapping.alns[(trg_ch1, mdl_ch1)]
+                    aln2 = self.mapping.alns[(trg_ch2, mdl_ch2)]
                     res = dockq.DockQ(self.model, self.target, mdl_ch1, mdl_ch2,
-                                      trg_ch1, trg_ch2)
+                                      trg_ch1, trg_ch2, ch1_aln=aln1,
+                                      ch2_aln=aln2)
                     if res["nnat"] > 0:
                         self._dockq_interfaces.append((trg_ch1, trg_ch2,
                                                        mdl_ch1, mdl_ch2))
@@ -897,6 +900,7 @@ class Scorer:
                     # interface which is not covered by mdl... let's run DockQ
                     # with trg as trg/mdl in order to get the native contacts
                     # out
+                    # no need to pass alns as the residue numbers match for sure
                     res = dockq.DockQ(self.target, self.target,
                                       trg_ch1, trg_ch2, trg_ch1, trg_ch2)
                     nnat = res["nnat"]
