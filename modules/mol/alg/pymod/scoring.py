@@ -1240,11 +1240,6 @@ class Scorer:
         :type trg_patch_two: :class:`ost.mol.EntityView`
         :returns: DockQ score
         """
-        if not self.resnum_alignments:
-            raise RuntimeError("DockQ computations rely on residue numbers "
-                               "that are consistent between target and model "
-                               "chains, i.e. only work if resnum_alignments "
-                               "is True at Scorer construction.")
         m = self._qs_ent_from_patches(mdl_patch_one, mdl_patch_two)
         t = self._qs_ent_from_patches(trg_patch_one, trg_patch_two)
         dockq_result = dockq.DockQ(t, m, "A", "B", "A", "B")
