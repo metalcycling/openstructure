@@ -87,6 +87,9 @@ class LigandScorer:
                               based on residue numbers. This can be assumed in
                               benchmarking setups such as CAMEO/CASP.
     :type resnum_alignments: :class:`bool`
+    :param check_resnames:  On by default. Enforces residue name matches
+                            between mapped model and target residues.
+    :type check_resnames: :class:`bool`
     :param chain_mapper: a chain mapper initialized for the target structure.
                          If None (default), a chain mapper will be initialized
                          lazily as required.
@@ -103,9 +106,9 @@ class LigandScorer:
     :param lddt_bs_radius: :class:`float`
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
-                 resnum_alignments=False, chain_mapper=None,
-                 substructure_match=False, radius=4.0, lddt_pli_radius=6.0,
-                 lddt_bs_radius=10.0):
+                 resnum_alignments=False, check_resnames=True,
+                 chain_mapper=None, substructure_match=False,
+                 radius=4.0, lddt_pli_radius=6.0, lddt_bs_radius=10.0):
 
         if isinstance(model, mol.EntityView):
             self.model = mol.CreateEntityFromView(model, False)
@@ -135,6 +138,7 @@ class LigandScorer:
 
         self._chain_mapper = chain_mapper
         self.resnum_alignments = resnum_alignments
+        self.check_resnames = check_resnames
         self.substructure_match = substructure_match
         self.radius = radius
         self.lddt_pli_radius = lddt_pli_radius
@@ -453,7 +457,8 @@ class LigandScorer:
                             n_cont, n_cons = lddt_scorer.lDDT(
                                 mdl_bs_ent, chain_mapping={"A": "A", "_": "_"},
                                 no_intrachain=True,
-                                return_dist_test=True)
+                                return_dist_test=True,
+                                check_resnames = self.check_resnames)
 
                         # Save results?
                         best_lddt = self._lddt_pli_matrix[target_i, model_i]["lddt_pli"]

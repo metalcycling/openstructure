@@ -263,6 +263,20 @@ class TestLigandScoring(unittest.TestCase):
         assert sc._lddt_pli_matrix[1, 0]["bs_num_overlap_res"] == 15
         assert sc._lddt_pli_matrix[5, 0]["bs_num_overlap_res"] == 15
 
+    def test_check_resnames(self):
+        """Test check_resname argument works
+        """
+        # 4C0A has mismatching sequence and fails with check_resnames=True
+        trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
+        trg_4c0a, _ = io.LoadMMCIF(os.path.join('testfiles', "4c0a.cif.gz"), seqres=True)
+
+        with self.assertRaises(RuntimeError):
+            sc = LigandScorer(trg, trg_4c0a, None, None, check_resnames=True)
+            sc._compute_scores()
+
+        sc = LigandScorer(trg, trg_4c0a, None, None, check_resnames=False)
+        sc._compute_scores()
+
 
 if __name__ == "__main__":
     from ost import testutils
