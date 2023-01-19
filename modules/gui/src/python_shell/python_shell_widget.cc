@@ -76,7 +76,11 @@ PythonShellWidget::PythonShellWidget(QWidget* parent):
   setUndoRedoEnabled(false);
   setFont(QFont("Courier",font().pointSize()+2));
   QFontMetrics metrics(font());
+#if (QT_VERSION < QT_VERSION_CHECK(5,11,0))
+  setTabStopWidth(2*metrics.width(" "));
+#else
   setTabStopDistance(2*metrics.horizontalAdvance(" "));
+#endif
   setMaximumBlockCount(1000000);
 
   textCursor().block().setUserState(BLOCKTYPE_ACTIVE);
@@ -534,7 +538,11 @@ void PythonShellWidget::OnExecuteStateEntered()
 void PythonShellWidget::SetTabWidth(int width) {
   tab_width_=width;
   QFontMetrics metrics(font());
+#if (QT_VERSION < QT_VERSION_CHECK(5,11,0))
+  setTabStopWidth(tab_width_*metrics.width(" "));
+#else
   setTabStopDistance(tab_width_*metrics.horizontalAdvance(" "));
+#endif
 }
 
 

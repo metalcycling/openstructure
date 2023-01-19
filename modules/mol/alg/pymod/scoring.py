@@ -878,28 +878,43 @@ class Scorer:
         nonmapped_interface_counts = list()
 
         flat_mapping = self.mapping.GetFlatMapping()
+        pep_seqs = set([s.GetName() for s in self.chain_mapper.polypep_seqs])
         for trg_int in self.qs_scorer.qsent1.interacting_chains:
             trg_ch1 = trg_int[0]
             trg_ch2 = trg_int[1]
-            if trg_ch1 in flat_mapping and trg_ch2 in flat_mapping:
-                mdl_ch1 = flat_mapping[trg_ch1]
-                mdl_ch2 = flat_mapping[trg_ch2]
-                res = dockq.DockQ(self.model, self.target, mdl_ch1, mdl_ch2,
-                                  trg_ch1, trg_ch2)
-                if res["nnat"] > 0:
-                    self._dockq_interfaces.append((trg_ch1, trg_ch2,
-                                                   mdl_ch1, mdl_ch2))
-                    self._dockq_native_contacts.append(res["nnat"])
-                    self._dockq_scores.append(res["DockQ"])
-            else:
-                # interface which is not covered by mdl... let's run DockQ with
-                # trg as trg/mdl in order to get the native contacts out
-                res = dockq.DockQ(self.target, self.target,
-                                  trg_ch1, trg_ch2, trg_ch1, trg_ch2)
-                if res["nnat"] > 0:
-                    self._dockq_nonmapped_interfaces.append((trg_ch1,
-                                                             trg_ch2))
-                    self._dockq_nonmapped_interfaces_counts.append(res["nnat"])
+            if trg_ch1 in pep_seqs and trg_ch2 in pep_seqs:
+                if trg_ch1 in flat_mapping and trg_ch2 in flat_mapping:
+                    mdl_ch1 = flat_mapping[trg_ch1]
+                    mdl_ch2 = flat_mapping[trg_ch2]
+                    aln1 = self.mapping.alns[(trg_ch1, mdl_ch1)]
+                    aln2 = self.mapping.alns[(trg_ch2, mdl_ch2)]
+                    # we're operating on the model/target from the MappingResult
+                    # as their ATOMSEQ corresponds to the alignments above.
+                    # Residues that do not contain all atoms required for
+                    # ChainMapper (e.g. N, CA, C, CB) are removed which triggers
+                    # a mismatch error in DockQ
+                    model = self.mapping.model
+                    target = self.mapping.target
+                    res = dockq.DockQ(model, target, mdl_ch1, mdl_ch2,
+                                      trg_ch1, trg_ch2, ch1_aln=aln1,
+                                      ch2_aln=aln2)
+                    if res["nnat"] > 0:
+                        self._dockq_interfaces.append((trg_ch1, trg_ch2,
+                                                       mdl_ch1, mdl_ch2))
+                        self._dockq_native_contacts.append(res["nnat"])
+                        self._dockq_scores.append(res["DockQ"])
+                else:
+                    # interface which is not covered by mdl... let's run DockQ
+                    # with trg as trg/mdl in order to get the native contacts
+                    # out
+                    # no need to pass alns as the residue numbers match for sure
+                    res = dockq.DockQ(self.target, self.target,
+                                      trg_ch1, trg_ch2, trg_ch1, trg_ch2)
+                    nnat = res["nnat"]
+                    if nnat > 0:
+                        self._dockq_nonmapped_interfaces.append((trg_ch1,
+                                                                 trg_ch2))
+                        self._dockq_nonmapped_interfaces_counts.append(nnat)
 
         # there are 4 types of combined scores
         # - simple average

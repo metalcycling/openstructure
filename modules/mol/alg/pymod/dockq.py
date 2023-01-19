@@ -1,5 +1,6 @@
 from ost import geom
 from ost import mol
+from ost import seq
 
 def _PreprocessStructures(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2,
                           ch1_aln = None, ch2_aln = None):
@@ -15,7 +16,56 @@ def _PreprocessStructures(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2,
     ref_residues_1 = list()
     ref_residues_2 = list()
 
-    if ch1_aln is None and ch2_aln is None:
+    if ch1_aln is not None and ch2_aln is not None:
+        # there are potentially already views attached to the alns but
+        # we go for *mdl* and *ref* here
+        if ch1_aln.GetCount() != 2 or ch2_aln.GetCount() != 2:
+            raise RuntimeError("Expect exactly two sequences in provided alns!")
+
+        tmp = ch1_aln.GetSequence(0)
+        ref_s1 = seq.CreateSequence(tmp.GetName(), str(tmp))
+        ref_s1.SetOffset(tmp.GetOffset())
+        ref_s1.AttachView(ref.Select(f"cname={ref_ch1}"))
+        tmp = ch1_aln.GetSequence(1)
+        mdl_s1 = seq.CreateSequence(tmp.GetName(), str(tmp))
+        mdl_s1.SetOffset(tmp.GetOffset())
+        mdl_s1.AttachView(mdl.Select(f"cname={mdl_ch1}"))
+        new_ch1_aln = seq.CreateAlignment(ref_s1, mdl_s1)
+        for col in new_ch1_aln:
+            if col[0] != '-' and col[1] != '-':
+                ref_r = col.GetResidue(0)
+                mdl_r = col.GetResidue(1)
+                if not (ref_r.IsValid() and ref_r.one_letter_code == col[0]):
+                    raise RuntimeError("DockQ: mismatch between provided "
+                                       "alignments and ATOMSEQ in structures")
+                if not (mdl_r.IsValid() and mdl_r.one_letter_code == col[1]):
+                    raise RuntimeError("DockQ: mismatch between provided "
+                                       "alignments and ATOMSEQ in structures")
+                ref_residues_1.append(ref_r)
+                mdl_residues_1.append(mdl_r)
+
+        tmp = ch2_aln.GetSequence(0)
+        ref_s2 = seq.CreateSequence(tmp.GetName(), str(tmp))
+        ref_s2.SetOffset(tmp.GetOffset())
+        ref_s2.AttachView(ref.Select(f"cname={ref_ch2}"))
+        tmp = ch2_aln.GetSequence(1)
+        mdl_s2 = seq.CreateSequence(tmp.GetName(), str(tmp))
+        mdl_s2.SetOffset(tmp.GetOffset())
+        mdl_s2.AttachView(mdl.Select(f"cname={mdl_ch2}"))
+        new_ch2_aln = seq.CreateAlignment(ref_s2, mdl_s2)
+        for col in new_ch2_aln:
+            if col[0] != '-' and col[1] != '-':
+                ref_r = col.GetResidue(0)
+                mdl_r = col.GetResidue(1)
+                if not (ref_r.IsValid() and ref_r.one_letter_code == col[0]):
+                    raise RuntimeError("DockQ: mismatch between provided "
+                                       "alignments and ATOMSEQ in structures")
+                if not (mdl_r.IsValid() and mdl_r.one_letter_code == col[1]):
+                    raise RuntimeError("DockQ: mismatch between provided "
+                                       "alignments and ATOMSEQ in structures")
+                ref_residues_2.append(ref_r)
+                mdl_residues_2.append(mdl_r)
+    else:
         # go by residue numbers
         for mdl_r in mdl.Select(f"cname={mdl_ch1}").residues:
             ref_r = ref.FindResidue(ref_ch1, mdl_r.GetNumber())
@@ -27,8 +77,6 @@ def _PreprocessStructures(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2,
             if ref_r.IsValid():
                 mdl_residues_2.append(mdl_r)
                 ref_residues_2.append(ref_r)
-    else:
-        raise NotImplementedError("No aln mapping implemented yet")
 
     new_mdl = mdl.handle.CreateEmptyView()
     new_ref = ref.handle.CreateEmptyView()

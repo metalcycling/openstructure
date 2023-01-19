@@ -477,7 +477,11 @@ void SequenceTableView::keyPressEvent(QKeyEvent* event)
 }
 
 int SequenceTableView::sizeHintForColumn(int column) const {
-  return this->fontMetrics().horizontalAdvance('W');
+#if (QT_VERSION < QT_VERSION_CHECK(5,11,0))
+    return this->fontMetrics().width('W');
+#else
+    return this->fontMetrics().horizontalAdvance('W');
+#endif
 }
 
 int SequenceTableView::sizeHintForRow(int row) const {
