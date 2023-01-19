@@ -179,8 +179,8 @@ class TestLigandScoring(unittest.TestCase):
         with self.assertRaises(NoSymmetryError):
             ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1, substructure_match=True)
 
-    def test_LigandRMSD(self):
-        """Test that LigandRMSD works.
+    def test_SCRMSD(self):
+        """Test that SCRMSD works.
         """
         trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
         mdl, mdl_seqres = io.LoadMMCIF(os.path.join('testfiles', "P84080_model_02.cif.gz"), seqres=True)
@@ -191,23 +191,23 @@ class TestLigandScoring(unittest.TestCase):
         trg_g3d2 = trg.FindResidue("J", 1)
         mdl_g3d = mdl.FindResidue("L_2", 1)
 
-        rmsd = LigandRMSD(mdl_g3d, trg_g3d1)
+        rmsd = SCRMSD(mdl_g3d, trg_g3d1)
         self.assertAlmostEqual(rmsd, 2.21341e-06, 10)
-        rmsd = LigandRMSD(mdl_g3d, trg_g3d2)
+        rmsd = SCRMSD(mdl_g3d, trg_g3d2)
         self.assertAlmostEqual(rmsd, 61.21325, 4)
 
         # Ensure we raise a NoSymmetryError if the ligand is wrong
         with self.assertRaises(NoSymmetryError):
-            LigandRMSD(mdl_g3d, trg_mg1)
+            SCRMSD(mdl_g3d, trg_mg1)
         with self.assertRaises(NoSymmetryError):
-            LigandRMSD(mdl_g3d, trg_afb1)
+            SCRMSD(mdl_g3d, trg_afb1)
 
         # Assert that transform works
         trans = geom.Mat4(-0.999256, 0.00788487, -0.0377333, -15.4397,
                           0.0380652, 0.0473315, -0.998154, 29.9477,
                           -0.00608426, -0.998848, -0.0475963, 28.8251,
                           0, 0, 0, 1)
-        rmsd = LigandRMSD(mdl_g3d, trg_g3d2, transformation=trans)
+        rmsd = SCRMSD(mdl_g3d, trg_g3d2, transformation=trans)
         self.assertAlmostEqual(rmsd, 0.293972, 5)
 
         # Assert that substructure matches work
@@ -215,8 +215,8 @@ class TestLigandScoring(unittest.TestCase):
         trg_g3d1_sub = trg_g3d1.Select("aindex>6019").residues[0] # Skip PA, PB and O[1-3]A and O[1-3]B.
         mdl_g3d_sub = mdl_g3d.Select("aindex>1447").residues[0] # Skip PA, PB and O[1-3]A and O[1-3]B.
         with self.assertRaises(NoSymmetryError):
-            LigandRMSD(mdl_g3d, trg_g3d1_sub)  # no full match
-        rmsd = LigandRMSD(mdl_g3d, trg_g3d1_sub, substructure_match=True)
+            SCRMSD(mdl_g3d, trg_g3d1_sub)  # no full match
+        rmsd = SCRMSD(mdl_g3d, trg_g3d1_sub, substructure_match=True)
 
 
 if __name__ == "__main__":

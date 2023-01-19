@@ -337,7 +337,7 @@ def ResidueToGraph(residue, by_atom_index=False):
     return nxg
 
 
-def LigandRMSD(model_ligand, target_ligand, transformation=geom.Mat4(),
+def SCRMSD(model_ligand, target_ligand, transformation=geom.Mat4(),
                substructure_match=False):
     """Calculate symmetry-corrected RMSD.
 
@@ -464,4 +464,4 @@ class NoSymmetryError(Exception):
     """
     pass
 
-__all__ = ["LigandScorer", "ResidueToGraph", "LigandRMSD", "NoSymmetryError"]
+__all__ = ["LigandScorer", "ResidueToGraph", "SCRMSD", "NoSymmetryError"]
