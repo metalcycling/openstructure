@@ -1,5 +1,8 @@
 import unittest, os, sys
 
+import numpy as np
+
+import ost
 from ost import io, mol, geom
 # check if we can import: fails if numpy or scipy not available
 try:
@@ -10,6 +13,7 @@ except ImportError:
           "networkx is missing. Ignoring test_ligand_scoring.py tests.")
     sys.exit(0)
 
+#ost.PushVerbosityLevel(ost.LogLevel.Debug)
 
 class TestLigandScoring(unittest.TestCase):
 
@@ -43,7 +47,7 @@ class TestLigandScoring(unittest.TestCase):
         # IsLigand flag should still be set even on not selected ligands
         assert len([r for r in sc.target.residues if r.is_ligand]) == 7
         assert len([r for r in sc.model.residues if r.is_ligand]) == 1
-        
+
         # Ensure the residues are not copied
         assert len(sc.target.Select("rname=MG").residues) == 2
         assert len(sc.target.Select("rname=G3D").residues) == 2
@@ -217,6 +221,47 @@ class TestLigandScoring(unittest.TestCase):
         with self.assertRaises(NoSymmetryError):
             SCRMSD(mdl_g3d, trg_g3d1_sub)  # no full match
         rmsd = SCRMSD(mdl_g3d, trg_g3d1_sub, substructure_match=True)
+
+    def test__compute_scores(self):
+        """Test that _compute_scores works.
+        """
+        trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
+        mdl, mdl_seqres = io.LoadMMCIF(os.path.join('testfiles', "P84080_model_02.cif.gz"), seqres=True)
+        sc = LigandScorer(mdl, trg, None, None)
+
+        # Note: expect warning about Binding site of H.ZN1 not mapped to the model
+        sc._compute_scores()
+
+        # Check RMSD
+        assert sc._rmsd_matrix.shape == (7, 1)
+        np.testing.assert_almost_equal(sc._rmsd_matrix, np.array(
+            [[np.inf],
+            [0.04244993],
+            [np.inf],
+            [np.inf],
+            [np.inf],
+            [0.29399303],
+            [np.inf]]))
+
+        # Check lDDT-PLI
+        assert sc._lddt_pli_matrix.shape == (7, 1)
+        assert sc._lddt_pli_matrix[0, 0] is None
+        assert sc._lddt_pli_matrix[2, 0] is None
+        assert sc._lddt_pli_matrix[3, 0] is None
+        assert sc._lddt_pli_matrix[4, 0] is None
+        assert sc._lddt_pli_matrix[6, 0] is None
+        assert sc._lddt_pli_matrix[1, 0]["lddt_pli_n_contacts"] == 638
+        assert sc._lddt_pli_matrix[5, 0]["lddt_pli_n_contacts"] == 636
+        assert sc._lddt_pli_matrix[1, 0]["chain_mapping"] == {'A': 'A'}
+        assert sc._lddt_pli_matrix[5, 0]["chain_mapping"] == {'C': 'A'}
+        self.assertAlmostEqual(sc._lddt_pli_matrix[1, 0]["lddt_pli"], 0.99843, 5)
+        self.assertAlmostEqual(sc._lddt_pli_matrix[5, 0]["lddt_pli"], 1.0)
+        self.assertAlmostEqual(sc._lddt_pli_matrix[1, 0]["rmsd"], 0.04244993)
+        self.assertAlmostEqual(sc._lddt_pli_matrix[5, 0]["rmsd"], 0.29399303)
+        assert sc._lddt_pli_matrix[1, 0]["bs_num_res"] == 15
+        assert sc._lddt_pli_matrix[5, 0]["bs_num_res"] == 15
+        assert sc._lddt_pli_matrix[1, 0]["bs_num_overlap_res"] == 15
+        assert sc._lddt_pli_matrix[5, 0]["bs_num_overlap_res"] == 15
 
 
 if __name__ == "__main__":
