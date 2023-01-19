@@ -477,7 +477,7 @@ def ResidueToGraph(residue, by_atom_index=False):
                           atom names.
     :type by_atom_index: :class:`bool`
 
-    Nodes are labeled with the Atom's :attr:`~ost.mol.AtomHandle.element`
+    Nodes are labeled with the Atom's :attr:`~ost.mol.AtomHandle.element`.
     """
     nxg = networkx.Graph()
     nxg.add_nodes_from([a.name for a in residue.atoms], element=[a.element for a in residue.atoms])
@@ -615,9 +615,7 @@ def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
 
 
 class NoSymmetryError(Exception):
-    """Exception to be raised when no symmetry can be found
-
-    Those are cases we might want to capture for default behavior.
+    """Exception to be raised when no symmetry can be found.
     """
     pass
 
