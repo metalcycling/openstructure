@@ -267,14 +267,17 @@ class TestLigandScoring(unittest.TestCase):
         """Test check_resname argument works
         """
         # 4C0A has mismatching sequence and fails with check_resnames=True
-        trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
+        mdl_1r8q, _ = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
         trg_4c0a, _ = io.LoadMMCIF(os.path.join('testfiles', "4c0a.cif.gz"), seqres=True)
 
+        mdl = mdl_1r8q.Select("cname=D or cname=F")
+        trg = trg_4c0a.Select("cname=C or cname=I")
+
         with self.assertRaises(RuntimeError):
-            sc = LigandScorer(trg, trg_4c0a, None, None, check_resnames=True)
+            sc = LigandScorer(mdl, trg, [mdl.FindResidue("F", 1)], [trg.FindResidue("I", 1)], check_resnames=True)
             sc._compute_scores()
 
-        sc = LigandScorer(trg, trg_4c0a, None, None, check_resnames=False)
+        sc = LigandScorer(mdl, trg, [mdl.FindResidue("F", 1)], [trg.FindResidue("I", 1)], check_resnames=False)
         sc._compute_scores()
 
 
