@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import numpy as np
 import networkx
@@ -144,10 +145,19 @@ class LigandScorer:
         self.lddt_pli_radius = lddt_pli_radius
         self.lddt_bs_radius = lddt_bs_radius
 
+        # scoring matrices
+        self._rmsd_matrix = None
+        self._rmsd_full_matrix = None
+        self._lddt_pli_matrix = None
+        self._lddt_pli_full_matrix = None
+
         # lazily computed scores
-        self._lddt_pli = None
         self._rmsd = None
-        self._lddt_bs = None
+        self._rmsd_assignment = None
+        self._rmsd_details = None
+        self._lddt_pli = None
+        self._lddt_pli_assignment = None
+        self._lddt_pli_details = None
 
         # lazily precomputed variables
         self._binding_sites = {}
@@ -364,10 +374,9 @@ class LigandScorer:
     def _compute_scores(self):
         """"""
         # Create the matrix
-        self._rmsd_matrix = np.full((len(self.target_ligands),
-                                      len(self.model_ligands)),
-                                    float("inf"), dtype=float)
-        self._lddt_pli_matrix = np.empty((len(self.target_ligands),
+        self._rmsd_full_matrix = np.empty((len(self.target_ligands),
+                                      len(self.model_ligands)), dtype=dict)
+        self._lddt_pli_full_matrix = np.empty((len(self.target_ligands),
                                       len(self.model_ligands)), dtype=dict)
         for target_i, target_ligand in enumerate(self.target_ligands):
             LogDebug("Compute RMSD for target ligand %s" % target_ligand)
@@ -413,7 +422,16 @@ class LigandScorer:
                     rmsd = SCRMSD(model_ligand, target_ligand,
                                   transformation=binding_site.transform,
                                   substructure_match=self.substructure_match)
-                    self._rmsd_matrix[target_i, model_i] = rmsd
+                    self._rmsd_full_matrix[target_i, model_i] = {
+                        "rmsd": rmsd,
+                        "chain_mapping": binding_site.GetFlatChainMapping(),
+                        "lddt_bs": binding_site.lDDT,
+                        "bb_rmsd": binding_site.bb_rmsd,
+                        "bs_num_res": len(binding_site.substructure.residues),
+                        "bs_num_overlap_res": len(binding_site.ref_residues),
+                        "target_ligand": target_ligand,
+                        "model_ligand": model_ligand
+                    }
 
                     mdl_bs_ent = self._build_binding_site_entity(
                         model_ligand, binding_site.mdl_residues, [])
@@ -428,7 +446,7 @@ class LigandScorer:
                     #     LogWarning("Can't calculate backbone RMSD: %s"
                     #                " - setting to Infinity" % str(err))
                     #     bb_rmsd = float("inf")
-                    self._lddt_pli_matrix[target_i, model_i] = {
+                    self._lddt_pli_full_matrix[target_i, model_i] = {
                         "lddt_pli": 0,
                         "lddt_local": None,
                         "lddt_pli_n_contacts": None,
@@ -439,6 +457,8 @@ class LigandScorer:
                         "bb_rmsd": binding_site.bb_rmsd,
                         "bs_num_res": len(binding_site.substructure.residues),
                         "bs_num_overlap_res": len(binding_site.ref_residues),
+                        "target_ligand": target_ligand,
+                        "model_ligand": model_ligand
                     }
 
                     # Now for each symmetry, loop and rename atoms according
@@ -461,13 +481,152 @@ class LigandScorer:
                                 check_resnames = self.check_resnames)
 
                         # Save results?
-                        best_lddt = self._lddt_pli_matrix[target_i, model_i]["lddt_pli"]
+                        best_lddt = self._lddt_pli_full_matrix[target_i, model_i]["lddt_pli"]
                         if global_lddt > best_lddt:
-                            self._lddt_pli_matrix[target_i, model_i].update({
+                            self._lddt_pli_full_matrix[target_i, model_i].update({
                                 "lddt_pli": global_lddt,
                                 "lddt_local": local_lddt,
                                 "lddt_pli_n_contacts": lddt_tot / 8,
                             })
+
+    def _find_ligand_assignment(self, mat1, mat2):
+        """ Find the ligand assignment based on mat1
+
+        Both mat1 and mat2 should "look" like RMSD - ie be between inf (bad)
+        and 0 (good).
+        """
+        # We will modify mat1 and mat2, so make copies of it first
+        mat1 = np.copy(mat1)
+        mat2 = np.copy(mat2)
+        assignments = []
+        min_mat1 = mat1.min()
+        while min_mat1 < np.inf:
+            best_mat1 = np.argwhere(mat1 == min_mat1)
+            # Multiple "best" - use mat2 to disambiguate
+            if len(best_mat1) > 1:
+                # Get the values of mat2 at these positions
+                best_mat2_match = [mat2[tuple(x)] for x in best_mat1]
+                # Find the index of the best mat2
+                best_mat2_idx = np.array(best_mat2_match).argmin()
+                # Now get the original indices
+                max_i_trg, max_i_mdl = best_mat1[best_mat2_idx]
+            else:
+                max_i_trg, max_i_mdl = best_mat1[0]
+
+            # Disable row and column
+            mat1[max_i_trg, :] = np.inf
+            mat1[:, max_i_mdl] = np.inf
+            mat2[max_i_trg, :] = np.inf
+            mat2[:, max_i_mdl] = np.inf
+
+            # Save
+            assignments.append((max_i_trg, max_i_mdl))
+
+            # Recompute min
+            min_mat1 = mat1.min()
+        return assignments
+
+    def _assign_ligands_rmsd(self):
+        """Assign (map) ligands between model and target
+        """
+        # Transform lddt_pli to be on the scale of RMSD
+        with warnings.catch_warnings():  # RuntimeWarning: divide by zero
+            mat2 = np.float64(1) / self.lddt_pli_matrix
+
+        assignments = self._find_ligand_assignment(self.rmsd_matrix, mat2)
+        self._rmsd = {}
+        self._rmsd_assignment = {}
+        self._rmsd_details = {}
+        for assignment in assignments:
+            trg_idx, mdl_idx = assignment
+            mdl_lig_qname = self.model_ligands[mdl_idx].qualified_name
+            self._rmsd[mdl_lig_qname] = self._rmsd_full_matrix[trg_idx, mdl_idx]["rmsd"]
+            self._rmsd_assignment[mdl_lig_qname] = self._rmsd_full_matrix[trg_idx, mdl_idx]["target_ligand"]
+            self._rmsd_details[mdl_lig_qname] = self._rmsd_full_matrix[trg_idx, mdl_idx]
+
+    def _assign_ligands_lddt_pli(self):
+        """ Assign ligands based on lDDT-PLI.
+        """
+        # Transform lddt_pli to be on the scale of RMSD
+        with warnings.catch_warnings():  # RuntimeWarning: divide by zero
+            mat1 = np.float64(1) / self.lddt_pli_matrix
+
+        assignments = self._find_ligand_assignment(mat1, self.rmsd_matrix)
+        self._lddt_pli = {}
+        self._lddt_pli_assignment = {}
+        self._lddt_pli_details = {}
+        for assignment in assignments:
+            trg_idx, mdl_idx = assignment
+            mdl_lig_qname = self.model_ligands[mdl_idx].qualified_name
+            self._lddt_pli[mdl_lig_qname] = self._lddt_pli_full_matrix[trg_idx, mdl_idx]["lddt_pli"]
+            self._lddt_pli_assignment[mdl_lig_qname] = self._lddt_pli_full_matrix[trg_idx, mdl_idx]["target_ligand"]
+            self._lddt_pli_details[mdl_lig_qname] = self._lddt_pli_full_matrix[trg_idx, mdl_idx]
+
+    @property
+    def rmsd_matrix(self):
+        """
+        """
+        if self._rmsd_full_matrix is None:
+            self._compute_scores()
+        if self._rmsd_matrix is None:
+            # convert
+            shape = self._rmsd_full_matrix.shape
+            self._rmsd_matrix = np.full(shape, np.inf)
+            for i, j in np.ndindex(shape):
+                if self._rmsd_full_matrix[i, j] is not None:
+                    self._rmsd_matrix[i, j] = self._rmsd_full_matrix[i, j]["rmsd"]
+        return self._rmsd_matrix
+
+    @property
+    def lddt_pli_matrix(self):
+        """
+        """
+        if self._lddt_pli_full_matrix is None:
+            self._compute_scores()
+        if self._lddt_pli_matrix is None:
+            # convert
+            shape = self._lddt_pli_full_matrix.shape
+            self._lddt_pli_matrix = np.zeros(shape)
+            for i, j in np.ndindex(shape):
+                if self._lddt_pli_full_matrix[i, j] is not None:
+                    self._lddt_pli_matrix[i, j] = self._lddt_pli_full_matrix[i, j]["lddt_pli"]
+        return self._lddt_pli_matrix
+
+    @property
+    def rmsd(self):
+        if self._rmsd is None:
+            self._assign_ligands_rmsd()
+        return self._rmsd
+
+    @property
+    def rmsd_assignment(self):
+        if self._rmsd_assignment is None:
+            self._assign_ligands_rmsd()
+        return self._rmsd_assignment
+
+    @property
+    def rmsd_details(self):
+        if self._rmsd_details is None:
+            self._assign_ligands_rmsd()
+        return self._rmsd_details
+
+    @property
+    def lddt_pli(self):
+        if self._lddt_pli is None:
+            self._assign_ligands_lddt_pli()
+        return self._lddt_pli
+
+    @property
+    def lddt_pli_assignment(self):
+        if self._lddt_pli_assignment is None:
+            self._assign_ligands_lddt_pli()
+        return self._lddt_pli_assignment
+
+    @property
+    def lddt_pli_details(self):
+        if self._lddt_pli_details is None:
+            self._assign_ligands_lddt_pli()
+        return self._lddt_pli_details
 
 
 def ResidueToGraph(residue, by_atom_index=False):
