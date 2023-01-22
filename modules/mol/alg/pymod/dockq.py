@@ -6,22 +6,41 @@ def _PreprocessStructures(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2,
                           ch1_aln = None, ch2_aln = None):
     """ Preprocesses *mdl* and *ref*
 
-    Returns two entity views with the exact same number of residues. I.e. the
-    residues correspond to a one-to-one mapping. Additionally, each residue gets
-    the int property "dockq_map" assigned, which corresponds to the residue
-    index in the respective chain of the processed structures.
-    """
-    mdl_residues_1 = list()
-    mdl_residues_2 = list()
-    ref_residues_1 = list()
-    ref_residues_2 = list()
+    Sets int properties to each residue in mdl_ch1, mdl_ch2 as well as
+    the respective reference chains.
+    dockq_mapped: 1 if a residues in mdl_ch1 is mapped to a residue in ref_ch1 
+                  and vice versa, 0 otherwise. Same is done for mdl_ch2 and
+                  ref_ch2.
+    dockq_idx: If a pair of residue is mapped, the same index will be set
+               to both residues. The index is unique otherwise.
 
+    By default, mapping happens with residue numbers but you can enforce a
+    mapping with an alignment. In the example of ch1_aln, the first sequence
+    corresponds to the ATOMSEQ of ref_ch1 in ref and the second sequence to
+    the ATOMSEQ of mdl_ch1 in mdl.
+    """
+
+    # set default values for dockq_mapped and dockq_idx properties
+    # => makes sure that we have a clean slate if stuff has been set in
+    # previous runs
+    for cname in [ref_ch1, ref_ch2]:
+        ch = ref.FindChain(cname)
+        for r in ch.residues:
+            r.SetIntProp("dockq_mapped", 0)
+            r.SetIntProp("dockq_idx", -1)
+    for cname in [mdl_ch1, mdl_ch2]:
+        ch = mdl.FindChain(cname)
+        for r in ch.residues:
+            r.SetIntProp("dockq_mapped", 0)
+            r.SetIntProp("dockq_idx", -1)
+
+    dockq_idx = 0
     if ch1_aln is not None and ch2_aln is not None:
         # there are potentially already views attached to the alns but
         # we go for *mdl* and *ref* here
         if ch1_aln.GetCount() != 2 or ch2_aln.GetCount() != 2:
-            raise RuntimeError("Expect exactly two sequences in provided alns!")
-
+            raise RuntimeError("Expect exactly two sequences in alns provided "
+                               "to DockQ!")
         tmp = ch1_aln.GetSequence(0)
         ref_s1 = seq.CreateSequence(tmp.GetName(), str(tmp))
         ref_s1.SetOffset(tmp.GetOffset())
@@ -41,8 +60,11 @@ def _PreprocessStructures(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2,
                 if not (mdl_r.IsValid() and mdl_r.one_letter_code == col[1]):
                     raise RuntimeError("DockQ: mismatch between provided "
                                        "alignments and ATOMSEQ in structures")
-                ref_residues_1.append(ref_r)
-                mdl_residues_1.append(mdl_r)
+                ref_r.SetIntProp("dockq_idx", dockq_idx)
+                mdl_r.SetIntProp("dockq_idx", dockq_idx)
+                ref_r.SetIntProp("dockq_mapped", 1)
+                mdl_r.SetIntProp("dockq_mapped", 1)
+                dockq_idx += 1
 
         tmp = ch2_aln.GetSequence(0)
         ref_s2 = seq.CreateSequence(tmp.GetName(), str(tmp))
@@ -63,47 +85,43 @@ def _PreprocessStructures(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2,
                 if not (mdl_r.IsValid() and mdl_r.one_letter_code == col[1]):
                     raise RuntimeError("DockQ: mismatch between provided "
                                        "alignments and ATOMSEQ in structures")
-                ref_residues_2.append(ref_r)
-                mdl_residues_2.append(mdl_r)
+                ref_r.SetIntProp("dockq_idx", dockq_idx)
+                mdl_r.SetIntProp("dockq_idx", dockq_idx)
+                ref_r.SetIntProp("dockq_mapped", 1)
+                mdl_r.SetIntProp("dockq_mapped", 1)
+                dockq_idx += 1
     else:
         # go by residue numbers
         for mdl_r in mdl.Select(f"cname={mdl_ch1}").residues:
             ref_r = ref.FindResidue(ref_ch1, mdl_r.GetNumber())
             if ref_r.IsValid():
-                mdl_residues_1.append(mdl_r)
-                ref_residues_1.append(ref_r)
+                ref_r.SetIntProp("dockq_idx", dockq_idx)
+                mdl_r.SetIntProp("dockq_idx", dockq_idx)
+                ref_r.SetIntProp("dockq_mapped", 1)
+                mdl_r.SetIntProp("dockq_mapped", 1)
+                dockq_idx += 1
         for mdl_r in mdl.Select(f"cname={mdl_ch2}").residues:
             ref_r = ref.FindResidue(ref_ch2, mdl_r.GetNumber())
             if ref_r.IsValid():
-                mdl_residues_2.append(mdl_r)
-                ref_residues_2.append(ref_r)
+                ref_r.SetIntProp("dockq_idx", dockq_idx)
+                mdl_r.SetIntProp("dockq_idx", dockq_idx)
+                ref_r.SetIntProp("dockq_mapped", 1)
+                mdl_r.SetIntProp("dockq_mapped", 1)
+                dockq_idx += 1
 
-    new_mdl = mdl.handle.CreateEmptyView()
-    new_ref = ref.handle.CreateEmptyView()
-    for r in mdl_residues_1:
-        new_mdl.AddResidue(r.handle, mol.INCLUDE_ALL)
-    for r in mdl_residues_2:
-        new_mdl.AddResidue(r.handle, mol.INCLUDE_ALL)
-    for r in ref_residues_1:
-        new_ref.AddResidue(r.handle, mol.INCLUDE_ALL)
-    for r in ref_residues_2:
-        new_ref.AddResidue(r.handle, mol.INCLUDE_ALL)
-
-    # set dockq_map property
-    ch = new_mdl.FindChain(mdl_ch1)
-    for r_idx, r in enumerate(ch.residues):
-        r.SetIntProp("dockq_map", r_idx)
-    ch = new_mdl.FindChain(mdl_ch2)
-    for r_idx, r in enumerate(ch.residues):
-        r.SetIntProp("dockq_map", r_idx)
-    ch = new_ref.FindChain(ref_ch1)
-    for r_idx, r in enumerate(ch.residues):
-        r.SetIntProp("dockq_map", r_idx)
-    ch = new_ref.FindChain(ref_ch2)
-    for r_idx, r in enumerate(ch.residues):
-        r.SetIntProp("dockq_map", r_idx)
-
-    return (new_mdl, new_ref)
+    # set unique dockq_idx property for all residues that are still -1
+    for cname in [ref_ch1, ref_ch2]:
+        ch = ref.FindChain(cname)
+        for r in ch.residues:
+            if r.GetIntProp("dockq_idx") == -1:
+                r.SetIntProp("dockq_idx", dockq_idx)
+                dockq_idx += 1
+    for cname in [mdl_ch1, mdl_ch2]:
+        ch = mdl.FindChain(cname)
+        for r in ch.residues:
+            if r.GetIntProp("dockq_idx") == -1:
+                r.SetIntProp("dockq_idx", dockq_idx)
+                dockq_idx += 1
 
 def _GetContacts(ent, ch1, ch2, dist_thresh):
     int1 = ent.Select(f"cname={ch1} and {dist_thresh} <> [cname={ch2}]")
@@ -114,7 +132,8 @@ def _GetContacts(ent, ch1, ch2, dist_thresh):
     for r1, p1 in zip(int1.residues, int1_p):
         for r2, p2 in zip(int2.residues, int2_p):
             if p1.IsWithin(p2, dist_thresh):
-                contacts.add((r1.GetIntProp("dockq_map"), r2.GetIntProp("dockq_map")))
+                contacts.add((r1.GetIntProp("dockq_idx"),
+                              r2.GetIntProp("dockq_idx")))
     return contacts
 
 def _ContactScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=5.0):
@@ -136,17 +155,26 @@ def _ContactScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=5.0
 
 def _RMSDScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=10.0):
 
-    mdl_ch1_residues = mdl.FindChain(mdl_ch1).residues
-    mdl_ch2_residues = mdl.FindChain(mdl_ch2).residues
-    ref_ch1_residues = ref.FindChain(ref_ch1).residues
-    ref_ch2_residues = ref.FindChain(ref_ch2).residues
+    # make mapped residues accessible by the dockq_idx property
+    mapped_mdl = mdl.Select(f"cname={mdl_ch1},{mdl_ch2} and grdockq_mapped=1")
+    mapped_ref = ref.Select(f"cname={ref_ch1},{ref_ch2} and grdockq_mapped=1")
+    mdl_ch1_residues = mapped_mdl.FindChain(mdl_ch1).residues
+    mdl_ch1_residues = {r.GetIntProp("dockq_idx"): r for r in mdl_ch1_residues}
+    mdl_ch2_residues = mapped_mdl.FindChain(mdl_ch2).residues
+    mdl_ch2_residues = {r.GetIntProp("dockq_idx"): r for r in mdl_ch2_residues}
+    ref_ch1_residues = mapped_ref.FindChain(ref_ch1).residues
+    ref_ch1_residues = {r.GetIntProp("dockq_idx"): r for r in ref_ch1_residues}
+    ref_ch2_residues = mapped_ref.FindChain(ref_ch2).residues
+    ref_ch2_residues = {r.GetIntProp("dockq_idx"): r for r in ref_ch2_residues}
 
     # iRMSD
     #######
-    int1 = ref.Select(f"cname={ref_ch1} and {dist_thresh} <> [cname={ref_ch2}]")
-    int2 = ref.Select(f"cname={ref_ch2} and {dist_thresh} <> [cname={ref_ch1}]")
-    int1_indices = [r.GetIntProp("dockq_map") for r in int1.residues]
-    int2_indices = [r.GetIntProp("dockq_map") for r in int2.residues]
+    int1 = mapped_ref.Select(f"cname={ref_ch1} and {dist_thresh} <> "
+                             f"[cname={ref_ch2}]")
+    int2 = mapped_ref.Select(f"cname={ref_ch2} and {dist_thresh} <> "
+                             f"[cname={ref_ch1}]")
+    int1_indices = [r.GetIntProp("dockq_idx") for r in int1.residues]
+    int2_indices = [r.GetIntProp("dockq_idx") for r in int2.residues]
     ref_pos = geom.Vec3List()
     mdl_pos = geom.Vec3List()
     atom_names = ['CA','C','N','O']
@@ -159,7 +187,6 @@ def _RMSDScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=10.0):
             if ref_a.IsValid() and mdl_a.IsValid():
                 ref_pos.append(ref_a.pos)
                 mdl_pos.append(mdl_a.pos)
-
     for idx in int2_indices:
         ref_r = ref_ch2_residues[idx]
         mdl_r = mdl_ch2_residues[idx]
@@ -178,23 +205,27 @@ def _RMSDScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=10.0):
 
     # lRMSD
     #######
-    # receptor is by definition the larger chain
-    if len(ref_ch1_residues) > len(ref_ch2_residues):
-        ref_receptor_residues = ref_ch1_residues
-        ref_ligand_residues = ref_ch2_residues
-        mdl_receptor_residues = mdl_ch1_residues
-        mdl_ligand_residues = mdl_ch2_residues
+    # receptor is by definition the larger chain in ref
+    n_ch1 = len(ref.FindChain(ref_ch1).residues)
+    n_ch2 = len(ref.FindChain(ref_ch2).residues)
+    if n_ch1 > n_ch2:
+        ref_receptor_residues = ref_ch1_residues.values()
+        ref_ligand_residues = ref_ch2_residues.values()
+        mdl_receptor_residues = \
+        [mdl_ch1_residues[idx] for idx in ref_ch1_residues.keys()]
+        mdl_ligand_residues = \
+        [mdl_ch2_residues[idx] for idx in ref_ch2_residues.keys()] 
     else:
-        ref_receptor_residues = ref_ch2_residues
-        ref_ligand_residues = ref_ch1_residues
-        mdl_receptor_residues = mdl_ch2_residues
-        mdl_ligand_residues = mdl_ch1_residues
-
+        ref_receptor_residues = ref_ch2_residues.values()
+        ref_ligand_residues = ref_ch1_residues.values()
+        mdl_receptor_residues = \
+        [mdl_ch2_residues[idx] for idx in ref_ch2_residues.keys()]
+        mdl_ligand_residues = \
+        [mdl_ch1_residues[idx] for idx in ref_ch1_residues.keys()]
     ref_receptor_positions = geom.Vec3List()
     mdl_receptor_positions = geom.Vec3List()
     ref_ligand_positions = geom.Vec3List()
     mdl_ligand_positions = geom.Vec3List()
-
     for ref_r, mdl_r in zip(ref_receptor_residues, mdl_receptor_residues):
         for aname in atom_names:
             ref_a = ref_r.FindAtom(aname)
@@ -202,7 +233,6 @@ def _RMSDScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=10.0):
             if ref_a.IsValid() and mdl_a.IsValid():
                 ref_receptor_positions.append(ref_a.pos)
                 mdl_receptor_positions.append(mdl_a.pos)
-
     for ref_r, mdl_r in zip(ref_ligand_residues, mdl_ligand_residues):
         for aname in atom_names:
             ref_a = ref_r.FindAtom(aname)
@@ -265,14 +295,11 @@ def DockQ(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2,
               DockQ which corresponds to the equivalent values in the original
               DockQ implementation.
     """
-    mapped_model, mapped_ref = _PreprocessStructures(mdl, ref, mdl_ch1, mdl_ch2,
-                                                     ref_ch1, ref_ch2,
-                                                     ch1_aln = ch1_aln,
-                                                     ch2_aln = ch2_aln)
-    nnat, nmdl, fnat, fnonnat = _ContactScores(mapped_model, mapped_ref,
-                                         mdl_ch1, mdl_ch2, ref_ch1, ref_ch2)
-    irmsd, lrmsd = _RMSDScores(mapped_model, mapped_ref,
-                               mdl_ch1, mdl_ch2, ref_ch1, ref_ch2)
+    _PreprocessStructures(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2,
+                          ch1_aln = ch1_aln, ch2_aln = ch2_aln)
+    nnat, nmdl, fnat, fnonnat = _ContactScores(mdl, ref, mdl_ch1, mdl_ch2,
+                                               ref_ch1, ref_ch2)
+    irmsd, lrmsd = _RMSDScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2)
     return {"nnat": nnat,
             "nmdl": nmdl,
             "fnat": fnat,
