@@ -540,7 +540,7 @@ class LigandScorer:
             trg_idx, mdl_idx = assignment
             mdl_lig_qname = self.model_ligands[mdl_idx].qualified_name
             self._rmsd[mdl_lig_qname] = self._rmsd_full_matrix[trg_idx, mdl_idx]["rmsd"]
-            self._rmsd_assignment[mdl_lig_qname] = self._rmsd_full_matrix[trg_idx, mdl_idx]["target_ligand"]
+            self._rmsd_assignment[mdl_lig_qname] = self._rmsd_full_matrix[trg_idx, mdl_idx]["target_ligand"].qualified_name
             self._rmsd_details[mdl_lig_qname] = self._rmsd_full_matrix[trg_idx, mdl_idx]
 
     def _assign_ligands_lddt_pli(self):
@@ -559,7 +559,7 @@ class LigandScorer:
             trg_idx, mdl_idx = assignment
             mdl_lig_qname = self.model_ligands[mdl_idx].qualified_name
             self._lddt_pli[mdl_lig_qname] = self._lddt_pli_full_matrix[trg_idx, mdl_idx]["lddt_pli"]
-            self._lddt_pli_assignment[mdl_lig_qname] = self._lddt_pli_full_matrix[trg_idx, mdl_idx]["target_ligand"]
+            self._lddt_pli_assignment[mdl_lig_qname] = self._lddt_pli_full_matrix[trg_idx, mdl_idx]["target_ligand"].qualified_name
             self._lddt_pli_details[mdl_lig_qname] = self._lddt_pli_full_matrix[trg_idx, mdl_idx]
 
     @property
