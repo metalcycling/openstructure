@@ -448,7 +448,6 @@ class LigandScorer:
                     #     bb_rmsd = float("inf")
                     self._lddt_pli_full_matrix[target_i, model_i] = {
                         "lddt_pli": 0,
-                        "lddt_local": None,
                         "lddt_pli_n_contacts": None,
                         "rmsd": rmsd,
                         # "symmetry_number": i,
@@ -485,8 +484,7 @@ class LigandScorer:
                         if global_lddt > best_lddt:
                             self._lddt_pli_full_matrix[target_i, model_i].update({
                                 "lddt_pli": global_lddt,
-                                "lddt_local": local_lddt,
-                                "lddt_pli_n_contacts": lddt_tot / 8,
+                                "lddt_pli_n_contacts": lddt_tot,
                             })
 
     def _find_ligand_assignment(self, mat1, mat2):
