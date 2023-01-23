@@ -531,6 +531,7 @@ class LigandScorer:
         """
         # Transform lddt_pli to be on the scale of RMSD
         with warnings.catch_warnings():  # RuntimeWarning: divide by zero
+            warnings.simplefilter("ignore")
             mat2 = np.float64(1) / self.lddt_pli_matrix
 
         assignments = self._find_ligand_assignment(self.rmsd_matrix, mat2)
@@ -549,6 +550,7 @@ class LigandScorer:
         """
         # Transform lddt_pli to be on the scale of RMSD
         with warnings.catch_warnings():  # RuntimeWarning: divide by zero
+            warnings.simplefilter("ignore")
             mat1 = np.float64(1) / self.lddt_pli_matrix
 
         assignments = self._find_ligand_assignment(mat1, self.rmsd_matrix)
