@@ -316,18 +316,18 @@ class TestLigandScoring(unittest.TestCase):
         # lddt_pli_details
         self.assertAlmostEqual(sc.lddt_pli_details["J.G3D1"]["rmsd"], 4.1008, 4)
         self.assertEqual(sc.lddt_pli_details["J.G3D1"]["lddt_pli_n_contacts"], 5224)
-        self.assertEqual(sc.rmsd_details["J.G3D1"]["chain_mapping"], {'A': 'B', 'H': 'C'})
-        self.assertEqual(sc.rmsd_details["J.G3D1"]["bs_num_res"], 16)
-        self.assertEqual(sc.rmsd_details["J.G3D1"]["bs_num_overlap_res"], 16)
-        self.assertEqual(sc.rmsd_details["J.G3D1"]["target_ligand"].qualified_name, 'L.G3D1')
-        self.assertEqual(sc.rmsd_details["J.G3D1"]["model_ligand"].qualified_name, 'J.G3D1')
+        self.assertEqual(sc.lddt_pli_details["J.G3D1"]["chain_mapping"], {'F': 'B', 'C': 'C'})
+        self.assertEqual(sc.lddt_pli_details["J.G3D1"]["bs_num_res"], 15)
+        self.assertEqual(sc.lddt_pli_details["J.G3D1"]["bs_num_overlap_res"], 15)
+        self.assertEqual(sc.lddt_pli_details["J.G3D1"]["target_ligand"].qualified_name, 'I.G3D1')
+        self.assertEqual(sc.lddt_pli_details["J.G3D1"]["model_ligand"].qualified_name, 'J.G3D1')
         self.assertAlmostEqual(sc.lddt_pli_details["F.G3D1"]["rmsd"], 57.7868, 4)
         self.assertEqual(sc.lddt_pli_details["F.G3D1"]["lddt_pli_n_contacts"], 5480)
-        self.assertEqual(sc.rmsd_details["F.G3D1"]["chain_mapping"], {'F': 'B', 'C': 'C'})
-        self.assertEqual(sc.rmsd_details["F.G3D1"]["bs_num_res"], 15)
-        self.assertEqual(sc.rmsd_details["F.G3D1"]["bs_num_overlap_res"], 15)
-        self.assertEqual(sc.rmsd_details["F.G3D1"]["target_ligand"].qualified_name, 'I.G3D1')
-        self.assertEqual(sc.rmsd_details["F.G3D1"]["model_ligand"].qualified_name, 'F.G3D1')
+        self.assertEqual(sc.lddt_pli_details["F.G3D1"]["chain_mapping"], {'E': 'B', 'D': 'C'})
+        self.assertEqual(sc.lddt_pli_details["F.G3D1"]["bs_num_res"], 16)
+        self.assertEqual(sc.lddt_pli_details["F.G3D1"]["bs_num_overlap_res"], 16)
+        self.assertEqual(sc.lddt_pli_details["F.G3D1"]["target_ligand"].qualified_name, 'J.G3D1')
+        self.assertEqual(sc.lddt_pli_details["F.G3D1"]["model_ligand"].qualified_name, 'F.G3D1')
 
 
 if __name__ == "__main__":
