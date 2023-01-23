@@ -1193,6 +1193,11 @@ class ChainMapper:
                 substructure_chem_groups.append(substructure_chem_group)
                 substructure_chem_mapping.append(mapping)
 
+        # early stopping if no mdl chain can be mapped to substructure
+        n_mapped_mdl_chains = sum([len(m) for m in substructure_chem_mapping])
+        if n_mapped_mdl_chains == 0:
+            return list()
+
         # strip the reference sequence in alignments to only contain
         # sequence from substructure
         substructure_ref_mdl_alns = dict()
@@ -1233,6 +1238,7 @@ class ChainMapper:
             # chain_mapping and alns as input for lDDT computation
             lddt_chain_mapping = dict()
             lddt_alns = dict()
+            n_res_aln = 0
             for ref_chem_group, mdl_chem_group in zip(substructure_chem_groups,
                                                       mapping):
                 for ref_ch, mdl_ch in zip(ref_chem_group, mdl_chem_group):
@@ -1241,6 +1247,12 @@ class ChainMapper:
                         lddt_chain_mapping[mdl_ch] = ref_ch
                         aln = substructure_ref_mdl_alns[(ref_ch, mdl_ch)]
                         lddt_alns[mdl_ch] = aln
+                        tmp = [int(c[0] != '-' and c[1] != '-') for c in aln]
+                        n_res_aln += sum(tmp)
+            # don't compute lDDT if no single residue in mdl and ref is aligned
+            if n_res_aln == 0:
+                continue
+
             lDDT, _ = lddt_scorer.lDDT(mdl, thresholds=thresholds,
                                        chain_mapping=lddt_chain_mapping,
                                        residue_mapping = lddt_alns,
@@ -3282,6 +3294,8 @@ def _ChainMappings(ref_chains, mdl_chains, n_max=None):
     # reference
     iterators = list()
     for ref, mdl in zip(ref_chains, mdl_chains):
+        if len(ref) == 0:
+            raise RuntimeError("Expext at least one chain in ref chem group")
         if len(ref) == len(mdl):
             iterators.append(_RefEqualGenerator(ref, mdl))
         elif len(ref) < len(mdl):
