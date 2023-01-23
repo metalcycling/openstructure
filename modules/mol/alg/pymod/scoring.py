@@ -879,6 +879,36 @@ class Scorer:
 
         flat_mapping = self.mapping.GetFlatMapping()
         pep_seqs = set([s.GetName() for s in self.chain_mapper.polypep_seqs])
+
+        # perform required alignments - cannot take the alignments from the
+        # mapping results as we potentially remove stuff there as compared
+        # to self.model and self.target
+        trg_seqs = dict()
+        for ch in self.target.chains:
+            cname = ch.GetName()
+            s = ''.join([r.one_letter_code for r in ch.residues])
+            s = seq.CreateSequence(ch.GetName(), s)
+            s.AttachView(self.target.Select(f"cname={cname}"))
+            trg_seqs[ch.GetName()] = s
+        mdl_seqs = dict()
+        for ch in self.model.chains:
+            cname = ch.GetName()
+            s = ''.join([r.one_letter_code for r in ch.residues])
+            s = seq.CreateSequence(cname, s)
+            s.AttachView(self.model.Select(f"cname={cname}"))
+            mdl_seqs[ch.GetName()] = s
+
+        trg_pep_chains = [s.GetName() for s in self.chain_mapper.polypep_seqs]
+        trg_nuc_chains = [s.GetName() for s in self.chain_mapper.polynuc_seqs]
+        trg_pep_chains = set(trg_pep_chains)
+        trg_nuc_chains = set(trg_nuc_chains)
+        dockq_alns = dict()
+        for trg_ch, mdl_ch in flat_mapping.items():
+            if trg_ch in pep_seqs:
+                dockq_alns[(trg_ch, mdl_ch)] = \
+                self.chain_mapper.Align(trg_seqs[trg_ch], mdl_seqs[mdl_ch],
+                                        mol.ChemType.AMINOACIDS)
+
         for trg_int in self.qs_scorer.qsent1.interacting_chains:
             trg_ch1 = trg_int[0]
             trg_ch2 = trg_int[1]
@@ -886,16 +916,9 @@ class Scorer:
                 if trg_ch1 in flat_mapping and trg_ch2 in flat_mapping:
                     mdl_ch1 = flat_mapping[trg_ch1]
                     mdl_ch2 = flat_mapping[trg_ch2]
-                    aln1 = self.mapping.alns[(trg_ch1, mdl_ch1)]
-                    aln2 = self.mapping.alns[(trg_ch2, mdl_ch2)]
-                    # we're operating on the model/target from the MappingResult
-                    # as their ATOMSEQ corresponds to the alignments above.
-                    # Residues that do not contain all atoms required for
-                    # ChainMapper (e.g. N, CA, C, CB) are removed which triggers
-                    # a mismatch error in DockQ
-                    model = self.mapping.model
-                    target = self.mapping.target
-                    res = dockq.DockQ(model, target, mdl_ch1, mdl_ch2,
+                    aln1 = dockq_alns[(trg_ch1, mdl_ch1)]
+                    aln2 = dockq_alns[(trg_ch2, mdl_ch2)]
+                    res = dockq.DockQ(self.model, self.target, mdl_ch1, mdl_ch2,
                                       trg_ch1, trg_ch2, ch1_aln=aln1,
                                       ch2_aln=aln2)
                     if res["nnat"] > 0:
