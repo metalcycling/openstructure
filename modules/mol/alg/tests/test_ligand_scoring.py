@@ -233,8 +233,8 @@ class TestLigandScoring(unittest.TestCase):
         sc._compute_scores()
 
         # Check RMSD
-        assert sc._rmsd_matrix.shape == (7, 1)
-        np.testing.assert_almost_equal(sc._rmsd_matrix, np.array(
+        assert sc.rmsd_matrix.shape == (7, 1)
+        np.testing.assert_almost_equal(sc.rmsd_matrix, np.array(
             [[np.inf],
             [0.04244993],
             [np.inf],
@@ -244,24 +244,14 @@ class TestLigandScoring(unittest.TestCase):
             [np.inf]]))
 
         # Check lDDT-PLI
-        assert sc._lddt_pli_matrix.shape == (7, 1)
-        assert sc._lddt_pli_matrix[0, 0] is None
-        assert sc._lddt_pli_matrix[2, 0] is None
-        assert sc._lddt_pli_matrix[3, 0] is None
-        assert sc._lddt_pli_matrix[4, 0] is None
-        assert sc._lddt_pli_matrix[6, 0] is None
-        assert sc._lddt_pli_matrix[1, 0]["lddt_pli_n_contacts"] == 638
-        assert sc._lddt_pli_matrix[5, 0]["lddt_pli_n_contacts"] == 636
-        assert sc._lddt_pli_matrix[1, 0]["chain_mapping"] == {'A': 'A'}
-        assert sc._lddt_pli_matrix[5, 0]["chain_mapping"] == {'C': 'A'}
-        self.assertAlmostEqual(sc._lddt_pli_matrix[1, 0]["lddt_pli"], 0.99843, 5)
-        self.assertAlmostEqual(sc._lddt_pli_matrix[5, 0]["lddt_pli"], 1.0)
-        self.assertAlmostEqual(sc._lddt_pli_matrix[1, 0]["rmsd"], 0.04244993)
-        self.assertAlmostEqual(sc._lddt_pli_matrix[5, 0]["rmsd"], 0.29399303)
-        assert sc._lddt_pli_matrix[1, 0]["bs_num_res"] == 15
-        assert sc._lddt_pli_matrix[5, 0]["bs_num_res"] == 15
-        assert sc._lddt_pli_matrix[1, 0]["bs_num_overlap_res"] == 15
-        assert sc._lddt_pli_matrix[5, 0]["bs_num_overlap_res"] == 15
+        self.assertEqual(sc.lddt_pli_matrix.shape, (7, 1))
+        self.assertEqual(sc.lddt_pli_matrix[0, 0], 0)
+        self.assertAlmostEqual(sc.lddt_pli_matrix[1, 0], 0.99843, 5)
+        self.assertEqual(sc.lddt_pli_matrix[2, 0], 0)
+        self.assertEqual(sc.lddt_pli_matrix[3, 0], 0)
+        self.assertEqual(sc.lddt_pli_matrix[4, 0], 0)
+        self.assertAlmostEqual(sc.lddt_pli_matrix[5, 0], 1.0)
+        self.assertEqual(sc.lddt_pli_matrix[6, 0], 0)
 
     def test_check_resnames(self):
         """Test check_resname argument works
