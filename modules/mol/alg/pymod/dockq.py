@@ -8,7 +8,7 @@ def _PreprocessStructures(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2,
 
     Sets int properties to each residue in mdl_ch1, mdl_ch2 as well as
     the respective reference chains.
-    dockq_mapped: 1 if a residues in mdl_ch1 is mapped to a residue in ref_ch1 
+    dockq_mapped: 1 if a residues in mdl_ch1 is mapped to a residue in ref_ch1
                   and vice versa, 0 otherwise. Same is done for mdl_ch2 and
                   ref_ch2.
     dockq_idx: If a pair of residue is mapped, the same index will be set
@@ -136,7 +136,8 @@ def _GetContacts(ent, ch1, ch2, dist_thresh):
                               r2.GetIntProp("dockq_idx")))
     return contacts
 
-def _ContactScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=5.0):
+def _ContactScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2,
+                   dist_thresh=5.0):
     ref_contacts = _GetContacts(ref, ref_ch1, ref_ch2, dist_thresh)
     mdl_contacts = _GetContacts(mdl, mdl_ch1, mdl_ch2, dist_thresh)
 
@@ -155,45 +156,44 @@ def _ContactScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=5.0
 
 def _RMSDScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=10.0):
 
+    # backbone atoms used for superposition
+    sup_atoms = ['CA','C','N','O']
+
     # make mapped residues accessible by the dockq_idx property
     mapped_mdl = mdl.Select(f"cname={mdl_ch1},{mdl_ch2} and grdockq_mapped=1")
     mapped_ref = ref.Select(f"cname={ref_ch1},{ref_ch2} and grdockq_mapped=1")
-    mdl_ch1_residues = mapped_mdl.FindChain(mdl_ch1).residues
-    mdl_ch1_residues = {r.GetIntProp("dockq_idx"): r for r in mdl_ch1_residues}
-    mdl_ch2_residues = mapped_mdl.FindChain(mdl_ch2).residues
-    mdl_ch2_residues = {r.GetIntProp("dockq_idx"): r for r in mdl_ch2_residues}
-    ref_ch1_residues = mapped_ref.FindChain(ref_ch1).residues
-    ref_ch1_residues = {r.GetIntProp("dockq_idx"): r for r in ref_ch1_residues}
-    ref_ch2_residues = mapped_ref.FindChain(ref_ch2).residues
-    ref_ch2_residues = {r.GetIntProp("dockq_idx"): r for r in ref_ch2_residues}
+    ch = mapped_mdl.FindChain(mdl_ch1)
+    mdl_ch1_residues = {r.GetIntProp("dockq_idx"): r for r in ch.residues}
+    ch = mapped_mdl.FindChain(mdl_ch2)
+    mdl_ch2_residues = {r.GetIntProp("dockq_idx"): r for r in ch.residues}
+    ch = mapped_ref.FindChain(ref_ch1)
+    ref_ch1_residues = {r.GetIntProp("dockq_idx"): r for r in ch.residues}
+    ch = mapped_ref.FindChain(ref_ch2)
+    ref_ch2_residues = {r.GetIntProp("dockq_idx"): r for r in ch.residues}
 
     # iRMSD
     #######
-    int1 = ref.Select(f"cname={ref_ch1} and {dist_thresh} <> "
-                      f"[cname={ref_ch2}]")
-    int2 = ref.Select(f"cname={ref_ch2} and {dist_thresh} <> "
-                      f"[cname={ref_ch1}]")
-
-    int1_indices = [r.GetIntProp("dockq_idx") for r in int1.residues]
-    int2_indices = [r.GetIntProp("dockq_idx") for r in int2.residues]
+    int1 = ref.Select(f"cname={ref_ch1} and {dist_thresh} <> [cname={ref_ch2}]")
+    int2 = ref.Select(f"cname={ref_ch2} and {dist_thresh} <> [cname={ref_ch1}]")
     ref_pos = geom.Vec3List()
     mdl_pos = geom.Vec3List()
-    atom_names = ['CA','C','N','O']
-    for idx in int1_indices:
+    for r in int1.residues:
+        idx = r.GetIntProp("dockq_idx")
         if idx in ref_ch1_residues and idx in mdl_ch1_residues:
             ref_r = ref_ch1_residues[idx]
             mdl_r = mdl_ch1_residues[idx]
-            for aname in atom_names:
+            for aname in sup_atoms:
                 ref_a = ref_r.FindAtom(aname)
                 mdl_a = mdl_r.FindAtom(aname)
                 if ref_a.IsValid() and mdl_a.IsValid():
                     ref_pos.append(ref_a.pos)
                     mdl_pos.append(mdl_a.pos)
-    for idx in int2_indices:
+    for r in int2.residues:
+        idx = r.GetIntProp("dockq_idx")
         if idx in ref_ch2_residues and idx in mdl_ch2_residues:
             ref_r = ref_ch2_residues[idx]
             mdl_r = mdl_ch2_residues[idx]
-            for aname in atom_names:
+            for aname in sup_atoms:
                 ref_a = ref_r.FindAtom(aname)
                 mdl_a = mdl_r.FindAtom(aname)
                 if ref_a.IsValid() and mdl_a.IsValid():
@@ -230,14 +230,14 @@ def _RMSDScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=10.0):
     ref_ligand_positions = geom.Vec3List()
     mdl_ligand_positions = geom.Vec3List()
     for ref_r, mdl_r in zip(ref_receptor_residues, mdl_receptor_residues):
-        for aname in atom_names:
+        for aname in sup_atoms:
             ref_a = ref_r.FindAtom(aname)
             mdl_a = mdl_r.FindAtom(aname)
             if ref_a.IsValid() and mdl_a.IsValid():
                 ref_receptor_positions.append(ref_a.pos)
                 mdl_receptor_positions.append(mdl_a.pos)
     for ref_r, mdl_r in zip(ref_ligand_residues, mdl_ligand_residues):
-        for aname in atom_names:
+        for aname in sup_atoms:
             ref_a = ref_r.FindAtom(aname)
             mdl_a = mdl_r.FindAtom(aname)
             if ref_a.IsValid() and mdl_a.IsValid():
