@@ -386,10 +386,6 @@ class LigandScorer:
                     LogWarning("No residue in proximity of target ligand "
                                "%s" % str(target_ligand))
                     continue  # next binding site
-                elif len(binding_site.ref_residues) == 0:
-                    LogWarning("Binding site of %s not mapped to the model " %
-                               str(target_ligand))
-                    continue  # next binding site
 
                 ref_bs_ent = self._build_binding_site_entity(
                     target_ligand, binding_site.ref_residues,
