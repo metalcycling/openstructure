@@ -568,6 +568,7 @@ The Forcefield Class
 
 
   .. method:: GetLJ(type1, type2,[,pair=False])
+    :noindex:
 
     :param type1:        Type of interacting particle 1
     :param type2:        Type of interacting particle 2

@@ -899,6 +899,7 @@ used to skip frames in the analysis.
   :returns: A newly created coord group containing the superposed frames.
 
 .. function:: SuperposeFrames(frames, sel, ref_view, from=0, to=-1)
+  :noindex:
 
   Same as SuperposeFrames above, but the superposition is done on a reference
   view and not on another frame of the trajectory.
