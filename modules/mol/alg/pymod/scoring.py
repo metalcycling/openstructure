@@ -109,10 +109,11 @@ class Scorer:
                            colored to True in
                            :class:`ost.mol.alg.MolckSettings` constructor.
     :type molck_settings: :class:`ost.mol.alg.MolckSettings`
-    :param naive_chain_mapping_thresh: Chain mappings for targets up to that
-                                       number of chains will be fully enumerated
-                                       to optimize for QS-score. Everything
-                                       above is treated with a heuristic.
+    :param naive_chain_mapping_thresh: Chain mappings for targets/models up to
+                                       that number of chains will be fully
+                                       enumerated to optimize for QS-score.
+                                       Everything above is treated with a
+                                       heuristic.
     :type naive_chain_mapping_thresh: :class:`int` 
     :param cad_score_exec: Explicit path to voronota-cadscore executable from
                            voronota installation from 
@@ -356,15 +357,20 @@ class Scorer:
         """
         if self._mapping is None:
             n_trg_chains = len(self.chain_mapper.target.chains)
-            if n_trg_chains <= self.naive_chain_mapping_thresh:
+            res = self.chain_mapper.GetChemMapping(self.model)
+            n_mdl_chains = len(res[2].chains)
+            thresh = self.naive_chain_mapping_thresh
+            if n_trg_chains <= thresh and n_mdl_chains <= thresh:
                 m = self.chain_mapper.GetQSScoreMapping(self.model,
-                                                        strategy="naive")
+                                                        strategy="naive",
+                                                        chem_mapping_result=res)
             else:
                 m = self.chain_mapper.GetQSScoreMapping(self.model,
                                                         strategy="greedy_block",
                                                         steep_opt_rate=3,
                                                         block_seed_size=5,
-                                                        block_blocks_per_chem_group=6)
+                                                        block_blocks_per_chem_group=6,
+                                                        chem_mapping_result=res)
             self._mapping = m
         return self._mapping
 
