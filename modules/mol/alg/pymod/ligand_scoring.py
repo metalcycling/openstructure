@@ -10,8 +10,7 @@ from ost.mol.alg import chain_mapping
 
 
 class LigandScorer:
-    """ Helper class to access the various small molecule ligand (non polymer)
-    scores available from ost.mol.alg.
+    """ Scorer class to compute various small molecule ligand (non polymer) scores.
 
     .. note ::
       Extra requirements:
@@ -19,10 +18,18 @@ class LigandScorer:
       - Python modules `numpy` and `networkx` must be available
         (e.g. use ``pip install numpy networkx``)
 
-    Mostly expects cleaned up structures (you can use the
+    At the moment, two scores are available:
+
+    * lDDT-PLI
+    * Symmetry-corrected RMSD
+
+    The class takes care to perform chain mapping and assignment (mapping) of
+    model and target ligands. This assignment may differ between scores.
+
+    It mostly expects cleaned up structures (you can use the
     :class:`~ost.mol.alg.scoring.Scorer` outputs for that). In addition,
     you probably want to remove hydrogen atoms from the structures before
-    calling this function. You can do this easily with a selection:
+    calling this function. You can do this easily with a selection::
 
         target_noH = target.Select("ele != H")
         model_noH = model.Select("ele != H")
@@ -99,11 +106,11 @@ class LigandScorer:
     :param radius: Inclusion radius for the binding site. Any residue with
                    atoms within this distance of the ligand will be included
                    in the binding site.
-    :param radius: :class:`float`
+    :type radius: :class:`float`
     :param lddt_pli_radius: lDDT inclusion radius for lDDT-PLI.
-    :param lddt_pli_radius: :class:`float`
+    :type lddt_pli_radius: :class:`float`
     :param lddt_bs_radius: lDDT inclusion radius for lDDT-BS.
-    :param lddt_bs_radius: :class:`float`
+    :type lddt_bs_radius: :class:`float`
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
                  resnum_alignments=False, check_resnames=True,
@@ -716,6 +723,7 @@ def ResidueToGraph(residue, by_atom_index=False):
                           Otherwise, if False, the nodes will be labeled by
                           atom names.
     :type by_atom_index: :class:`bool`
+    :rtype: :class:`~networkx.classes.graph.Graph`
 
     Nodes are labeled with the Atom's :attr:`~ost.mol.AtomHandle.element`.
     """
