@@ -169,33 +169,36 @@ def _RMSDScores(mdl, ref, mdl_ch1, mdl_ch2, ref_ch1, ref_ch2, dist_thresh=10.0):
 
     # iRMSD
     #######
-    int1 = mapped_ref.Select(f"cname={ref_ch1} and {dist_thresh} <> "
-                             f"[cname={ref_ch2}]")
-    int2 = mapped_ref.Select(f"cname={ref_ch2} and {dist_thresh} <> "
-                             f"[cname={ref_ch1}]")
+    int1 = ref.Select(f"cname={ref_ch1} and {dist_thresh} <> "
+                      f"[cname={ref_ch2}]")
+    int2 = ref.Select(f"cname={ref_ch2} and {dist_thresh} <> "
+                      f"[cname={ref_ch1}]")
+
     int1_indices = [r.GetIntProp("dockq_idx") for r in int1.residues]
     int2_indices = [r.GetIntProp("dockq_idx") for r in int2.residues]
     ref_pos = geom.Vec3List()
     mdl_pos = geom.Vec3List()
     atom_names = ['CA','C','N','O']
     for idx in int1_indices:
-        ref_r = ref_ch1_residues[idx]
-        mdl_r = mdl_ch1_residues[idx]
-        for aname in atom_names:
-            ref_a = ref_r.FindAtom(aname)
-            mdl_a = mdl_r.FindAtom(aname)
-            if ref_a.IsValid() and mdl_a.IsValid():
-                ref_pos.append(ref_a.pos)
-                mdl_pos.append(mdl_a.pos)
+        if idx in ref_ch1_residues and idx in mdl_ch1_residues:
+            ref_r = ref_ch1_residues[idx]
+            mdl_r = mdl_ch1_residues[idx]
+            for aname in atom_names:
+                ref_a = ref_r.FindAtom(aname)
+                mdl_a = mdl_r.FindAtom(aname)
+                if ref_a.IsValid() and mdl_a.IsValid():
+                    ref_pos.append(ref_a.pos)
+                    mdl_pos.append(mdl_a.pos)
     for idx in int2_indices:
-        ref_r = ref_ch2_residues[idx]
-        mdl_r = mdl_ch2_residues[idx]
-        for aname in atom_names:
-            ref_a = ref_r.FindAtom(aname)
-            mdl_a = mdl_r.FindAtom(aname)
-            if ref_a.IsValid() and mdl_a.IsValid():
-                ref_pos.append(ref_a.pos)
-                mdl_pos.append(mdl_a.pos)
+        if idx in ref_ch2_residues and idx in mdl_ch2_residues:
+            ref_r = ref_ch2_residues[idx]
+            mdl_r = mdl_ch2_residues[idx]
+            for aname in atom_names:
+                ref_a = ref_r.FindAtom(aname)
+                mdl_a = mdl_r.FindAtom(aname)
+                if ref_a.IsValid() and mdl_a.IsValid():
+                    ref_pos.append(ref_a.pos)
+                    mdl_pos.append(mdl_a.pos)
 
     if len(mdl_pos) >= 3:
         sup_result = mol.alg.SuperposeSVD(mdl_pos, ref_pos)
