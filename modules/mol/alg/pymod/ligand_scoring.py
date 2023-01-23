@@ -564,7 +564,11 @@ class LigandScorer:
 
     @property
     def rmsd_matrix(self):
-        """
+        """ Get the matrix of RMSD values.
+
+        Target ligands are in rows, model ligands in columns.
+
+        :rtype: :class:`~numpy.ndarray`
         """
         if self._rmsd_full_matrix is None:
             self._compute_scores()
@@ -579,7 +583,11 @@ class LigandScorer:
 
     @property
     def lddt_pli_matrix(self):
-        """
+        """ Get the matrix of lDDT-PLI values.
+
+        Target ligands are in rows, model ligands in columns.
+
+        :rtype: :class:`~numpy.ndarray`
         """
         if self._lddt_pli_full_matrix is None:
             self._compute_scores()
@@ -594,36 +602,100 @@ class LigandScorer:
 
     @property
     def rmsd(self):
+        """Get a dictionary of RMSD score values, keyed by model ligand
+        qualified names.
+
+        :rtype: :class:`dict`
+        """
         if self._rmsd is None:
             self._assign_ligands_rmsd()
         return self._rmsd
 
     @property
     def rmsd_assignment(self):
+        """Get a dictionary of RMSD-based ligand assignment, keyed by model
+        ligand qualified names. Values are the qualified names of the
+        corresponding target ligand.
+
+        :rtype: :class:`dict`
+        """
         if self._rmsd_assignment is None:
             self._assign_ligands_rmsd()
         return self._rmsd_assignment
 
     @property
     def rmsd_details(self):
+        """Get a dictionary of RMSD score details (dictionaries), keyed by
+        model ligand qualified names.
+
+        Each sub-dictionary contains the following information:
+
+        * `rmsd`: the RMSD score value
+        * `lddt_bs`: the lDDT-BS score of the binding site
+        * `bs_num_res`: number of residues in the target binding site
+        * `bs_num_overlap_res`: number of residues in the model overlapping
+          with the target binding site.
+        * `bb_rmsd`: the RMSD of the binding site backbone after superposition
+        * `target_ligand`: residue handle of the target ligand
+        * `model_ligand`: residue handle of the model ligand
+        * `chain_mapping`: local chain mapping as a dictionary, with target
+          chain name as key and model chain name as value.
+
+        :rtype: :class:`dict`
+        """
         if self._rmsd_details is None:
             self._assign_ligands_rmsd()
         return self._rmsd_details
 
     @property
     def lddt_pli(self):
+        """Get a dictionary of lDDT-PLI score values, keyed by model ligand
+        qualified names.
+
+        :rtype: :class:`dict`
+        """
         if self._lddt_pli is None:
             self._assign_ligands_lddt_pli()
         return self._lddt_pli
 
     @property
     def lddt_pli_assignment(self):
+        """Get a dictionary of lDDT-PLI-based ligand assignment, keyed by model
+        ligand qualified names. Values are the qualified names of the
+        corresponding target ligand.
+
+        :rtype: :class:`dict`
+        """
         if self._lddt_pli_assignment is None:
             self._assign_ligands_lddt_pli()
         return self._lddt_pli_assignment
 
     @property
     def lddt_pli_details(self):
+        """Get a dictionary of lDDT-PLI score details (dictionaries), keyed by
+        model ligand qualified names.
+
+        Each sub-dictionary contains the following information:
+
+        * `lddt_pli`: the lDDT-PLI score value
+        * `lddt_pli_n_contacts`: number of total contacts used in lDDT-PLI,
+          summed over all thresholds. Can be divided by 8 to obtain the number
+          of atomic contacts.
+        * `rmsd`: the RMSD score value corresponding to the lDDT-PLI
+          assignment. This may differ from the RMSD-based assignment.
+        * `lddt_bs`: the lDDT-BS score of the binding site
+        * `bs_num_res`: number of residues in the target binding site
+        * `bs_num_overlap_res`: number of residues in the model overlapping
+          with the target binding site.
+        * `bb_rmsd`: the RMSD of the binding site backbone after superposition.
+          Note: not used for lDDT-PLI computation.
+        * `target_ligand`: residue handle of the target ligand
+        * `model_ligand`: residue handle of the model ligand
+        * `chain_mapping`: local chain mapping as a dictionary, with target
+          chain name as key and model chain name as value.
+
+        :rtype: :class:`dict`
+        """
         if self._lddt_pli_details is None:
             self._assign_ligands_lddt_pli()
         return self._lddt_pli_details
