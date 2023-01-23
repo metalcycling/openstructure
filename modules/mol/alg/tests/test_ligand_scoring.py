@@ -280,6 +280,60 @@ class TestLigandScoring(unittest.TestCase):
         sc = LigandScorer(mdl, trg, [mdl.FindResidue("F", 1)], [trg.FindResidue("I", 1)], check_resnames=False)
         sc._compute_scores()
 
+    def test__scores(self):
+        """Test that the scores are computed correctly
+        """
+        # 4C0A has more ligands
+        trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
+        trg_4c0a, _ = io.LoadMMCIF(os.path.join('testfiles', "4c0a.cif.gz"), seqres=True)
+        sc = LigandScorer(trg, trg_4c0a, None, None, check_resnames=False)
+
+        expected_keys = {"J.G3D1", "F.G3D1"}
+        self.assertFalse(expected_keys.symmetric_difference(sc.rmsd.keys()))
+        self.assertFalse(expected_keys.symmetric_difference(sc.rmsd_assignment.keys()))
+        self.assertFalse(expected_keys.symmetric_difference(sc.rmsd_details.keys()))
+        self.assertFalse(expected_keys.symmetric_difference(sc.lddt_pli.keys()))
+        self.assertFalse(expected_keys.symmetric_difference(sc.lddt_pli_assignment.keys()))
+        self.assertFalse(expected_keys.symmetric_difference(sc.lddt_pli_details.keys()))
+
+        # rmsd
+        self.assertAlmostEqual(sc.rmsd["J.G3D1"], 3.8498, 3)
+        self.assertAlmostEqual(sc.rmsd["F.G3D1"], 57.6295, 3)
+        # rmsd_assignment
+        self.assertEqual(sc.rmsd_assignment, {'J.G3D1': 'L.G3D1', 'F.G3D1': 'I.G3D1'})
+        # rmsd_details
+        self.assertEqual(sc.rmsd_details["J.G3D1"]["chain_mapping"], {'A': 'B', 'H': 'C'})
+        self.assertEqual(sc.rmsd_details["J.G3D1"]["bs_num_res"], 16)
+        self.assertEqual(sc.rmsd_details["J.G3D1"]["bs_num_overlap_res"], 16)
+        self.assertEqual(sc.rmsd_details["J.G3D1"]["target_ligand"].qualified_name, 'L.G3D1')
+        self.assertEqual(sc.rmsd_details["J.G3D1"]["model_ligand"].qualified_name, 'J.G3D1')
+        self.assertEqual(sc.rmsd_details["F.G3D1"]["chain_mapping"], {'F': 'B', 'C': 'C'})
+        self.assertEqual(sc.rmsd_details["F.G3D1"]["bs_num_res"], 15)
+        self.assertEqual(sc.rmsd_details["F.G3D1"]["bs_num_overlap_res"], 15)
+        self.assertEqual(sc.rmsd_details["F.G3D1"]["target_ligand"].qualified_name, 'I.G3D1')
+        self.assertEqual(sc.rmsd_details["F.G3D1"]["model_ligand"].qualified_name, 'F.G3D1')
+
+        # lddt_pli
+        self.assertAlmostEqual(sc.lddt_pli["J.G3D1"], 0.91194, 5)
+        self.assertAlmostEqual(sc.lddt_pli["F.G3D1"], 0.0014598, 6)
+        # lddt_pli_assignment
+        self.assertEqual(sc.lddt_pli_assignment, {'J.G3D1': 'I.G3D1', 'F.G3D1': 'J.G3D1'})
+        # lddt_pli_details
+        self.assertAlmostEqual(sc.lddt_pli_details["J.G3D1"]["rmsd"], 4.1008, 4)
+        self.assertEqual(sc.lddt_pli_details["J.G3D1"]["lddt_pli_n_contacts"], 5224)
+        self.assertEqual(sc.rmsd_details["J.G3D1"]["chain_mapping"], {'A': 'B', 'H': 'C'})
+        self.assertEqual(sc.rmsd_details["J.G3D1"]["bs_num_res"], 16)
+        self.assertEqual(sc.rmsd_details["J.G3D1"]["bs_num_overlap_res"], 16)
+        self.assertEqual(sc.rmsd_details["J.G3D1"]["target_ligand"].qualified_name, 'L.G3D1')
+        self.assertEqual(sc.rmsd_details["J.G3D1"]["model_ligand"].qualified_name, 'J.G3D1')
+        self.assertAlmostEqual(sc.lddt_pli_details["F.G3D1"]["rmsd"], 57.7868, 4)
+        self.assertEqual(sc.lddt_pli_details["F.G3D1"]["lddt_pli_n_contacts"], 5480)
+        self.assertEqual(sc.rmsd_details["F.G3D1"]["chain_mapping"], {'F': 'B', 'C': 'C'})
+        self.assertEqual(sc.rmsd_details["F.G3D1"]["bs_num_res"], 15)
+        self.assertEqual(sc.rmsd_details["F.G3D1"]["bs_num_overlap_res"], 15)
+        self.assertEqual(sc.rmsd_details["F.G3D1"]["target_ligand"].qualified_name, 'I.G3D1')
+        self.assertEqual(sc.rmsd_details["F.G3D1"]["model_ligand"].qualified_name, 'F.G3D1')
+
 
 if __name__ == "__main__":
     from ost import testutils
