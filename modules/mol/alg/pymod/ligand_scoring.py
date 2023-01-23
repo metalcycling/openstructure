@@ -757,7 +757,7 @@ def SCRMSD(model_ligand, target_ligand, transformation=geom.Mat4(),
                                     substructure_match=substructure_match,
                                     by_atom_index=True)
 
-    best_rmsd = float('inf')
+    best_rmsd = np.inf
     for i, (trg_sym, mdl_sym) in enumerate(symmetries):
         # Prepare Entities for RMSD
         trg_lig_rmsd_ent = mol.CreateEntity()
