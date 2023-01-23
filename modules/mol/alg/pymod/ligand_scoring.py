@@ -720,8 +720,10 @@ def ResidueToGraph(residue, by_atom_index=False):
     Nodes are labeled with the Atom's :attr:`~ost.mol.AtomHandle.element`.
     """
     nxg = networkx.Graph()
-    nxg.add_nodes_from([a.name for a in residue.atoms], element=[
-        a.element for a in residue.atoms])
+
+    for atom in residue.atoms:
+        nxg.add_node(atom.name, element=atom.element)
+
     # This will list all edges twice - once for every atom of the pair.
     # But as of NetworkX 3.0 adding the same edge twice has no effect, so we're good.
     nxg.add_edges_from([(

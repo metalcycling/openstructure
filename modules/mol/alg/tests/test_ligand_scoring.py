@@ -175,7 +175,6 @@ class TestLigandScoring(unittest.TestCase):
         assert len(sym) == 6
 
         # Substructure matches
-        self.skipTest("Substructure matches don't work yet")
         sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1_sub, substructure_match=True)
         assert len(sym) == 6
 
@@ -215,12 +214,18 @@ class TestLigandScoring(unittest.TestCase):
         self.assertAlmostEqual(rmsd, 0.293972, 5)
 
         # Assert that substructure matches work
-        self.skipTest("Substructure matches don't work yet")
         trg_g3d1_sub = trg_g3d1.Select("aindex>6019").residues[0] # Skip PA, PB and O[1-3]A and O[1-3]B.
-        mdl_g3d_sub = mdl_g3d.Select("aindex>1447").residues[0] # Skip PA, PB and O[1-3]A and O[1-3]B.
+        # mdl_g3d_sub = mdl_g3d.Select("aindex>1447").residues[0] # Skip PA, PB and O[1-3]A and O[1-3]B.
         with self.assertRaises(NoSymmetryError):
             SCRMSD(mdl_g3d, trg_g3d1_sub)  # no full match
+
+        # But partial match is OK
         rmsd = SCRMSD(mdl_g3d, trg_g3d1_sub, substructure_match=True)
+        self.assertAlmostEqual(rmsd, 2.2376232209353475e-06, 8)
+
+        # Ensure it doesn't work the other way around - ie incomplete model is invalid
+        with self.assertRaises(NoSymmetryError):
+            SCRMSD(trg_g3d1_sub, mdl_g3d)  # no full match
 
     def test__compute_scores(self):
         """Test that _compute_scores works.
