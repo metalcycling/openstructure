@@ -258,6 +258,11 @@ class LigandScorer:
                 new_chain = new_editor.InsertChain(handle.chain.name)
             # Add the residue with its original residue number
             new_res = new_editor.AppendResidue(new_chain, handle, deep=True)
+            for old_atom in handle.atoms:
+                for old_bond in old_atom.bonds:
+                    new_first = new_res.FindAtom(old_bond.first.name)
+                    new_second = new_res.FindAtom(old_bond.second.name)
+                    new_editor.Connect(new_first, new_second)
             return new_res
 
         def _process_ligand_residue(res):

@@ -232,7 +232,8 @@ class TestLigandScoring(unittest.TestCase):
         """
         trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
         mdl, mdl_seqres = io.LoadMMCIF(os.path.join('testfiles', "P84080_model_02.cif.gz"), seqres=True)
-        sc = LigandScorer(mdl, trg, None, None)
+        mdl_lig = io.LoadEntity(os.path.join('testfiles', "P84080_model_02_ligand_0.sdf"))
+        sc = LigandScorer(mdl, trg, [mdl_lig], None)
 
         # Note: expect warning about Binding site of H.ZN1 not mapped to the model
         sc._compute_scores()
@@ -246,7 +247,7 @@ class TestLigandScoring(unittest.TestCase):
             [np.inf],
             [np.inf],
             [0.29399303],
-            [np.inf]]))
+            [np.inf]]), decimal=5)
 
         # Check lDDT-PLI
         self.assertEqual(sc.lddt_pli_matrix.shape, (7, 1))
