@@ -492,8 +492,8 @@ class LigandScorer:
                                 "lddt_pli": global_lddt,
                                 "lddt_pli_n_contacts": lddt_tot,
                             })
-    self._rmsd_full_matrix = rmsd_full_matrix
-    self._lddt_pli_full_matrix = lddt_pli_full_matrix
+        self._rmsd_full_matrix = rmsd_full_matrix
+        self._lddt_pli_full_matrix = lddt_pli_full_matrix
 
     @staticmethod
     def _find_ligand_assignment(mat1, mat2):
