@@ -208,7 +208,12 @@ class Scorer:
 
         self._dockq_interfaces = None
         self._dockq_native_contacts = None
+        self._dockq_model_contacts = None
         self._dockq_scores = None
+        self._dockq_fnat = None
+        self._dockq_fnonnat = None
+        self._dockq_irmsd = None
+        self._dockq_lrmsd = None
         self._dockq_nonmapped_interfaces = None
         self._dockq_nonmapped_interfaces_counts = None
         self._dockq_ave = None
@@ -505,6 +510,16 @@ class Scorer:
         return self._dockq_native_contacts
 
     @property
+    def dockq_model_contacts(self):
+        """ N model contacts for interfaces in :attr:`~dockq_interfaces`
+
+        :type: :class:`list` of :class:`int`
+        """
+        if self._dockq_model_contacts is None:
+            self._compute_dockq()
+        return self._dockq_model_contacts
+
+    @property
     def dockq_scores(self):
         """ DockQ scores for interfaces in :attr:`~dockq_interfaces` 
 
@@ -513,6 +528,60 @@ class Scorer:
         if self._dockq_scores is None:
             self._compute_dockq()
         return self._dockq_scores
+
+    @property
+    def dockq_fnat(self):
+        """ fnat scores for interfaces in :attr:`~dockq_interfaces` 
+
+        fnat: Fraction of native contacts that are also present in model
+
+        :class:`list` of :class:`float`
+        """
+        if self._dockq_fnat is None:
+            self._compute_dockq()
+        return self._dockq_fnat
+
+    @property
+    def dockq_fnonnat(self):
+        """ fnonnat scores for interfaces in :attr:`~dockq_interfaces` 
+
+        fnat: Fraction of model contacts that are not present in target
+
+        :class:`list` of :class:`float`
+        """
+        if self._dockq_fnonnat is None:
+            self._compute_dockq()
+        return self._dockq_fnonnat
+
+    @property
+    def dockq_irmsd(self):
+        """ irmsd scores for interfaces in :attr:`~dockq_interfaces` 
+
+        irmsd: RMSD of interface (RMSD computed on N, CA, C, O atoms) which
+        consists of each residue that has at least one heavy atom within 10A of
+        other chain.
+
+        :class:`list` of :class:`float`
+        """
+        if self._dockq_irmsd is None:
+            self._compute_dockq()
+        return self._dockq_irmsd
+
+    @property
+    def dockq_lrmsd(self):
+        """ lrmsd scores for interfaces in :attr:`~dockq_interfaces` 
+
+        lrmsd: The interfaces are superposed based on the receptor (rigid
+        min RMSD superposition) and RMSD for the ligand is reported.
+        Superposition and RMSD are based on N, CA, C and O positions,
+        receptor is the chain contributing to the interface with more
+        residues in total.
+
+        :class:`list` of :class:`float`
+        """
+        if self._dockq_lrmsd is None:
+            self._compute_dockq()
+        return self._dockq_lrmsd
 
     @property
     def dockq_nonmapped_interfaces(self):
@@ -863,18 +932,17 @@ class Scorer:
         self._qs_best = qs_score_result.QS_best
 
     def _compute_dockq(self):
-        if not self.resnum_alignments:
-            raise RuntimeError("DockQ computations rely on residue numbers "
-                               "that are consistent between target and model "
-                               "chains, i.e. only work if resnum_alignments "
-                               "is True at Scorer construction.")
-
         flat_mapping = self.mapping.GetFlatMapping()
         # list of [trg_ch1, trg_ch2, mdl_ch1, mdl_ch2]
         self._dockq_interfaces = list()
         # lists with respective values for these interfaces
         self._dockq_native_contacts = list()
+        self._dockq_model_contacts = list()
         self._dockq_scores = list()
+        self._dockq_fnat = list()
+        self._dockq_fnonnat = list()
+        self._dockq_irmsd = list()
+        self._dockq_lrmsd = list()
 
         # list of interfaces which are present in target but not mapped, i.e.
         # not present in mdl
@@ -931,6 +999,11 @@ class Scorer:
                         self._dockq_interfaces.append((trg_ch1, trg_ch2,
                                                        mdl_ch1, mdl_ch2))
                         self._dockq_native_contacts.append(res["nnat"])
+                        self._dockq_model_contacts.append(res["nmdl"])
+                        self._dockq_fnat.append(res["fnat"])
+                        self._dockq_fnonnat.append(res["fnonnat"])
+                        self._dockq_irmsd.append(res["irmsd"])
+                        self._dockq_lrmsd.append(res["lrmsd"])
                         self._dockq_scores.append(res["DockQ"])
                 else:
                     # interface which is not covered by mdl... let's run DockQ
