@@ -265,9 +265,11 @@ class LigandScorer:
             if res.entity.handle == old_entity.handle:
                 # Residue is already in copied entity. We only need to grab it
                 new_res = new_entity.FindResidue(res.chain.name, res.number)
+                LogVerbose("Ligand residue %s already in entity" % res.handle.qualified_name)
             else:
                 # Residue is not part of the entity, need to copy it first
                 new_res = _copy_residue(res.handle)
+                LogVerbose("Copied ligand residue %s" % res.handle.qualified_name)
             new_res.SetIsLigand(True)
             return new_res
 
@@ -384,13 +386,14 @@ class LigandScorer:
         self._lddt_pli_full_matrix = np.empty(
             (len(self.target_ligands), len(self.model_ligands)), dtype=dict)
         for target_i, target_ligand in enumerate(self.target_ligands):
-            LogDebug("Compute RMSD for target ligand %s" % target_ligand)
+            LogVerbose("Analyzing target ligand %s" % target_ligand)
 
             for binding_site in self._get_binding_sites(target_ligand):
                 if len(binding_site.substructure.residues) == 0:
                     LogWarning("No residue in proximity of target ligand "
                                "%s" % str(target_ligand))
                     continue  # next binding site
+                LogVerbose("Found binding site with chain mapping %s" % (binding_site.GetFlatChainMapping()))
 
                 ref_bs_ent = self._build_binding_site_entity(
                     target_ligand, binding_site.ref_residues,
@@ -412,14 +415,15 @@ class LigandScorer:
                             model_ligand, target_ligand,
                             substructure_match=self.substructure_match,
                             by_atom_index=True)
+                        LogVerbose("Ligands %s and %s symmetry match" % (
+                            str(model_ligand), str(target_ligand)))
                     except NoSymmetryError:
                         # Ligands are different - skip
-                        LogDebug("No symmetry between %s and %s" % (
+                        LogVerbose("No symmetry between %s and %s" % (
                             str(model_ligand), str(target_ligand)))
                         continue
 
-                    LogDebug("Compute RMSD for model ligand %s" % model_ligand)
-
+                    #LogVerbose("Compute RMSD for model ligand %s" % model_ligand)
                     rmsd = SCRMSD(model_ligand, target_ligand,
                                   transformation=binding_site.transform,
                                   substructure_match=self.substructure_match)
