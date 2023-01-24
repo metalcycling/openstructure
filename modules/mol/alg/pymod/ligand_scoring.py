@@ -834,6 +834,11 @@ def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
     model_graph = ResidueToGraph(model_ligand, by_atom_index=by_atom_index)
     target_graph = ResidueToGraph(target_ligand, by_atom_index=by_atom_index)
 
+    if not networkx.is_connected(model_graph):
+        raise RuntimeError("Disconnected graph for model ligand %s" % model_ligand)
+    if not networkx.is_connected(target_graph):
+        raise RuntimeError("Disconnected graph for target ligand %s" % target_ligand)
+
     # Note the argument order (model, target) which differs from spyrmsd.
     # This is because a subgraph of model is isomorphic to target - but not the opposite
     # as we only consider partial ligands in the reference.
