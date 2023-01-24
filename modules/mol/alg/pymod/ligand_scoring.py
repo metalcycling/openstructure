@@ -381,9 +381,9 @@ class LigandScorer:
     def _compute_scores(self):
         """"""
         # Create the matrix
-        self._rmsd_full_matrix = np.empty(
+        rmsd_full_matrix = np.empty(
             (len(self.target_ligands), len(self.model_ligands)), dtype=dict)
-        self._lddt_pli_full_matrix = np.empty(
+        lddt_pli_full_matrix = np.empty(
             (len(self.target_ligands), len(self.model_ligands)), dtype=dict)
         for target_i, target_ligand in enumerate(self.target_ligands):
             LogVerbose("Analyzing target ligand %s" % target_ligand)
@@ -427,7 +427,7 @@ class LigandScorer:
                     rmsd = SCRMSD(model_ligand, target_ligand,
                                   transformation=binding_site.transform,
                                   substructure_match=self.substructure_match)
-                    self._rmsd_full_matrix[target_i, model_i] = {
+                    rmsd_full_matrix[target_i, model_i] = {
                         "rmsd": rmsd,
                         "chain_mapping": binding_site.GetFlatChainMapping(),
                         "lddt_bs": binding_site.lDDT,
@@ -451,7 +451,7 @@ class LigandScorer:
                     #     LogWarning("Can't calculate backbone RMSD: %s"
                     #                " - setting to Infinity" % str(err))
                     #     bb_rmsd = float("inf")
-                    self._lddt_pli_full_matrix[target_i, model_i] = {
+                    lddt_pli_full_matrix[target_i, model_i] = {
                         "lddt_pli": 0,
                         "lddt_pli_n_contacts": None,
                         "rmsd": rmsd,
@@ -485,13 +485,15 @@ class LigandScorer:
                                 check_resnames=self.check_resnames)
 
                         # Save results?
-                        best_lddt = self._lddt_pli_full_matrix[
+                        best_lddt = lddt_pli_full_matrix[
                             target_i, model_i]["lddt_pli"]
                         if global_lddt > best_lddt:
-                            self._lddt_pli_full_matrix[target_i, model_i].update({
+                            lddt_pli_full_matrix[target_i, model_i].update({
                                 "lddt_pli": global_lddt,
                                 "lddt_pli_n_contacts": lddt_tot,
                             })
+    self._rmsd_full_matrix = rmsd_full_matrix
+    self._lddt_pli_full_matrix = lddt_pli_full_matrix
 
     @staticmethod
     def _find_ligand_assignment(mat1, mat2):
