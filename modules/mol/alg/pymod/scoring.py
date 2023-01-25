@@ -972,10 +972,7 @@ class Scorer:
             s.AttachView(self.model.Select(f"cname={cname}"))
             mdl_seqs[ch.GetName()] = s
 
-        trg_pep_chains = [s.GetName() for s in self.chain_mapper.polypep_seqs]
-        trg_nuc_chains = [s.GetName() for s in self.chain_mapper.polynuc_seqs]
-        trg_pep_chains = set(trg_pep_chains)
-        trg_nuc_chains = set(trg_nuc_chains)
+        trg_pep_chains = set([s.name for s in self.chain_mapper.polypep_seqs])
         dockq_alns = dict()
         for trg_ch, mdl_ch in flat_mapping.items():
             if trg_ch in pep_seqs:
