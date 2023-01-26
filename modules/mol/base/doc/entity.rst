@@ -570,6 +570,16 @@ The Handle Classes
     
     This property is read-only. To change the name of the residue, use
     :meth:`~EditorBase.RenameResidue`.
+
+    :type: str
+
+  .. attribute:: qualified_name
+
+    The qualified name consists of a residue identifier and chain name.
+    For a glycine with residue number 2 of chain A, the qualified name is
+    "A.GLY2". Also available as :meth:`GetQualifiedName`.
+
+    :type: str
   
   .. attribute:: number
   
@@ -803,6 +813,10 @@ The Handle Classes
     :rtype:             :class:`bool`
     :returns:           Whether the switch was successful (e.g. False if no such
                         group exists)
+
+  .. method:: GetQualifiedName()
+
+    See :attr:`qualified_name`
 
   .. method:: GetAtomList()
 
@@ -1804,6 +1818,11 @@ The View Classes
     This property is read-only. To change the name of the residue, use
     :meth:`~EditorBase.RenameResidue`.
 
+  .. attribute:: qualified_name
+
+    See :meth:`~ResidueHandle.qualified_name`.
+    Also available as :meth:`GetQualifiedName`.
+
   .. attribute:: number
 
     The number of this residue. The residue number has a numeric part and an
@@ -1892,6 +1911,10 @@ The View Classes
   .. method:: GetHandle()
 
     See :attr:`handle`
+
+  .. method:: GetQualifiedName()
+
+    See :attr:`qualified_name`
 
   .. method:: GetMass()
 
