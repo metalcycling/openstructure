@@ -64,6 +64,7 @@ void export_ResidueView()
     .add_property("atoms",
                   make_function(&ResidueView::GetAtomList,
                                 return_value_policy<copy_const_reference>()))
+    .add_property("atom_count", &ResidueView::GetAtomCount)
     .def("FindAtom", string_find_atom, args("atom_name"))
     .def("AddAtom", add_atom_handle, X_add_atom_overloads(args("atom_handle", "flags")))
     .def("AddAtom", add_atom_view, X_add_atom_overloads(args("atom_view", "flags")))

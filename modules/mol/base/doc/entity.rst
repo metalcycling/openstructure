@@ -624,6 +624,18 @@ The Handle Classes
 
      :type: :class:`AtomHandleList` (list of :class:`AtomHandle`)
 
+  .. attribute:: atom_count
+
+    Number of atoms. Read-only. See :meth:`GetAtomCount`.
+
+    :type: :class:`int`
+
+  .. attribute:: bond_count
+
+    Number of bonds. Read-only. See :meth:`GetBondCount`.
+
+    :type: :class:`int`
+
   .. attribute:: bounds
   
     Axis-aligned bounding box of the residue. Read-only.
@@ -857,6 +869,14 @@ The Handle Classes
   .. method:: GetAtomList()
 
     See :attr:`atoms`
+
+  .. method:: GetAtomCount()
+
+    See :attr:`atom_count`
+
+  .. method:: GetBondCount()
+
+    See :attr:`bond_count`
 
   .. method:: GetBounds()
 
@@ -1927,6 +1947,12 @@ The View Classes
 
      :type: :class:`AtomViewList` (list of :class:`AtomView`)
 
+  .. attribute:: atom_count
+
+    Number of atoms included in the view. Read-only. See :meth:`GetAtomCount`.
+
+    :type: :class:`int`
+
   .. attribute:: chain
 
     The chain this residue belongs to. Read-only. Also available as 
@@ -2014,6 +2040,10 @@ The View Classes
   .. method:: GetAtomList()
 
     See :attr:`atoms`
+
+  .. method:: GetAtomCount()
+
+    See :attr:`atom_count`
 
   .. method:: GetIndex()
 
