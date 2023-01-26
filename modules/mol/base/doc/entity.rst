@@ -1617,6 +1617,12 @@ The View Classes
        print(chain.residues) # [B.GLY1, B.GLY4, B.GLY3]
        print(chain.in_sequence) # prints false
 
+    Note that the value of  `in_sequence` is independent from the value of
+    :attr:`ChainHandle.in_sequence`.
+
+    :type: bool
+
+
   .. attribute:: atoms
 
      Get list of all atoms of this chain. To access a single atom, use
@@ -1656,14 +1662,6 @@ The View Classes
     The chain handle this view points to. Also available as :meth:`GetHandle`.
  
     :type: :class:`ChainHandle`
-   
-  .. attribute:: in_sequence
-  
-    Whether the residue numbers are in ascending order. Note that the value of 
-    `in_sequence` is independent from the value of 
-    :attr:`ChainHandle.in_sequence`.
-    
-    :type: bool
 
   .. attribute:: geometric_center
 
@@ -1879,12 +1877,6 @@ The View Classes
     :meth:`GetChain`
   
     :type: :class:`ChainView`
-
-  .. attribute:: handle
-  
-    The residue handle this view points to
-    
-    :type: :class:`ResidueHandle`
 
   .. attribute:: atoms
 
