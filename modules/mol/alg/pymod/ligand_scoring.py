@@ -588,6 +588,9 @@ class LigandScorer:
 
         Target ligands are in rows, model ligands in columns.
 
+        Infinite values indicate that no RMSD could be computed (i.e. different
+        ligands).
+
         :rtype: :class:`~numpy.ndarray`
         """
         if self._rmsd_full_matrix is None:
@@ -607,6 +610,9 @@ class LigandScorer:
         """ Get the matrix of lDDT-PLI values.
 
         Target ligands are in rows, model ligands in columns.
+
+        A value of 0 indicate that no lDDT-PLI could be computed (i.e. different
+        ligands).
 
         :rtype: :class:`~numpy.ndarray`
         """
