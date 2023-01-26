@@ -437,6 +437,7 @@ class LigandScorer:
                         "chain_mapping": binding_site.GetFlatChainMapping(),
                         "lddt_bs": binding_site.lDDT,
                         "bb_rmsd": binding_site.bb_rmsd,
+                        "transform": binding_site.transform,
                         "bs_num_res": len(binding_site.substructure.residues),
                         "bs_num_overlap_res": len(binding_site.ref_residues),
                         "target_ligand": target_ligand,
@@ -464,6 +465,7 @@ class LigandScorer:
                         "chain_mapping": binding_site.GetFlatChainMapping(),
                         "lddt_bs": binding_site.lDDT,
                         "bb_rmsd": binding_site.bb_rmsd,
+                        "transform": binding_site.transform,
                         "bs_num_res": len(binding_site.substructure.residues),
                         "bs_num_overlap_res": len(binding_site.ref_residues),
                         "target_ligand": target_ligand,
@@ -664,6 +666,7 @@ class LigandScorer:
         * `bs_num_overlap_res`: number of residues in the model overlapping
           with the target binding site.
         * `bb_rmsd`: the RMSD of the binding site backbone after superposition
+        * `transform`: transformation to superpose the model onto the target
         * `target_ligand`: residue handle of the target ligand
         * `model_ligand`: residue handle of the model ligand
         * `chain_mapping`: local chain mapping as a dictionary, with target
@@ -717,6 +720,7 @@ class LigandScorer:
           with the target binding site.
         * `bb_rmsd`: the RMSD of the binding site backbone after superposition.
           Note: not used for lDDT-PLI computation.
+        * `transform`: transformation to superpose the model onto the target
         * `target_ligand`: residue handle of the target ligand
         * `model_ligand`: residue handle of the model ligand
         * `chain_mapping`: local chain mapping as a dictionary, with target
