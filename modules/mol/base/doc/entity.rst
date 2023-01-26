@@ -1264,6 +1264,13 @@ The View Classes
 
   An entity view represents a structural subset of an :class:`EntityHandle`. For 
   an introduction ,see :doc:`../../intro-01`.
+
+  .. attribute:: handle
+
+     The underlying :class:`handle <EntityHandle>` of the entity view. Also
+     available as :meth:`GetHandle`.
+
+     :type: :class:`EntityHandle`
   
   .. attribute:: chains
    
@@ -1328,13 +1335,6 @@ The View Classes
     Axis-aligned bounding box of the entity view. Read-only.
     
     :type: :class:`ost.geom.AlignedCuboid`
-
-  .. attribute:: handle
-  
-     The underlying :class:`handle <EntityHandle>` of the entity view. Also 
-     available as :meth:`GetHandle`.
-     
-     :type: :class:`EntityHandle`
 
   .. attribute:: valid
 
@@ -1615,6 +1615,12 @@ The View Classes
   A view representation of a :class:`ChainHandle`. Mostly, the same
   functionality is provided as for the handle.
 
+  .. attribute:: handle
+
+    The chain handle this view points to. Also available as :meth:`GetHandle`.
+
+    :type: :class:`ChainHandle`
+
   .. attribute:: name
   
      The chain name. The name uniquely identifies the chain in the entity. In
@@ -1668,7 +1674,6 @@ The View Classes
 
     :type: bool
 
-
   .. attribute:: atoms
 
      Get list of all atoms of this chain. To access a single atom, use
@@ -1702,12 +1707,6 @@ The View Classes
     :meth:`GetCenterOfAtoms`.
     
     :type: :class:`~ost.geom.Vec3`
-
-  .. attribute:: handle
-
-    The chain handle this view points to. Also available as :meth:`GetHandle`.
- 
-    :type: :class:`ChainHandle`
 
   .. attribute:: geometric_center
 
