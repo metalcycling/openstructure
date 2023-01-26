@@ -874,7 +874,7 @@ The Handle Classes
   
   .. attribute:: qualified_name
   
-     The qualified name consists of the atom name as well as a unique residue
+     The qualified name consists of the atom name as well as a residue
      identifier and chain name. For CA of a glycine with residue number 2 of
      chain A, the qualified name is "A.GLY2.CA".
      
