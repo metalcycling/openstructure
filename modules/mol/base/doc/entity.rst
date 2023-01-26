@@ -98,18 +98,27 @@ The Handle Classes
     
     :type: float
 
+  .. attribute:: center_of_atoms
+
+    Center of atoms, that is the average atom position of the entity.
+    Use :attr:`center_of_mass` for the the mass-weighted center of the entity.
+    Also available as :meth:`GetCenterOfAtoms`.
+
+    :type: :class:`~ost.geom.Vec3`
+
   .. attribute:: center_of_mass
   
-    Center of mass. Also available as :meth:`GetCenterOfMass`
+    Center of mass of the entity.
+    Also available as :meth:`GetCenterOfMass`
     
     :type: :class:`~ost.geom.Vec3`
-    
-  .. attribute:: center_of_atoms
-  
-    Center of atoms (not mass-weighted). Also available as 
-    :meth:`GetCenterOfAtoms`.
-    
-    :type: :class:`~ost.geom.Vec3`
+
+  .. attribute:: geometric_center
+
+    Mid-point of the axis aligned bounding box of the entity.
+    Also available as :meth:`GetGeometricCenter`
+
+    :type: Vec3
 
   .. attribute:: positions
 
@@ -286,29 +295,21 @@ The Handle Classes
       
       alternative atom positions are not handled yet.
 
-  .. method:: GetCenterOfAtoms()
-    
-    Get center of atoms, that is the average atom position of the entity. Use
-    :meth:`GetCenterOfMass` to calculate the mass-weighted center of the entity.
-    
-    :returns: :class:`~ost.geom.Vec3`
-    
-  .. method:: GetCenterOfMass()
-    
-    Calculates the center of mass of the entity. Use :meth:`GetCenterOfAtoms`
-    to calculate the non-mass-weighted center of the entity.
-    
-    :returns: :class:`~ost.geom.Vec3`
-    
-  .. method:: GetGeometricCenter()
-  
-    Calculates the mid-point of the axis aligned bounding box of the entity.
-    
-    :returns: :class:`~ost.geom.Vec3`
-    
   .. method:: GetMass()
-  
+
     See :attr:`mass`
+
+  .. method:: GetCenterOfAtoms()
+
+    See :attr:`center_of_atoms`
+
+  .. method:: GetCenterOfMass()
+
+    See :attr:`center_of_mass`
+
+  .. method:: GetGeometricCenter()
+
+    See :attr:`geometric_center`
 
   .. method:: GetPositions(sort_by_index=True)
 
@@ -367,9 +368,16 @@ The Handle Classes
 
   .. attribute:: center_of_mass
 
-    Center of mass. Also available as :meth:`GetCenterOfMass`
+    Center of mass. Also available as :meth:`GetCenterOfMass`.
 
     :type: :class:`~ost.geom.Vec3`
+
+  .. attribute:: geometric_center
+
+    Mid-point of the axis aligned bounding box of the chain.
+    Also available as :meth:`GetGeometricCenter`
+
+    :type: Vec3
 
   .. attribute:: description
 
@@ -641,6 +649,12 @@ The Handle Classes
 
     :type: :class:`~ost.geom.Vec3`
 
+  .. attribute:: geometric_center
+
+    Mid-point of the axis aligned bounding box of the residue.
+
+    :type: Vec3
+
   .. attribute:: chain
   
     The chain this residue belongs to. Read-only. Also available as 
@@ -850,6 +864,10 @@ The Handle Classes
   .. method:: GetCenterOfMass()
 
     See :attr:`center_of_mass`
+
+  .. method:: GetGeometricCenter()
+
+    See :attr:`geometric_center`
 
   .. method:: GetChain()
 
@@ -1332,9 +1350,23 @@ The View Classes
 
   .. attribute:: bounds
   
-    Axis-aligned bounding box of the entity view. Read-only.
-    
-    :type: :class:`ost.geom.AlignedCuboid`
+    See :attr:`EntityHandle.bounds`
+
+  .. attribute:: mass
+
+    See :attr:`EntityHandle.mass`
+
+  .. attribute:: center_of_atoms
+
+    See :attr:`EntityHandle.center_of_atoms`
+
+  .. attribute:: center_of_mass
+
+    See :attr:`EntityHandle.center_of_mass`
+
+  .. attribute:: geometric_center
+
+    See :attr:`EntityHandle.geometric_center`
 
   .. attribute:: valid
 
@@ -1695,24 +1727,17 @@ The View Classes
   
     :type: float
 
+  .. attribute:: center_of_atoms
+
+    See :attr:`ChainHandle.center_of_atoms`
+
   .. attribute:: center_of_mass
 
-    Center of mass. Also available as :meth:`GetCenterOfMass`
-  
-    :type: :class:`~ost.geom.Vec3`
-  
-  .. attribute:: center_of_atoms
-    
-    Center of atoms (not mass weighted). Also available as 
-    :meth:`GetCenterOfAtoms`.
-    
-    :type: :class:`~ost.geom.Vec3`
+    See :attr:`ChainHandle.center_of_mass`
 
   .. attribute:: geometric_center
 
-    Mid-point of the axis aligned bounding box of the entity.
-
-    :type: Vec3
+    See :attr:`ChainHandle.geometric_center`
 
   .. attribute:: valid
 
@@ -1860,6 +1885,7 @@ The View Classes
                  mass
                  center_of_atoms
                  center_of_mass
+                 geometric_center
                  phi_torsion
                  psi_torsion
                  chem_class
@@ -1919,6 +1945,7 @@ The View Classes
               GetMass
               GetCenterOfAtoms
               GetCenterOfMass
+              GetGeometricCenter
               GetPhiTorsion
               GetPsiTorsion
               GetChemClass
@@ -1976,10 +2003,6 @@ The View Classes
   .. method:: GetIndex()
 
     See :attr:`index`
-
-  .. method:: GetGeometricCenter()
-
-    See :attr:`geometric_center`
     
   .. method:: Select(query, flags=0)
    
