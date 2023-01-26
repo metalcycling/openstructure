@@ -681,6 +681,15 @@ The Handle Classes
     torsion, the PSI torsion is an invalid handle.
     
     Read-only. Also available as :meth:`GetPsiTorsion`
+
+  .. attribute:: omega_torsion
+
+    The OMEGA dihedral angle between this residue and the previous. For residues
+    that are not amino acids, residues that do not have all atoms required or
+    residues that do not have bonds between the four atoms involved in the
+    torsion, the OMEGA torsion is an invalid handle.
+
+    Read-only. Also available as :meth:`GetOmegaTorsion`
     
     :type: :class:`TorsionHandle`
   
@@ -880,6 +889,10 @@ The Handle Classes
   .. method:: GetPsiTorsion()
 
     See :attr:`psi_torsion`
+
+  .. method:: GetOmegaTorsion()
+
+    See :attr:`omega_torsion`
 
   .. method:: GetChemClass()
 
@@ -1888,6 +1901,7 @@ The View Classes
                  geometric_center
                  phi_torsion
                  psi_torsion
+                 omega_torsion
                  chem_class
                  chem_type
                  sec_structure
@@ -1948,6 +1962,7 @@ The View Classes
               GetGeometricCenter
               GetPhiTorsion
               GetPsiTorsion
+              GetOmegaTorsion
               GetChemClass
               GetChemType
               GetSecStructure
