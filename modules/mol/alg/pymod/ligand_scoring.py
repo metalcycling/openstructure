@@ -159,10 +159,8 @@ class LigandScorer:
 
         # lazily computed scores
         self._rmsd = None
-        self._rmsd_assignment = None
         self._rmsd_details = None
         self._lddt_pli = None
-        self._lddt_pli_assignment = None
         self._lddt_pli_details = None
 
         # lazily precomputed variables
@@ -563,20 +561,18 @@ class LigandScorer:
                                           self._rmsd_full_matrix,
                                           "rmsd")
         self._rmsd = mat_tuple[0]
-        self._rmsd_assignment = mat_tuple[1]
-        self._rmsd_details = mat_tuple[2]
+        self._rmsd_details = mat_tuple[1]
 
     def _assign_matrices(self, mat1, mat2, data, main_key):
         """
         :param mat1: the main ligand assignment criteria (RMSD or lDDT-PLI)
         :param mat2:  the secondary ligand assignment criteria (lDDT-PLI or RMSD)
         :param data: the data (either self._rmsd_full_matrix or self._lddt_pli_matrix
-        :return: a tuple with 3 dictionaries of matrices containing the main
-                 data, assignement, and details, respectively.
+        :return: a tuple with 2 dictionaries of matrices containing the main
+                 data, and details, respectively.
         """
         assignments = self._find_ligand_assignment(mat1, mat2)
         out_main = {}
-        out_assignment = {}
         out_details = {}
         for assignment in assignments:
             trg_idx, mdl_idx = assignment
@@ -585,15 +581,12 @@ class LigandScorer:
             mdl_restuple = (mdl_lig.number.num, mdl_lig.number.ins_code)
             if mdl_cname not in out_main:
                 out_main[mdl_cname] = {}
-                out_assignment[mdl_cname] = {}
                 out_details[mdl_cname] = {}
             out_main[mdl_cname][mdl_restuple] = data[
                 trg_idx, mdl_idx][main_key]
-            out_assignment[mdl_cname][mdl_restuple] = data[
-                trg_idx, mdl_idx]["target_ligand"].qualified_name
             out_details[mdl_cname][mdl_restuple] = data[
                 trg_idx, mdl_idx]
-        return out_main, out_assignment, out_details
+        return out_main, out_details
 
     def _assign_ligands_lddt_pli(self):
         """ Assign ligands based on lDDT-PLI.
@@ -605,8 +598,7 @@ class LigandScorer:
                                           self._lddt_pli_full_matrix,
                                           "lddt_pli")
         self._lddt_pli = mat_tuple[0]
-        self._lddt_pli_assignment = mat_tuple[1]
-        self._lddt_pli_details = mat_tuple[2]
+        self._lddt_pli_details = mat_tuple[1]
 
     @property
     def rmsd_matrix(self):
@@ -666,18 +658,6 @@ class LigandScorer:
         return self._rmsd
 
     @property
-    def rmsd_assignment(self):
-        """Get a dictionary of RMSD-based ligand assignment, keyed by model
-        ligand qualified names. Values are the qualified names of the
-        corresponding target ligand.
-
-        :rtype: :class:`dict`
-        """
-        if self._rmsd_assignment is None:
-            self._assign_ligands_rmsd()
-        return self._rmsd_assignment
-
-    @property
     def rmsd_details(self):
         """Get a dictionary of RMSD score details (dictionaries), keyed by
         model ligand qualified names.
@@ -712,18 +692,6 @@ class LigandScorer:
         if self._lddt_pli is None:
             self._assign_ligands_lddt_pli()
         return self._lddt_pli
-
-    @property
-    def lddt_pli_assignment(self):
-        """Get a dictionary of lDDT-PLI-based ligand assignment, keyed by model
-        ligand qualified names. Values are the qualified names of the
-        corresponding target ligand.
-
-        :rtype: :class:`dict`
-        """
-        if self._lddt_pli_assignment is None:
-            self._assign_ligands_lddt_pli()
-        return self._lddt_pli_assignment
 
     @property
     def lddt_pli_details(self):

@@ -291,18 +291,13 @@ class TestLigandScoring(unittest.TestCase):
 
         expected_keys = {"J", "F"}
         self.assertFalse(expected_keys.symmetric_difference(sc.rmsd.keys()))
-        self.assertFalse(expected_keys.symmetric_difference(sc.rmsd_assignment.keys()))
         self.assertFalse(expected_keys.symmetric_difference(sc.rmsd_details.keys()))
         self.assertFalse(expected_keys.symmetric_difference(sc.lddt_pli.keys()))
-        self.assertFalse(expected_keys.symmetric_difference(sc.lddt_pli_assignment.keys()))
         self.assertFalse(expected_keys.symmetric_difference(sc.lddt_pli_details.keys()))
 
         # rmsd
         self.assertAlmostEqual(sc.rmsd["J"][(1, "\x00")], 3.8498, 3)
         self.assertAlmostEqual(sc.rmsd["F"][(1, "\x00")], 57.6295, 3)
-        # rmsd_assignment
-        self.assertEqual(sc.rmsd_assignment, {'J': {(1, "\x00"): 'L.G3D1'},
-                                              'F': {(1, "\x00"): 'I.G3D1'}})
         # rmsd_details
         self.assertEqual(sc.rmsd_details["J"][(1, "\x00")]["chain_mapping"], {'A': 'B', 'H': 'C'})
         self.assertEqual(sc.rmsd_details["J"][(1, "\x00")]["bs_num_res"], 16)
@@ -318,9 +313,6 @@ class TestLigandScoring(unittest.TestCase):
         # lddt_pli
         self.assertAlmostEqual(sc.lddt_pli["J"][(1, "\x00")], 0.91194, 5)
         self.assertAlmostEqual(sc.lddt_pli["F"][(1, "\x00")], 0.0014598, 6)
-        # lddt_pli_assignment
-        self.assertEqual(sc.lddt_pli_assignment, {'J': {(1, "\x00"): 'I.G3D1'},
-                                                  'F': {(1, "\x00"): 'J.G3D1'}})
         # lddt_pli_details
         self.assertAlmostEqual(sc.lddt_pli_details["J"][(1, "\x00")]["rmsd"], 4.1008, 4)
         self.assertEqual(sc.lddt_pli_details["J"][(1, "\x00")]["lddt_pli_n_contacts"], 5224)
