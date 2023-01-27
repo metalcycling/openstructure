@@ -540,49 +540,73 @@ class LigandScorer:
             min_mat1 = mat1.min()
         return assignments
 
-    def _assign_ligands_rmsd(self):
-        """Assign (map) ligands between model and target
+    @staticmethod
+    def _reverse_lddt(lddt):
+        """Reverse lDDT means turning it from a number between 0 and 1 to a
+        number between infinity and 0 (0 being better).
+
+        In practice, this is 1/lDDT. If lDDT is 0, the result is infinity.
         """
-        # Transform lddt_pli to be on the scale of RMSD
         with warnings.catch_warnings():  # RuntimeWarning: divide by zero
             warnings.simplefilter("ignore")
-            mat2 = np.float64(1) / self.lddt_pli_matrix
+            return np.float64(1) / lddt
 
-        assignments = self._find_ligand_assignment(self.rmsd_matrix, mat2)
-        self._rmsd = {}
-        self._rmsd_assignment = {}
-        self._rmsd_details = {}
+    def _assign_ligands_rmsd(self):
+        """Assign (map) ligands between model and target.
+
+        Sets self._rmsd, self._rmsd_assignment and self._rmsd_details.
+        """
+        mat2 = self._reverse_lddt(self.lddt_pli_matrix)
+
+        mat_tuple = self._assign_matrices(self.rmsd_matrix,
+                                          mat2,
+                                          self._rmsd_full_matrix,
+                                          "rmsd")
+        self._rmsd = mat_tuple[0]
+        self._rmsd_assignment = mat_tuple[1]
+        self._rmsd_details = mat_tuple[2]
+
+    def _assign_matrices(self, mat1, mat2, data, main_key):
+        """
+        :param mat1: the main ligand assignment criteria (RMSD or lDDT-PLI)
+        :param mat2:  the secondary ligand assignment criteria (lDDT-PLI or RMSD)
+        :param data: the data (either self._rmsd_full_matrix or self._lddt_pli_matrix
+        :return: a tuple with 3 dictionaries of matrices containing the main
+                 data, assignement, and details, respectively.
+        """
+        assignments = self._find_ligand_assignment(mat1, mat2)
+        out_main = {}
+        out_assignment = {}
+        out_details = {}
         for assignment in assignments:
             trg_idx, mdl_idx = assignment
-            mdl_lig_qname = self.model_ligands[mdl_idx].qualified_name
-            self._rmsd[mdl_lig_qname] = self._rmsd_full_matrix[
-                trg_idx, mdl_idx]["rmsd"]
-            self._rmsd_assignment[mdl_lig_qname] = self._rmsd_full_matrix[
+            mdl_lig = self.model_ligands[mdl_idx]
+            mdl_cname = mdl_lig.chain.name
+            mdl_restuple = (mdl_lig.number.num, mdl_lig.number.ins_code)
+            if mdl_cname not in out_main:
+                out_main[mdl_cname] = {}
+                out_assignment[mdl_cname] = {}
+                out_details[mdl_cname] = {}
+            out_main[mdl_cname][mdl_restuple] = data[
+                trg_idx, mdl_idx][main_key]
+            out_assignment[mdl_cname][mdl_restuple] = data[
                 trg_idx, mdl_idx]["target_ligand"].qualified_name
-            self._rmsd_details[mdl_lig_qname] = self._rmsd_full_matrix[
+            out_details[mdl_cname][mdl_restuple] = data[
                 trg_idx, mdl_idx]
+        return out_main, out_assignment, out_details
 
     def _assign_ligands_lddt_pli(self):
         """ Assign ligands based on lDDT-PLI.
         """
-        # Transform lddt_pli to be on the scale of RMSD
-        with warnings.catch_warnings():  # RuntimeWarning: divide by zero
-            warnings.simplefilter("ignore")
-            mat1 = np.float64(1) / self.lddt_pli_matrix
+        mat1 = self._reverse_lddt(self.lddt_pli_matrix)
 
-        assignments = self._find_ligand_assignment(mat1, self.rmsd_matrix)
-        self._lddt_pli = {}
-        self._lddt_pli_assignment = {}
-        self._lddt_pli_details = {}
-        for assignment in assignments:
-            trg_idx, mdl_idx = assignment
-            mdl_lig_qname = self.model_ligands[mdl_idx].qualified_name
-            self._lddt_pli[mdl_lig_qname] = self._lddt_pli_full_matrix[
-                trg_idx, mdl_idx]["lddt_pli"]
-            self._lddt_pli_assignment[mdl_lig_qname] = self._lddt_pli_full_matrix[
-                trg_idx, mdl_idx]["target_ligand"].qualified_name
-            self._lddt_pli_details[mdl_lig_qname] = self._lddt_pli_full_matrix[
-                trg_idx, mdl_idx]
+        mat_tuple = self._assign_matrices(mat1,
+                                          self.rmsd_matrix,
+                                          self._lddt_pli_full_matrix,
+                                          "lddt_pli")
+        self._lddt_pli = mat_tuple[0]
+        self._lddt_pli_assignment = mat_tuple[1]
+        self._lddt_pli_details = mat_tuple[2]
 
     @property
     def rmsd_matrix(self):
