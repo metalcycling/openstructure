@@ -137,13 +137,13 @@ class TestLigandScoring(unittest.TestCase):
         """
         mdl_lig = io.LoadEntity(os.path.join('testfiles', "P84080_model_02_ligand_0.sdf"))
 
-        graph = _ResidueToGraph(mdl_lig.residues[0])
+        graph = ligand_scoring._ResidueToGraph(mdl_lig.residues[0])
         assert len(graph.edges) == 34
         assert len(graph.nodes) == 32
         # Check an arbitrary node
         assert [a for a in graph.adj["14"].keys()] == ["13", "29"]
 
-        graph = _ResidueToGraph(mdl_lig.residues[0], by_atom_index=True)
+        graph = ligand_scoring._ResidueToGraph(mdl_lig.residues[0], by_atom_index=True)
         assert len(graph.edges) == 34
         assert len(graph.nodes) == 32
         # Check an arbitrary node

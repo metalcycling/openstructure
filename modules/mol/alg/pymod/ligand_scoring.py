@@ -725,7 +725,7 @@ class LigandScorer:
         return self._lddt_pli_details
 
 
-def ResidueToGraph(residue, by_atom_index=False):
+def _ResidueToGraph(residue, by_atom_index=False):
     """Return a NetworkX graph representation of the residue.
 
     :param residue: the residue from which to derive the graph
@@ -738,12 +738,12 @@ def ResidueToGraph(residue, by_atom_index=False):
     :type by_atom_index: :class:`bool`
     :rtype: :class:`~networkx.classes.graph.Graph`
 
-    Nodes are labeled with the Atom's :attr:`~ost.mol.AtomHandle.mass`.
+    Nodes are labeled with the Atom's lowercase :attr:`~ost.mol.AtomHandle.element`.
     """
     nxg = networkx.Graph()
 
     for atom in residue.atoms:
-        nxg.add_node(atom.name, element=atom.mass)
+        nxg.add_node(atom.name, element=atom.element.lower())
 
     # This will list all edges twice - once for every atom of the pair.
     # But as of NetworkX 3.0 adding the same edge twice has no effect, so we're good.
@@ -844,8 +844,8 @@ def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
     """
 
     # Get the Graphs of the ligands
-    model_graph = ResidueToGraph(model_ligand, by_atom_index=by_atom_index)
-    target_graph = ResidueToGraph(target_ligand, by_atom_index=by_atom_index)
+    model_graph = _ResidueToGraph(model_ligand, by_atom_index=by_atom_index)
+    target_graph = _ResidueToGraph(target_ligand, by_atom_index=by_atom_index)
 
     if not networkx.is_connected(model_graph):
         raise RuntimeError("Disconnected graph for model ligand %s" % model_ligand)
@@ -891,4 +891,4 @@ class NoSymmetryError(Exception):
     pass
 
 
-__all__ = ["LigandScorer", "ResidueToGraph", "SCRMSD", "NoSymmetryError"]
+__all__ = ["LigandScorer", "SCRMSD", "NoSymmetryError"]
