@@ -7,7 +7,7 @@ from ost import io, mol, geom
 # check if we can import: fails if numpy or scipy not available
 try:
     from ost.mol.alg.ligand_scoring import *
-    import ost.mol.alg.ligand_scoring
+    from ost.mol.alg import ligand_scoring
 except ImportError:
     print("Failed to import ligand_scoring.py. Happens when numpy, scipy or "
           "networkx is missing. Ignoring test_ligand_scoring.py tests.")
@@ -132,18 +132,18 @@ class TestLigandScoring(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             sc = LigandScorer(mdl, trg, mdl_ligs, [lig0, lig1])
 
-    def test_ResidueToGraph(self):
-        """Test that ResidueToGraph works as expected
+    def test__ResidueToGraph(self):
+        """Test that _ResidueToGraph works as expected
         """
         mdl_lig = io.LoadEntity(os.path.join('testfiles', "P84080_model_02_ligand_0.sdf"))
 
-        graph = ResidueToGraph(mdl_lig.residues[0])
+        graph = _ResidueToGraph(mdl_lig.residues[0])
         assert len(graph.edges) == 34
         assert len(graph.nodes) == 32
         # Check an arbitrary node
         assert [a for a in graph.adj["14"].keys()] == ["13", "29"]
 
-        graph = ResidueToGraph(mdl_lig.residues[0], by_atom_index=True)
+        graph = _ResidueToGraph(mdl_lig.residues[0], by_atom_index=True)
         assert len(graph.edges) == 34
         assert len(graph.nodes) == 32
         # Check an arbitrary node
@@ -161,15 +161,15 @@ class TestLigandScoring(unittest.TestCase):
         trg_g3d2 = trg.FindResidue("J", 1)
         mdl_g3d = mdl.FindResidue("L_2", 1)
 
-        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1)
+        sym = ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1)
         assert len(sym) == 72
 
-        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1, by_atom_index=True)
+        sym = ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1, by_atom_index=True)
         assert len(sym) == 72
 
         # Test that we can match ions read from SDF
         sdf_lig = io.LoadEntity(os.path.join('testfiles', "1r8q_ligand_0.sdf"))
-        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(trg_mg1, sdf_lig.residues[0], by_atom_index=True)
+        sym = ligand_scoring._ComputeSymmetries(trg_mg1, sdf_lig.residues[0], by_atom_index=True)
         assert len(sym) == 1
 
         # Test that it works with views and only consider atoms in the view
@@ -178,19 +178,19 @@ class TestLigandScoring(unittest.TestCase):
         trg_g3d1_sub = trg_g3d1.Select("aindex>6019").residues[0]
         mdl_g3d_sub = mdl_g3d.Select("aindex>1447").residues[0]
 
-        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1_sub)
+        sym = ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1_sub)
         assert len(sym) == 6
 
-        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1_sub, by_atom_index=True)
+        sym = ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1_sub, by_atom_index=True)
         assert len(sym) == 6
 
         # Substructure matches
-        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1_sub, substructure_match=True)
+        sym = ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1_sub, substructure_match=True)
         assert len(sym) == 6
 
         # Missing atoms only allowed in target, not in model
         with self.assertRaises(NoSymmetryError):
-            ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1, substructure_match=True)
+            ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1, substructure_match=True)
 
     def test_SCRMSD(self):
         """Test that SCRMSD works.
