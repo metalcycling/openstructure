@@ -167,6 +167,11 @@ class TestLigandScoring(unittest.TestCase):
         sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1, by_atom_index=True)
         assert len(sym) == 72
 
+        # Test that we can match ions read from SDF
+        sdf_lig = io.LoadEntity(os.path.join('testfiles', "1r8q_ligand_0.sdf"))
+        sym = ost.mol.alg.ligand_scoring._ComputeSymmetries(trg_mg1, sdf_lig.residues[0], by_atom_index=True)
+        assert len(sym) == 1
+
         # Test that it works with views and only consider atoms in the view
         # Skip PA, PB and O[1-3]A and O[1-3]B in target and model
         # We assume atom index are fixed and won't change
