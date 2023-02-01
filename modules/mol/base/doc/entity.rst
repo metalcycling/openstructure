@@ -908,8 +908,10 @@ The Handle Classes
      
   .. attribute:: element
   
-    The atom's element. Note that this may return an empty string. Also 
-    available as :meth:`GetElement`. Read-only.
+    The atom's element. By convention in Openstructure, this is the chemical
+    symbol in uppercase, but this is not strictly enforced and may be a non-
+    existing element or an empty string. Also available as :meth:`GetElement`.
+    Read-only.
     
     :type: str
     

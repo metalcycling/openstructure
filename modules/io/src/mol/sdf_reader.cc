@@ -199,6 +199,8 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
   }
 
   String ele=boost::trim_copy(s_ele);
+  String upper_ele=ele;
+  std::transform(upper_ele.begin(),upper_ele.end(),upper_ele.begin(),toupper);
   String aname=boost::lexical_cast<String>(anum);
   
   Real charge=0.0;  
@@ -215,7 +217,7 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
 
   LOG_DEBUG("adding atom " << aname << " (" << s_ele << ") @" << apos);
 
-  mol::AtomHandle atom=editor.InsertAtom(curr_residue_, aname,apos, ele);  
+  mol::AtomHandle atom=editor.InsertAtom(curr_residue_, aname, apos, upper_ele);
   atom.SetHetAtom(hetatm);
   atom.SetCharge(charge);
 }

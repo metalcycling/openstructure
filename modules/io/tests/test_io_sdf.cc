@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(simple_sdf)
   mol::AtomHandle ah2=eh.GetAtomList()[5];
 
   BOOST_CHECK_EQUAL(ah.GetElement(),  "N");
-  BOOST_CHECK_EQUAL(ah2.GetElement(), "Cl");
+  BOOST_CHECK_EQUAL(ah2.GetElement(), "CL");
   BOOST_CHECK_CLOSE(ah.GetRadius(),  Real(1.55), Real(1e-2));
   BOOST_CHECK_CLOSE(ah2.GetRadius(), Real(1.75), Real(1e-2));
   BOOST_CHECK_CLOSE(ah.GetMass(),  Real(14.007), Real(1e-4));
