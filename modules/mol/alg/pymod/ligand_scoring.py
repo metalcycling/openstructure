@@ -136,12 +136,16 @@ class LigandScorer:
             self.target_ligands = self._extract_ligands(self.target)
         else:
             self.target_ligands = self._prepare_ligands(self.target, target, target_ligands)
+        if len(self.target_ligands) == 0:
+            raise ValueError("No ligands in the target")
 
         # Extract ligands from model
         if model_ligands is None:
             self.model_ligands = self._extract_ligands(self.model)
         else:
             self.model_ligands = self._prepare_ligands(self.model, model, model_ligands)
+        if len(self.model_ligands) == 0:
+            raise ValueError("No ligands in the model")
 
         self._chain_mapper = chain_mapper
         self.resnum_alignments = resnum_alignments
