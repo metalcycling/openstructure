@@ -251,23 +251,23 @@ class TestLigandScoring(unittest.TestCase):
         # Check RMSD
         assert sc.rmsd_matrix.shape == (7, 1)
         np.testing.assert_almost_equal(sc.rmsd_matrix, np.array(
-            [[np.inf],
+            [[np.nan],
             [0.04244993],
-            [np.inf],
-            [np.inf],
-            [np.inf],
+            [np.nan],
+            [np.nan],
+            [np.nan],
             [0.29399303],
-            [np.inf]]), decimal=5)
+            [np.nan]]), decimal=5)
 
         # Check lDDT-PLI
         self.assertEqual(sc.lddt_pli_matrix.shape, (7, 1))
-        self.assertEqual(sc.lddt_pli_matrix[0, 0], 0)
+        self.assertTrue(np.isnan(sc.lddt_pli_matrix[0, 0]))
         self.assertAlmostEqual(sc.lddt_pli_matrix[1, 0], 0.99843, 5)
-        self.assertEqual(sc.lddt_pli_matrix[2, 0], 0)
-        self.assertEqual(sc.lddt_pli_matrix[3, 0], 0)
-        self.assertEqual(sc.lddt_pli_matrix[4, 0], 0)
+        self.assertTrue(np.isnan(sc.lddt_pli_matrix[2, 0]))
+        self.assertTrue(np.isnan(sc.lddt_pli_matrix[3, 0]))
+        self.assertTrue(np.isnan(sc.lddt_pli_matrix[4, 0]))
         self.assertAlmostEqual(sc.lddt_pli_matrix[5, 0], 1.0)
-        self.assertEqual(sc.lddt_pli_matrix[6, 0], 0)
+        self.assertTrue(np.isnan(sc.lddt_pli_matrix[6, 0]))
 
     def test_check_resnames(self):
         """Test check_resname argument works

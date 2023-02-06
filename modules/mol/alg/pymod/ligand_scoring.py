@@ -460,7 +460,7 @@ class LigandScorer:
                     #                " - setting to Infinity" % str(err))
                     #     bb_rmsd = float("inf")
                     lddt_pli_full_matrix[target_i, model_i] = {
-                        "lddt_pli": 0,
+                        "lddt_pli": np.nan,
                         "lddt_pli_n_contacts": None,
                         "rmsd": rmsd,
                         # "symmetry_number": i,
@@ -496,7 +496,7 @@ class LigandScorer:
                         # Save results?
                         best_lddt = lddt_pli_full_matrix[
                             target_i, model_i]["lddt_pli"]
-                        if global_lddt > best_lddt:
+                        if global_lddt > best_lddt or np.isnan(best_lddt):
                             lddt_pli_full_matrix[target_i, model_i].update({
                                 "lddt_pli": global_lddt,
                                 "lddt_pli_n_contacts": lddt_tot,
@@ -515,8 +515,8 @@ class LigandScorer:
         mat1 = np.copy(mat1)
         mat2 = np.copy(mat2)
         assignments = []
-        min_mat1 = mat1.min()
-        while min_mat1 < np.inf:
+        min_mat1 = LigandScorer._nanmin_nowarn(mat1)
+        while not np.isnan(min_mat1):
             best_mat1 = np.argwhere(mat1 == min_mat1)
             # Multiple "best" - use mat2 to disambiguate
             if len(best_mat1) > 1:
@@ -530,17 +530,24 @@ class LigandScorer:
                 max_i_trg, max_i_mdl = best_mat1[0]
 
             # Disable row and column
-            mat1[max_i_trg, :] = np.inf
-            mat1[:, max_i_mdl] = np.inf
-            mat2[max_i_trg, :] = np.inf
-            mat2[:, max_i_mdl] = np.inf
+            mat1[max_i_trg, :] = np.nan
+            mat1[:, max_i_mdl] = np.nan
+            mat2[max_i_trg, :] = np.nan
+            mat2[:, max_i_mdl] = np.nan
 
             # Save
             assignments.append((max_i_trg, max_i_mdl))
 
             # Recompute min
-            min_mat1 = mat1.min()
+            min_mat1 = LigandScorer._nanmin_nowarn(mat1)
         return assignments
+
+    @staticmethod
+    def _nanmin_nowarn(array):
+        """Compute np.nanmin but ignore the RuntimeWarning."""
+        with warnings.catch_warnings():  # RuntimeWarning: All-NaN slice encountered
+            warnings.simplefilter("ignore")
+            return np.nanmin(array)
 
     @staticmethod
     def _reverse_lddt(lddt):
@@ -610,7 +617,7 @@ class LigandScorer:
 
         Target ligands are in rows, model ligands in columns.
 
-        Infinite values indicate that no RMSD could be computed (i.e. different
+        NaN values indicate that no RMSD could be computed (i.e. different
         ligands).
 
         :rtype: :class:`~numpy.ndarray`
@@ -620,7 +627,7 @@ class LigandScorer:
         if self._rmsd_matrix is None:
             # convert
             shape = self._rmsd_full_matrix.shape
-            self._rmsd_matrix = np.full(shape, np.inf)
+            self._rmsd_matrix = np.full(shape, np.nan)
             for i, j in np.ndindex(shape):
                 if self._rmsd_full_matrix[i, j] is not None:
                     self._rmsd_matrix[i, j] = self._rmsd_full_matrix[
@@ -633,7 +640,7 @@ class LigandScorer:
 
         Target ligands are in rows, model ligands in columns.
 
-        A value of 0 indicate that no lDDT-PLI could be computed (i.e. different
+        NaN values indicate that no lDDT-PLI could be computed (i.e. different
         ligands).
 
         :rtype: :class:`~numpy.ndarray`
@@ -643,7 +650,7 @@ class LigandScorer:
         if self._lddt_pli_matrix is None:
             # convert
             shape = self._lddt_pli_full_matrix.shape
-            self._lddt_pli_matrix = np.zeros(shape)
+            self._lddt_pli_matrix = np.full(shape, np.nan)
             for i, j in np.ndindex(shape):
                 if self._lddt_pli_full_matrix[i, j] is not None:
                     self._lddt_pli_matrix[i, j] = self._lddt_pli_full_matrix[
