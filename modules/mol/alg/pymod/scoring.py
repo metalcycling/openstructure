@@ -205,6 +205,8 @@ class Scorer:
 
         self._qs_global = None
         self._qs_best = None
+        self._interface_qs_global = None
+        self._interface_qs_best = None
 
         self._interfaces = None
         self._native_contacts = None
@@ -488,7 +490,7 @@ class Scorer:
 
     @property
     def interfaces(self):
-        """ Interfaces considered in DockQ (i.e. nonzero native contacts)
+        """ Interfaces with nonzero :attr:`native_contacts`
 
         :type: :class:`list` of :class:`tuple` with 4 elements each:
                (trg_ch1, trg_ch2, mdl_ch1, mdl_ch2)
@@ -496,10 +498,35 @@ class Scorer:
         if self._interfaces is None:
             self._compute_per_interface_scores()
         return self._interfaces
+
+    @property
+    def interface_qs_global(self):
+        """ QS-score for each interface in :attr:`interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+        if self._interface_qs_global is None:
+            self._compute_per_interface_scores()
+        return self._interface_qs_global
+    
+    @property
+    def interface_qs_best(self):
+        """ QS-score for each interface in :attr:`interfaces`
+
+        Only computed on aligned residues
+
+        :type: :class:`list` of :class:`float`
+        """
+        if self._interface_qs_best is None:
+            self._compute_per_interface_scores()
+        return self._interface_qs_best
     
     @property
     def native_contacts(self):
         """ N native contacts for interfaces in :attr:`~interfaces`
+
+        A contact is a pair or residues from distinct chains that have
+        a minimal heavy atom distance < 5A
 
         :type: :class:`list` of :class:`int`
         """
@@ -510,6 +537,9 @@ class Scorer:
     @property
     def model_contacts(self):
         """ N model contacts for interfaces in :attr:`~interfaces`
+
+        A contact is a pair or residues from distinct chains that have
+        a minimal heavy atom distance < 5A
 
         :type: :class:`list` of :class:`int`
         """
@@ -936,6 +966,8 @@ class Scorer:
         # lists with respective values for these interfaces
         self._native_contacts = list()
         self._model_contacts = list()
+        self._interface_qs_global = list()
+        self._interface_qs_best = list()
         self._dockq_scores = list()
         self._fnat = list()
         self._fnonnat = list()
@@ -999,6 +1031,10 @@ class Scorer:
                         self._irmsd.append(res["irmsd"])
                         self._lrmsd.append(res["lrmsd"])
                         self._dockq_scores.append(res["DockQ"])
+                        qs_res = self.qs_scorer.ScoreInterface(trg_ch1, trg_ch2,
+                                                               mdl_ch1, mdl_ch2)
+                        self._interface_qs_best.append(qs_res.QS_best)
+                        self._interface_qs_global.append(qs_res.QS_global)
                 else:
                     # interface which is not covered by mdl... let's run DockQ
                     # with trg as trg/mdl in order to get the native contacts
