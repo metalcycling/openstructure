@@ -430,21 +430,26 @@ class LigandScorer:
                             str(model_ligand), str(target_ligand)))
                         continue
 
-                    #LogVerbose("Compute RMSD for model ligand %s" % model_ligand)
                     rmsd = SCRMSD(model_ligand, target_ligand,
                                   transformation=binding_site.transform,
                                   substructure_match=self.substructure_match)
-                    rmsd_full_matrix[target_i, model_i] = {
-                        "rmsd": rmsd,
-                        "chain_mapping": binding_site.GetFlatChainMapping(),
-                        "lddt_bs": binding_site.lDDT,
-                        "bb_rmsd": binding_site.bb_rmsd,
-                        "transform": binding_site.transform,
-                        "bs_num_res": len(binding_site.substructure.residues),
-                        "bs_num_overlap_res": len(binding_site.ref_residues),
-                        "target_ligand": target_ligand,
-                        "model_ligand": model_ligand
-                    }
+                    LogDebug("RMSD: %.4f" % rmsd)
+
+                    # Save results?
+                    if not rmsd_full_matrix[target_i, model_i] or \
+                            rmsd_full_matrix[target_i, model_i]["rmsd"] > rmsd:
+                        rmsd_full_matrix[target_i, model_i] = {
+                            "rmsd": rmsd,
+                            "chain_mapping": binding_site.GetFlatChainMapping(),
+                            "lddt_bs": binding_site.lDDT,
+                            "bb_rmsd": binding_site.bb_rmsd,
+                            "transform": binding_site.transform,
+                            "bs_num_res": len(binding_site.substructure.residues),
+                            "bs_num_overlap_res": len(binding_site.ref_residues),
+                            "target_ligand": target_ligand,
+                            "model_ligand": model_ligand
+                        }
+                        LogDebug("Saved RMSD")
 
                     mdl_bs_ent = self._build_binding_site_entity(
                         model_ligand, binding_site.mdl_residues, [])
@@ -459,20 +464,6 @@ class LigandScorer:
                     #     LogWarning("Can't calculate backbone RMSD: %s"
                     #                " - setting to Infinity" % str(err))
                     #     bb_rmsd = float("inf")
-                    lddt_pli_full_matrix[target_i, model_i] = {
-                        "lddt_pli": np.nan,
-                        "lddt_pli_n_contacts": None,
-                        "rmsd": rmsd,
-                        # "symmetry_number": i,
-                        "chain_mapping": binding_site.GetFlatChainMapping(),
-                        "lddt_bs": binding_site.lDDT,
-                        "bb_rmsd": binding_site.bb_rmsd,
-                        "transform": binding_site.transform,
-                        "bs_num_res": len(binding_site.substructure.residues),
-                        "bs_num_overlap_res": len(binding_site.ref_residues),
-                        "target_ligand": target_ligand,
-                        "model_ligand": model_ligand
-                    }
 
                     # Now for each symmetry, loop and rename atoms according
                     # to ref.
@@ -492,15 +483,28 @@ class LigandScorer:
                                 no_intrachain=True,
                                 return_dist_test=True,
                                 check_resnames=self.check_resnames)
+                        LogDebug("lDDT-PLI for symmetry %d: %.4f" % (i, global_lddt))
 
                         # Save results?
-                        best_lddt = lddt_pli_full_matrix[
-                            target_i, model_i]["lddt_pli"]
-                        if global_lddt > best_lddt or np.isnan(best_lddt):
-                            lddt_pli_full_matrix[target_i, model_i].update({
+                        if not lddt_pli_full_matrix[target_i, model_i] or \
+                                global_lddt > lddt_pli_full_matrix[
+                            target_i, model_i]["lddt_pli"] :
+                            lddt_pli_full_matrix[target_i, model_i] = {
                                 "lddt_pli": global_lddt,
                                 "lddt_pli_n_contacts": lddt_tot,
-                            })
+                                "rmsd": rmsd,
+                                # "symmetry_number": i,
+                                "chain_mapping": binding_site.GetFlatChainMapping(),
+                                "lddt_bs": binding_site.lDDT,
+                                "bb_rmsd": binding_site.bb_rmsd,
+                                "transform": binding_site.transform,
+                                "bs_num_res": len(binding_site.substructure.residues),
+                                "bs_num_overlap_res": len(binding_site.ref_residues),
+                                "target_ligand": target_ligand,
+                                "model_ligand": model_ligand
+                            }
+                            LogDebug("Saved lDDT-PLI")
+
         self._rmsd_full_matrix = rmsd_full_matrix
         self._lddt_pli_full_matrix = lddt_pli_full_matrix
 
