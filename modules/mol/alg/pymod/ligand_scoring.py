@@ -664,7 +664,7 @@ class LigandScorer:
     @property
     def rmsd(self):
         """Get a dictionary of RMSD score values, keyed by model ligand
-        qualified names.
+        (chain name, tuple(residue number, insertion code)).
 
         :rtype: :class:`dict`
         """
@@ -675,7 +675,7 @@ class LigandScorer:
     @property
     def rmsd_details(self):
         """Get a dictionary of RMSD score details (dictionaries), keyed by
-        model ligand qualified names.
+        model ligand (chain name, tuple(residue number, insertion code)).
 
         Each sub-dictionary contains the following information:
 
@@ -700,7 +700,7 @@ class LigandScorer:
     @property
     def lddt_pli(self):
         """Get a dictionary of lDDT-PLI score values, keyed by model ligand
-        qualified names.
+        (chain name, tuple(residue number, insertion code)).
 
         :rtype: :class:`dict`
         """
@@ -711,7 +711,7 @@ class LigandScorer:
     @property
     def lddt_pli_details(self):
         """Get a dictionary of lDDT-PLI score details (dictionaries), keyed by
-        model ligand qualified names.
+        model ligand (chain name, tuple(residue number, insertion code)).
 
         Each sub-dictionary contains the following information:
 
