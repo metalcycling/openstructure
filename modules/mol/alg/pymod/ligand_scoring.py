@@ -111,11 +111,15 @@ class LigandScorer:
     :type lddt_pli_radius: :class:`float`
     :param lddt_bs_radius: lDDT inclusion radius for lDDT-BS.
     :type lddt_bs_radius: :class:`float`
+    :param binding_sites_topn: maximum number of target binding site
+                               representations to assess, per target ligand.
+    :type binding_sites_topn: :class:`int`
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
                  resnum_alignments=False, check_resnames=True,
                  chain_mapper=None, substructure_match=False,
-                 radius=4.0, lddt_pli_radius=6.0, lddt_bs_radius=10.0):
+                 radius=4.0, lddt_pli_radius=6.0, lddt_bs_radius=10.0,
+                 binding_sites_topn=100000):
 
         if isinstance(model, mol.EntityView):
             self.model = mol.CreateEntityFromView(model, False)
@@ -154,6 +158,7 @@ class LigandScorer:
         self.radius = radius
         self.lddt_pli_radius = lddt_pli_radius
         self.lddt_bs_radius = lddt_bs_radius
+        self.binding_sites_topn = binding_sites_topn
 
         # scoring matrices
         self._rmsd_matrix = None
@@ -295,7 +300,7 @@ class LigandScorer:
             new_editor.UpdateICS()
         return extracted_ligands
 
-    def _get_binding_sites(self, ligand, topn=100000):
+    def _get_binding_sites(self, ligand):
         """Find representations of the binding site of *ligand* in the model.
 
         Ignore other ligands and waters that may be in proximity.
@@ -332,7 +337,7 @@ class LigandScorer:
             # Find the representations
             self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
                 ref_bs, self.model, inclusion_radius=self.lddt_bs_radius,
-                topn=topn)
+                topn=self.binding_sites_topn)
         return self._binding_sites[ligand.hash_code]
 
     @staticmethod
