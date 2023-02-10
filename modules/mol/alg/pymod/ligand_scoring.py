@@ -177,7 +177,7 @@ class LigandScorer:
 
     @property
     def chain_mapper(self):
-        """ Chain mapper object for given :attr:`target`
+        """ Chain mapper object for the given :attr:`target`.
 
         :type: :class:`ost.mol.alg.chain_mapping.ChainMapper`
         """
@@ -189,7 +189,7 @@ class LigandScorer:
 
     @staticmethod
     def _extract_ligands(entity):
-        """Extracts ligands from entity. Returns a list of residues.
+        """Extract ligands from entity. Return a list of residues.
 
         Assumes that ligands are contained in one or more chain with chain type
         `mol.ChainType.CHAINTYPE_NON_POLY`. This is typically the case
