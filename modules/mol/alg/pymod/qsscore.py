@@ -396,6 +396,41 @@ class QSScorer:
 
         return self.FromFlatMapping(flat_mapping)
 
+    def ScoreInterface(self, trg_ch1, trg_ch2, mdl_ch1, mdl_ch2):
+        """ Computes QS-score only considering one interface
+
+        This only works for interfaces that are computed in :func:`Score`, i.e.
+        interfaces for which the alignments are set up correctly.
+
+        :param trg_ch1: Name of first interface chain in target
+        :type trg_ch1: :class:`str`
+        :param trg_ch2: Name of second interface chain in target
+        :type trg_ch2: :class:`str`
+        :param mdl_ch1: Name of first interface chain in model
+        :type mdl_ch1: :class:`str`
+        :param mdl_ch2: Name of second interface chain in model
+        :type mdl_ch2: :class:`str`
+        :returns: Result object of type :class:`QSScorerResult`
+        :raises: :class:`RuntimeError` if no aln for trg_ch1/mdl_ch1 or
+                 trg_ch2/mdl_ch2 is available.
+        """
+        if (trg_ch1, mdl_ch1) not in self.alns:
+            raise RuntimeError(f"No aln between trg_ch1 ({trg_ch1}) and "
+                               f"mdl_ch1 ({mdl_ch1}) available. Did you "
+                               f"construct the QSScorer object from a "
+                               f"MappingResult and are trg_ch1 and mdl_ch1 "
+                               f"mapped to each other?")
+        if (trg_ch2, mdl_ch2) not in self.alns:
+            raise RuntimeError(f"No aln between trg_ch1 ({trg_ch1}) and "
+                               f"mdl_ch1 ({mdl_ch1}) available. Did you "
+                               f"construct the QSScorer object from a "
+                               f"MappingResult and are trg_ch1 and mdl_ch1 "
+                               f"mapped to each other?")
+        trg_int = (trg_ch1, trg_ch2)
+        mdl_int = (mdl_ch1, mdl_ch2)
+        a, b, c, d = self._MappedInterfaceScores(trg_int, mdl_int)
+        return QSScorerResult(a, b, c, d)
+
     def FromFlatMapping(self, flat_mapping):
         """ Same as :func:`Score` but with flat mapping
 

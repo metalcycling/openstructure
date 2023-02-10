@@ -5,9 +5,23 @@ Changes in Release 2.4.0
    based, natively supports complexes and is able to score DNA/RNA. The
    deprecated lDDT implementation remains for consistency.
  * Add algorithms to establish one to one mappings between chains in a reference
-   structure and a model.
+   structure and a model. Chain mappings can be derived by optimizing oligomeric
+   lDDT, RMSD or QS-score. 
  * Substitution matrixes for RNA/DNA to compute alignments: seq.alg.IDENTITY and
-   seq.alg.NUC44
+   seq.alg.NUC44.
+ * Add binding to DockQ (https://github.com/bjornwallner/DockQ) as well as an
+   OpenStructure specific implementation of it. Also allows to extract CAPRI
+   specific oligo scores (fnat, fnonnat, irmsd, lrmsd etc.)
+ * Reimplentation of QS-score in mol.alg.qsscore. Implements speedups and
+   heavy caching which benefits heavy enumeration approaches in chain mapping.
+ * Stereochemistry related algorithms in mol.alg.stereochemistry. Identifies 
+   clashes and non-sensible bond lengths/angles based on parameterizations from
+   CCP4 MON_LIB.
+ * Better compression in OMF structure format.
+ * One central scoring object: mol.alg.scoring.Scorer. Access to all
+   OpenStructure specific scoring capabilities including required
+   pre-processing of model/reference (cleanup, stereochemistry checks,
+   chain mapping etc.).
  * Several minor bug fixes and improvements.
 
 Changes in Release 2.3.1

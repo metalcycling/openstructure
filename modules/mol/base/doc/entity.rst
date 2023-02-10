@@ -98,18 +98,27 @@ The Handle Classes
     
     :type: float
 
+  .. attribute:: center_of_atoms
+
+    Center of atoms, that is the average atom position of the entity.
+    Use :attr:`center_of_mass` for the the mass-weighted center of the entity.
+    Also available as :meth:`GetCenterOfAtoms`.
+
+    :type: :class:`~ost.geom.Vec3`
+
   .. attribute:: center_of_mass
   
-    Center of mass. Also available as :meth:`GetCenterOfMass`
+    Center of mass of the entity.
+    Also available as :meth:`GetCenterOfMass`
     
     :type: :class:`~ost.geom.Vec3`
-    
-  .. attribute:: center_of_atoms
-  
-    Center of atoms (not mass-weighted). Also available as 
-    :meth:`GetCenterOfAtoms`.
-    
-    :type: :class:`~ost.geom.Vec3`
+
+  .. attribute:: geometric_center
+
+    Mid-point of the axis aligned bounding box of the entity.
+    Also available as :meth:`GetGeometricCenter`
+
+    :type: Vec3
 
   .. attribute:: positions
 
@@ -286,29 +295,21 @@ The Handle Classes
       
       alternative atom positions are not handled yet.
 
-  .. method:: GetCenterOfAtoms()
-    
-    Get center of atoms, that is the average atom position of the entity. Use
-    :meth:`GetCenterOfMass` to calculate the mass-weighted center of the entity.
-    
-    :returns: :class:`~ost.geom.Vec3`
-    
-  .. method:: GetCenterOfMass()
-    
-    Calculates the center of mass of the entity. Use :meth:`GetCenterOfAtoms`
-    to calculate the non-mass-weighted center of the entity.
-    
-    :returns: :class:`~ost.geom.Vec3`
-    
-  .. method:: GetGeometricCenter()
-  
-    Calculates the mid-point of the axis aligned bounding box of the entity.
-    
-    :returns: :class:`~ost.geom.Vec3`
-    
   .. method:: GetMass()
-  
+
     See :attr:`mass`
+
+  .. method:: GetCenterOfAtoms()
+
+    See :attr:`center_of_atoms`
+
+  .. method:: GetCenterOfMass()
+
+    See :attr:`center_of_mass`
+
+  .. method:: GetGeometricCenter()
+
+    See :attr:`geometric_center`
 
   .. method:: GetPositions(sort_by_index=True)
 
@@ -367,9 +368,16 @@ The Handle Classes
 
   .. attribute:: center_of_mass
 
-    Center of mass. Also available as :meth:`GetCenterOfMass`
+    Center of mass. Also available as :meth:`GetCenterOfMass`.
 
     :type: :class:`~ost.geom.Vec3`
+
+  .. attribute:: geometric_center
+
+    Mid-point of the axis aligned bounding box of the chain.
+    Also available as :meth:`GetGeometricCenter`
+
+    :type: Vec3
 
   .. attribute:: description
 
@@ -567,9 +575,20 @@ The Handle Classes
     The residue name is usually a str of 3 characters, e.g. `GLY` for 
     glycine or `ALA` for alanine, but may be shorter, e.g. `G` for guanosine, 
     or longer for structures loaded from formats other than PDB.
+    Also available as :meth:`GetName`.
     
     This property is read-only. To change the name of the residue, use
     :meth:`~EditorBase.RenameResidue`.
+
+    :type: str
+
+  .. attribute:: qualified_name
+
+    The qualified name consists of a residue identifier and chain name.
+    For a glycine with residue number 2 of chain A, the qualified name is
+    "A.GLY2". Also available as :meth:`GetQualifiedName`.
+
+    :type: str
   
   .. attribute:: number
   
@@ -605,6 +624,18 @@ The Handle Classes
 
      :type: :class:`AtomHandleList` (list of :class:`AtomHandle`)
 
+  .. attribute:: atom_count
+
+    Number of atoms. Read-only. See :meth:`GetAtomCount`.
+
+    :type: :class:`int`
+
+  .. attribute:: bond_count
+
+    Number of bonds. Read-only. See :meth:`GetBondCount`.
+
+    :type: :class:`int`
+
   .. attribute:: bounds
   
     Axis-aligned bounding box of the residue. Read-only.
@@ -616,12 +647,6 @@ The Handle Classes
     The total mass of this residue in Dalton. Also available as :meth:`GetMass`.
   
     :type: float
-
-  .. attribute:: center_of_mass
-
-    Center of mass. Also available as :meth:`GetCenterOfMass`
-  
-    :type: :class:`~ost.geom.Vec3`
   
   .. attribute:: center_of_atoms
     
@@ -629,6 +654,18 @@ The Handle Classes
     :meth:`GetCenterOfAtoms`.
     
     :type: :class:`~ost.geom.Vec3`
+
+  .. attribute:: center_of_mass
+
+    Center of mass. Also available as :meth:`GetCenterOfMass`
+
+    :type: :class:`~ost.geom.Vec3`
+
+  .. attribute:: geometric_center
+
+    Mid-point of the axis aligned bounding box of the residue.
+
+    :type: Vec3
 
   .. attribute:: chain
   
@@ -656,6 +693,15 @@ The Handle Classes
     torsion, the PSI torsion is an invalid handle.
     
     Read-only. Also available as :meth:`GetPsiTorsion`
+
+  .. attribute:: omega_torsion
+
+    The OMEGA dihedral angle between this residue and the previous. For residues
+    that are not amino acids, residues that do not have all atoms required or
+    residues that do not have bonds between the four atoms involved in the
+    torsion, the OMEGA torsion is an invalid handle.
+
+    Read-only. Also available as :meth:`GetOmegaTorsion`
     
     :type: :class:`TorsionHandle`
   
@@ -808,9 +854,89 @@ The Handle Classes
     :returns:           Whether the switch was successful (e.g. False if no such
                         group exists)
 
+  .. method:: GetName()
+
+    See :attr:`name`
+
+  .. method:: GetQualifiedName()
+
+    See :attr:`qualified_name`
+
+  .. method:: GetNumber()
+
+    See :attr:`number`
+
+  .. method:: GetOneLetterCode()
+
+    See :attr:`one_letter_code`
+
   .. method:: GetAtomList()
 
     See :attr:`atoms`
+
+  .. method:: GetAtomCount()
+
+    See :attr:`atom_count`
+
+  .. method:: GetBondCount()
+
+    See :attr:`bond_count`
+
+  .. method:: GetBounds()
+
+    See :attr:`bounds`
+
+  .. method:: GetMass()
+
+    See :attr:`mass`
+
+  .. method:: GetCenterOfAtoms()
+
+    See :attr:`center_of_atoms`
+
+  .. method:: GetCenterOfMass()
+
+    See :attr:`center_of_mass`
+
+  .. method:: GetGeometricCenter()
+
+    See :attr:`geometric_center`
+
+  .. method:: GetChain()
+
+    See :attr:`chain`
+
+  .. method:: GetPhiTorsion()
+
+    See :attr:`phi_torsion`
+
+  .. method:: GetPsiTorsion()
+
+    See :attr:`psi_torsion`
+
+  .. method:: GetOmegaTorsion()
+
+    See :attr:`omega_torsion`
+
+  .. method:: GetChemClass()
+
+    See :attr:`chem_class`
+
+  .. method:: GetChemType()
+
+    See :attr:`chem_type`
+
+  .. method:: GetSecStructure()
+
+    See :attr:`sec_structure`
+
+  .. method:: IsLigand()
+
+    See :attr:`is_ligand`
+
+  .. method:: IsProtein()
+
+    See :attr:`is_protein`
 
   .. method:: IsPeptideLinking()
 
@@ -819,30 +945,6 @@ The Handle Classes
   .. method:: IsNucleotideLinking()
 
     See :attr:`nucleotide_linking`
-    
-  .. method:: GetChain()
-  
-    See :attr:`chain`
-  
-  .. method:: GetCenterOfAtoms()
-    
-    See :attr:`center_of_atoms`
-    
-  .. method:: GetCenterOfMass()
-  
-    See :attr:`center_of_mass`
-  
-  .. method:: GetPhiTorsion()
-    
-    See :attr:`phi_torsion`
-  
-  .. method:: GetPsiTorsion()
-  
-    See :attr:`psi_torsion`
-  
-  .. method:: GetChemType()
-    
-    See :attr:`chem_type`
 
   .. method:: GetIndex()
     
@@ -861,10 +963,6 @@ The Handle Classes
   
     See :attr:`valid`
 
-  .. method:: IsLigand()
-
-    See :attr:`is_ligand`
-
   .. method:: SetIsLigand()
 
     Set the :meth:`IsLigand` flag explicitly.
@@ -872,16 +970,20 @@ The Handle Classes
     :param ligand: Whether this residue is a ligand or not
     :type  ligand: bool
 
-  .. method:: IsProtein()
-
-    See :attr:`is_protein`
-
   .. method:: SetIsProtein()
 
     Set the :meth:`IsProtein` flag explicitly.
 
     :param protein: Whether this residue is a protein or not
     :type  protein: bool
+
+  .. method:: GetNext()
+
+    See :attr:`next`
+
+  .. method:: GetPrev()
+
+    See :attr:`next`
 
 
 .. class:: AtomHandle
@@ -900,7 +1002,7 @@ The Handle Classes
   
   .. attribute:: qualified_name
   
-     The qualified name consists of the atom name as well as a unique residue
+     The qualified name consists of the atom name as well as a residue
      identifier and chain name. For CA of a glycine with residue number 2 of
      chain A, the qualified name is "A.GLY2.CA".
      
@@ -1230,6 +1332,13 @@ The View Classes
 
   An entity view represents a structural subset of an :class:`EntityHandle`. For 
   an introduction ,see :doc:`../../intro-01`.
+
+  .. attribute:: handle
+
+     The underlying :class:`handle <EntityHandle>` of the entity view. Also
+     available as :meth:`GetHandle`.
+
+     :type: :class:`EntityHandle`
   
   .. attribute:: chains
    
@@ -1291,16 +1400,23 @@ The View Classes
 
   .. attribute:: bounds
   
-    Axis-aligned bounding box of the entity view. Read-only.
-    
-    :type: :class:`ost.geom.AlignedCuboid`
+    See :attr:`EntityHandle.bounds`
 
-  .. attribute:: handle
-  
-     The underlying :class:`handle <EntityHandle>` of the entity view. Also 
-     available as :meth:`GetHandle`.
-     
-     :type: :class:`EntityHandle`
+  .. attribute:: mass
+
+    See :attr:`EntityHandle.mass`
+
+  .. attribute:: center_of_atoms
+
+    See :attr:`EntityHandle.center_of_atoms`
+
+  .. attribute:: center_of_mass
+
+    See :attr:`EntityHandle.center_of_mass`
+
+  .. attribute:: geometric_center
+
+    See :attr:`EntityHandle.geometric_center`
 
   .. attribute:: valid
 
@@ -1581,6 +1697,12 @@ The View Classes
   A view representation of a :class:`ChainHandle`. Mostly, the same
   functionality is provided as for the handle.
 
+  .. attribute:: handle
+
+    The chain handle this view points to. Also available as :meth:`GetHandle`.
+
+    :type: :class:`ChainHandle`
+
   .. attribute:: name
   
      The chain name. The name uniquely identifies the chain in the entity. In
@@ -1629,6 +1751,11 @@ The View Classes
        print(chain.residues) # [B.GLY1, B.GLY4, B.GLY3]
        print(chain.in_sequence) # prints false
 
+    Note that the value of  `in_sequence` is independent from the value of
+    :attr:`ChainHandle.in_sequence`.
+
+    :type: bool
+
   .. attribute:: atoms
 
      Get list of all atoms of this chain. To access a single atom, use
@@ -1650,38 +1777,17 @@ The View Classes
   
     :type: float
 
+  .. attribute:: center_of_atoms
+
+    See :attr:`ChainHandle.center_of_atoms`
+
   .. attribute:: center_of_mass
 
-    Center of mass. Also available as :meth:`GetCenterOfMass`
-  
-    :type: :class:`~ost.geom.Vec3`
-  
-  .. attribute:: center_of_atoms
-    
-    Center of atoms (not mass weighted). Also available as 
-    :meth:`GetCenterOfAtoms`.
-    
-    :type: :class:`~ost.geom.Vec3`
-
-  .. attribute:: handle
-
-    The chain handle this view points to. Also available as :meth:`GetHandle`.
- 
-    :type: :class:`ChainHandle`
-   
-  .. attribute:: in_sequence
-  
-    Whether the residue numbers are in ascending order. Note that the value of 
-    `in_sequence` is independent from the value of 
-    :attr:`ChainHandle.in_sequence`.
-    
-    :type: bool
+    See :attr:`ChainHandle.center_of_mass`
 
   .. attribute:: geometric_center
 
-    Mid-point of the axis aligned bounding box of the entity.
-
-    :type: Vec3
+    See :attr:`ChainHandle.geometric_center`
 
   .. attribute:: valid
 
@@ -1822,63 +1928,47 @@ The View Classes
     :type: :class:`ResidueHandle`
 
   .. attribute:: name
+                 qualified_name
+                 number
+                 one_letter_code
+                 bounds
+                 mass
+                 center_of_atoms
+                 center_of_mass
+                 geometric_center
+                 phi_torsion
+                 psi_torsion
+                 omega_torsion
+                 chem_class
+                 chem_type
+                 sec_structure
+                 is_ligand
+                 is_protein
+                 peptide_linking
+                 nucleotide_linking
+                 central_atom
+                 central_normal
+                 valid
+                 next
+                 prev
 
-    The residue name is usually a str of 3 characters, e.g. `GLY` for 
-    glycine or `ALA` for alanine, but may be shorter, e.g. `G` for guanosine, 
-    or longer for structures loaded from formats other than PDB.
-  
-    This property is read-only. To change the name of the residue, use
-    :meth:`~EditorBase.RenameResidue`.
+    See the respective attributes in :class:`ResidueHandle`.
 
-  .. attribute:: number
+  .. attribute:: atoms
 
-    The number of this residue. The residue number has a numeric part and an
-    insertion-code. This property is read-only. Also available as 
-    :meth:`GetNumber`.
-  
-    :type: :class:`ResNum`
+     Get list of all atoms of this residue included in the view.
+     To access a single atom, use
+     :meth:`FindAtom`.
 
-  .. attribute:: one_letter_code
+     This property is read-only. Also available as :meth:`GetAtomList`
 
-    For amino acids, and nucleotides the `one_letter_code` is an alpha-numeric 
-    character. For unknown or more *exotic* residues, the one letter code is set 
-    to '?'.
-  
-    **Example**
-  
-    This code-snippet shows how to get the sequence string from a list of 
-    residues.
-  
-    .. code-block:: python
-  
-      print(''.join([r.one_letter_code for r in chain.residues]))
-  
-    :type: str
-  
-  .. attribute:: bounds
+     :type: :class:`AtomViewList` (list of :class:`AtomView`)
 
-    Axis-aligned bounding box of the residue view. Read-only
+  .. attribute:: atom_count
 
-    :type: :class:`ost.geom.AlignedCuboid`
+    Number of atoms included in the view. Read-only. See :meth:`GetAtomCount`.
 
-  .. attribute:: mass
-
-    The total mass of this residue in Dalton. Also available as :meth:`GetMass`.
-
-    :type: float
-
-  .. attribute:: center_of_mass
-
-    Center of mass. Also available as :meth:`GetCenterOfMass`
-
-    :type: :class:`~ost.geom.Vec3`
-
-  .. attribute:: center_of_atoms
-  
-    Center of atoms (not mass weighted). Also available as 
-    :meth:`GetCenterOfAtoms`.
-  
-    :type: :class:`~ost.geom.Vec3`
+    :type: :class:`int`
 
   .. attribute:: chain
 
@@ -1886,21 +1976,6 @@ The View Classes
     :meth:`GetChain`
   
     :type: :class:`ChainView`
-
-  .. attribute:: handle
-  
-    The residue handle this view points to
-    
-    :type: :class:`ResidueHandle`
-
-  .. attribute:: atoms
-
-     Get list of all atoms of this residue. To access a single atom, use
-     :meth:`FindAtom`.
-   
-     This property is read-only. Also available as :meth:`GetAtomList`
-
-     :type: :class:`AtomHandleList` (list of :class:`AtomHandle`)
 
   .. attribute:: index
 
@@ -1919,9 +1994,34 @@ The View Classes
 
     See :attr:`handle`
 
-  .. method:: GetMass()
+  .. method:: GetName
+              GetQualifiedName
+              GetNumber
+              GetOneLetterCode
+              GetBounds
+              GetMass
+              GetCenterOfAtoms
+              GetCenterOfMass
+              GetGeometricCenter
+              GetPhiTorsion
+              GetPsiTorsion
+              GetOmegaTorsion
+              GetChemClass
+              GetChemType
+              GetSecStructure
+              IsLigand
+              SetIsLigand
+              IsProtein
+              IsPeptideLinking
+              IsNucleotideLinking
+              GetCentralAtom
+              SetCentralAtom
+              GetCentralNormal
+              IsValid
+              GetNext
+              GetPrev
 
-    See :attr:`mass`
+    See the respective methods in :class:`ResidueHandle`.
 
   .. method:: GetChain()
 
@@ -1936,14 +2036,6 @@ The View Classes
     :type  atom_name: str
     :rtype: :class:`AtomView`
 
-  .. method:: GetIndex()
-    
-    See :attr:`index`
-
-  .. method:: GetCenterOfMass()
-
-    See :attr:`center_of_mass`
-
   .. method:: IsAtomIncluded(atom_handle)
 
     Returns true if the given atom is part of the view, false if not.
@@ -1951,10 +2043,6 @@ The View Classes
     :param atom_handle:
     :type  atom_handle: :class:`AtomHandle`
     :rtype: bool
-
-  .. method:: GetGeometricCenter()
-
-    See :attr:`geometric_center`
 
   .. method:: AddAtom(atom_handle[, flags])
 
@@ -1966,13 +2054,17 @@ The View Classes
     :type  flags: :class:`int` / :class:`ViewAddFlag`
     :rtype: :class:`AtomView`
 
-  .. method:: GetCenterOfAtoms()
-
-    See :attr:`center_of_atoms`
-
   .. method:: GetAtomList()
 
     See :attr:`atoms`
+
+  .. method:: GetAtomCount()
+
+    See :attr:`atom_count`
+
+  .. method:: GetIndex()
+
+    See :attr:`index`
     
   .. method:: Select(query, flags=0)
    

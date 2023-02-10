@@ -96,7 +96,8 @@ of the annotation available.
 
   .. attribute:: method
 
-    Stores the experimental method used to create the structure.
+    Stores the experimental method used to create the structure
+    (|exptl.method|_).
 
     Also available as :meth:`GetMethod`. May also be modified by
     :meth:`SetMethod`.
@@ -1307,6 +1308,9 @@ of the annotation available.
   .. method:: SetBondOrder
 
     See :attr:`bond_order`
+
+.. |exptl.method| replace:: ``exptl.method``
+.. _exptl.method: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_exptl.method.html
 
 ..  LocalWords:  cas isbn pubmed asu seqres conop ConnectAll casp COMPND OBSLTE
 ..  LocalWords:  SPRSDE pdb func autofunction exptl attr pdbx oper conf spr dif
