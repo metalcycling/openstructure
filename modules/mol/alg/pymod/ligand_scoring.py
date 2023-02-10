@@ -455,16 +455,6 @@ class LigandScorer:
                         model_ligand, binding_site.mdl_residues, [])
                     mdl_bs_ent_ligand = mdl_bs_ent.FindResidue("_", 1)  # by definition
 
-                    # Prepare to save the data for this target/model mapping
-                    # TODO: figure out if this try/except is still needed
-                    # try:
-                    #     bb_rmsd = binding_site.bb_rmsd
-                    # except Exception as err:
-                    #     # TODO: switch to whole backbone superposition - and drop try/except
-                    #     LogWarning("Can't calculate backbone RMSD: %s"
-                    #                " - setting to Infinity" % str(err))
-                    #     bb_rmsd = float("inf")
-
                     # Now for each symmetry, loop and rename atoms according
                     # to ref.
                     mdl_editor = mdl_bs_ent.EditXCS()
