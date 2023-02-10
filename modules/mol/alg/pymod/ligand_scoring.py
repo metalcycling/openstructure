@@ -570,9 +570,28 @@ class LigandScorer:
 
     def _assign_matrices(self, mat1, mat2, data, main_key):
         """
+        Perform the ligand assignment, ie find the mapping between model and
+        target ligands.
+
+        The algorithm starts by assigning the "best" mapping, and then discards
+        the target and model ligands (row, column) so that every model ligand
+        can be assigned to a single target ligand, and every target ligand
+        is only assigned to a single model ligand. Repeat until there is
+        nothing left to assign.
+
+        In case of a tie in values in `mat1`, it uses `mat2` to break the tie.
+
+        This algorithm doesn't guarantee a globally optimal assignment.
+
+        Both `mat1` and `mat2` should contain values between 0 and infinity,
+        with lower values representing better scores. Use the
+        :meth:`_reverse_lddt` method to convert lDDT values to such a score.
+
         :param mat1: the main ligand assignment criteria (RMSD or lDDT-PLI)
-        :param mat2:  the secondary ligand assignment criteria (lDDT-PLI or RMSD)
-        :param data: the data (either self._rmsd_full_matrix or self._lddt_pli_matrix
+        :param mat2: the secondary ligand assignment criteria (lDDT-PLI or RMSD)
+        :param data: the data (either self._rmsd_full_matrix or self._lddt_pli_matrix)
+        :param main_key: the key of data (dictionnaries within `data`) to
+               assign into out_main.
         :return: a tuple with 2 dictionaries of matrices containing the main
                  data, and details, respectively.
         """
