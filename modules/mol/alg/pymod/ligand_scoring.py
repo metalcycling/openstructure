@@ -481,9 +481,25 @@ class LigandScorer:
                         LogDebug("lDDT-PLI for symmetry %d: %.4f" % (i, global_lddt))
 
                         # Save results?
-                        if not lddt_pli_full_matrix[target_i, model_i] or \
-                                global_lddt > lddt_pli_full_matrix[
-                            target_i, model_i]["lddt_pli"] :
+
+                        if not lddt_pli_full_matrix[target_i, model_i]:
+                            # First iteration
+                            save_lddt = True
+                        else:
+                            last_best_lddt = lddt_pli_full_matrix[
+                                target_i, model_i]["lddt_pli"]
+                            last_best_rmsd = lddt_pli_full_matrix[
+                                target_i, model_i]["rmsd"]
+                            if global_lddt > last_best_lddt:
+                                # Better lDDT-PLI
+                                save_lddt = True
+                            elif global_lddt == last_best_lddt and \
+                                    rmsd < last_best_rmsd:
+                                # Same lDDT-PLI, better RMSD
+                                save_lddt = True
+                            else:
+                                save_lddt = False
+                        if save_lddt:
                             lddt_pli_full_matrix[target_i, model_i] = {
                                 "lddt_pli": global_lddt,
                                 "lddt_pli_n_contacts": lddt_tot,
