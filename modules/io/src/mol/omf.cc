@@ -3833,6 +3833,31 @@ const std::vector<Real>& OMF::GetBFactors(const String& cname) const {
   return it->second->bfactors;
 }
 
+std::vector<Real> OMF::GetAvgBFactors(const String& cname) const {
+  auto it = chain_data_.find(cname);
+  if(it == chain_data_.end()) {
+    throw ost::Error("Provided chain name not in OMF structure");
+  }
+  const std::vector<Real>& bfactors = it->second->bfactors;
+  const std::vector<int>& res_def_indices = it->second->res_def_indices;
+  std::vector<Real> avg_bfactors;
+  avg_bfactors.reserve(it->second->res_def_indices.size());
+  int current_atom_idx = 0;
+  for(auto i = res_def_indices.begin(); i != res_def_indices.end(); ++i) {
+    int size = residue_definitions_[*i].anames.size();
+    Real summed_bfac = 0.0;
+    for(int j = 0; j < size; ++j) {
+      summed_bfac += bfactors[current_atom_idx];
+      ++current_atom_idx;
+    }
+    if(size > 0) {
+      summed_bfac /= size;
+    }
+    avg_bfactors.push_back(summed_bfac);
+  }
+  return avg_bfactors;
+}
+
 String OMF::GetSequence(const String& cname) const {
   auto it = chain_data_.find(cname);
   if(it == chain_data_.end()) {
