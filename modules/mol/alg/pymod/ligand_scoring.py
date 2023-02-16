@@ -391,8 +391,11 @@ class LigandScorer:
         return bs_ent
 
     def _compute_scores(self):
-        """"""
-        # Create the matrix
+        """
+        Compute the RMSD and lDDT-PLI scores for every possible target-model
+        ligand pair and store the result in internal matrices.
+        """
+        # Create the result matrices
         rmsd_full_matrix = np.empty(
             (len(self.target_ligands), len(self.model_ligands)), dtype=dict)
         lddt_pli_full_matrix = np.empty(
@@ -447,14 +450,14 @@ class LigandScorer:
                             rmsd_full_matrix[target_i, model_i]["rmsd"] > rmsd:
                         rmsd_full_matrix[target_i, model_i] = {
                             "rmsd": rmsd,
-                            "chain_mapping": binding_site.GetFlatChainMapping(),
                             "lddt_bs": binding_site.lDDT,
-                            "bb_rmsd": binding_site.bb_rmsd,
-                            "transform": binding_site.transform,
                             "bs_num_res": len(binding_site.substructure.residues),
                             "bs_num_overlap_res": len(binding_site.ref_residues),
+                            "bb_rmsd": binding_site.bb_rmsd,
                             "target_ligand": target_ligand,
                             "model_ligand": model_ligand,
+                            "chain_mapping": binding_site.GetFlatChainMapping(),
+                            "transform": binding_site.transform,
                             "substructure_match": substructure_match,
                         }
                         LogDebug("Saved RMSD")
@@ -484,7 +487,6 @@ class LigandScorer:
                         LogDebug("lDDT-PLI for symmetry %d: %.4f" % (i, global_lddt))
 
                         # Save results?
-
                         if not lddt_pli_full_matrix[target_i, model_i]:
                             # First iteration
                             save_lddt = True
@@ -505,17 +507,16 @@ class LigandScorer:
                         if save_lddt:
                             lddt_pli_full_matrix[target_i, model_i] = {
                                 "lddt_pli": global_lddt,
-                                "lddt_pli_n_contacts": lddt_tot,
                                 "rmsd": rmsd,
-                                # "symmetry_number": i,
-                                "chain_mapping": binding_site.GetFlatChainMapping(),
                                 "lddt_bs": binding_site.lDDT,
-                                "bb_rmsd": binding_site.bb_rmsd,
-                                "transform": binding_site.transform,
+                                "lddt_pli_n_contacts": lddt_tot,
                                 "bs_num_res": len(binding_site.substructure.residues),
                                 "bs_num_overlap_res": len(binding_site.ref_residues),
+                                "bb_rmsd": binding_site.bb_rmsd,
                                 "target_ligand": target_ligand,
                                 "model_ligand": model_ligand,
+                                "chain_mapping": binding_site.GetFlatChainMapping(),
+                                "transform": binding_site.transform,
                                 "substructure_match": substructure_match,
                             }
                             LogDebug("Saved lDDT-PLI")
@@ -713,17 +714,17 @@ class LigandScorer:
 
         Each sub-dictionary contains the following information:
 
-        * `rmsd`: the RMSD score value
-        * `lddt_bs`: the lDDT-BS score of the binding site
-        * `bs_num_res`: number of residues in the target binding site
+        * `rmsd`: the RMSD score value.
+        * `lddt_bs`: the lDDT-BS score of the binding site.
+        * `bs_num_res`: number of residues in the target binding site.
         * `bs_num_overlap_res`: number of residues in the model overlapping
           with the target binding site.
         * `bb_rmsd`: the RMSD of the binding site backbone after superposition
-        * `transform`: transformation to superpose the model onto the target
-        * `target_ligand`: residue handle of the target ligand
-        * `model_ligand`: residue handle of the model ligand
+        * `target_ligand`: residue handle of the target ligand.
+        * `model_ligand`: residue handle of the model ligand.
         * `chain_mapping`: local chain mapping as a dictionary, with target
           chain name as key and model chain name as value.
+        * `transform`: transformation to superpose the model onto the target.
         * `substructure_match`: whether the score is the result of a partial
           (substructure) match. A value of `True` indicates that the target
           ligand covers only part of the model, while `False` indicates a
@@ -753,23 +754,24 @@ class LigandScorer:
 
         Each sub-dictionary contains the following information:
 
-        * `lddt_pli`: the lDDT-PLI score value
+        * `lddt_pli`: the lDDT-PLI score value.
+        * `rmsd`: the RMSD score value corresponding to the lDDT-PLI
+          assignment. This may differ from the RMSD-based assignment.
+        * `lddt_bs`: the lDDT-BS score of the binding site.
         * `lddt_pli_n_contacts`: number of total contacts used in lDDT-PLI,
           summed over all thresholds. Can be divided by 8 to obtain the number
           of atomic contacts.
-        * `rmsd`: the RMSD score value corresponding to the lDDT-PLI
-          assignment. This may differ from the RMSD-based assignment.
-        * `lddt_bs`: the lDDT-BS score of the binding site
-        * `bs_num_res`: number of residues in the target binding site
+        * `bs_num_res`: number of residues in the target binding site.
         * `bs_num_overlap_res`: number of residues in the model overlapping
           with the target binding site.
         * `bb_rmsd`: the RMSD of the binding site backbone after superposition.
           Note: not used for lDDT-PLI computation.
-        * `transform`: transformation to superpose the model onto the target
-        * `target_ligand`: residue handle of the target ligand
-        * `model_ligand`: residue handle of the model ligand
+        * `target_ligand`: residue handle of the target ligand.
+        * `model_ligand`: residue handle of the model ligand.
         * `chain_mapping`: local chain mapping as a dictionary, with target
           chain name as key and model chain name as value.
+        * `transform`: transformation to superpose the model onto the target
+          (for RMSD only).
         * `substructure_match`: whether the score is the result of a partial
           (substructure) match. A value of `True` indicates that the target
           ligand covers only part of the model, while `False` indicates a
