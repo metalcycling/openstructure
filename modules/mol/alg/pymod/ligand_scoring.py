@@ -434,6 +434,8 @@ class LigandScorer:
                         LogVerbose("No symmetry between %s and %s" % (
                             str(model_ligand), str(target_ligand)))
                         continue
+                    substructure_match = len(symmetries[0][0]) != len(
+                        model_ligand.atoms)
 
                     rmsd = SCRMSD(model_ligand, target_ligand,
                                   transformation=binding_site.transform,
@@ -452,7 +454,8 @@ class LigandScorer:
                             "bs_num_res": len(binding_site.substructure.residues),
                             "bs_num_overlap_res": len(binding_site.ref_residues),
                             "target_ligand": target_ligand,
-                            "model_ligand": model_ligand
+                            "model_ligand": model_ligand,
+                            "substructure_match": substructure_match,
                         }
                         LogDebug("Saved RMSD")
 
@@ -512,7 +515,8 @@ class LigandScorer:
                                 "bs_num_res": len(binding_site.substructure.residues),
                                 "bs_num_overlap_res": len(binding_site.ref_residues),
                                 "target_ligand": target_ligand,
-                                "model_ligand": model_ligand
+                                "model_ligand": model_ligand,
+                                "substructure_match": substructure_match,
                             }
                             LogDebug("Saved lDDT-PLI")
 
@@ -720,6 +724,10 @@ class LigandScorer:
         * `model_ligand`: residue handle of the model ligand
         * `chain_mapping`: local chain mapping as a dictionary, with target
           chain name as key and model chain name as value.
+        * `substructure_match`: whether the score is the result of a partial
+          (substructure) match. A value of `True` indicates that the target
+          ligand covers only part of the model, while `False` indicates a
+          perfect match.
 
         :rtype: :class:`dict`
         """
@@ -762,6 +770,10 @@ class LigandScorer:
         * `model_ligand`: residue handle of the model ligand
         * `chain_mapping`: local chain mapping as a dictionary, with target
           chain name as key and model chain name as value.
+        * `substructure_match`: whether the score is the result of a partial
+          (substructure) match. A value of `True` indicates that the target
+          ligand covers only part of the model, while `False` indicates a
+          perfect match.
 
         :rtype: :class:`dict`
         """
