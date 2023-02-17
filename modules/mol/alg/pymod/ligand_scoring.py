@@ -756,7 +756,9 @@ class LigandScorer:
 
         * `lddt_pli`: the lDDT-PLI score value.
         * `rmsd`: the RMSD score value corresponding to the lDDT-PLI
-          assignment. This may differ from the RMSD-based assignment.
+          chain mapping and assignment. This may differ from the RMSD-based
+          assignment. Note that a different isomorphism than `lddt_pli` may
+          be used.
         * `lddt_bs`: the lDDT-BS score of the binding site.
         * `lddt_pli_n_contacts`: number of total contacts used in lDDT-PLI,
           summed over all thresholds. Can be divided by 8 to obtain the number
