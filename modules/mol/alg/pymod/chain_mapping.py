@@ -26,12 +26,14 @@ class MappingResult:
     Constructor is directly called within the functions, no need to construct
     such objects yourself.
     """
-    def __init__(self, target, model, chem_groups, mapping, alns):
+    def __init__(self, target, model, chem_groups, mapping, alns,
+                 opt_score=None):
         self._target = target
         self._model = model
         self._chem_groups = chem_groups
         self._mapping = mapping
         self._alns = alns
+        self._opt_score = opt_score
 
     @property
     def target(self):
@@ -88,6 +90,18 @@ class MappingResult:
                :class:`ost.seq.AlignmentHandle`
         """
         return self._alns
+
+    @property
+    def opt_score(self):
+        """ Placeholder property without any guarantee of being set
+
+        Different scores get optimized in the various chain mapping algorithms.
+        Some of them may set their final optimal score in that property.
+        Consult the documentation of the respective chain mapping algorithm
+        for more information. Won't be in the return dict of
+        :func:`JSONSummary`.
+        """
+        return self._opt_score
 
     def GetFlatMapping(self, mdl_as_key=False):
         """ Returns flat mapping as :class:`dict` for all mapable chains
@@ -760,6 +774,9 @@ class ChainMapper:
           scoring ones are extend by *block_seed_size* chains and the best
           scoring one is exhaustively extended.
 
+        Sets :attr:`MappingResult.opt_score` in case of no trivial one-to-one
+        mapping. 
+
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
         :param inclusion_radius: Inclusion radius for lDDT
@@ -827,11 +844,13 @@ class ChainMapper:
                                  alns)
 
         mapping = None
+        opt_lddt = None
 
         if strategy == "naive":
-            mapping = _lDDTNaive(self.target, mdl, inclusion_radius, thresholds,
-                                 self.chem_groups, chem_mapping, ref_mdl_alns,
-                                 self.n_max_naive)
+            mapping, opt_lddt = _lDDTNaive(self.target, mdl, inclusion_radius,
+                                           thresholds, self.chem_groups,
+                                           chem_mapping, ref_mdl_alns,
+                                           self.n_max_naive)
         else:
             # its one of the greedy strategies - setup greedy searcher
             the_greed = _lDDTGreedySearcher(self.target, mdl, self.chem_groups,
@@ -846,6 +865,8 @@ class ChainMapper:
             elif strategy == "greedy_block":
                 mapping = _lDDTGreedyBlock(the_greed, block_seed_size,
                                            block_blocks_per_chem_group)
+            # cached => lDDT computation is fast here
+            opt_lddt = the_greed.lDDT(self.chem_groups, mapping)
 
         alns = dict()
         for ref_group, mdl_group in zip(self.chem_groups, mapping):
@@ -857,7 +878,7 @@ class ChainMapper:
                     alns[(ref_ch, mdl_ch)] = aln
 
         return MappingResult(self.target, mdl, self.chem_groups, mapping,
-                             alns)
+                             alns, opt_score = opt_lddt)
 
 
     def GetQSScoreMapping(self, model, contact_d = 12.0, strategy = "naive",
@@ -893,6 +914,9 @@ class ChainMapper:
           compute single chain lDDTs. The *block_blocks_per_chem_group* best
           scoring ones are extend by *block_seed_size* chains and the block with
           with best QS score is exhaustively extended.
+
+        Sets :attr:`MappingResult.opt_score` in case of no trivial one-to-one
+        mapping.
 
         :param model: Model to map
         :type model: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
@@ -935,18 +959,21 @@ class ChainMapper:
                         alns[(ref_ch, mdl_ch)] = aln
             return MappingResult(self.target, mdl, self.chem_groups, one_to_one,
                                  alns)
+        mapping = None
+        opt_qsscore = None
 
         if strategy == "naive":
-            mapping = _QSScoreNaive(self.target, mdl, self.chem_groups,
-                                    chem_mapping, ref_mdl_alns, contact_d,
-                                    self.n_max_naive)
+            mapping, opt_qsscore = _QSScoreNaive(self.target, mdl,
+                                                 self.chem_groups,
+                                                 chem_mapping, ref_mdl_alns,
+                                                 contact_d, self.n_max_naive)
         else:
             # its one of the greedy strategies - setup greedy searcher
-
-            the_greed = _QSScoreGreedySearcher(self.target, mdl, self.chem_groups,
-                                            chem_mapping, ref_mdl_alns,
-                                            contact_d = contact_d,
-                                            steep_opt_rate=steep_opt_rate)
+            the_greed = _QSScoreGreedySearcher(self.target, mdl,
+                                               self.chem_groups,
+                                               chem_mapping, ref_mdl_alns,
+                                               contact_d = contact_d,
+                                               steep_opt_rate=steep_opt_rate)
             if strategy == "greedy_fast":
                 mapping = _QSScoreGreedyFast(the_greed)
             elif strategy == "greedy_full":
@@ -954,6 +981,9 @@ class ChainMapper:
             elif strategy == "greedy_block":
                 mapping = _QSScoreGreedyBlock(the_greed, block_seed_size,
                                               block_blocks_per_chem_group)
+            # cached => QSScore computation is fast here
+            opt_qsscore = the_greed.Score(mapping, check=False)
+              
 
         alns = dict()
         for ref_group, mdl_group in zip(self.chem_groups, mapping):
@@ -965,7 +995,7 @@ class ChainMapper:
                     alns[(ref_ch, mdl_ch)] = aln
 
         return MappingResult(self.target, mdl, self.chem_groups, mapping,
-                             alns)
+                             alns, opt_score = opt_qsscore)
 
     def GetRigidMapping(self, model, strategy = "greedy_single_gdtts",
                         single_chain_gdtts_thresh=0.4, subsampling=None,
@@ -2225,7 +2255,7 @@ def _lDDTNaive(trg, mdl, inclusion_radius, thresholds, chem_groups,
                 best_mapping = mapping
                 best_lddt = lDDT
 
-    return best_mapping
+    return (best_mapping, best_lddt)
 
 
 def _lDDTGreedyFast(the_greed):
@@ -2648,7 +2678,7 @@ def _QSScoreNaive(trg, mdl, chem_groups, chem_mapping, ref_mdl_alns, contact_d,
         if score_result.QS_global > best_score:
             best_mapping = mapping
             best_score = score_result.QS_global
-    return best_mapping
+    return (best_mapping, best_score)
 
 
 def _QSScoreGreedyFast(the_greed):

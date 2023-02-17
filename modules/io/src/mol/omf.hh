@@ -199,6 +199,8 @@ public:
 
   const std::vector<Real>& GetBFactors(const String& cname) const;
 
+  std::vector<Real> GetAvgBFactors(const String& cname) const;
+
   String GetSequence(const String& cname) const;
 
 private:
