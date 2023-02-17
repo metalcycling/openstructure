@@ -179,6 +179,7 @@ class ReprResult:
         self._gdt_2 = None
         self._gdt_1 = None
         self._ost_query = None
+        self._flat_mapping = None
 
     @property
     def lDDT(self):
@@ -400,7 +401,24 @@ class ReprResult:
         json_dict["gdt_2"] = self.gdt_2
         json_dict["gdt_1"] = self.gdt_1
         json_dict["ost_query"] = self.ost_query
+        json_dict["flat_mapping"] = self.GetFlatChainMapping()
         return json_dict
+
+    def GetFlatChainMapping(self, mdl_as_key=False):
+        """ Returns flat mapping of all chains in the representation
+
+        :param mdl_as_key: Default is target chain name as key and model chain
+                           name as value. This can be reversed with this flag.
+        :returns: :class:`dict` with :class:`str` as key/value that describe
+                  one-to-one mapping
+        """
+        flat_mapping = dict()
+        for trg_res, mdl_res in zip(self.ref_residues, self.mdl_residues):
+            if mdl_as_key:
+                flat_mapping[mdl_res.chain.name] = trg_res.chain.name
+            else:
+                flat_mapping[trg_res.chain.name] = mdl_res.chain.name
+        return flat_mapping
 
     def _GetFullBBPos(self, residues):
         """ Helper to extract full backbone positions

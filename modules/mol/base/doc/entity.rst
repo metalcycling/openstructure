@@ -737,6 +737,8 @@ The Handle Classes
     pdb.org. When loading MMCIF structures, this property is set based on
     `seqres` information and differs from PDB structures.
     Also available as :meth:`IsLigand`, :meth:`SetIsLigand`.
+
+    :type: bool
   
   .. attribute:: is_protein
   
@@ -746,6 +748,8 @@ The Handle Classes
     available as :meth:`IsProtein`, :meth:`SetIsProtein`. In contrast to
     :meth:`IsPeptideLinking` this excludes residues which are not connected to
     neighbouring residues such as CA-only residues or badly positioned ones.
+
+    :type: bool
 
   .. attribute:: peptide_linking
   
@@ -927,7 +931,6 @@ The Handle Classes
     See :attr:`sec_structure`
 
   .. method:: IsLigand()
-              SetIsLigand()
 
     See :attr:`is_ligand`
 
@@ -959,6 +962,20 @@ The Handle Classes
   .. method:: IsValid()
   
     See :attr:`valid`
+
+  .. method:: SetIsLigand()
+
+    Set the :meth:`IsLigand` flag explicitly.
+
+    :param ligand: Whether this residue is a ligand or not
+    :type  ligand: bool
+
+  .. method:: SetIsProtein()
+
+    Set the :meth:`IsProtein` flag explicitly.
+
+    :param protein: Whether this residue is a protein or not
+    :type  protein: bool
 
   .. method:: GetNext()
 
@@ -993,8 +1010,10 @@ The Handle Classes
      
   .. attribute:: element
   
-    The atom's element. Note that this may return an empty string. Also 
-    available as :meth:`GetElement`. Read-only.
+    The atom's element. By convention in Openstructure, this is the chemical
+    symbol in uppercase, but this is not strictly enforced and may be a non-
+    existing element or an empty string. Also available as :meth:`GetElement`.
+    Read-only.
     
     :type: str
     
@@ -1099,8 +1118,6 @@ The Handle Classes
     :param other_atom: The other atom
     :type  other_atom: :class:`AtomHandle`
     :rtype: :class:`BondHandle`
-
-
 
   .. method:: GetBondCount()
     

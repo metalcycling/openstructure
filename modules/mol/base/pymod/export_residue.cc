@@ -214,10 +214,10 @@ void export_Residue()
     .add_property("chem_type", &ResidueBase::GetChemType)
     .add_property("is_ligand", &ResidueBase::IsLigand, &ResidueBase::SetIsLigand)
     .def("IsLigand", &ResidueBase::IsLigand)
-    .def("SetIsLigand", &ResidueBase::SetIsLigand)
+    .def("SetIsLigand", &ResidueBase::SetIsLigand, arg("ligand"))
     .add_property("is_protein", &ResidueBase::IsProtein,
                                 &ResidueBase::SetIsProtein)
-    .def("IsProtein", &ResidueBase::IsProtein)
+    .def("IsProtein", &ResidueBase::IsProtein, arg("protein"))
     .def("SetIsProtein", &ResidueBase::SetIsProtein)
     .add_property("number",
                    make_function(&ResidueBase::GetNumber,

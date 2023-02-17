@@ -124,7 +124,9 @@ The basic functionality of editors is implemented in the EditorBase class.
   .. method:: InsertAtom(residue, atom_name, pos, element="", occupancy=1.0, \
                          b_factor=0.0, is_hetatm=False)
   
-    Insert new atom and add it to residue. For atoms with alternative atom locations use :meth:`InsertAltAtom`. If the element parameter is a valid 
+    Insert new atom and add it to residue. By convention, this should be the
+    chemical symbol in upper case. For atoms with alternative atom locations
+    use :meth:`InsertAltAtom`. If the element parameter is a valid
     element, the atom properties mass, charge, and radius are set to default 
     values for that element. If element is an empty string (or an invalid 
     element), the properties are set to rather meaningless default values. You 

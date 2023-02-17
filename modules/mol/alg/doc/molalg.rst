@@ -115,6 +115,15 @@ Local Distance Test scores (lDDT, DRMSD)
 .. currentmodule:: ost.mol.alg
 
 
+:mod:`ligand_scoring <ost.mol.alg.ligand_scoring>` -- Ligand scoring functions
+--------------------------------------------------------------------------------
+
+.. automodule:: ost.mol.alg.ligand_scoring
+   :members:
+   :member-order: bysource
+   :synopsis: Scoring of ligands
+
+
 :mod:`chain_mapping <ost.mol.alg.chain_mapping>` -- Chain Mapping
 --------------------------------------------------------------------------------
 
@@ -890,6 +899,7 @@ used to skip frames in the analysis.
   :returns: A newly created coord group containing the superposed frames.
 
 .. function:: SuperposeFrames(frames, sel, ref_view, from=0, to=-1)
+  :noindex:
 
   Same as SuperposeFrames above, but the superposition is done on a reference
   view and not on another frame of the trajectory.
