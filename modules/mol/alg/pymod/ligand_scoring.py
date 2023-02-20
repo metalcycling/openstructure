@@ -161,7 +161,7 @@ class LigandScorer:
         elif isinstance(target, mol.EntityHandle):
             self.target = target.Copy()
         else:
-            raise RuntimeError("model must be of type EntityView/EntityHandle")
+            raise RuntimeError("target must be of type EntityView/EntityHandle")
 
         # Extract ligands from target
         if target_ligands is None:
