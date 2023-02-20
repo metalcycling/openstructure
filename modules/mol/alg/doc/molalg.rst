@@ -1171,6 +1171,7 @@ to standard amino acids.
   :returns: A tuple of bools as in :func:`CopyConserved` with the first bool
             always being False.
 
+.. _molck:
 
 Molecular Checker (Molck)
 --------------------------------------------------------------------------------

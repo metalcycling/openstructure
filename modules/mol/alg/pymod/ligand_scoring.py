@@ -26,23 +26,23 @@ class LigandScorer:
     The class takes care to perform chain mapping and assignment (mapping) of
     model and target ligands. This assignment may differ between scores.
 
-    It mostly expects cleaned up structures (you can use the
-    :class:`~ost.mol.alg.scoring.Scorer` outputs for that). In addition,
-    you probably want to remove hydrogen atoms from the structures before
-    calling this function. You can do this easily with a selection::
-
-        target_noH = target.Select("ele != H")
-        model_noH = model.Select("ele != H")
-        LigandScorer(model_noH, target_noH, ...)
-
-    Make sure to remove hydrogen atoms from the ligands too.
-
     The class generally assumes that the
     :attr:`~ost.mol.ResidueHandle.is_ligand` property is properly set on all
     the ligand atoms, and only ligand atoms. This is typically the case for
     entities loaded from mmCIF (tested with mmCIF files from the PDB and
     SWISS-MODEL), but it will most likely not work for most entities loaded
     from PDB files.
+
+    The class doesn't perform any cleanup of the provided structures.
+    It is up to the caller to ensure that the data is clean and suitable for
+    scoring. :ref:`Molck <molck>` should be used with extra
+    care, as many of the options (such as `rm_non_std` or `map_nonstd_res`) can
+    cause ligands to be removed from the structure. If cleanup with Molck is
+    needed, ligands should be kept and passed separately. Non-ligand residues
+    should be valid compounds with atom names following the naming conventions
+    of the component dictionary. Non-standard residues are acceptable (and if
+    the model contains a standard residue at that position, only atoms with
+    matching names will be considered.
 
     Unlike most of OpenStructure, this class does not assume that the ligands
     (either in the model or the target) are part of the PDB component
@@ -59,6 +59,34 @@ class LigandScorer:
     structures (protein, nucleic acids) must still follow the usual rules and
     contain only residues from the compound library.
 
+    Although it isn't a requirement, hydrogen atoms should be removed from the
+    structures. Here is an example code snippet that will perform a reasonable
+    cleanup. Keep in mind that this is most likely not going to work as
+    expected with entities loaded from PDB files, as the `is_ligand` flag is
+    probably not set properly. ::
+
+        molck_settings = MolckSettings(rm_unk_atoms=True,
+                                       rm_non_std=False,
+                                       rm_hyd_atoms=True,
+                                       rm_oxt_atoms=True,
+                                       rm_zero_occ_atoms=False,
+                                       colored=False,
+                                       map_nonstd_res=False,
+                                       assign_elem=True)
+        # Cleanup a copy of the structures
+        cleaned_model = model.Copy()
+        cleaned_target = target.Copy()
+        Molck(cleaned_model, conop.GetDefaultLib(), molck_settings)
+        Molck(cleaned_target, conop.GetDefaultLib(), molck_settings)
+
+        # LigandScorer can now be instanciated with the polymers from the
+        # molcked structures, and ligands from the original structures.
+        LigandScorer(model=cleaned_model.Select("ligand=False"),
+                     target=cleaned_target.Select("ligand=False"),
+                     model_ligands=[model.Select("ele != H and ligand=True")],
+                     target_ligands=[target.Select("ele != H and ligand=True")],
+                     ...
+                     )
 
     :param model: Model structure - a deep copy is available as :attr:`model`.
                   No additional processing (ie. Molck), checks,
