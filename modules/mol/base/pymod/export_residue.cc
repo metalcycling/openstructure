@@ -71,6 +71,19 @@ namespace {
     }
     b->SetChemClass(ChemClass(st[0]));
   }
+
+  struct H {
+    std::size_t operator()(const ost::mol::ResNum& n) const {
+        std::size_t h1 = std::hash<int>{}(n.GetNum());
+        std::size_t h2 = std::hash<char>{}(n.GetInsCode());
+        return h1 ^ (h2 << 1);
+    }
+  };
+
+  int ResNumHash(const ost::mol::ResNum& n) {
+    return H{}(n);
+  }
+
 }
 
 void export_Residue()
@@ -118,6 +131,7 @@ void export_Residue()
     .add_property("ins_code", &ResNum::GetInsCode)
     .def("__str__", &ResNum::AsString)
     .def("__repr__", &ResNum::AsString)
+    .def("__hash__", &ResNumHash)
     .def(self<self)
     .def(self>self)
     .def(self>=self)
