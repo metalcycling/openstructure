@@ -118,18 +118,20 @@ class TestChainMapper(unittest.TestCase):
     self.assertTrue(_CompareViews(mapper.chem_group_alignments[2].GetSequence(0).GetAttachedView(), nuc_view_two))
 
     # ensure that error is triggered if there are insertion codes
+    # and resnum_alignments are enabled
     tmp_ent = ent.Copy()
     ed = tmp_ent.EditXCS()
     r = tmp_ent.residues[0]
     ed.SetResidueNumber(r, mol.ResNum(r.GetNumber().GetNum(), 'A'))
-    self.assertRaises(Exception, ChainMapper, tmp_ent)
+    self.assertRaises(Exception, ChainMapper, tmp_ent, resnum_alignments=True)
 
     # ensure that error is triggered if resnums are not strictly increasing
+    # and resnum_alignments are enabled
     tmp_ent = ent.Copy()
     ed = tmp_ent.EditXCS()
     r = tmp_ent.residues[0]
     ed.SetResidueNumber(r, mol.ResNum(r.GetNumber().GetNum() + 42))
-    self.assertRaises(Exception, ChainMapper, tmp_ent)
+    self.assertRaises(Exception, ChainMapper, tmp_ent, resnum_alignments=True)
 
     # chain B has a missing Valine... set pep_gap_thr to 0.0 should give an
     # additional chem group

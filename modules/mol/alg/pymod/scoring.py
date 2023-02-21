@@ -144,27 +144,39 @@ class Scorer:
         for ch in self._model.chains:
             if ch.GetName().strip() == "":
                 raise RuntimeError("Model chains must have valid chain names")
-
-        # catch models with residue numbers that are not strictly increasing
-        # (requirement of ChainMapper)
-        for ch in self._model.chains:
-            nums = [r.GetNumber().GetNum() for r in ch.residues]
-            if not all(i < j for i, j in zip(nums, nums[1:])):
-                raise RuntimeError("Residue numbers in each model chain must "
-                                   "be strictly increasing")
-
+        
         # catch targets which have empty chain names
         for ch in self._target.chains:
             if ch.GetName().strip() == "":
                 raise RuntimeError("Target chains must have valid chain names")
 
-        # catch targets with residue numbers that are not strictly increasing
-        # (requirement of ChainMapper)
-        for ch in self._target.chains:
-            nums = [r.GetNumber().GetNum() for r in ch.residues]
-            if not all(i < j for i, j in zip(nums, nums[1:])):
-                raise RuntimeError("Residue numbers in each target chain must "
-                                   "be strictly increasing")
+        if resnum_alignments:
+            # In case of resnum_alignments, we have some requirements on 
+            # residue numbers in the chain mapping: 1) no ins codes 2) strictly
+            # increasing residue numbers.
+            for ch in self._model.chains:
+                ins_codes = [r.GetNumber().GetInsCode() for r in ch.residues]
+                if len(set(ins_codes)) != 1 or ins_codes[0] != '\0':
+                    raise RuntimeError("Residue numbers in each model chain "
+                                       "must not contain insertion codes if "
+                                       "resnum_alignments are enabled")
+                nums = [r.GetNumber().GetNum() for r in ch.residues]
+                if not all(i < j for i, j in zip(nums, nums[1:])):
+                    raise RuntimeError("Residue numbers in each model chain "
+                                       "must be strictly increasing if "
+                                       "resnum_alignments are enabled")
+
+            for ch in self._target.chains:
+                ins_codes = [r.GetNumber().GetInsCode() for r in ch.residues]
+                if len(set(ins_codes)) != 1 or ins_codes[0] != '\0':
+                    raise RuntimeError("Residue numbers in each target chain "
+                                       "must not contain insertion codes if "
+                                       "resnum_alignments are enabled")
+                nums = [r.GetNumber().GetNum() for r in ch.residues]
+                if not all(i < j for i, j in zip(nums, nums[1:])):
+                    raise RuntimeError("Residue numbers in each target chain "
+                                       "must be strictly increasing if "
+                                       "resnum_alignments are enabled")
 
         if molck_settings is None:
             molck_settings = MolckSettings(rm_unk_atoms=True,
