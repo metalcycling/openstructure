@@ -738,12 +738,6 @@ class lDDTScorer:
                     rnums.append(None)
         else:
             rnums = [r.GetNumber() for r in ch.residues]
-            if sum([len(rn.GetInsCode().strip("\0")) for rn in rnums]) > 0:
-                raise RuntimeError(
-                    "Residue numbers in model must not "
-                    "contain insertion codes"
-                )
-            rnums = [rn.GetNum() for rn in rnums]
 
         return rnums
 
@@ -828,20 +822,9 @@ class lDDTScorer:
                                 f"chain {ch_name} has SEQRES "
                                 f"ATOMSEQ mismatch"
                             )
-                        rnums.append(rnum)
+                        rnums.append(mol.ResNum(rnum))
             else:
                 rnums = [r.GetNumber() for r in ch.residues]
-                if sum([len(rn.GetInsCode().strip("\0")) for rn in rnums]) > 0:
-                    raise RuntimeError(
-                        "Residue numbers in target must not "
-                        "contain insertion codes"
-                    )
-                rnums = [rnum.GetNum() for rnum in rnums]
-                if not all(x < y for x, y in zip(rnums, rnums[1:])):
-                    raise RuntimeError(
-                        "Residue numbers in each target chain "
-                        "must be monotonically increasing"
-                    )
             assert len(rnums) == len(ch.residues)
             residue_numbers[ch_name] = rnums
         return residue_numbers
