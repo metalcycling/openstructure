@@ -369,6 +369,8 @@ class ReprResult:
 
         Repr can be selected as ``full_mdl.Select(ost_query)``
 
+        Returns invalid query if residue numbers have insertion codes.
+
         :type: :class:`str`
         """
         if self._ost_query is None:
@@ -553,6 +555,7 @@ class ChainMapper:
                  n_max_naive = 1e8):
 
         # attributes
+        self.resnum_alignments = resnum_alignments
         self.pep_seqid_thr = pep_seqid_thr
         self.pep_gap_thr = pep_gap_thr
         self.nuc_seqid_thr = nuc_seqid_thr
@@ -1396,9 +1399,8 @@ class ChainMapper:
           *min_nuc_length* in constructor
         * Extracts atom sequences for each chain in that view
         * Attaches corresponding :class:`ost.mol.EntityView` to each sequence
-        * Ensures strictly increasing residue numbers without insertion codes
-          in each chain
-
+        * If residue number alignments are used, strictly increasing residue
+          numbers without insertion codes are ensured in each chain
 
         :param ent: Entity to process
         :type ent: :class:`ost.mol.EntityView`/:class:`ost.mol.EntityHandle`
@@ -1457,17 +1459,21 @@ class ChainMapper:
             if n_nuc > 0 and n_nuc < self.min_nuc_length:
                 continue
 
-            # check if no insertion codes are present in residue numbers
-            ins_codes = [r.GetNumber().GetInsCode() for r in ch.residues]
-            if len(set(ins_codes)) != 1 or ins_codes[0] != '\0':
-                raise RuntimeError("Residue numbers in input structures must not "
-                                   "contain insertion codes")
+            # the superfast residue number based alignment adds some 
+            # restrictions on the numbers themselves:
+            # 1) no insertion codes 2) strictly increasing
+            if self.resnum_alignments:
+                # check if no insertion codes are present in residue numbers
+                ins_codes = [r.GetNumber().GetInsCode() for r in ch.residues]
+                if len(set(ins_codes)) != 1 or ins_codes[0] != '\0':
+                    raise RuntimeError("Residue numbers in input structures must not "
+                                       "contain insertion codes")
 
-            # check if residue numbers are strictly increasing
-            nums = [r.GetNumber().GetNum() for r in ch.residues]
-            if not all(i < j for i, j in zip(nums, nums[1:])):
-                raise RuntimeError("Residue numbers in input structures must be "
-                                   "strictly increasing for each chain")
+                # check if residue numbers are strictly increasing
+                nums = [r.GetNumber().GetNum() for r in ch.residues]
+                if not all(i < j for i, j in zip(nums, nums[1:])):
+                    raise RuntimeError("Residue numbers in input structures must be "
+                                       "strictly increasing for each chain")
 
             s = ''.join([r.one_letter_code for r in ch.residues])
             s = seq.CreateSequence(ch.GetName(), s)
@@ -1565,6 +1571,11 @@ class _Aligner:
     def ResNumAlign(self, s1, s2):
         """ Returns pairwise alignment using residue numbers of attached views
     
+        Assumes that there are no insertion codes (alignment only on numerical
+        component) and that resnums are strictly increasing (fast min/max
+        identification). These requirements are assured if a structure has been
+        processed by :class:`ChainMapper`.
+
         :param s1: First sequence to align, must have :class:`ost.mol.EntityView`
                    attached
         :type s1: :class:`ost.seq.SequenceHandle`
@@ -3157,7 +3168,6 @@ def _GetRefPos(trg, mdl, trg_msas, mdl_alns, max_pos = None):
             # represented by trg_msa, we just continue. The result will be
             # empty position lists added to trg_pos and mdl_pos.
             pass 
-
 
         # check which columns in MSAs are fully covered (indices relative to
         # first sequence)
