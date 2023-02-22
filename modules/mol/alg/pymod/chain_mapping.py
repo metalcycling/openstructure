@@ -3127,7 +3127,6 @@ def _IterativeRigidRMSD(initial_transforms, initial_mappings, chem_groups,
         
     best_mapping = dict()
     best_rmsd = float("inf")
-    best_transform = None
     for initial_transform, initial_mapping in zip(initial_transforms,
                                                   initial_mappings):
         mapping = {initial_mapping[0]: initial_mapping[1]}
@@ -3190,7 +3189,6 @@ def _IterativeRigidRMSD(initial_transforms, initial_mappings, chem_groups,
         if rmsd < best_rmsd:
             best_rmsd = rmsd
             best_mapping = mapping
-            best_transform = geom.Mat4(transform)
 
     return best_mapping
 
