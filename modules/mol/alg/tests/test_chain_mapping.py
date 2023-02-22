@@ -283,6 +283,9 @@ class TestChainMapper(unittest.TestCase):
     greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_iterative_gdtts")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
+    greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_single_rmsd")
+    self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
+
     greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_iterative_rmsd")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
