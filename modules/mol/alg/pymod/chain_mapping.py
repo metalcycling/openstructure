@@ -2917,7 +2917,7 @@ def _SingleRigidGDTTS(initial_transforms, initial_mappings, chem_groups,
     for transform in initial_transforms:
         mapping = dict()
         mapped_mdl_chains = set()
-        gdt_cache = dict() # cache for non-normalized gdt scores
+        gdt = 0.0
 
         for trg_chains, mdl_chains, trg_pos, mdl_pos, in zip(chem_groups,
                                                              chem_mapping,
@@ -2927,7 +2927,6 @@ def _SingleRigidGDTTS(initial_transforms, initial_mappings, chem_groups,
             if len(trg_pos) == 0 or len(mdl_pos) == 0:
                 continue # cannot compute valid gdt
 
-            n_gdt_contacts = 4 * len(trg_pos[0])
             gdt_scores = list()
 
             t_mdl_pos = list()
@@ -2941,19 +2940,15 @@ def _SingleRigidGDTTS(initial_transforms, initial_mappings, chem_groups,
                     gdt = t_pos.GetGDTTS(t_m_pos)
                     if gdt >= single_chain_gdtts_thresh:
                         gdt_scores.append((gdt, (t,m)))
-                        gdt_cache[(t,m)] = n_gdt_contacts * gdt
 
+            n_gdt_contacts = 4 * len(trg_pos[0])
             gdt_scores.sort(reverse=True)
-            sorted_pairs = [item[1] for item in gdt_scores]
-            for p in sorted_pairs:
+            for item in gdt_scores:
+                p = item[1]
                 if p[0] not in mapping and p[1] not in mapped_mdl_chains:
                     mapping[p[0]] = p[1]
                     mapped_mdl_chains.add(p[1])
-
-        # compute overall gdt for this transform (non-normalized gdt!!!)
-        gdt = 0
-        for t,m in mapping.items():
-            gdt += gdt_cache[(t,m)]
+                    gdt += (item[0] * n_gdt_contacts)
 
         if gdt > best_gdt:
             best_gdt = gdt
