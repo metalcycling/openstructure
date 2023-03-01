@@ -142,6 +142,14 @@ def _ParseArgs():
               "Defaults to .compare.structures.pdb."))
 
     parser.add_argument(
+        "-ft",
+        "--fault-tolerant",
+        dest="fault_tolerant",
+        default=False,
+        action="store_true",
+        help=("Fault tolerant parsing."))
+
+    parser.add_argument(
         "--lddt",
         dest="lddt",
         default=False,
@@ -266,7 +274,7 @@ def _ParseArgs():
 
     return parser.parse_args()
 
-def _LoadStructure(structure_path, sformat=None):
+def _LoadStructure(structure_path, sformat=None, fault_tolerant=False):
     """Read OST entity either from mmCIF or PDB.
 
     The returned structure has structure_path attached as structure name
@@ -289,11 +297,11 @@ def _LoadStructure(structure_path, sformat=None):
     ost.PushVerbosityLevel(ost.LogLevel.Error)
     # Load the structure
     if sformat in ["mmcif", "cif"]:
-        entity = io.LoadMMCIF(structure_path)
+        entity = io.LoadMMCIF(structure_path, fault_tolerant = fault_tolerant)
         if len(entity.residues) == 0:
             raise Exception(f"No residues found in file: {structure_path}")
     elif sformat == "pdb":
-        entity = io.LoadPDB(structure_path)
+        entity = io.LoadPDB(structure_path, fault_tolerant = fault_tolerant)
         if len(entity.residues) == 0:
             raise Exception(f"No residues found in file: {structure_path}")
     else:
@@ -403,8 +411,11 @@ def _Main():
     args = _ParseArgs()
     try:
         reference = _LoadStructure(args.reference,
-                                   sformat=args.reference_format)
-        model = _LoadStructure(args.model, sformat=args.model_format)
+                                   sformat=args.reference_format,
+                                   fault_tolerant = args.fault_tolerant)
+        model = _LoadStructure(args.model,
+                               sformat=args.model_format,
+                               fault_tolerant = args.fault_tolerant)
         out = _Process(model, reference, args)
         out["status"] = "SUCCESS"
         with open(args.output, 'w') as fh:
