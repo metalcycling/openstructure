@@ -1,7 +1,7 @@
 """
 Evaluate model against reference 
 
-Example: ost compare-structures-new model.pdb reference.cif
+Example: ost compare-structures-new -m model.pdb -r reference.cif
 
 Loads the structures and performs basic cleanup:
 
@@ -41,7 +41,8 @@ Each score is opt-in and can be enabled with optional arguments.
 
 Example to compute local and per-residue lDDT values as well as QS-score:
 
-ost compare-structures-new model.pdb reference.cif --lddt --local-lddt --qs-score
+ost compare-structures-new -m model.pdb -r reference.cif --lddt --local-lddt \
+--qs-score
 """
 
 import argparse
@@ -60,11 +61,17 @@ def _ParseArgs():
                                      prog = "ost compare-structures-new")
 
     parser.add_argument(
-        "model",
+        "-m",
+        "--model",
+        dest="model",
+        required=True,
         help=("Path to model file."))
 
     parser.add_argument(
-        "reference",
+        "-r",
+        "--reference",
+        dest="reference",
+        required=True,
         help=("Path to reference file."))
 
     parser.add_argument(
