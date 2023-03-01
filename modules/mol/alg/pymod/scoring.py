@@ -126,19 +126,11 @@ class Scorer:
                  molck_settings = None, naive_chain_mapping_thresh=12,
                  cad_score_exec = None):
 
-        if isinstance(model, mol.EntityView):
-            self._model = mol.CreateEntityFromView(model, False)
-        elif isinstance(model, mol.EntityHandle):
-            self._model = model.Copy()
-        else:
-            raise RuntimeError("model must be of type EntityView/EntityHandle")
+        model = model.Select("peptide=True or nucleotide=True")
+        self._model = mol.CreateEntityFromView(model, False)
 
-        if isinstance(target, mol.EntityView):
-            self._target = mol.CreateEntityFromView(target, False)
-        elif isinstance(target, mol.EntityHandle):
-            self._target = target.Copy()
-        else:
-            raise RuntimeError("model must be of type EntityView/EntityHandle")
+        target = target.Select("peptide=True or nucleotide=True")
+        self._target = mol.CreateEntityFromView(target, False)
 
         # catch models which have empty chain names
         for ch in self._model.chains:
@@ -289,9 +281,9 @@ class Scorer:
 
         :type: :class:``
         """
-        if self._aln is None:
+        if self._stereochecked_aln is None:
             self._compute_stereochecked_aln()
-        return self._aln
+        return self._stereochecked_aln
 
     @property
     def stereochecked_model(self):
