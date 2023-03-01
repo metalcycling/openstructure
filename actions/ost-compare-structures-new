@@ -388,6 +388,7 @@ def _Process(model, reference, args):
         io.SavePDB(scorer.model, model.GetName() + args.dump_suffix)
         io.SavePDB(scorer.target, reference.GetName() + args.dump_suffix)
 
+
     return out
 
 def _Main():
@@ -399,13 +400,15 @@ def _Main():
         model = _LoadStructure(args.model, sformat=args.model_format)
         out = _Process(model, reference, args)
         out["status"] = "SUCCESS"
+        with open(args.output, 'w') as fh:
+            json.dump(out, fh, indent=4, sort_keys=False)
     except:
         out = dict()
         out["status"] = "FAILURE"
         out["traceback"] = traceback.format_exc()
-
-    with open(args.output, 'w') as fh:
-        json.dump(out, fh, indent=4, sort_keys=False)
+        with open(args.output, 'w') as fh:
+            json.dump(out, fh, indent=4, sort_keys=False)
+        raise
 
 if __name__ == '__main__':
     _Main()
