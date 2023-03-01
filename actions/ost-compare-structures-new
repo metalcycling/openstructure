@@ -353,12 +353,12 @@ def _Process(model, reference, args):
         out["local_lddt"] = scorer.local_lddt
 
     if args.lddt or args.local_lddt:
-        out["model_clashes"] = scorer.model_clashes
-        out["model_bad_bonds"] = scorer.model_bad_bonds
-        out["model_bad_angles"] = scorer.model_bad_angles
-        out["reference_clashes"] = scorer.target_clashes
-        out["reference_bad_bonds"] = scorer.target_bad_bonds
-        out["reference_bad_angles"] = scorer.target_bad_angles
+        out["model_clashes"] = [x.ToJSON() for x in scorer.model_clashes]
+        out["model_bad_bonds"] = [x.ToJSON() for x in scorer.model_bad_bonds]
+        out["model_bad_angles"] = [x.ToJSON() for x in scorer.model_bad_angles]
+        out["reference_clashes"] = [x.ToJSON() for x in scorer.target_clashes]
+        out["reference_bad_bonds"] = [x.ToJSON() for x in scorer.target_bad_bonds]
+        out["reference_bad_angles"] = [x.ToJSON() for x in scorer.target_bad_angles]
 
     if args.cad_score:
         out["cad_score"] = scorer.cad_score
