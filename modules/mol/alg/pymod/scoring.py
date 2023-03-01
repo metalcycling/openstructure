@@ -974,14 +974,14 @@ class Scorer:
                 local_lddt[cname] = dict()
             if r.HasProp("lddt"):
                 score = round(r.GetFloatProp("lddt"), 3)
-                local_lddt[cname][r.GetNumber().GetNum()] = score
+                local_lddt[cname][r.GetNumber()] = score
             else:
                 # rsc => residue stereo checked...
                 mdl_res = self.stereochecked_model.FindResidue(cname, r.GetNumber())
                 if mdl_res.IsValid():
                     # not covered by trg or skipped in chain mapping procedure
                     # the latter happens if its part of a super short chain
-                    local_lddt[cname][r.GetNumber().GetNum()] = None
+                    local_lddt[cname][r.GetNumber()] = None
                 else:
                     # opt 1: removed by stereochecks => assign 0.0
                     # opt 2: removed by stereochecks AND not covered by ref
@@ -997,9 +997,9 @@ class Scorer:
                                     trg_r = col.GetResidue(0)
                                     break
                     if trg_r is None:
-                        local_lddt[cname][r.GetNumber().GetNum()] = None
+                        local_lddt[cname][r.GetNumber()] = None
                     else:
-                        local_lddt[cname][r.GetNumber().GetNum()] = 0.0
+                        local_lddt[cname][r.GetNumber()] = 0.0
 
         self._lddt = lddt_score
         self._local_lddt = local_lddt
@@ -1149,9 +1149,9 @@ class Scorer:
                 local_cad[cname] = dict()
             if r.HasProp("localcad"):
                 score = round(r.GetFloatProp("localcad"), 3)
-                local_cad[cname][r.GetNumber().GetNum()] = score
+                local_cad[cname][r.GetNumber()] = score
             else:
-                local_cad[cname][r.GetNumber().GetNum()] = None
+                local_cad[cname][r.GetNumber()] = None
 
         self._cad_score = cad_result.globalAA
         self._local_cad_score = local_cad
@@ -1187,7 +1187,7 @@ class Scorer:
         for ch in ent.chains:
             cname = ch.GetName()
             sel = repr_ent.Select(f"(cname={cname} and 8 <> [cname!={cname}])")
-            result[cname] = [r.GetNumber().GetNum() for r in sel.residues]
+            result[cname] = [r.GetNumber() for r in sel.residues]
         return result
 
     def _do_stereochecks(self):
@@ -1229,7 +1229,7 @@ class Scorer:
         :param mdl_ch: Name of chain in *self.model* of residue of interest
         :type mdl_ch: :class:`str`
         :param mdl_rnum: Residue number of residue of interest
-        :type mdl_rnum: :class:`int`
+        :type mdl_rnum: :class:`ost.mol.ResNum`
         :returns: Tuple with 5 elements: 1) :class:`bool` flag whether all residues
                   in *mdl* patches are covered in *trg* 2) mtl_patch_one
                   3) mdl_patch_two 4) trg_patch_one 5) trg_patch_two
@@ -1238,7 +1238,7 @@ class Scorer:
         repr_mdl = self._get_repr_view(self.model.Select("peptide=true"))
     
         # get position for specified residue
-        r = self.model.FindResidue(mdl_ch, mol.ResNum(mdl_rnum))
+        r = self.model.FindResidue(mdl_ch, mdl_rnum)
         if not r.IsValid():
             raise RuntimeError(f"Cannot find residue {mdl_rnum} in chain {mdl_ch}")
         if r.GetName() == "GLY":
@@ -1332,7 +1332,7 @@ class Scorer:
             scores = list()
             for rnum in rnums:
                 score = None
-                r = self.model.FindResidue(cname, mol.ResNum(rnum))
+                r = self.model.FindResidue(cname, rnum)
                 if r.IsValid() and r.GetChemType() == mol.ChemType.AMINOACIDS:
                     full_trg_coverage, mdl_patch_one, mdl_patch_two, \
                     trg_patch_one, trg_patch_two = \
@@ -1349,7 +1349,7 @@ class Scorer:
             scores = list()
             for rnum in rnums:
                 score = None
-                r = self.model.FindResidue(cname, mol.ResNum(rnum))
+                r = self.model.FindResidue(cname, rnum)
                 if r.IsValid() and r.GetChemType() == mol.ChemType.AMINOACIDS:
                     full_trg_coverage, mdl_patch_one, mdl_patch_two, \
                     trg_patch_one, trg_patch_two = \

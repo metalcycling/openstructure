@@ -168,10 +168,11 @@ def _ParseArgs():
         help=("Compute per-residue lDDT scores with default parameterization "
               "and store as key \"local_lddt\". Score for model residue with "
               "number 42 in chain X can be extracted with: "
-              "data[\"local_lddt\"][\"X\"][\"42\"]. Stereochemical irregularities "
-              "affecting lDDT are reported as keys \"model_clashes\", "
-              "\"model_bad_bonds\", \"model_bad_angles\" and the respective "
-              "reference counterparts."))
+              "data[\"local_lddt\"][\"X\"][\"42\"]. If there is an insertion "
+              "code, lets say A, the last key becomes \"42A\" Stereochemical "
+              "irregularities affecting lDDT are reported as keys "
+              "\"model_clashes\", \"model_bad_bonds\", \"model_bad_angles\" "
+              "and the respective reference counterparts."))
 
     parser.add_argument(
         "--cad-score",
@@ -269,7 +270,8 @@ def _ParseArgs():
               "the full patches are represented by the reference are set to "
               "None. Model interface residues are available as key "
               "\"model_interface_residues\", reference interface residues as "
-              "key \"reference_interface_residues\". The respective scores are "
+              "key \"reference_interface_residues\". Residues are represented "
+              "as string in form <num><inscode>. The respective scores are "
               "available as keys \"patch_qs\" and \"patch_dockq\""))
 
     return parser.parse_args()
@@ -330,6 +332,26 @@ def _GetInconsistentResidues(alns):
     lst = [f"{x[0].GetQualifiedName()}-{x[1].GetQualifiedName()}" for x in lst]
     return lst
 
+def _LocalScoresToJSONDict(score_dict):
+    """ Score for model residue with number rnum in chain X can be extracted
+    with: data["local_cad_score"]["X"][rnum]. Convert ResNum object to str for
+    JSON serialization
+    """
+    json_dict = dict()
+    for ch, ch_scores in score_dict.items():
+        json_dict[ch] = {str(rnum): s for rnum, s in ch_scores.items()}
+    return json_dict
+
+def _InterfaceResiduesToJSONDict(interface_dict):
+    """ Interface residues are stored as
+    data["model_interface_residues"]["A"][rnum1, rnum2,...]. Convert ResNum
+    object to str for JSON serialization.
+    """
+    json_dict = dict()
+    for ch, ch_nums in interface_dict.items():
+        json_dict[ch] = [str(rnum) for rnum in ch_nums]
+    return json_dict
+
 def _Process(model, reference, args):
 
 
@@ -350,7 +372,7 @@ def _Process(model, reference, args):
         out["lddt"] = scorer.lddt
 
     if args.local_lddt:
-        out["local_lddt"] = scorer.local_lddt
+        out["local_lddt"] = _LocalScoresToJSONDict(scorer.local_lddt)
 
     if args.lddt or args.local_lddt:
         out["model_clashes"] = [x.ToJSON() for x in scorer.model_clashes]
@@ -364,7 +386,7 @@ def _Process(model, reference, args):
         out["cad_score"] = scorer.cad_score
 
     if args.local_cad_score:
-        out["local_cad_score"] = scorer.local_cad_score
+        out["local_cad_score"] = _LocalScoresToJSONDict(scorer.local_cad_score)
 
     if args.qs_score:
         out["qs_global"] = scorer.qs_global
@@ -394,8 +416,10 @@ def _Process(model, reference, args):
         out["dockq_wave_full"] = scorer.dockq_wave_full
 
     if args.patch_scores:
-        out["model_interface_residues"] = scorer.model_interface_residues
-        out["reference_interface_residues"] = scorer.target_interface_residues
+        out["model_interface_residues"] = \
+        _InterfaceResiduesToJSONDict(scorer.model_interface_residues)
+        out["reference_interface_residues"] = \
+        _InterfaceResiduesToJSONDict(scorer.target_interface_residues)
         out["patch_qs"] = scorer.patch_qs
         out["patch_dockq"] = scorer.patch_dockq
 
