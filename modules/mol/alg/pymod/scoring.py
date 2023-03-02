@@ -952,19 +952,24 @@ class Scorer:
         # lDDT requires a flat mapping with mdl_ch as key and trg_ch as value
         flat_mapping = self.mapping.GetFlatMapping(mdl_as_key=True)
 
-        lddt_alns = dict()
+        # make alignments accessible by mdl seq name
+        stereochecked_alns = dict()
         for aln in self.stereochecked_aln:
             mdl_seq = aln.GetSequence(1)
-            lddt_alns[mdl_seq.name] = aln
+            stereochecked_alns[mdl_seq.name] = aln
+        alns = dict()
+        for aln in self.aln:
+            mdl_seq = aln.GetSequence(1)
+            alns[mdl_seq.name] = aln
 
         lddt_chain_mapping = dict()
         for mdl_ch, trg_ch in flat_mapping.items():
-            if mdl_ch in lddt_alns:
+            if mdl_ch in stereochecked_alns:
                 lddt_chain_mapping[mdl_ch] = trg_ch
 
         lddt_score = self.lddt_scorer.lDDT(self.stereochecked_model,
                                            chain_mapping = lddt_chain_mapping,
-                                           residue_mapping = lddt_alns,
+                                           residue_mapping = stereochecked_alns,
                                            check_resnames=False,
                                            local_lddt_prop="lddt")[0]
         local_lddt = dict()
@@ -990,8 +995,7 @@ class Scorer:
                     # fetch trg residue from non-stereochecked aln
                     trg_r = None
                     if cname in flat_mapping:
-                        aln = self.mapping.alns[(flat_mapping[cname], cname)]
-                        for col in aln:
+                        for col in alns[cname]:
                             if col[0] != '-' and col[1] != '-':
                                 if col.GetResidue(1).number == r.number:
                                     trg_r = col.GetResidue(0)
