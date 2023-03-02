@@ -234,7 +234,7 @@ def _LoadLigand(file):
     return ligand_ent.Copy()
 
 
-def _Validate(structure, ligands, legend):
+def _Validate(structure, ligands, legend, fault_tolerant=False):
     """Validate the structure.
 
     If fault_tolerant is True, only warns in case of problems. If False,
@@ -245,9 +245,12 @@ def _Validate(structure, ligands, legend):
     if ligands is not None:
         for residue in structure.residues:
             if residue.is_ligand:
-                warnings.warn("Ligand residue %s found in %s polymer structure" %(
-                    residue.qualified_name, legend
-                ), UserWarning)
+                msg = "Ligand residue %s found in %s polymer structure" %(
+                    residue.qualified_name, legend)
+                if fault_tolerant:
+                    ost.LogWarning(msg)
+                else:
+                    raise ValueError(msg)
 
 
 def _Process(model, model_ligands, reference, reference_ligands, args):
@@ -328,8 +331,10 @@ def _Main():
         reference_ligands = _LoadLigands(args.reference_ligands)
 
         # Validate
-        _Validate(model, model_ligands, "model")
-        _Validate(reference, reference_ligands, "reference")
+        _Validate(model, model_ligands, "model",
+                  fault_tolerant = args.fault_tolerant)
+        _Validate(reference, reference_ligands, "reference",
+                  fault_tolerant = args.fault_tolerant)
 
         out = _Process(model, model_ligands, reference, reference_ligands, args)
 
