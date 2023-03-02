@@ -172,9 +172,6 @@ object lDDTSettingsInitWrapper(tuple args, dict kwargs){
                                label);
 }
 
-/*
-lDDTScorer is commented out to not collide with the new lDDTScorer class
-that lives in Python
 object lDDTScorerInitWrapper(tuple args, dict kwargs){
 
   object self = args[0];
@@ -220,7 +217,7 @@ object lDDTScorerInitWrapper(tuple args, dict kwargs){
                                model,
                                settings);
 }
-*/
+
 
 void clean_lddt_references_wrapper(const list& reference_list)
 {
@@ -268,10 +265,6 @@ list get_lddt_per_residue_stats_wrapper(mol::EntityView& model,
   return local_scores_list;
 }
 
-/*
-lDDTScorer is commented out to not collide with the new lDDTScorer class
-that lives in Python
-
 list get_local_scores_wrapper(mol::alg::lDDTScorer& scorer) {
   std::vector<mol::alg::lDDTLocalScore> scores = scorer.GetLocalScores();
   list local_scores_list;
@@ -289,7 +282,7 @@ list get_references_wrapper(mol::alg::lDDTScorer& scorer) {
   }
   return local_references_list;
 }
-*/
+
 
 void print_lddt_per_residue_stats_wrapper(list& scores, bool structural_checks, int cutoffs_size){
   int scores_length = boost::python::extract<int>(scores.attr("__len__")());
@@ -402,9 +395,6 @@ BOOST_PYTHON_MODULE(_ost_mol_alg)
     .def_readwrite("conserved_dist", &mol::alg::lDDTLocalScore::conserved_dist)
     .def_readwrite("total_dist", &mol::alg::lDDTLocalScore::total_dist);
 
-  /*
-  lDDTScorer is commented out to not collide with the new lDDTScorer class
-  that lives in Python
   class_<mol::alg::lDDTScorer>("lDDTScorer", no_init)
       .def("__init__", raw_function(lDDTScorerInitWrapper))
       .def(init<std::vector<mol::EntityView>&, mol::EntityView&, mol::alg::lDDTSettings&>())
@@ -416,7 +406,6 @@ BOOST_PYTHON_MODULE(_ost_mol_alg)
       .def_readonly("model", &mol::alg::lDDTScorer::model_view)
       .add_property("references", &get_references_wrapper)
       .add_property("is_valid", &mol::alg::lDDTScorer::IsValid);
-  */
 
   class_<mol::alg::StereoChemicalProps>("StereoChemicalProps",
                            init<mol::alg::StereoChemicalParams&,
