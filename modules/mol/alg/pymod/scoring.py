@@ -925,7 +925,7 @@ class Scorer:
         trg_nuc_chains = [s.GetName() for s in self.chain_mapper.polynuc_seqs]
         trg_pep_chains = set(trg_pep_chains)
         trg_nuc_chains = set(trg_nuc_chains)
-        for mdl_ch, trg_ch in self.mapping.GetFlatMapping().items():
+        for trg_ch, mdl_ch in self.mapping.GetFlatMapping().items():
             if mdl_ch in mdl_seqs and trg_ch in trg_seqs:
                 if trg_ch in trg_pep_chains:
                     stype = mol.ChemType.AMINOACIDS
