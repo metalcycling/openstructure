@@ -1014,7 +1014,6 @@ class Scorer:
         self._qs_best = qs_score_result.QS_best
 
     def _compute_per_interface_scores(self):
-        flat_mapping = self.mapping.GetFlatMapping()
         # list of [trg_ch1, trg_ch2, mdl_ch1, mdl_ch2]
         self._interfaces = list()
         # lists with respective values for these interfaces
