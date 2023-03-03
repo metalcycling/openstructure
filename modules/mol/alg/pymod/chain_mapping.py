@@ -1814,7 +1814,7 @@ def _MapSequence(ref_seqs, ref_types, s, s_type, aligner):
     return (scored_alns[0][1], scored_alns[0][2])
 
 def _GetRefMdlAlns(ref_chem_groups, ref_chem_group_msas, mdl_chem_groups,
-                   mdl_chem_group_alns):
+                   mdl_chem_group_alns, pairs=None):
     """ Get all possible ref/mdl chain alignments given chem group mapping
 
     :param ref_chem_groups: :attr:`ChainMapper.chem_groups`
@@ -1831,6 +1831,9 @@ def _GetRefMdlAlns(ref_chem_groups, ref_chem_group_msas, mdl_chem_groups,
                                 Return values of
                                 :func:`ChainMapper.GetChemMapping`.
     :type mdl_chem_group_alns: :class:`list` of :class:`ost.seq.AlignmentList`
+    :param pairs: Pro param - restrict return dict to specified pairs. A set of
+                  tuples in form (<trg_ch>, <mdl_ch>)
+    :type pairs: :class:`set`
     :returns: A dictionary holding all possible ref/mdl chain alignments. Keys
               in that dictionary are tuples of the form (ref_ch, mdl_ch) and
               values are the respective pairwise alignments with first sequence
@@ -1850,6 +1853,8 @@ def _GetRefMdlAlns(ref_chem_groups, ref_chem_group_msas, mdl_chem_groups,
                                                ref_chem_group_msas):
         for ref_ch in ref_chains:
             for mdl_ch in mdl_chains:
+                if pairs is not None and (ref_ch, mdl_ch) not in pairs:
+                    continue
                 # obtain alignments of mdl and ref chains towards chem
                 # group ref sequence and merge them
                 aln_list = seq.AlignmentList()
