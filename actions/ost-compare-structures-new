@@ -43,6 +43,10 @@ Example to compute local and per-residue lDDT values as well as QS-score:
 
 ost compare-structures-new -m model.pdb -r reference.cif --lddt --local-lddt \
 --qs-score
+
+Example to inject custom chain mapping
+
+ost compare-structures-new -m model.pdb -r reference.cif -c A:B B:A
 """
 
 import argparse
@@ -148,6 +152,16 @@ def _ParseArgs():
         default=False,
         action="store_true",
         help=("Fault tolerant parsing."))
+
+    parser.add_argument(
+        "-c",
+        "--chain-mapping",
+        nargs="+",
+        dest="chain_mapping",
+        help=("Custom mapping of chains between the reference and the model. "
+              "Each separate mapping consist of key:value pairs where key "
+              "is the chain name in reference and value is the chain name in "
+              "model."))
 
     parser.add_argument(
         "--lddt",
@@ -354,10 +368,14 @@ def _InterfaceResiduesToJSONDict(interface_dict):
 
 def _Process(model, reference, args):
 
+    mapping = None
+    if args.chain_mapping is not None:
+        mapping = {x.split(':')[0]: x.split(':')[1] for x in args.chain_mapping}
 
     scorer = scoring.Scorer(model, reference,
                             resnum_alignments = args.residue_number_alignment,
-                            cad_score_exec = args.cad_exec)
+                            cad_score_exec = args.cad_exec,
+                            custom_mapping = mapping)
 
     ir = _GetInconsistentResidues(scorer.aln)
     if len(ir) > 0 and args.enforce_consistency:
@@ -426,7 +444,6 @@ def _Process(model, reference, args):
     if args.dump_structures:
         io.SavePDB(scorer.model, model.GetName() + args.dump_suffix)
         io.SavePDB(scorer.target, reference.GetName() + args.dump_suffix)
-
 
     return out
 
