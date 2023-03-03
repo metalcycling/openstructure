@@ -108,6 +108,30 @@ def _ParseArgs():
               "applies to cif/mmcif. Inferred from filepath if not given."))
 
     parser.add_argument(
+        "-mb",
+        "--model-biounit",
+        dest="model_biounit",
+        required=False,
+        default=None,
+        type=int,
+        help=("Only has an effect if model is in mmcif format. By default, "
+              "the assymetric unit (AU) is used for scoring. If there are "
+              "biounits defined in the mmcif file, you can specify the index "
+              "of the one which should be used."))
+
+    parser.add_argument(
+        "-rb",
+        "--reference-biounit",
+        dest="reference_biounit",
+        required=False,
+        default=None,
+        type=int,
+        help=("Only has an effect if reference is in mmcif format. By default, "
+              "the assymetric unit (AU) is used for scoring. If there are "
+              "biounits defined in the mmcif file, you can specify the index "
+              "of the one which should be used."))
+
+    parser.add_argument(
         "-rna",
         "--residue-number-alignment",
         dest="residue_number_alignment",
@@ -290,7 +314,42 @@ def _ParseArgs():
 
     return parser.parse_args()
 
-def _LoadStructure(structure_path, sformat=None, fault_tolerant=False):
+def _Rename(ent):
+    """Revert chain names to original names.
+
+    PDBize assigns chain name in order A,B,C,D... which does not allow to infer
+    the original chain name. We do a renaming here:
+    if there are two chains mapping to chain A the resulting
+    chain names will be: A and A2.
+    """
+    new_chain_names = list()
+    chain_indices = list() # the chains where we actually change the name
+    suffix_indices = dict() # keep track of whats the current suffix index
+                            # for each original chain name
+
+    for ch_idx, ch in enumerate(ent.chains):
+        if not ch.HasProp("original_name"):
+            # pdbize doesnt set this property for chain names in ['_', '-']
+            continue
+        original_name = ch.GetStringProp("original_name")
+        if original_name in new_chain_names:
+            new_name = original_name + str(suffix_indices[original_name])
+            new_chain_names.append(new_name)
+            suffix_indices[original_name] = suffix_indices[original_name] + 1
+        else:
+            new_chain_names.append(original_name)
+            suffix_indices[original_name] = 2
+        chain_indices.append(ch_idx)
+    editor = ent.EditXCS()
+    # rename to nonsense to avoid clashing chain names
+    for ch_idx in chain_indices:
+        editor.RenameChain(ent.chains[ch_idx], ent.chains[ch_idx].name+"_yolo")
+    # and do final renaming
+    for new_name, ch_idx in zip(new_chain_names, chain_indices):
+        editor.RenameChain(ent.chains[ch_idx], new_name)
+
+def _LoadStructure(structure_path, sformat=None, fault_tolerant=False,
+                   bu_idx=None):
     """Read OST entity either from mmCIF or PDB.
 
     The returned structure has structure_path attached as structure name
@@ -313,7 +372,22 @@ def _LoadStructure(structure_path, sformat=None, fault_tolerant=False):
     ost.PushVerbosityLevel(ost.LogLevel.Error)
     # Load the structure
     if sformat in ["mmcif", "cif"]:
-        entity = io.LoadMMCIF(structure_path, fault_tolerant = fault_tolerant)
+        if bu_idx is not None:
+            cif_entity, cif_seqres, cif_info = \
+            io.LoadMMCIF(structure_path, info=True, seqres=True,
+                         fault_tolerant=fault_tolerant)
+            if bu_idx >= len(cif_info.biounits):
+                raise RuntimeError(f"Invalid biounit index - requested {bu_idx} "
+                                  f"cif file has {len(cif_info.biounits)}")
+            biounit = cif_info.biounits[bu_idx]
+            entity = biounit.PDBize(cif_entity, min_polymer_size=0)
+            if not entity.IsValid():
+                raise IOError(
+                    "Provided file does not contain valid entity.")
+            _Rename(entity)
+        else:
+            entity = io.LoadMMCIF(structure_path,
+                                  fault_tolerant = fault_tolerant)
         if len(entity.residues) == 0:
             raise Exception(f"No residues found in file: {structure_path}")
     elif sformat == "pdb":
@@ -453,9 +527,11 @@ def _Main():
     try:
         reference = _LoadStructure(args.reference,
                                    sformat=args.reference_format,
+                                   bu_idx=args.reference_biounit,
                                    fault_tolerant = args.fault_tolerant)
         model = _LoadStructure(args.model,
                                sformat=args.model_format,
+                               bu_idx=args.model_biounit,
                                fault_tolerant = args.fault_tolerant)
         out = _Process(model, reference, args)
         out["status"] = "SUCCESS"
