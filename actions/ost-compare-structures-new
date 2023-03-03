@@ -16,12 +16,14 @@ Loads the structures and performs basic cleanup:
 The cleaned structures are optionally dumped using -d/--dump-structures
 
 Output is written in JSON format (default: out.json). In case of no additional
-options, this is a dictionary with four keys:
+options, this is a dictionary with five keys:
 
  * "chain_mapping": A dictionary with reference chain names as keys and the
    mapped model chain names as values.
  * "aln": Pairwise sequence alignment for each pair of mapped chains in fasta
    format.
+ * "chem_groups": Groups of polypeptides/polynucleotides that are considered
+   chemically equivalent. You can derive stoichiometry from this.
  * "inconsistent_residues": List of strings that represent name mismatches of
    aligned residues in form
    <trg_cname>.<trg_rname><trg_rnum>-<mdl_cname>.<mdl_rname><mdl_rnum>.
@@ -459,6 +461,7 @@ def _Process(model, reference, args):
     out["chain_mapping"] = scorer.mapping.GetFlatMapping()
     out["aln"] = [_AlnToFastaStr(aln) for aln in scorer.aln]
     out["inconsistent_residues"] = ir
+    out["chem_groups"] = scorer.chain_mapper.chem_groups
 
     if args.lddt:
         out["lddt"] = scorer.lddt
