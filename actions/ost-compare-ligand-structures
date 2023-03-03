@@ -128,13 +128,30 @@ def _ParseArgs():
         help=("Fault tolerant parsing."))
 
     parser.add_argument(
-        "--residue-number-alignment",
         "-rna",
+        "--residue-number-alignment",
         dest="residue_number_alignment",
         default=False,
         action="store_true",
         help=("Make alignment based on residue number instead of using "
               "a global BLOSUM62-based alignment (NUC44 for nucleotides)."))
+
+    parser.add_argument(
+        "-cr",
+        "--check-resnames",
+        dest="check_resnames",
+        default=True,
+        action="store_false",
+        help=("Enforce residue name matches between mapped model and target"
+              "residues."))
+
+    parser.add_argument(
+        "-sm",
+        "--substructure-match",
+        dest="substructure_match",
+        default=False,
+        action="store_true",
+        help=("Allow incomplete target ligands."))
 
     parser.add_argument(
         "--lddt-pli",
@@ -149,6 +166,24 @@ def _ParseArgs():
         default=False,
         action="store_true",
         help=("Compute RMSD score and store as key \"lddt-pli\"."))
+
+    parser.add_argument(
+        "--radius",
+        dest="radius",
+        default=4.0,
+        help=("."))
+
+    parser.add_argument(
+        "--lddt-pli-radius",
+        dest="lddt_pli_radius",
+        default=6.0,
+        help=("."))
+
+    parser.add_argument(
+        "--lddt-bs-radius",
+        dest="lddt_bs_radius",
+        default=4.0,
+        help=("."))
 
     parser.add_argument(
         '-v',
@@ -261,6 +296,11 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         model_ligands=model_ligands,
         target_ligands=reference_ligands,
         resnum_alignments=args.residue_number_alignment,
+        check_resnames=args.check_resnames,
+        substructure_match=args.substructure_match,
+        radius=args.radius,
+        lddt_pli_radius=args.lddt_pli_radius,
+        lddt_bs_radius=args.lddt_bs_radius
     )
 
     out = dict()
