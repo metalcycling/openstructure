@@ -519,8 +519,33 @@ def _Process(model, reference, args):
         out["patch_dockq"] = scorer.patch_dockq
 
     if args.dump_structures:
-        io.SavePDB(scorer.model, model.GetName() + args.dump_suffix)
-        io.SavePDB(scorer.target, reference.GetName() + args.dump_suffix)
+        try:
+            io.SavePDB(scorer.model, model.GetName() + args.dump_suffix)
+        except Exception as e:
+            if "single-letter" in str(e) and args.model_biounit is not None:
+                raise RuntimeError("Failed to dump processed model. PDB "
+                                   "format only supports single character "
+                                   "chain names. This is likely the result of "
+                                   "chain renaming when constructing a user "
+                                   "specified biounit. Dumping structures "
+                                   "fails in this case.")
+            else:
+                raise
+        try:
+            io.SavePDB(scorer.target, reference.GetName() + args.dump_suffix)
+        except Exception as e:
+            if "single-letter" in str(e) and args.reference_biounit is not None:
+                raise RuntimeError("Failed to dump processed reference. PDB "
+                                   "format only supports single character "
+                                   "chain names. This is likely the result of "
+                                   "chain renaming when constructing a user "
+                                   "specified biounit. Dumping structures "
+                                   "fails in this case.")
+            else:
+                raise
+
+
+
 
     return out
 
