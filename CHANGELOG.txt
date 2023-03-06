@@ -22,6 +22,8 @@ Changes in Release 2.4.0
    OpenStructure specific scoring capabilities including required
    pre-processing of model/reference (cleanup, stereochemistry checks,
    chain mapping etc.).
+ * Re-write of compare-structures action to include newly developed chain
+   mapping and scores. The old action is available as compare-structures-legacy.
  * Several minor bug fixes and improvements.
 
 Changes in Release 2.3.1

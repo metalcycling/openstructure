@@ -1,1006 +1,577 @@
-"""Evaluate model structure against reference.
+"""
+Evaluate model against reference 
 
-eg.
+Example: ost compare-structures -m model.pdb -r reference.cif
 
-  ost compare-structures \\
-      --model <MODEL> \\
-      --reference <REF> \\
-      --output output.json \\
-      --lddt \\
-      --structural-checks \\
-      --consistency-checks \\
-      --molck \\
-      --remove oxt hyd \\
-      --map-nonstandard-residues
+Loads the structures and performs basic cleanup:
 
-Here we describe how the parameters can be set to mimick a CAMEO evaluation
-(as of August 2018).
+ * Assign elements according to the PDB compound dictionary
+ * Map nonstandard residues to their parent residues as defined by the PDB
+   compound dictionary, e.g. phospho-serine => serine
+ * Remove hydrogens
+ * Remove OXT atoms
+ * Remove unknown atoms, i.e. atoms that are not expected according to the PDB
+   compound dictionary
 
-CAMEO calls the lddt binary as follows:
+The cleaned structures are optionally dumped using -d/--dump-structures
 
-  lddt \\
-      -p <PARAMETER FILE> \\
-      -f \\
-      -a 15 \\
-      -b 15 \\
-      -r 15 \\
-      <MODEL> \\
-      <REF>
+Output is written in JSON format (default: out.json). In case of no additional
+options, this is a dictionary with five keys:
 
-Only model structures are "Molck-ed" in CAMEO. The call to molck is as follows:
+ * "chain_mapping": A dictionary with reference chain names as keys and the
+   mapped model chain names as values.
+ * "aln": Pairwise sequence alignment for each pair of mapped chains in fasta
+   format.
+ * "chem_groups": Groups of polypeptides/polynucleotides that are considered
+   chemically equivalent. You can derive stoichiometry from this.
+ * "inconsistent_residues": List of strings that represent name mismatches of
+   aligned residues in form
+   <trg_cname>.<trg_rname><trg_rnum>-<mdl_cname>.<mdl_rname><mdl_rnum>.
+   Inconsistencies may lead to corrupt results but do not abort the program.
+   Program abortion in these cases can be enforced with
+   -ec/--enforce-consistency.
+ * "status": SUCCESS if everything ran through. In case of failure, the only
+   content of the JSON output will be \"status\" set to FAILURE and an
+   additional key: "traceback".
 
-  molck \\
-      --complib=<COMPOUND LIB> \\
-      --rm=hyd,oxt,unk,nonstd \\
-      --fix-ele \\
-      --map-nonstd \\
-      --out=<OUTPUT> \\
-      <FILEPATH>
+The pairwise sequence alignments are computed with Needleman-Wunsch using
+BLOSUM62 (NUC44 for nucleotides). Many benchmarking scenarios preprocess the
+structures to ensure matching residue numbers (CASP/CAMEO). In these cases,
+enabling -rna/--residue-number-alignment is recommended.
 
-To be as much compatible with with CAMEO as possible one should call
-compare-structures as follows:
+Each score is opt-in and can be enabled with optional arguments.
 
-  ost compare-structures \\
-      --model <MODEL> \\
-      --reference <REF> \\
-      --output output.json \\
-      --molck \\
-      --remove oxt hyd unk nonstd \\
-      --clean-element-column \\
-      --map-nonstandard-residues \\
-      --structural-checks \\
-      --bond-tolerance 15.0 \\
-      --angle-tolerance 15.0 \\
-      --residue-number-alignment \\
-      --consistency-checks \\
-      --qs-score \\
-      --lddt \\
-      --inclusion-radius 15.0
+Example to compute local and per-residue lDDT values as well as QS-score:
+
+ost compare-structures -m model.pdb -r reference.cif --lddt --local-lddt \
+--qs-score
+
+Example to inject custom chain mapping
+
+ost compare-structures -m model.pdb -r reference.cif -c A:B B:A
 """
 
-import os
-import sys
-import json
 import argparse
+import os
+import json
+import time
+import sys
+import traceback
 
-import ost
-from ost.io import (LoadPDB, LoadMMCIF, SavePDB, MMCifInfoBioUnit, MMCifInfo,
-                    MMCifInfoTransOp, ReadStereoChemicalPropsFile, profiles)
-from ost import PushVerbosityLevel
-from ost.mol.alg import (qsscoring, Molck, MolckSettings, lDDTSettings,
-                         CheckStructure, ResidueNamesMatch)
-from ost.conop import (CompoundLib, SetDefaultLib, GetDefaultLib,
-                       RuleBasedProcessor)
-from ost.seq.alg.renumber import Renumber
-
-
-def _GetDefaultShareFilePath(filename):
-    """Look for filename in working directory and OST shared data path.
-    :return: Path to valid file or None if not found.
-    """
-    # Try current directory
-    cwd = os.path.abspath(os.getcwd())
-    file_path = os.path.join(cwd, filename)
-    if not os.path.isfile(file_path):
-        try:
-            file_path = os.path.join(ost.GetSharedDataPath(), filename)
-        except RuntimeError:
-            # Ignore errors here (caught later together with non-existing file)
-            pass
-        if not os.path.isfile(file_path):
-            file_path = None
-    # Either file_path is valid file path or None
-    return file_path
-
-def _GetDefaultParameterFilePath():
-    # Try to get in default locations
-    parameter_file_path = _GetDefaultShareFilePath("stereo_chemical_props.txt")
-    if parameter_file_path is None:
-        msg = (
-            "Could not set default stereochemical parameter file. In "
-            "order to use the default one please set $OST_ROOT "
-            "environmental variable, run the script with OST binary or"
-            " provide a local copy of 'stereo_chemical_props.txt' in "
-            "CWD. Alternatively provide the path to the local copy.")
-    else:
-        msg = ""
-    return parameter_file_path, msg
-
-def _GetDefaultCompoundLibraryPath():
-    # Try to get in default locations
-    compound_library_path = _GetDefaultShareFilePath("compounds.chemlib")
-    if compound_library_path is None:
-        msg = (
-            "Could not set default compounds library path. In "
-            "order to use the default one please set $OST_ROOT "
-            "environmental variable, run the script with OST binary or"
-            " provide a local copy of 'compounds.chemlib' in CWD"
-            ". Alternatively provide the path to the local copy.")
-    else:
-        msg = ""
-    return compound_library_path, msg
+from ost import io
+from ost.mol.alg import scoring
 
 def _ParseArgs():
-    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description = __doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     prog = "ost compare-structures")
 
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__,
-        prog="ost compare-structures")
-
-    #
-    # Required arguments
-    #
-
-    group_required = parser.add_argument_group('required arguments')
-
-    group_required.add_argument(
+    parser.add_argument(
         "-m",
         "--model",
         dest="model",
         required=True,
-        help=("Path to the model file."))
-    group_required.add_argument(
+        help=("Path to model file."))
+
+    parser.add_argument(
         "-r",
         "--reference",
         dest="reference",
         required=True,
-        help=("Path to the reference file."))
+        help=("Path to reference file."))
 
-    #
-    # General arguments
-    #
-
-    group_general = parser.add_argument_group('general arguments')
-
-    group_general.add_argument(
-        '-v',
-        '--verbosity',
-        type=int,
-        default=3,
-        help="Set verbosity level. Defaults to 3.")
-    group_general.add_argument(
+    parser.add_argument(
         "-o",
         "--output",
         dest="output",
-        help=("Output file name. The output will be saved as a JSON file."))
-    group_general.add_argument(
+        required=False,
+        default="out.json",
+        help=("Output file name. The output will be saved as a JSON file. "
+              "default: out.json"))
+
+    parser.add_argument(
+        "-mf",
+        "--model-format",
+        dest="model_format",
+        required=False,
+        default=None,
+        choices=["pdb", "cif", "mmcif"],
+        help=("Format of model file. pdb reads pdb but also pdb.gz, same "
+              "applies to cif/mmcif. Inferred from filepath if not given."))
+
+    parser.add_argument(
+        "-rf",
+        "--reference-format",
+        dest="reference_format",
+        required=False,
+        default=None,
+        choices=["pdb", "cif", "mmcif"],
+        help=("Format of reference file. pdb reads pdb but also pdb.gz, same "
+              "applies to cif/mmcif. Inferred from filepath if not given."))
+
+    parser.add_argument(
+        "-mb",
+        "--model-biounit",
+        dest="model_biounit",
+        required=False,
+        default=None,
+        type=int,
+        help=("Only has an effect if model is in mmcif format. By default, "
+              "the assymetric unit (AU) is used for scoring. If there are "
+              "biounits defined in the mmcif file, you can specify the index "
+              "of the one which should be used."))
+
+    parser.add_argument(
+        "-rb",
+        "--reference-biounit",
+        dest="reference_biounit",
+        required=False,
+        default=None,
+        type=int,
+        help=("Only has an effect if reference is in mmcif format. By default, "
+              "the assymetric unit (AU) is used for scoring. If there are "
+              "biounits defined in the mmcif file, you can specify the index "
+              "of the one which should be used."))
+
+    parser.add_argument(
+        "-rna",
+        "--residue-number-alignment",
+        dest="residue_number_alignment",
+        default=False,
+        action="store_true",
+        help=("Make alignment based on residue number instead of using "
+              "a global BLOSUM62-based alignment (NUC44 for nucleotides).")) 
+
+    parser.add_argument(
+        "-ec",
+        "--enforce-consistency",
+        dest="enforce_consistency",
+        default=False,
+        action="store_true",
+        help=("Enforce consistency. By default residue name discrepancies "
+              "between a model and reference are reported but the program "
+              "proceeds. If this flag is ON, the program fails for these "
+              "cases."))
+
+    parser.add_argument(
         "-d",
         "--dump-structures",
         dest="dump_structures",
         default=False,
         action="store_true",
-        help=("Dump cleaned structures used to calculate all the scores as\n"
-              "PDB files using specified suffix. Files will be dumped to the\n"
+        help=("Dump cleaned structures used to calculate all the scores as "
+              "PDB files using specified suffix. Files will be dumped to the "
               "same location as original files."))
-    group_general.add_argument(
+
+    parser.add_argument(
         "-ds",
         "--dump-suffix",
         dest="dump_suffix",
         default=".compare.structures.pdb",
         help=("Use this suffix to dump structures.\n"
               "Defaults to .compare.structures.pdb."))
-    group_general.add_argument(
-        "-rs",
-        "--reference-selection",
-        dest="reference_selection",
-        default="",
-        help=("Selection performed on reference structures."))
-    group_general.add_argument(
-        "-ms",
-        "--model-selection",
-        dest="model_selection",
-        default="",
-        help=("Selection performed on model structures."))
-    group_general.add_argument(
-        "-ca",
-        "--c-alpha-only",
-        dest="c_alpha_only",
-        default=False,
-        action="store_true",
-        help=("Use C-alpha atoms only. Equivalent of calling the action with\n"
-              "'--model-selection=\"aname=CA\" "
-              "--reference-selection=\"aname=CA\"'\noptions."))
-    group_general.add_argument(
+
+    parser.add_argument(
         "-ft",
         "--fault-tolerant",
         dest="fault_tolerant",
         default=False,
         action="store_true",
         help=("Fault tolerant parsing."))
-    group_general.add_argument(
-        "-cl",
-        "--compound-library",
-        dest="compound_library",
-        default=None,
-        help=("Location of the compound library file (compounds.chemlib).\n"
-              "If not provided, the following locations are searched in this\n"
-              "order: 1. Working directory, 2. OpenStructure standard library"
-              "\nlocation."))
 
-    #
-    # Molecular check arguments
-    #
-
-    group_molck = parser.add_argument_group('molecular check arguments')
-
-    group_molck.add_argument(
-        "-ml",
-        "--molck",
-        dest="molck",
-        default=False,
-        action="store_true",
-        help=("Run molecular checker to clean up input."))
-    group_molck.add_argument(
-        "-rm",
-        "--remove",
-        dest="remove",
-        nargs="+",  # *, +, ?, N
-        required=False,
-        default=["hyd"],
-        help=("Remove atoms and residues matching some criteria:\n"
-              " * zeroocc - Remove atoms with zero occupancy\n"
-              " * hyd - remove hydrogen atoms\n"
-              " * oxt - remove terminal oxygens\n"
-              " * nonstd - remove all residues not one of the 20\n"
-              "            standard amino acids\n"
-              " * unk - Remove unknown and atoms not following the\n"
-              "         nomenclature\n"
-              "Defaults to hyd."))
-    group_molck.add_argument(
-        "-ce",
-        "--clean-element-column",
-        dest="clean_element_column",
-        default=False,
-        action="store_true",
-        help=("Clean up element column"))
-    group_molck.add_argument(
-        "-mn",
-        "--map-nonstandard-residues",
-        dest="map_nonstandard_residues",
-        default=False,
-        action="store_true",
-        help=("Map modified residues back to the parent amino acid, for\n"
-              "example MSE -> MET, SEP -> SER."))
-    
-    #
-    # Structural check arguments
-    #
-
-    group_sc = parser.add_argument_group('structural check arguments')
-
-    group_sc.add_argument(
-        "-sc",
-        "--structural-checks",
-        dest="structural_checks",
-        default=False,
-        action="store_true",
-        help=("Perform structural checks and filter input data."))
-    group_sc.add_argument(
-        "-p",
-        "--parameter-file",
-        dest="parameter_file",
-        default=None,
-        help=("Location of the stereochemical parameter file\n"
-              "(stereo_chemical_props.txt).\n"
-              "If not provided, the following locations are searched in this\n"
-              "order: 1. Working directory, 2. OpenStructure standard library"
-              "\nlocation."))
-    group_sc.add_argument(
-        "-bt",
-        "--bond-tolerance",
-        dest="bond_tolerance",
-        type=float,
-        default=12.0,
-        help=("Tolerance in STD for bonds. Defaults to 12."))
-    group_sc.add_argument(
-        "-at",
-        "--angle-tolerance",
-        dest="angle_tolerance",
-        type=float,
-        default=12.0,
-        help=("Tolerance in STD for angles. Defaults to 12."))
-
-    #
-    # Chain mapping arguments
-    #
-
-    group_cm = parser.add_argument_group('chain mapping arguments')
-
-    group_cm.add_argument(
+    parser.add_argument(
         "-c",
         "--chain-mapping",
         nargs="+",
-        type=lambda x: x.split(":"),
         dest="chain_mapping",
-        help=("Mapping of chains between the reference and the model.\n"
-              "Each separate mapping consist of key:value pairs where key\n"
-              "is the chain name in reference and value is the chain name in\n"
+        help=("Custom mapping of chains between the reference and the model. "
+              "Each separate mapping consist of key:value pairs where key "
+              "is the chain name in reference and value is the chain name in "
               "model."))
-    group_cm.add_argument(
-        "--qs-max-mappings-extensive",
-        dest="qs_max_mappings_extensive",
-        type=int,
-        default=1000000,
-        help=("Maximal number of chain mappings to test for 'extensive'\n"
-              "chain mapping scheme which is used as a last resort if\n"
-              "other schemes failed. The extensive chain mapping search\n"
-              "must in the worst case check O(N!) possible mappings for\n"
-              "complexes with N chains. Two octamers without symmetry\n"
-              "would require 322560 mappings to be checked. To limit\n"
-              "computations, no scores are computed if we try more than\n"
-              "the maximal number of chain mappings. Defaults to 1000000."))
 
-    #
-    # Sequence alignment arguments
-    #
-
-    group_aln = parser.add_argument_group('sequence alignment arguments')
-
-    group_aln.add_argument(
-        "-cc",
-        "--consistency-checks",
-        dest="consistency_checks",
-        default=False,
-        action="store_true",
-        help=("Take consistency checks into account. By default residue name\n"
-              "consistency between a model-reference pair would be checked\n"
-              "but only a warning message will be displayed and the script\n"
-              "will continue to calculate scores. If this flag is ON, checks\n"
-              "will not be ignored and if the pair does not pass the test\n"
-              "all the scores for that pair will be marked as a FAILURE."))
-    group_aln.add_argument(
-        "-rna",
-        "--residue-number-alignment",
-        dest="residue_number_alignment",
-        default=False,
-        action="store_true",
-        help=("Make alignment based on residue number instead of using\n"
-              "a global BLOSUM62-based alignment."))
-
-    #
-    # QS score arguments
-    #
-
-    group_qs = parser.add_argument_group('QS score arguments')
-
-    group_qs.add_argument(
-        "-qs",
-        "--qs-score",
-        dest="qs_score",
-        default=False,
-        action="store_true",
-        help=("Calculate QS-score."))
-    group_qs.add_argument(
-        "--qs-rmsd",
-        dest="qs_rmsd",
-        default=False,
-        action="store_true",
-        help=("Calculate CA RMSD between shared CA atoms of mapped chains.\n"
-              "This uses a superposition using all mapped chains which\n"
-              "minimizes the CA RMSD."))
-
-    #
-    # lDDT score arguments
-    #
-
-    group_lddt = parser.add_argument_group('lDDT score arguments')
-
-    group_lddt.add_argument(
-        "-l",
+    parser.add_argument(
         "--lddt",
         dest="lddt",
         default=False,
         action="store_true",
-        help=("Calculate lDDT."))
-    group_lddt.add_argument(
-        "-ir",
-        "--inclusion-radius",
-        dest="inclusion_radius",
-        type=float,
-        default=15.0,
-        help=("Distance inclusion radius for lDDT. Defaults to 15 A."))
-    group_lddt.add_argument(
-        "-ss",
-        "--sequence-separation",
-        dest="sequence_separation",
-        type=int,
-        default=0,
-        help=("Sequence separation. Only distances between residues whose\n"
-              "separation is higher than the provided parameter are\n"
-              "considered when computing the score. Defaults to 0."))
-    group_lddt.add_argument(
-        "-spr",
-        "--save-per-residue-scores",
-        dest="save_per_residue_scores",
+        help=("Compute global lDDT score with default parameterization and "
+              "store as key \"lddt\". Stereochemical irregularities affecting "
+              "lDDT are reported as keys \"model_clashes\", "
+              "\"model_bad_bonds\", \"model_bad_angles\" and the respective "
+              "reference counterparts."))
+
+    parser.add_argument(
+        "--local-lddt",
+        dest="local_lddt",
         default=False,
         action="store_true",
-        help=(""))
+        help=("Compute per-residue lDDT scores with default parameterization "
+              "and store as key \"local_lddt\". Score for model residue with "
+              "number 42 in chain X can be extracted with: "
+              "data[\"local_lddt\"][\"X\"][\"42\"]. If there is an insertion "
+              "code, lets say A, the last key becomes \"42A\" Stereochemical "
+              "irregularities affecting lDDT are reported as keys "
+              "\"model_clashes\", \"model_bad_bonds\", \"model_bad_angles\" "
+              "and the respective reference counterparts."))
 
-    # Print full help is no arguments provided
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
+    parser.add_argument(
+        "--cad-score",
+        dest="cad_score",
+        default=False,
+        action="store_true",
+        help=("Compute global CAD's atom-atom (AA) score and store as key "
+              "\"cad_score\". --residue-number-alignment must be enabled "
+              "to compute this score. Requires voronota_cadscore executable "
+              "in PATH. Alternatively you can set cad-exec."))
 
-    opts = parser.parse_args()
-    # Set chain mapping
-    if opts.chain_mapping is not None:
-        try:
-            opts.chain_mapping = dict(opts.chain_mapping)
-        except ValueError:
-            parser.error(
-                "Cannot parse chain mapping into dictionary. The "
-                "correct format is: key:value [key2:value2 ...].")
-    
-    # Check parameter file if structural checks are on
-    if opts.structural_checks:
-        if opts.parameter_file is None:
-            # try to get default if none provided
-            opts.parameter_file, msg = _GetDefaultParameterFilePath()
-            if msg:
-                parser.error(msg)
-        else:
-            # if provided it must exist
-            if not os.path.isfile(opts.parameter_file):
-                parser.error("Parameter file %s does not exist." \
-                             % opts.parameter_file)
+    parser.add_argument(
+        "--local-cad-score",
+        dest="local_cad_score",
+        default=False,
+        action="store_true",
+        help=("Compute local CAD's atom-atom (AA) scores and store as key "
+              "\"local_cad_score\". Score for model residue with number 42 in "
+              "chain X can be extracted with: "
+              "data[\"local_cad_score\"][\"X\"][\"42\"]. "
+              "--residue-number-alignments must be enabled to compute this "
+              "score. Requires voronota_cadscore executable in PATH. "
+              "Alternatively you can set cad-exec."))
 
-    # Check compound library path (always required!)
-    if opts.compound_library is None:
-        # try to get default if none provided
-        opts.compound_library, msg = _GetDefaultCompoundLibraryPath()
-        if msg:
-            parser.error(msg)
-    else:
-        # if provided it must exist
-        if not os.path.isfile(opts.compound_library):
-            parser.error("Compounds library file %s does not exist." \
-                         % opts.compound_library)
+    parser.add_argument(
+        "--cad-exec",
+        dest="cad_exec",
+        default=None,
+        help=("Path to voronota-cadscore executable (installed from "
+              "https://github.com/kliment-olechnovic/voronota). Searches PATH "
+              "if not set."))
 
-    # Check model and reference paths
-    if not os.path.isfile(opts.model):
-        parser.error("Model file %s does not exist." % opts.model)
-    if not os.path.isfile(opts.reference):
-        parser.error("Reference file %s does not exist." % opts.reference)
+    parser.add_argument(
+        "--qs-score",
+        dest="qs_score",
+        default=False,
+        action="store_true",
+        help=("Compute QS-score, stored as key \"qs_global\", and the QS-best "
+              "variant, stored as key \"qs_best\"."))
 
-    return opts
+    parser.add_argument(
+        "--rigid-scores",
+        dest="rigid_scores",
+        default=False,
+        action="store_true",
+        help=("Computes rigid superposition based scores. They're based on a "
+              "Kabsch superposition of all mapped CA positions (C3' for "
+              "nucleotides). Makes the following keys available: "
+              "\"oligo_gdtts\": GDT with distance thresholds [1.0, 2.0, 4.0, "
+              "8.0] given these positions and transformation, \"oligo_gdtha\": "
+              "same with thresholds [0.5, 1.0, 2.0, 4.0], \"rmsd\": RMSD given "
+              "these positions and transformation, \"transform\": the used 4x4 "
+              "transformation matrix that superposes model onto reference."))
 
+    parser.add_argument(
+        "--interface-scores",
+        dest="interface_scores",
+        default=False,
+        action="store_true",
+        help=("Per interface scores for each interface that has at least one "
+              "contact in the reference, i.e. at least one pair of heavy atoms "
+              "within 5A. The respective interfaces are available from key "
+              "\"interfaces\" which is a list of tuples in form (ref_ch1, "
+              "ref_ch2, mdl_ch1, mdl_ch2). Per-interface scores are available "
+              "as lists referring to these interfaces and have the following "
+              "keys: \"nnat\" (number of contacts in reference), \"nmdl\" "
+              "(number of contacts in model), \"fnat\" (fraction of reference "
+              "contacts which are also there in model), \"fnonnat\" (fraction "
+              "of model contacts which are not there in target), \"irmsd\" "
+              "(interface RMSD), \"lrmsd\" (ligand RMSD), \"dockq_scores\" "
+              "(per-interface score computed from \"fnat\", \"irmsd\" and "
+              "\"lrmsd\"), \"interface_qs_global\" and \"interface_qs_best\" "
+              "(per-interface versions of the two QS-score variants). The "
+              "DockQ score is strictly designed to score each interface "
+              "individually. We also provide two averaged versions to get one "
+              "full model score: \"dockq_ave\", \"dockq_wave\". The first is "
+              "simply the average of \"dockq_scores\", the latter is a "
+              "weighted average with weights derived from \"nnat\". These two "
+              "scores only consider interfaces that are present in both, the "
+              "model and the reference. \"dockq_ave_full\" and "
+              "\"dockq_wave_full\" add zeros in the average computation for "
+              "each interface that is only present in the reference but not in "
+              "the model."))
 
-def _SetCompoundsChemlib(path_to_chemlib):
-    """Set default compound library for OST."""
-    # NOTE: This is adapted from ProMod3 code and should in the future be doable
-    #       with some shared OST code!
-    compound_lib = CompoundLib.Load(path_to_chemlib)
-    SetDefaultLib(compound_lib)
-    processor = RuleBasedProcessor(compound_lib)
-    for profile_name in profiles:
-        profiles[profile_name].processor = processor.Copy()
+    parser.add_argument(
+        "--patch-scores",
+        dest="patch_scores",
+        default=False,
+        action="store_true",
+        help=("Local interface quality score used in CASP15. Scores each "
+              "model residue that is considered in the interface (CB pos "
+              "within 8A of any CB pos from another chain (CA for GLY)). The "
+              "local neighborhood gets represented by \"interface patches\" "
+              "which are scored with QS-score and DockQ. Scores where not "
+              "the full patches are represented by the reference are set to "
+              "None. Model interface residues are available as key "
+              "\"model_interface_residues\", reference interface residues as "
+              "key \"reference_interface_residues\". Residues are represented "
+              "as string in form <num><inscode>. The respective scores are "
+              "available as keys \"patch_qs\" and \"patch_dockq\""))
 
+    return parser.parse_args()
 
-def _RevertChainNames(ent):
+def _Rename(ent):
     """Revert chain names to original names.
 
-    By default the first chain with given name will not have any number
-    attached to it ie. if there are two chains mapping to chain A the resulting
+    PDBize assigns chain name in order A,B,C,D... which does not allow to infer
+    the original chain name. We do a renaming here:
+    if there are two chains mapping to chain A the resulting
     chain names will be: A and A2.
     """
-    editor = ent.EditXCS()
-    suffix = "_tmp"  # just a suffix for temporary chain name
-    separator = ""  # dot causes selection error
-    used_names = dict()
-    reverted_chains = dict()
-    for chain in ent.chains:
-        try:
-            original_name = chain.GetStringProp("original_name")
-        except Exception as ex:
-            ost.LogError("Cannot revert chain %s back to original: %s" % (
-                chain.name,
-                str(ex)))
-            reverted_chains[chain.name] = chain.name
-            editor.RenameChain(chain, chain.name + suffix)
+    new_chain_names = list()
+    chain_indices = list() # the chains where we actually change the name
+    suffix_indices = dict() # keep track of whats the current suffix index
+                            # for each original chain name
+
+    for ch_idx, ch in enumerate(ent.chains):
+        if not ch.HasProp("original_name"):
+            # pdbize doesnt set this property for chain names in ['_', '-']
             continue
-        new_name = original_name
-        if new_name not in used_names:
-            used_names[original_name] = 2
-            reverted_chains[chain.name] = new_name
-            editor.RenameChain(chain, chain.name + suffix)
+        original_name = ch.GetStringProp("original_name")
+        if original_name in new_chain_names:
+            new_name = original_name + str(suffix_indices[original_name])
+            new_chain_names.append(new_name)
+            suffix_indices[original_name] = suffix_indices[original_name] + 1
         else:
-            new_name = "%s%s%i" % (original_name,
-                                   separator,
-                                   used_names[original_name])
-            reverted_chains[chain.name] = new_name
-            editor.RenameChain(chain, chain.name + suffix)
-            used_names[original_name] += 1
-    for chain in ent.chains:
-        editor.RenameChain(chain, reverted_chains[chain.name[:-len(suffix)]])
-    rev_out = ["%s -> %s" % (on, nn) for on, nn in list(reverted_chains.items())]
-    ost.LogInfo("Reverted chains: %s" % ", ".join(rev_out))
+            new_chain_names.append(original_name)
+            suffix_indices[original_name] = 2
+        chain_indices.append(ch_idx)
+    editor = ent.EditXCS()
+    # rename to nonsense to avoid clashing chain names
+    for ch_idx in chain_indices:
+        editor.RenameChain(ent.chains[ch_idx], ent.chains[ch_idx].name+"_yolo")
+    # and do final renaming
+    for new_name, ch_idx in zip(new_chain_names, chain_indices):
+        editor.RenameChain(ent.chains[ch_idx], new_name)
 
+def _LoadStructure(structure_path, sformat=None, fault_tolerant=False,
+                   bu_idx=None):
+    """Read OST entity either from mmCIF or PDB.
 
-def _CheckConsistency(alignments, log_error):
-    is_cons = True
-    for alignment in alignments:
-        ref_chain = Renumber(alignment.GetSequence(0)).CreateFullView()
-        mdl_chain = Renumber(alignment.GetSequence(1)).CreateFullView()
-        new_is_cons = ResidueNamesMatch(mdl_chain, ref_chain, log_error)
-        is_cons = is_cons and new_is_cons
-    return is_cons
-
-
-def _GetAlignmentsAsFasta(alignments):
-    """Get the alignments as FASTA formated string.
-
-    :param alignments: Alignments
-    :type alignments: list of AlignmentHandle
-    :returns: list of alignments in FASTA format
-    :rtype: list of strings
-    """
-    strings = list()
-    for alignment in alignments:
-        aln_str = ">reference:%s\n%s\n>model:%s\n%s" % (
-            alignment.GetSequence(0).name,
-            alignment.GetSequence(0).GetString(),
-            alignment.GetSequence(1).name,
-            alignment.GetSequence(1).GetString())
-        strings.append(aln_str)
-    return strings
-
-
-def _ReadStructureFile(path, c_alpha_only=False, fault_tolerant=False,
-                       selection=""):
-    """Safely read structure file into OST entities (split by biounit).
-
-    The function can read both PDB and mmCIF files.
-    
-    :param path: Path to the file.
-    :type path: :class:`str`
-    :returns: list of entities
-    :rtype: :class:`list` of :class:`~ost.mol.EntityHandle`
+    The returned structure has structure_path attached as structure name
     """
 
-    def _Select(entity):
-        if selection:
-            ost.LogInfo("Selecting %s" % selection)
-            ent_view = entity.Select(selection)
-            entity = mol.CreateEntityFromView(ent_view, False)
-        return entity
+    if not os.path.exists(structure_path):
+        raise Exception(f"file not found: {structure_path}")
 
-    entities = list()
-    if not os.path.isfile(path):
-        raise IOError("%s is not a file" % path)
+    if sformat is None:
+        # Determine file format from suffix.
+        ext = structure_path.split(".")
+        if ext[-1] == "gz":
+            ext = ext[:-1]
+        if len(ext) <= 1:
+            raise Exception(f"Could not determine format of file "
+                            f"{structure_path}.")
+        sformat = ext[-1].lower()
 
-    # Determine file format from suffix.
-    ext = path.split(".")
-    if ext[-1] == "gz":
-        ext = ext[:-1]
-    if len(ext) <= 1:
-        raise RuntimeError(f"Could not determine format of file {path}.")
-    sformat = ext[-1].lower()
-
-    if sformat in ["pdb"]:
-        entity = LoadPDB(
-            path,
-            fault_tolerant=fault_tolerant,
-            calpha_only=c_alpha_only)
-        if not entity.IsValid() or len(entity.residues) == 0:
-            raise IOError("Provided file does not contain valid entity.")
-        entity.SetName(os.path.basename(path))
-        entity = _Select(entity)
-        entities.append(entity)
-    elif sformat in ["cif", "mmcif"]:
-        try:
-            tmp_entity, cif_info = LoadMMCIF(
-                path,
-                info=True,
-                fault_tolerant=fault_tolerant,
-                calpha_only=c_alpha_only)
-            if len(cif_info.biounits) == 0:
-                tbu = MMCifInfoBioUnit()
-                tbu.id = 'ASU'
-                tbu.details = 'asymmetric unit'
-                for chain in tmp_entity.chains:
-                    tbu.AddChain(str(chain))
-                tinfo = MMCifInfo()
-                tops = MMCifInfoTransOp()
-                tinfo.AddOperation(tops)
-                tbu.AddOperations(tinfo.GetOperations())
-                entity = tbu.PDBize(tmp_entity, min_polymer_size=0)
-                entity.SetName(os.path.basename(path) + ".au")
-                _RevertChainNames(entity)
-                entity = _Select(entity)
-                entities.append(entity)
-            elif len(cif_info.biounits) > 1:
-                for i, biounit in enumerate(cif_info.biounits, 1):
-                    entity = biounit.PDBize(tmp_entity, min_polymer_size=0)
-                    if not entity.IsValid():
-                        raise IOError(
-                            "Provided file does not contain valid entity.")
-                    entity.SetName(os.path.basename(path) + "." + str(i))
-                    _RevertChainNames(entity)
-                    entity = _Select(entity)
-                    entities.append(entity)
-            else:
-                biounit = cif_info.biounits[0]
-                entity = biounit.PDBize(tmp_entity, min_polymer_size=0)
-                if not entity.IsValid():
-                    raise IOError(
-                        "Provided file does not contain valid entity.")
-                entity.SetName(os.path.basename(path))
-                _RevertChainNames(entity)
-                entity = _Select(entity)
-                entities.append(entity)
-
-        except Exception:
-            raise
+    # increase loglevel, as we would pollute the info log with weird stuff
+    ost.PushVerbosityLevel(ost.LogLevel.Error)
+    # Load the structure
+    if sformat in ["mmcif", "cif"]:
+        if bu_idx is not None:
+            cif_entity, cif_seqres, cif_info = \
+            io.LoadMMCIF(structure_path, info=True, seqres=True,
+                         fault_tolerant=fault_tolerant)
+            if bu_idx >= len(cif_info.biounits):
+                raise RuntimeError(f"Invalid biounit index - requested {bu_idx} "
+                                  f"cif file has {len(cif_info.biounits)}")
+            biounit = cif_info.biounits[bu_idx]
+            entity = biounit.PDBize(cif_entity, min_polymer_size=0)
+            if not entity.IsValid():
+                raise IOError(
+                    "Provided file does not contain valid entity.")
+            _Rename(entity)
+        else:
+            entity = io.LoadMMCIF(structure_path,
+                                  fault_tolerant = fault_tolerant)
+        if len(entity.residues) == 0:
+            raise Exception(f"No residues found in file: {structure_path}")
+    elif sformat == "pdb":
+        entity = io.LoadPDB(structure_path, fault_tolerant = fault_tolerant)
+        if len(entity.residues) == 0:
+            raise Exception(f"No residues found in file: {structure_path}")
     else:
-        raise RuntimeError(f"Unsupported file extension found for file {path}.")
+        raise Exception(f"Unknown/ unsupported file extension found for "
+                        f"file {structure_path}.")
+    # restore old loglevel and return
+    ost.PopVerbosityLevel()
+    entity.SetName(structure_path)
+    return entity
 
-    return entities
+def _AlnToFastaStr(aln):
+    """ Returns alignment as fasta formatted string
+    """
+    s1 = aln.GetSequence(0)
+    s2 = aln.GetSequence(1)
+    return f">reference:{s1.name}\n{str(s1)}\nmodel:{s2.name}\n{str(s2)}"
+
+def _GetInconsistentResidues(alns):
+    lst = list()
+    for aln in alns:
+        for col in aln:
+            r1 = col.GetResidue(0)
+            r2 = col.GetResidue(1)
+            if r1.IsValid() and r2.IsValid() and r1.GetName() != r2.GetName():
+                lst.append((r1, r2))
+    lst = [f"{x[0].GetQualifiedName()}-{x[1].GetQualifiedName()}" for x in lst]
+    return lst
+
+def _LocalScoresToJSONDict(score_dict):
+    """ Score for model residue with number rnum in chain X can be extracted
+    with: data["local_cad_score"]["X"][rnum]. Convert ResNum object to str for
+    JSON serialization
+    """
+    json_dict = dict()
+    for ch, ch_scores in score_dict.items():
+        json_dict[ch] = {str(rnum): s for rnum, s in ch_scores.items()}
+    return json_dict
+
+def _InterfaceResiduesToJSONDict(interface_dict):
+    """ Interface residues are stored as
+    data["model_interface_residues"]["A"][rnum1, rnum2,...]. Convert ResNum
+    object to str for JSON serialization.
+    """
+    json_dict = dict()
+    for ch, ch_nums in interface_dict.items():
+        json_dict[ch] = [str(rnum) for rnum in ch_nums]
+    return json_dict
+
+def _Process(model, reference, args):
+
+    mapping = None
+    if args.chain_mapping is not None:
+        mapping = {x.split(':')[0]: x.split(':')[1] for x in args.chain_mapping}
+
+    scorer = scoring.Scorer(model, reference,
+                            resnum_alignments = args.residue_number_alignment,
+                            cad_score_exec = args.cad_exec,
+                            custom_mapping = mapping)
+
+    ir = _GetInconsistentResidues(scorer.aln)
+    if len(ir) > 0 and args.enforce_consistency:
+        raise RuntimeError(f"Inconsistent residues observed: {' '.join(ir)}")
+
+    out = dict()
+    out["chain_mapping"] = scorer.mapping.GetFlatMapping()
+    out["aln"] = [_AlnToFastaStr(aln) for aln in scorer.aln]
+    out["inconsistent_residues"] = ir
+    out["chem_groups"] = scorer.chain_mapper.chem_groups
+
+    if args.lddt:
+        out["lddt"] = scorer.lddt
+
+    if args.local_lddt:
+        out["local_lddt"] = _LocalScoresToJSONDict(scorer.local_lddt)
+
+    if args.lddt or args.local_lddt:
+        out["model_clashes"] = [x.ToJSON() for x in scorer.model_clashes]
+        out["model_bad_bonds"] = [x.ToJSON() for x in scorer.model_bad_bonds]
+        out["model_bad_angles"] = [x.ToJSON() for x in scorer.model_bad_angles]
+        out["reference_clashes"] = [x.ToJSON() for x in scorer.target_clashes]
+        out["reference_bad_bonds"] = [x.ToJSON() for x in scorer.target_bad_bonds]
+        out["reference_bad_angles"] = [x.ToJSON() for x in scorer.target_bad_angles]
+
+    if args.cad_score:
+        out["cad_score"] = scorer.cad_score
+
+    if args.local_cad_score:
+        out["local_cad_score"] = _LocalScoresToJSONDict(scorer.local_cad_score)
+
+    if args.qs_score:
+        out["qs_global"] = scorer.qs_global
+        out["qs_best"] = scorer.qs_best
+
+    if args.rigid_scores:
+        out["oligo_gdtts"] = scorer.gdtts
+        out["oligo_gdtha"] = scorer.gdtha
+        out["rmsd"] = scorer.rmsd
+        data = scorer.transform.data
+        out["transform"] = [data[i:i + 4] for i in range(0, len(data), 4)]
+
+    if args.interface_scores:
+        out["interfaces"] = scorer.interfaces
+        out["nnat"] = scorer.native_contacts
+        out["nmdl"] = scorer.model_contacts
+        out["fnat"] = scorer.fnat
+        out["fnonnat"] = scorer.fnonnat
+        out["irmsd"] = scorer.irmsd
+        out["lrmsd"] = scorer.lrmsd
+        out["dockq_scores"] = scorer.dockq_scores
+        out["interface_qs_global"] = scorer.interface_qs_global
+        out["interface_qs_best"] = scorer.interface_qs_best
+        out["dockq_ave"] = scorer.dockq_ave
+        out["dockq_wave"] = scorer.dockq_wave
+        out["dockq_ave_full"] = scorer.dockq_ave_full
+        out["dockq_wave_full"] = scorer.dockq_wave_full
+
+    if args.patch_scores:
+        out["model_interface_residues"] = \
+        _InterfaceResiduesToJSONDict(scorer.model_interface_residues)
+        out["reference_interface_residues"] = \
+        _InterfaceResiduesToJSONDict(scorer.target_interface_residues)
+        out["patch_qs"] = scorer.patch_qs
+        out["patch_dockq"] = scorer.patch_dockq
+
+    if args.dump_structures:
+        try:
+            io.SavePDB(scorer.model, model.GetName() + args.dump_suffix)
+        except Exception as e:
+            if "single-letter" in str(e) and args.model_biounit is not None:
+                raise RuntimeError("Failed to dump processed model. PDB "
+                                   "format only supports single character "
+                                   "chain names. This is likely the result of "
+                                   "chain renaming when constructing a user "
+                                   "specified biounit. Dumping structures "
+                                   "fails in this case.")
+            else:
+                raise
+        try:
+            io.SavePDB(scorer.target, reference.GetName() + args.dump_suffix)
+        except Exception as e:
+            if "single-letter" in str(e) and args.reference_biounit is not None:
+                raise RuntimeError("Failed to dump processed reference. PDB "
+                                   "format only supports single character "
+                                   "chain names. This is likely the result of "
+                                   "chain renaming when constructing a user "
+                                   "specified biounit. Dumping structures "
+                                   "fails in this case.")
+            else:
+                raise
 
 
-def _MolckEntity(entity, options):
-    """Molck the entity."""
-    lib = GetDefaultLib()
-    to_remove = tuple(options.remove)
 
-    ms = MolckSettings(rm_unk_atoms="unk" in to_remove,
-                       rm_non_std="nonstd" in to_remove,
-                       rm_hyd_atoms="hyd" in to_remove,
-                       rm_oxt_atoms="oxt" in to_remove,
-                       rm_zero_occ_atoms="zeroocc" in to_remove,
-                       colored=False,
-                       map_nonstd_res=options.map_nonstandard_residues,
-                       assign_elem=options.clean_element_column)
-    Molck(entity, lib, ms)
 
+    return out
 
 def _Main():
-    """Do the magic."""
-    #
-    # Setup
-    opts = _ParseArgs()
-    PushVerbosityLevel(opts.verbosity)
-    _SetCompoundsChemlib(opts.compound_library)
-    #
-    # Read the input files
-    ost.LogInfo("#" * 80)
-    ost.LogInfo("Reading input files (fault_tolerant=%s)" %
-                str(opts.fault_tolerant))
-    ost.LogInfo(" --> reading model from %s" % opts.model)
-    models = _ReadStructureFile(
-        opts.model,
-        c_alpha_only=opts.c_alpha_only,
-        fault_tolerant=opts.fault_tolerant,
-        selection=opts.model_selection)
-    ost.LogInfo(" --> reading reference from %s" % opts.reference)
-    references = _ReadStructureFile(
-        opts.reference,
-        c_alpha_only=opts.c_alpha_only,
-        fault_tolerant=opts.fault_tolerant,
-        selection=opts.reference_selection)
-    # molcking
-    if opts.molck:
-        ost.LogInfo("#" * 80)
-        ost.LogInfo("Cleaning up input with Molck")
-        for reference in references:
-            _MolckEntity(reference, opts)
-        for model in models:
-            _MolckEntity(model, opts)
-    # restrict to peptides (needed for CheckStructure anyways)
-    for i in range(len(references)):
-        references[i] = references[i].Select("peptide=true")
-    for i in range(len(models)):
-        models[i] = models[i].Select("peptide=true")
-    # structure checking
-    if opts.structural_checks:
-        ost.LogInfo("#" * 80)
-        ost.LogInfo("Performing structural checks")
-        stereochemical_parameters = ReadStereoChemicalPropsFile(
-            opts.parameter_file)
-        ost.LogInfo(" --> for reference(s)")
-        for reference in references:
-            ost.LogInfo("Checking %s" % reference.GetName())
-            CheckStructure(reference,
-                           stereochemical_parameters.bond_table,
-                           stereochemical_parameters.angle_table,
-                           stereochemical_parameters.nonbonded_table,
-                           opts.bond_tolerance,
-                           opts.angle_tolerance)
-        ost.LogInfo(" --> for model(s)")
-        for model in models:
-            ost.LogInfo("Checking %s" % model.GetName())
-            CheckStructure(model,
-                           stereochemical_parameters.bond_table,
-                           stereochemical_parameters.angle_table,
-                           stereochemical_parameters.nonbonded_table,
-                           opts.bond_tolerance,
-                           opts.angle_tolerance)
-    if len(models) > 1 or len(references) > 1:
-        ost.LogInfo("#" * 80)
-        ost.LogInfo(
-            "Multiple complexes mode ON. All combinations will be tried.")
 
-    result = {
-        "result": {},
-        "options": vars(opts)}
-    result["options"]["cwd"] = os.path.abspath(os.getcwd())
-    #
-    # Perform scoring
-    skipped = list()
-    for model in models:
-        model_name = model.GetName()
-        model_results = dict()
-        for reference in references:
-            reference_name = reference.GetName()
-            reference_results = {
-                "info": dict()}
-            ost.LogInfo("#" * 80)
-            ost.LogInfo("Comparing %s to %s" % (
-                model_name,
-                reference_name))
-            qs_scorer = qsscoring.QSscorer(reference,
-                                           model,
-                                           opts.residue_number_alignment)
-            qs_scorer.max_mappings_extensive = opts.qs_max_mappings_extensive
-            if opts.chain_mapping is not None:
-                ost.LogInfo(
-                    "Using custom chain mapping: %s" % str(
-                        opts.chain_mapping))
-                qs_scorer.chain_mapping = opts.chain_mapping
-            else:
-                try:
-                  qs_scorer.chain_mapping  # just to initialize it
-                except qsscoring.QSscoreError as ex:
-                  ost.LogError('Chain mapping failed:', str(ex))
-                  ost.LogError('Skipping comparison')
-                  continue
-            ost.LogInfo("-" * 80)
-            ost.LogInfo("Checking consistency between %s and %s" % (
-                        model_name, reference_name))
-            is_cons = _CheckConsistency(
-                qs_scorer.alignments,
-                opts.consistency_checks)
-            reference_results["info"]["residue_names_consistent"] = is_cons
-            reference_results["info"]["mapping"] = {
-                "chain_mapping": qs_scorer.chain_mapping,
-                "chain_mapping_scheme": qs_scorer.chain_mapping_scheme,
-                "alignments": _GetAlignmentsAsFasta(qs_scorer.alignments)}
-            skip_score = False
-            if opts.consistency_checks:
-                if not is_cons:
-                    msg = (("Residue names in model %s and in reference "
-                            "%s are inconsistent.") % (
-                                model_name,
-                                reference_name))
-                    ost.LogError(msg)
-                    skip_score = True
-                    skipped.append(skip_score)
-                else:
-                    ost.LogInfo("Consistency check: OK")
-                    skipped.append(False)
-            else:
-                skipped.append(False)
-                if not is_cons:
-                    msg = (("Residue names in model %s and in reference "
-                            "%s are inconsistent.\nThis might lead to "
-                            "corrupted results.") % (
-                                model_name,
-                                reference_name))
-                    ost.LogWarning(msg)
-                else:
-                    ost.LogInfo("Consistency check: OK")
-            if opts.qs_rmsd:
-                ost.LogInfo("-" * 80)
-                if skip_score:
-                    ost.LogInfo(
-                        "Skipping QS-RMSD because consistency check failed")
-                    reference_results["qs_rmsd"] = {
-                        "status": "FAILURE",
-                        "error": "Consistency check failed."}
-                else:
-                    ost.LogInfo("Computing QS-RMSD")
-                    try:
-                        reference_results["qs_rmsd"] = {
-                            "status": "SUCCESS",
-                            "error": "",
-                            "ca_rmsd": qs_scorer.superposition.rmsd}
-                    except qsscoring.QSscoreError as ex:
-                        ost.LogError('QS-RMSD failed:', str(ex))
-                        reference_results["qs_rmsd"] = {
-                            "status": "FAILURE",
-                            "error": str(ex)}
-            if opts.qs_score:
-                ost.LogInfo("-" * 80)
-                if skip_score:
-                    ost.LogInfo(
-                        "Skipping QS-score because consistency check failed")
-                    reference_results["qs_score"] = {
-                        "status": "FAILURE",
-                        "error": "Consistency check failed.",
-                        "global_score": 0.0,
-                        "best_score": 0.0}
-                else:
-                    ost.LogInfo("Computing QS-score")
-                    try:
-                        reference_results["qs_score"] = {
-                            "status": "SUCCESS",
-                            "error": "",
-                            "global_score": qs_scorer.global_score,
-                            "best_score": qs_scorer.best_score}
-                    except qsscoring.QSscoreError as ex:
-                        # default handling: report failure and set score to 0
-                        ost.LogError('QSscore failed:', str(ex))
-                        reference_results["qs_score"] = {
-                            "status": "FAILURE",
-                            "error": str(ex),
-                            "global_score": 0.0,
-                            "best_score": 0.0}
-            # Calculate lDDT
-            if opts.lddt:
-                ost.LogInfo("-" * 80)
-                ost.LogInfo("Computing lDDT scores")
-                lddt_results = {
-                    "single_chain_lddt": list()
-                }
-                lddt_settings = lDDTSettings(
-                    radius=opts.inclusion_radius,
-                    sequence_separation=opts.sequence_separation,
-                    label="lddt")
-                ost.LogInfo("lDDT settings: ")
-                ost.LogInfo(str(lddt_settings).rstrip())
-                ost.LogInfo("===")
-                oligo_lddt_scorer = qs_scorer.GetOligoLDDTScorer(lddt_settings)
-                for mapped_lddt_scorer in oligo_lddt_scorer.mapped_lddt_scorers:
-                    # Get data
-                    lddt_scorer = mapped_lddt_scorer.lddt_scorer
-                    model_chain = mapped_lddt_scorer.model_chain_name
-                    reference_chain = mapped_lddt_scorer.reference_chain_name
-                    if skip_score:
-                        ost.LogInfo(
-                            " --> Skipping single chain lDDT because "
-                            "consistency check failed")
-                        lddt_results["single_chain_lddt"].append({
-                            "status": "FAILURE",
-                            "error": "Consistency check failed.",
-                            "model_chain": model_chain,
-                            "reference_chain": reference_chain,
-                            "global_score": 0.0,
-                            "conserved_contacts": 0.0,
-                            "total_contacts": 0.0})
-                    else:
-                        try:
-                            ost.LogInfo((" --> Computing lDDT between model "
-                                         "chain %s and reference chain %s") % (
-                                             model_chain,
-                                             reference_chain))
-                            ost.LogInfo("Global LDDT score: %.4f" %
-                                        lddt_scorer.global_score)
-                            ost.LogInfo(
-                                "(%i conserved distances out of %i checked, over "
-                                "%i thresholds)" % (lddt_scorer.conserved_contacts,
-                                                    lddt_scorer.total_contacts,
-                                                    len(lddt_settings.cutoffs)))
-                            sc_lddt_scores = {
-                                "status": "SUCCESS",
-                                "error": "",
-                                "model_chain": model_chain,
-                                "reference_chain": reference_chain,
-                                "global_score": lddt_scorer.global_score,
-                                "conserved_contacts":
-                                    lddt_scorer.conserved_contacts,
-                                "total_contacts": lddt_scorer.total_contacts}
-                            if opts.save_per_residue_scores:
-                                per_residue_sc = \
-                                    mapped_lddt_scorer.GetPerResidueScores()
-                                ost.LogInfo("Per residue local lDDT (reference):")
-                                ost.LogInfo("Chain\tResidue Number\tResidue Name"
-                                            "\tlDDT\tConserved Contacts\tTotal "
-                                            "Contacts")
-                                for prs_scores in per_residue_sc:
-                                    ost.LogInfo("%s\t%i\t%s\t%.4f\t%i\t%i" % (
-                                        reference_chain,
-                                        prs_scores["residue_number"],
-                                        prs_scores["residue_name"],
-                                        prs_scores["lddt"],
-                                        prs_scores["conserved_contacts"],
-                                        prs_scores["total_contacts"]))
-                                sc_lddt_scores["per_residue_scores"] = \
-                                    per_residue_sc
-                            lddt_results["single_chain_lddt"].append(
-                                sc_lddt_scores)
-                        except Exception as ex:
-                            ost.LogError('Single chain lDDT failed:', str(ex))
-                            lddt_results["single_chain_lddt"].append({
-                                "status": "FAILURE",
-                                "error": str(ex),
-                                "model_chain": model_chain,
-                                "reference_chain": reference_chain,
-                                "global_score": 0.0,
-                                "conserved_contacts": 0.0,
-                                "total_contacts": 0.0})
-                # perform oligo lddt scoring
-                if skip_score:
-                    ost.LogInfo(
-                        " --> Skipping oligomeric lDDT because consistency "
-                        "check failed")
-                    lddt_results["oligo_lddt"] = {
-                        "status": "FAILURE",
-                        "error": "Consistency check failed.",
-                        "global_score": 0.0}
-                else:
-                    try:
-                        ost.LogInfo(' --> Computing oligomeric lDDT score')
-                        lddt_results["oligo_lddt"] = {
-                            "status": "SUCCESS",
-                            "error": "",
-                            "global_score": oligo_lddt_scorer.oligo_lddt}
-                        ost.LogInfo(
-                            "Oligo lDDT score: %.4f" %
-                            oligo_lddt_scorer.oligo_lddt)
-                    except Exception as ex:
-                        ost.LogError('Oligo lDDT failed:', str(ex))
-                        lddt_results["oligo_lddt"] = {
-                            "status": "FAILURE",
-                            "error": str(ex),
-                            "global_score": 0.0}
-                if skip_score:
-                    ost.LogInfo(
-                        " --> Skipping weighted lDDT because consistency "
-                        "check failed")
-                    lddt_results["weighted_lddt"] = {
-                        "status": "FAILURE",
-                        "error": "Consistency check failed.",
-                        "global_score": 0.0}
-                else:
-                    try:
-                        ost.LogInfo(' --> Computing weighted lDDT score')
-                        lddt_results["weighted_lddt"] = {
-                            "status": "SUCCESS",
-                            "error": "",
-                            "global_score": oligo_lddt_scorer.weighted_lddt}
-                        ost.LogInfo(
-                            "Weighted lDDT score: %.4f" %
-                            oligo_lddt_scorer.weighted_lddt)
-                    except Exception as ex:
-                        ost.LogError('Weighted lDDT failed:', str(ex))
-                        lddt_results["weighted_lddt"] = {
-                            "status": "FAILURE",
-                            "error": str(ex),
-                            "global_score": 0.0}
-                reference_results["lddt"] = lddt_results
-            model_results[reference_name] = reference_results
-            if opts.dump_structures:
-                ost.LogInfo("-" * 80)
-                ref_output_path = os.path.join(
-                    os.path.dirname(opts.reference),
-                    reference_name + opts.dump_suffix)
-                ost.LogInfo("Saving cleaned up reference to %s" %
-                            ref_output_path)
-                try:
-                    SavePDB(qs_scorer.qs_ent_1.ent,
-                            ref_output_path)
-                except Exception as ex:
-                    ost.LogError("Cannot save reference: %s" % str(ex))
-                mdl_output_path = os.path.join(
-                    os.path.dirname(opts.model),
-                    model_name + opts.dump_suffix)
-                ost.LogInfo("Saving cleaned up model to %s" %
-                            mdl_output_path)
-                try:
-                    SavePDB(qs_scorer.qs_ent_2.ent,
-                            mdl_output_path)
-                except Exception as ex:
-                    ost.LogError("Cannot save model: %s" % str(ex))
-        result["result"][model_name] = model_results
-
-    if all(skipped) and len(skipped) > 0:
-        ost.LogError("Consistency check failed for all model-reference pairs.")
-    if opts.output is not None:
-        ost.LogInfo("#" * 80)
-        ost.LogInfo("Saving output into %s" % opts.output)
-        with open(opts.output, "w") as outfile:
-            json.dump(result, outfile, indent=4, sort_keys=True)
+    args = _ParseArgs()
+    try:
+        reference = _LoadStructure(args.reference,
+                                   sformat=args.reference_format,
+                                   bu_idx=args.reference_biounit,
+                                   fault_tolerant = args.fault_tolerant)
+        model = _LoadStructure(args.model,
+                               sformat=args.model_format,
+                               bu_idx=args.model_biounit,
+                               fault_tolerant = args.fault_tolerant)
+        out = _Process(model, reference, args)
+        out["status"] = "SUCCESS"
+        with open(args.output, 'w') as fh:
+            json.dump(out, fh, indent=4, sort_keys=False)
+    except:
+        out = dict()
+        out["status"] = "FAILURE"
+        out["traceback"] = traceback.format_exc()
+        with open(args.output, 'w') as fh:
+            json.dump(out, fh, indent=4, sort_keys=False)
+        raise
 
 if __name__ == '__main__':
     _Main()
-
