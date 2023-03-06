@@ -169,7 +169,7 @@ def _ParseArgs():
         dest="rmsd",
         default=False,
         action="store_true",
-        help=("Compute RMSD score and store as key \"lddt-pli\"."))
+        help=("Compute RMSD score and store as key \"rmsd\"."))
 
     parser.add_argument(
         "--radius",
