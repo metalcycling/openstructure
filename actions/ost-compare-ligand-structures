@@ -1,7 +1,7 @@
 """
-Evaluate model with non-polymer/small molecule ligands against reference
+Evaluate model with non-polymer/small molecule ligands against reference.
 
-Example: ost compare-structures-new \\
+Example: ost compare-ligand-structures \\
     -m model.pdb \\
     -ml ligand.sdf \\
     -r reference.cif \\
@@ -14,8 +14,15 @@ Ligands can be given as path to SDF files containing the ligand for both model
 (--model-ligands/-ml) and reference (--reference-ligands/-rl). If omitted,
 ligands will be detected in the model and reference structures. For structures
 given in mmCIF format, this is based on the annotation as "non polymer entity"
-and works reliably. For structures given in PDB format, this is based on the
-HET records and is normally not what you want.
+(i.e. ligands in the _pdbx_entity_nonpoly mmCIF category) and works reliably.
+For structures given in PDB format, this is based on the HET records and is
+normally not what you want. You should always give ligands as SDF for
+structures in PDB format.
+
+Ligands in mmCIF and PDB files must comply with the PDB component dictionary
+definition, and have properly named residues and atoms, in order for
+ligand connectivity to be loaded correctly. Ligands loaded from SDF files
+are exempt from this restriction, meaning any arbitrary ligand can be assessed.
 
 Output is written in JSON format (default: out.json). In case of no additional
 options, this is a dictionary with three keys:
@@ -32,18 +39,15 @@ options, this is a dictionary with three keys:
    content of the JSON output will be \"status\" set to FAILURE and an
    additional key: "traceback".
 
-Each score is opt-in and can be enabled with optional arguments and is added
-to the output. Keys correspond to the values in `"model_ligands"` above.
+Each score is opt-in and, be enabled with optional arguments and is added
+to the output. Keys correspond to the values in "model_ligands" above.
 Only mapped ligands are reported.
-
-
 """
 
 import argparse
 import json
 import os
 import traceback
-import warnings
 
 import ost
 from ost import conop
@@ -171,19 +175,21 @@ def _ParseArgs():
         "--radius",
         dest="radius",
         default=4.0,
-        help=("."))
+        help=("Inclusion radius for the binding site. Any residue with atoms "
+              "within this distance of the ligand will be included in the "
+              "binding site."))
 
     parser.add_argument(
         "--lddt-pli-radius",
         dest="lddt_pli_radius",
         default=6.0,
-        help=("."))
+        help=("lDDT inclusion radius for lDDT-PLI."))
 
     parser.add_argument(
         "--lddt-bs-radius",
         dest="lddt_bs_radius",
         default=4.0,
-        help=("."))
+        help=("lDDT inclusion radius for lDDT-BS."))
 
     parser.add_argument(
         '-v',
