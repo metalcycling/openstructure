@@ -24,6 +24,8 @@ Changes in Release 2.4.0
    chain mapping etc.).
  * Re-write of compare-structures action to include newly developed chain
    mapping and scores. The old action is available as compare-structures-legacy.
+ * Add compare-ligand-structures action which computes lDDT-PLI and ligand RMSD
+   scores in protein complexes.
  * Several minor bug fixes and improvements.
 
 Changes in Release 2.3.1
