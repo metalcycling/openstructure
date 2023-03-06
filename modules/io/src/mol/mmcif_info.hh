@@ -988,7 +988,8 @@ public:
   ///
   /// \param id identifier of the citation to be modified.
   /// \param list list of authors to be added.
-  void AddAuthorsToCitation(StringRef id, std::vector<String> list); //unit test
+  void AddAuthorsToCitation(StringRef id, std::vector<String> list,
+                            bool fault_tolerant=false); //unit test
 
   /// \brief Get the list of citations stored in an info object.
   ///

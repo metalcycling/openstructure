@@ -403,7 +403,7 @@ void export_mmcif_io()
     .def("GetRFree", &MMCifInfo::GetRFree)
     .def("SetRWork", &MMCifInfo::SetRWork)
     .def("GetRWork", &MMCifInfo::GetRWork)
-    .def("AddAuthorsToCitation", &MMCifInfo::AddAuthorsToCitation)
+    .def("AddAuthorsToCitation", &MMCifInfo::AddAuthorsToCitation, (arg("id"), arg("list"), arg("fault_tolerant")=false))
     .def("AddOperation", &MMCifInfo::AddOperation)
     .def("GetOperations", make_function(&MMCifInfo::GetOperations,
                                    return_value_policy<copy_const_reference>()))

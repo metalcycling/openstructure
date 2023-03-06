@@ -19,6 +19,7 @@
 
 #include <ost/io/io_exception.hh>
 #include <ost/io/mol/mmcif_info.hh>
+#include <ost/log.hh>
 
 namespace ost { namespace io {
 
@@ -76,7 +77,8 @@ String MMCifInfo::GetMMCifEntityIdTr(String cif) const
   return tr_it->second;
 }
 
-void MMCifInfo::AddAuthorsToCitation(StringRef id, std::vector<String> list)
+void MMCifInfo::AddAuthorsToCitation(StringRef id, std::vector<String> list,
+                                     bool fault_tolerant)
 {
   // find citation
   std::vector<MMCifInfoCitation>::iterator cit_it;
@@ -88,7 +90,12 @@ void MMCifInfo::AddAuthorsToCitation(StringRef id, std::vector<String> list)
     }
   }
 
-  throw IOException("No citation for identifier '" + id.str() + "' found.");
+  if(fault_tolerant) {
+    LOG_WARNING("No citation for identifier '" + id.str() + "' found. "
+                "Couldn't set author list.");
+  } else {
+    throw IOException("No citation for identifier '" + id.str() + "' found.");
+  }
 }
 
 void MMCifInfo::AddBioUnit(MMCifInfoBioUnit bu)

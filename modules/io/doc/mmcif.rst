@@ -172,7 +172,7 @@ of the annotation available.
     :type citation: :class:`MMCifInfoCitation`
 
 
-  .. method:: AddAuthorsToCitation(id, authors)
+  .. method:: AddAuthorsToCitation(id, authors, fault_tolerant=False)
 
     Adds a list of authors to a specific citation.
 
@@ -180,6 +180,10 @@ of the annotation available.
     :type id: :class:`str`
     :param authors: List of authors.
     :type authors: :class:`~ost.StringList`
+    :param fault_tolerant: Logs a warning if *id* is not found and proceeds
+                           without setting anything if set to True. Raises
+                           otherwise.
+    :type fault_tolerant: :class:`bool`
 
   .. method:: GetCitations()
 

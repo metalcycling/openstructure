@@ -1844,7 +1844,8 @@ void MMCifReader::OnEndData()
   for (atm_it = authors_map_.begin(); atm_it != authors_map_.end(); ++atm_it) {
     info_.AddAuthorsToCitation(StringRef(atm_it->first.c_str(),
                                          atm_it->first.length()),
-                               atm_it->second.second);
+                               atm_it->second.second,
+                               profile_.fault_tolerant);
   }
 
   bool found;
