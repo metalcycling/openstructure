@@ -1,11 +1,11 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # ARGUMENTS
 ###########
 ARG OPENSTRUCTURE_VERSION="2.3.1"
 ARG SRC_FOLDER="/usr/local/src"
 ARG CPUS_FOR_MAKE=2
-ARG OPENMM_VERSION="7.1.1"
+ARG OPENMM_VERSION="7.7.0"
 ARG OPENMM_INCLUDE_PATH="/usr/local/openmm/include/"
 ARG OPENMM_LIB_PATH="/usr/local/openmm/lib/"
 ARG DEBIAN_FRONTEND=noninteractive
@@ -32,6 +32,7 @@ RUN apt-get update -y && apt-get install -y cmake \
                                             doxygen \
                                             swig \
                                             clustalw \
+                                            cython3 \
                                             locales && \
                                             # CLEANUP
                                             rm -rf /var/lib/apt/lists/*
@@ -62,7 +63,6 @@ RUN cd ${SRC_FOLDER} && \
     cmake .. -DOPTIMIZE=ON \
              -DENABLE_MM=ON \
              -DCOMPILE_TMTOOLS=1 \
-             -DUSE_NUMPY=1 \
              -DOPEN_MM_LIBRARY=$OPENMM_LIB_PATH/libOpenMM.so \
              -DOPEN_MM_INCLUDE_DIR=$OPENMM_INCLUDE_PATH \
              -DOPEN_MM_PLUGIN_DIR=$OPENMM_LIB_PATH/plugins \
@@ -83,7 +83,7 @@ RUN cd ${SRC_FOLDER} && \
 #############
 WORKDIR /home
 ENV OST_ROOT="/usr/local"
-ENV PYTHONPATH="/usr/local/lib64/python3.8/site-packages"
+ENV PYTHONPATH="/usr/local/lib64/python3.10/site-packages"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib64:/usr/local/openmm/lib/"
 ENV OPENSTRUCTURE_VERSION=$OPENSTRUCTURE_VERSION
 
