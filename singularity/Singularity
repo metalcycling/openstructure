@@ -1,5 +1,5 @@
 BootStrap: docker
-From: registry.scicore.unibas.ch/schwede/openstructure:2.3.0-focal
+From: registry.scicore.unibas.ch/schwede/openstructure:2.4.0-jammy
 %post
 ##############################################################################
 # POST
