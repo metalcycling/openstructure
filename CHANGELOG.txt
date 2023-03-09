@@ -17,15 +17,18 @@ Changes in Release 2.4.0
  * Stereochemistry related algorithms in mol.alg.stereochemistry. Identifies 
    clashes and non-sensible bond lengths/angles based on parameterizations from
    CCP4 MON_LIB.
+ * Add non-polymer/small molecule ligand scoring algorithm with lDDT-PLI and
+   symmetry-corrected ligand RMSD scores that were used in CASP15.
  * Better compression in OMF structure format.
- * One central scoring object: mol.alg.scoring.Scorer. Access to all
-   OpenStructure specific scoring capabilities including required
-   pre-processing of model/reference (cleanup, stereochemistry checks,
-   chain mapping etc.).
+ * Two central scoring objects to access to all OpenStructure specific scoring
+   capabilities. Tertiary and quaternary structures and interactions, including
+   required pre-processing of model/reference (cleanup, stereochemistry checks,
+   chain mapping etc.) with mol.alg.scoring.Scorer.
+   Non-polymer/small molecule ligands with mol.alg.ligand_scoring.LigandScorer.
  * Re-write of compare-structures action to include newly developed chain
    mapping and scores. The old action is available as compare-structures-legacy.
- * Add compare-ligand-structures action which computes lDDT-PLI and ligand RMSD
-   scores in protein complexes.
+ * Add compare-ligand-structures action which computes lDDT-PLI and
+   symmetry-corrected ligand RMSD scores in protein complexes.
  * Several minor bug fixes and improvements.
 
 Changes in Release 2.3.1
