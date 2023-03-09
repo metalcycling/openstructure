@@ -656,13 +656,13 @@ class LigandScorer:
             trg_idx, mdl_idx = assignment
             mdl_lig = self.model_ligands[mdl_idx]
             mdl_cname = mdl_lig.chain.name
-            mdl_restuple = (mdl_lig.number.num, mdl_lig.number.ins_code)
+            mdl_resnum = mdl_lig.number
             if mdl_cname not in out_main:
                 out_main[mdl_cname] = {}
                 out_details[mdl_cname] = {}
-            out_main[mdl_cname][mdl_restuple] = data[
+            out_main[mdl_cname][mdl_resnum] = data[
                 trg_idx, mdl_idx][main_key]
-            out_details[mdl_cname][mdl_restuple] = data[
+            out_details[mdl_cname][mdl_resnum] = data[
                 trg_idx, mdl_idx]
         return out_main, out_details
 
@@ -727,7 +727,7 @@ class LigandScorer:
     @property
     def rmsd(self):
         """Get a dictionary of RMSD score values, keyed by model ligand
-        (chain name, tuple(residue number, insertion code)).
+        (chain name, :class:`~ost.mol.ResNum`).
 
         :rtype: :class:`dict`
         """
@@ -738,7 +738,7 @@ class LigandScorer:
     @property
     def rmsd_details(self):
         """Get a dictionary of RMSD score details (dictionaries), keyed by
-        model ligand (chain name, tuple(residue number, insertion code)).
+        model ligand (chain name, :class:`~ost.mol.ResNum`).
 
         Each sub-dictionary contains the following information:
 
@@ -767,7 +767,7 @@ class LigandScorer:
     @property
     def lddt_pli(self):
         """Get a dictionary of lDDT-PLI score values, keyed by model ligand
-        (chain name, tuple(residue number, insertion code)).
+        (chain name, :class:`~ost.mol.ResNum`).
 
         :rtype: :class:`dict`
         """
@@ -778,7 +778,7 @@ class LigandScorer:
     @property
     def lddt_pli_details(self):
         """Get a dictionary of lDDT-PLI score details (dictionaries), keyed by
-        model ligand (chain name, tuple(residue number, insertion code)).
+        model ligand (chain name, :class:`~ost.mol.ResNum`).
 
         Each sub-dictionary contains the following information:
 
