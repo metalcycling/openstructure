@@ -55,18 +55,28 @@ Details on the usage (output of ``ost compare-structures --help``):
    * Remove OXT atoms
    * Remove unknown atoms, i.e. atoms that are not expected according to the PDB
      compound dictionary
+   * Select for peptide/nucleotide residues
   
   The cleaned structures are optionally dumped using -d/--dump-structures
   
   Output is written in JSON format (default: out.json). In case of no additional
-  options, this is a dictionary with five keys:
+  options, this is a dictionary with 8 keys:
   
+   * "reference_chains": Chain names of reference
+   * "model_chains": Chain names of model
+   * "chem_groups": Groups of polypeptides/polynucleotides from reference that
+     are considered chemically equivalent. You can derive stoichiometry from this.
+     Contains only chains that are considered in chain mapping, i.e. pass a
+     size threshold (defaults: 10 for peptides, 4 for nucleotides).
+   * "chem_mapping": List of same length as "chem_groups". Assigns model chains to
+     the respective chem group. Again, only contains chains that are considered
+     in chain mapping.
    * "chain_mapping": A dictionary with reference chain names as keys and the
-     mapped model chain names as values.
+     mapped model chain names as values. Missing chains are either not mapped
+     (but present in "chem_groups", "chem_mapping") or were not considered in
+     chain mapping (short peptides etc.)
    * "aln": Pairwise sequence alignment for each pair of mapped chains in fasta
      format.
-   * "chem_groups": Groups of polypeptides/polynucleotides that are considered
-     chemically equivalent. You can derive stoichiometry from this.
    * "inconsistent_residues": List of strings that represent name mismatches of
      aligned residues in form
      <trg_cname>.<trg_rname><trg_rnum>-<mdl_cname>.<mdl_rname><mdl_rnum>.
@@ -76,7 +86,7 @@ Details on the usage (output of ``ost compare-structures --help``):
    * "status": SUCCESS if everything ran through. In case of failure, the only
      content of the JSON output will be "status" set to FAILURE and an
      additional key: "traceback".
-  
+
   The pairwise sequence alignments are computed with Needleman-Wunsch using
   BLOSUM62 (NUC44 for nucleotides). Many benchmarking scenarios preprocess the
   structures to ensure matching residue numbers (CASP/CAMEO). In these cases,
@@ -91,7 +101,7 @@ Details on the usage (output of ``ost compare-structures --help``):
   Example to inject custom chain mapping
   
   ost compare-structures -m model.pdb -r reference.cif -c A:B B:A
-
+  
   optional arguments:
     -h, --help            show this help message and exit
     -m MODEL, --model MODEL
@@ -113,12 +123,14 @@ Details on the usage (output of ``ost compare-structures --help``):
                           Only has an effect if model is in mmcif format. By
                           default, the assymetric unit (AU) is used for scoring.
                           If there are biounits defined in the mmcif file, you
-                          can specify the index of the one which should be used.
+                          can specify the (0-based) index of the one which
+                          should be used.
     -rb REFERENCE_BIOUNIT, --reference-biounit REFERENCE_BIOUNIT
                           Only has an effect if reference is in mmcif format. By
                           default, the assymetric unit (AU) is used for scoring.
                           If there are biounits defined in the mmcif file, you
-                          can specify the index of the one which should be used.
+                          can specify the (0-based) index of the one which
+                          should be used.
     -rna, --residue-number-alignment
                           Make alignment based on residue number instead of
                           using a global BLOSUM62-based alignment (NUC44 for

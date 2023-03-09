@@ -34,11 +34,12 @@ class MappingResult:
     Constructor is directly called within the functions, no need to construct
     such objects yourself.
     """
-    def __init__(self, target, model, chem_groups, mapping, alns,
+    def __init__(self, target, model, chem_groups, chem_mapping, mapping, alns,
                  opt_score=None):
         self._target = target
         self._model = model
         self._chem_groups = chem_groups
+        self._chem_mapping = chem_mapping
         self._mapping = mapping
         self._alns = alns
         self._opt_score = opt_score
@@ -71,6 +72,14 @@ class MappingResult:
         :class:`list` of :class:`list` of :class:`str` (chain names)
         """
         return self._chem_groups
+
+    @property
+    def chem_mapping(self):
+        """ Assigns chains in :attr:`~model` to :attr:`~chem_groups`.
+
+        :class:`list` of :class:`list` of :class:`str` (chain names)
+        """
+        return self._chem_mapping
 
     @property
     def mapping(self):
@@ -853,8 +862,8 @@ class ChainMapper:
                         aln.AttachView(0, _CSel(self.target, [ref_ch]))
                         aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                         alns[(ref_ch, mdl_ch)] = aln
-            return MappingResult(self.target, mdl, self.chem_groups, one_to_one,
-                                 alns)
+            return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                                 one_to_one, alns)
 
         mapping = None
         opt_lddt = None
@@ -890,8 +899,8 @@ class ChainMapper:
                     aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                     alns[(ref_ch, mdl_ch)] = aln
 
-        return MappingResult(self.target, mdl, self.chem_groups, mapping,
-                             alns, opt_score = opt_lddt)
+        return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                             mapping, alns, opt_score = opt_lddt)
 
 
     def GetQSScoreMapping(self, model, contact_d = 12.0, strategy = "naive",
@@ -970,8 +979,8 @@ class ChainMapper:
                         aln.AttachView(0, _CSel(self.target, [ref_ch]))
                         aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                         alns[(ref_ch, mdl_ch)] = aln
-            return MappingResult(self.target, mdl, self.chem_groups, one_to_one,
-                                 alns)
+            return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                                 one_to_one, alns)
         mapping = None
         opt_qsscore = None
 
@@ -1007,8 +1016,8 @@ class ChainMapper:
                     aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                     alns[(ref_ch, mdl_ch)] = aln
 
-        return MappingResult(self.target, mdl, self.chem_groups, mapping,
-                             alns, opt_score = opt_qsscore)
+        return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                             mapping, alns, opt_score = opt_qsscore)
 
     def GetRigidMapping(self, model, strategy = "greedy_single_gdtts",
                         single_chain_gdtts_thresh=0.4, subsampling=None,
@@ -1108,8 +1117,8 @@ class ChainMapper:
                         aln.AttachView(0, _CSel(self.target, [ref_ch]))
                         aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                         alns[(ref_ch, mdl_ch)] = aln
-            return MappingResult(self.target, mdl, self.chem_groups, one_to_one,
-                                 alns)
+            return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                                 one_to_one, alns)
 
         trg_group_pos, mdl_group_pos = _GetRefPos(self.target, mdl,
                                                   self.chem_group_alignments,
@@ -1188,8 +1197,8 @@ class ChainMapper:
                     aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                     alns[(ref_ch, mdl_ch)] = aln
 
-        return MappingResult(self.target, mdl, self.chem_groups, final_mapping,
-                             alns)
+        return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                             final_mapping, alns)
 
 
     def GetRepr(self, substructure, model, topn=1, inclusion_radius=15.0,
