@@ -1095,11 +1095,17 @@ class Scorer:
         # - the two above including nonmapped_interfaces => set DockQ to 0.0
         scores = np.array(self._dockq_scores)
         weights = np.array(self._native_contacts)
-        self._dockq_ave = np.mean(scores)
+        if len(scores) > 0:
+            self._dockq_ave = np.mean(scores)
+        else:
+            self._dockq_ave = 0.0
         self._dockq_wave = np.sum(np.multiply(weights/np.sum(weights), scores))
         scores = np.append(scores, [0.0]*len(self._nonmapped_interfaces))
         weights = np.append(weights, self._nonmapped_interfaces_contacts)
-        self._dockq_ave_full = np.mean(scores)
+        if len(scores) > 0:
+            self._dockq_ave_full = np.mean(scores)
+        else:
+            self._dockq_ave_full = 0.0
         self._dockq_wave_full = np.sum(np.multiply(weights/np.sum(weights),
                                                    scores))
 
