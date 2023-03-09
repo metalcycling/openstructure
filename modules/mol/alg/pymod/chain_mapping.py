@@ -1499,6 +1499,13 @@ class ChainMapper:
             else:
                 raise RuntimeError("This shouldnt happen")
 
+        if len(polypep_seqs) == 0 and len(polynuc_seqs) == 0:
+            raise RuntimeError(f"No chain fulfilled minimum length requirement "
+                               f"to be considered in chain mapping "
+                               f"({self.min_pep_length} for peptide chains, "
+                               f"{self.min_nuc_length} for nucleotide chains) "
+                               f"- mapping failed")
+
         # select for chains for which we actually extracted the sequence
         chain_names = [s.GetAttachedView().chains[0].name for s in polypep_seqs]
         chain_names += [s.GetAttachedView().chains[0].name for s in polynuc_seqs]

@@ -353,6 +353,13 @@ class TestChainMapper(unittest.TestCase):
                        aln.GetSequence(1).GetString())
 
 
+  def test_misc(self):
+
+    # check for triggered error when no chain fulfills length threshold
+    ref = _LoadFile("3l1p.1.pdb").Select("cname=A and rnum<8")
+    self.assertRaises(Exception, ChainMapper, ref)
+
+
 if __name__ == "__main__":
   from ost import testutils
   if testutils.SetDefaultCompoundLib():
