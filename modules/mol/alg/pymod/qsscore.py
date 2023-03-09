@@ -246,7 +246,7 @@ class QSScorer:
         chain_mapper = ChainMapper(ent_1)
         mapping_result = chain_mapper.GetlDDTMapping(ent_2)
         qs_scorer = QSScorer.FromMappingResult(mapping_result)
-        score_result = qs_scorer.GetQSScore(mapping_result.mapping)
+        score_result = qs_scorer.Score(mapping_result.mapping)
         print("score:", score_result.QS_global)
 
     QS-score computation in :func:`QSScorer.Score` implements caching.

@@ -5,13 +5,13 @@ Example: ost compare-structures -m model.pdb -r reference.cif
 
 Loads the structures and performs basic cleanup:
 
- * Assign elements according to the PDB compound dictionary
+ * Assign elements according to the PDB Chemical Component Dictionary
  * Map nonstandard residues to their parent residues as defined by the PDB
-   compound dictionary, e.g. phospho-serine => serine
+   Chemical Component Dictionary, e.g. phospho-serine => serine
  * Remove hydrogens
  * Remove OXT atoms
  * Remove unknown atoms, i.e. atoms that are not expected according to the PDB
-   compound dictionary
+   Chemical Component Dictionary
  * Select for peptide/nucleotide residues
 
 The cleaned structures are optionally dumped using -d/--dump-structures
@@ -51,7 +51,7 @@ enabling -rna/--residue-number-alignment is recommended.
 
 Each score is opt-in and can be enabled with optional arguments.
 
-Example to compute local and per-residue lDDT values as well as QS-score:
+Example to compute global and per-residue lDDT values as well as QS-score:
 
 ost compare-structures -m model.pdb -r reference.cif --lddt --local-lddt \
 --qs-score
