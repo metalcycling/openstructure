@@ -403,7 +403,11 @@ class lDDTScorer:
         :param model: Model to be scored - models are preferably scored upon
                       performing stereo-chemistry checks in order to punish for
                       non-sensical irregularities. This must be done separately
-                      as a pre-processing step.
+                      as a pre-processing step. Target contacts that are not
+                      covered by *model* are considered not conserved, thus
+                      decreasing lDDT score. This also includes missing model
+                      chains or model chains for which no mapping is provided in
+                      *chain_mapping*.
         :type model: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
         :param thresholds: Thresholds of distance differences to be considered
                            as correct - see docs in constructor for more info.
