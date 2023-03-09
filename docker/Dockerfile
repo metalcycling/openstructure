@@ -33,6 +33,7 @@ RUN apt-get update -y && apt-get install -y cmake \
                                             swig \
                                             clustalw \
                                             cython3 \
+                                            voronota \
                                             locales && \
                                             # CLEANUP
                                             rm -rf /var/lib/apt/lists/*
