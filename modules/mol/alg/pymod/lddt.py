@@ -682,8 +682,8 @@ class lDDTScorer:
             ch_name = chain.GetName()
             if ch_name not in chain_mapping:
                 sm = self.symmetry_settings
-                dummy_scorer = lDDTScorer(model.Select("cname="+ch_name),
-                                          self.compound_lib,
+                mdl_sel = model.Select(f"cname={mol.QueryQuoteName(ch_name)}")
+                dummy_scorer = lDDTScorer(mdl_sel, self.compound_lib,
                                           symmetry_settings = sm,
                                           inclusion_radius = self.inclusion_radius,
                                           bb_only = self.bb_only)
