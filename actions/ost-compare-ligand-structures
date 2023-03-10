@@ -118,7 +118,7 @@ def _ParseArgs():
         "--model-format",
         dest="model_format",
         default="auto",
-        choices=["pdb", "mmcif"],
+        choices=["pdb", "mmcif", "cif"],
         help=("Format of model file. Inferred from path if not given."))
 
     parser.add_argument(
@@ -127,7 +127,7 @@ def _ParseArgs():
         "--ref-format",
         dest="reference_format",
         default="auto",
-        choices=["cif", "mmcif"],
+        choices=["pdb", "mmcif", "cif"],
         help=("Format of reference file. Inferred from path if not given."))
 
     parser.add_argument(
