@@ -7,8 +7,9 @@ Example: ost compare-ligand-structures \\
     -r reference.cif \\
     --lddt-pli --rmsd
 
-Only minimal cleanup steps are performed (remove hydrogens, and for structures
-only, remove unknown atoms and cleanup element column).
+Structures of polymer entities (proteins and nucleotides) can be given in PDB
+or mmCIF format. If the structure is given in mmCIF format, only the asymmetric
+unit (AU) is used for scoring.
 
 Ligands can be given as path to SDF files containing the ligand for both model
 (--model-ligands/-ml) and reference (--reference-ligands/-rl). If omitted,
@@ -18,6 +19,12 @@ given in mmCIF format, this is based on the annotation as "non polymer entity"
 For structures given in PDB format, this is based on the HET records and is
 normally not what you want. You should always give ligands as SDF for
 structures in PDB format.
+
+Polymer/oligomeric ligands (saccharides, peptides, nucleotides) are not
+supported.
+
+Only minimal cleanup steps are performed (remove hydrogens, and for structures
+of polymers only, remove unknown atoms and cleanup element column).
 
 Ligands in mmCIF and PDB files must comply with the PDB component dictionary
 definition, and have properly named residues and atoms, in order for
