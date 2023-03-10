@@ -479,8 +479,9 @@ class LigandScorer:
                         rmsd_full_matrix[target_i, model_i] = {
                             "rmsd": rmsd,
                             "lddt_bs": binding_site.lDDT,
-                            "bs_num_res": len(binding_site.substructure.residues),
-                            "bs_num_overlap_res": len(binding_site.ref_residues),
+                            "bs_ref_res": binding_site.substructure.residues,
+                            "bs_ref_res_mapped": binding_site.ref_residues,
+                            "bs_mdl_res_mapped": binding_site.mdl_residues,
                             "bb_rmsd": binding_site.bb_rmsd,
                             "target_ligand": target_ligand,
                             "model_ligand": model_ligand,
@@ -538,8 +539,9 @@ class LigandScorer:
                                 "rmsd": rmsd,
                                 "lddt_bs": binding_site.lDDT,
                                 "lddt_pli_n_contacts": lddt_tot,
-                                "bs_num_res": len(binding_site.substructure.residues),
-                                "bs_num_overlap_res": len(binding_site.ref_residues),
+                                "bs_ref_res": binding_site.substructure.residues,
+                                "bs_ref_res_mapped": binding_site.ref_residues,
+                                "bs_mdl_res_mapped": binding_site.mdl_residues,
                                 "bb_rmsd": binding_site.bb_rmsd,
                                 "target_ligand": target_ligand,
                                 "model_ligand": model_ligand,
@@ -744,9 +746,15 @@ class LigandScorer:
 
         * `rmsd`: the RMSD score value.
         * `lddt_bs`: the lDDT-BS score of the binding site.
-        * `bs_num_res`: number of residues in the target binding site.
-        * `bs_num_overlap_res`: number of residues in the model overlapping
-          with the target binding site.
+        * `bs_ref_res`: a list of residues (:class:`~ost.mol.ResidueHandle`)
+          that define the binding site in the reference.
+        * `bs_ref_res_mapped`: a list of residues
+          (:class:`~ost.mol.ResidueHandle`) in the reference binding site
+          that could be mapped to the model.
+        * `bs_mdl_res_mapped`: a list of residues
+          (:class:`~ost.mol.ResidueHandle`) in the model that were mapped to
+          the reference binding site. The residues are in the same order as
+          `bs_ref_res_mapped`.
         * `bb_rmsd`: the RMSD of the binding site backbone after superposition
         * `target_ligand`: residue handle of the target ligand.
         * `model_ligand`: residue handle of the model ligand.
@@ -791,9 +799,15 @@ class LigandScorer:
         * `lddt_pli_n_contacts`: number of total contacts used in lDDT-PLI,
           summed over all thresholds. Can be divided by 8 to obtain the number
           of atomic contacts.
-        * `bs_num_res`: number of residues in the target binding site.
-        * `bs_num_overlap_res`: number of residues in the model overlapping
-          with the target binding site.
+        * `bs_ref_res`: a list of residues (:class:`~ost.mol.ResidueHandle`)
+          that define the binding site in the reference.
+        * `bs_ref_res_mapped`: a list of residues
+          (:class:`~ost.mol.ResidueHandle`) in the reference binding site
+          that could be mapped to the model.
+        * `bs_mdl_res_mapped`: a list of residues
+          (:class:`~ost.mol.ResidueHandle`) in the model that were mapped to
+          the reference binding site. The residues are in the same order as
+          `bs_ref_res_mapped`.
         * `bb_rmsd`: the RMSD of the binding site backbone after superposition.
           Note: not used for lDDT-PLI computation.
         * `target_ligand`: residue handle of the target ligand.

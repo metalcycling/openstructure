@@ -354,6 +354,12 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 lddt_pli["transform"] = [transform_data[i:i + 4]
                                          for i in range(0, len(transform_data),
                                                         4)]
+                lddt_pli["bs_ref_res"] = [r.qualified_name for r in
+                                          lddt_pli["bs_ref_res"]]
+                lddt_pli["bs_ref_res_mapped"] = [r.qualified_name for r in
+                                                 lddt_pli["bs_ref_res_mapped"]]
+                lddt_pli["bs_mdl_res_mapped"] = [r.qualified_name for r in
+                                                 lddt_pli["bs_mdl_res_mapped"]]
                 out["lddt_pli"][model_key] = lddt_pli
 
     if args.rmsd:
@@ -367,6 +373,12 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 transform_data = rmsd["transform"].data
                 rmsd["transform"] = [transform_data[i:i + 4]
                                      for i in range(0, len(transform_data), 4)]
+                rmsd["bs_ref_res"] = [r.qualified_name for r in
+                                      rmsd["bs_ref_res"]]
+                rmsd["bs_ref_res_mapped"] = [r.qualified_name for r in
+                                             rmsd["bs_ref_res_mapped"]]
+                rmsd["bs_mdl_res_mapped"] = [r.qualified_name for r in
+                                             rmsd["bs_mdl_res_mapped"]]
                 out["rmsd"][model_key] = rmsd
 
     return out
