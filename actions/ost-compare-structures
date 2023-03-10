@@ -127,7 +127,7 @@ def _ParseArgs():
         default=None,
         type=int,
         help=("Only has an effect if model is in mmcif format. By default, "
-              "the assymetric unit (AU) is used for scoring. If there are "
+              "the asymmetric unit (AU) is used for scoring. If there are "
               "biounits defined in the mmcif file, you can specify the "
               "(0-based) index of the one which should be used."))
 
@@ -139,7 +139,7 @@ def _ParseArgs():
         default=None,
         type=int,
         help=("Only has an effect if reference is in mmcif format. By default, "
-              "the assymetric unit (AU) is used for scoring. If there are "
+              "the asymmetric unit (AU) is used for scoring. If there are "
               "biounits defined in the mmcif file, you can specify the "
               "(0-based) index of the one which should be used."))
 
