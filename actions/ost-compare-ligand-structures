@@ -350,7 +350,10 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 lddt_pli["reference_ligand"] = reference_ligands_map[
                     lddt_pli.pop("target_ligand")]
                 lddt_pli["model_ligand"] = model_key
-                lddt_pli["transform"] = str(lddt_pli["transform"])
+                transform_data = lddt_pli["transform"].data
+                lddt_pli["transform"] = [transform_data[i:i + 4]
+                                         for i in range(0, len(transform_data),
+                                                        4)]
                 out["lddt_pli"][model_key] = lddt_pli
 
     if args.rmsd:
@@ -361,7 +364,9 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 rmsd["reference_ligand"] = reference_ligands_map[
                     rmsd.pop("target_ligand")]
                 rmsd["model_ligand"] = model_key
-                rmsd["transform"] = str(rmsd["transform"])
+                transform_data = rmsd["transform"].data
+                rmsd["transform"] = [transform_data[i:i + 4]
+                                     for i in range(0, len(transform_data), 4)]
                 out["rmsd"][model_key] = rmsd
 
     return out
