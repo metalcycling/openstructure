@@ -48,7 +48,7 @@ options, this is a dictionary with three keys:
 
 Each score is opt-in and, be enabled with optional arguments and is added
 to the output. Keys correspond to the values in "model_ligands" above.
-Only mapped ligands are reported.
+Only assigned (mapped) ligands are reported.
 """
 
 import argparse
