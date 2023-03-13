@@ -148,13 +148,19 @@ def _ParseArgs():
               "a global BLOSUM62-based alignment (NUC44 for nucleotides)."))
 
     parser.add_argument(
-        "-cr",
-        "--check-resnames",
-        dest="check_resnames",
-        default=True,
-        action="store_false",
-        help=("Enforce residue name matches between mapped model and target"
-              "residues."))
+        "-ec",
+        "--enforce-consistency",
+        dest="enforce_consistency",
+        default=False,
+        action="store_true",
+        help=("Enforce consistency of residue names between the reference "
+              "binding site and the model. By default residue name "
+              "discrepancies are reported but the program proceeds. "
+              "If this is set to True, the program will fail with an error "
+              "message if the residues names differ. "
+              "Note: more binding site mappings may be explored during "
+              "scoring, but only inconsistencies in the selected mapping are "
+              "reported."))
 
     parser.add_argument(
         "-sm",
@@ -309,7 +315,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         model_ligands=model_ligands,
         target_ligands=reference_ligands,
         resnum_alignments=args.residue_number_alignment,
-        check_resnames=args.check_resnames,
+        check_resnames=args.enforce_consistency,
         substructure_match=args.substructure_match,
         radius=args.radius,
         lddt_pli_radius=args.lddt_pli_radius,
@@ -360,6 +366,9 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                                                  lddt_pli["bs_ref_res_mapped"]]
                 lddt_pli["bs_mdl_res_mapped"] = [r.qualified_name for r in
                                                  lddt_pli["bs_mdl_res_mapped"]]
+                lddt_pli["inconsistent_residues"] = ["%s-%s" %(
+                    x.qualified_name, y.qualified_name) for x,y in lddt_pli[
+                    "inconsistent_residues"]]
                 out["lddt_pli"][model_key] = lddt_pli
 
     if args.rmsd:
@@ -379,6 +388,9 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                                              rmsd["bs_ref_res_mapped"]]
                 rmsd["bs_mdl_res_mapped"] = [r.qualified_name for r in
                                              rmsd["bs_mdl_res_mapped"]]
+                rmsd["inconsistent_residues"] = ["%s-%s" %(
+                    x.qualified_name, y.qualified_name) for x,y in rmsd[
+                    "inconsistent_residues"]]
                 out["rmsd"][model_key] = rmsd
 
     return out

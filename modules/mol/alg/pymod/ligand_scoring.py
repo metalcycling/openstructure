@@ -488,6 +488,7 @@ class LigandScorer:
                             "chain_mapping": binding_site.GetFlatChainMapping(),
                             "transform": binding_site.transform,
                             "substructure_match": substructure_match,
+                            "inconsistent_residues": binding_site.inconsistent_residues,
                         }
                         LogDebug("Saved RMSD")
 
@@ -548,6 +549,7 @@ class LigandScorer:
                                 "chain_mapping": binding_site.GetFlatChainMapping(),
                                 "transform": binding_site.transform,
                                 "substructure_match": substructure_match,
+                                "inconsistent_residues": binding_site.inconsistent_residues,
                             }
                             LogDebug("Saved lDDT-PLI")
 
@@ -765,6 +767,13 @@ class LigandScorer:
           (substructure) match. A value of `True` indicates that the target
           ligand covers only part of the model, while `False` indicates a
           perfect match.
+        * `inconsistent_residues`: a list of tuples of mapped residues views
+          (:class:`~ost.mol.ResidueView`) with residue names that differ
+          between the reference and the model, respectively.
+          The list is empty if all residue names match, which is guaranteed
+          if `check_resnames=True`.
+          Note: more binding site mappings may be explored during scoring,
+          but only inconsistencies in the selected mapping are reported.
 
         :rtype: :class:`dict`
         """
@@ -820,6 +829,13 @@ class LigandScorer:
           (substructure) match. A value of `True` indicates that the target
           ligand covers only part of the model, while `False` indicates a
           perfect match.
+        * `inconsistent_residues`: a list of tuples of mapped residues views
+          (:class:`~ost.mol.ResidueView`) with residue names that differ
+          between the reference and the model, respectively.
+          The list is empty if all residue names match, which is guaranteed
+          if `check_resnames=True`.
+          Note: more binding site mappings may be explored during scoring,
+          but only inconsistencies in the selected mapping are reported.
 
         :rtype: :class:`dict`
         """

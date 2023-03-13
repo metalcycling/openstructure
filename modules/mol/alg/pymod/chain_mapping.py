@@ -197,6 +197,7 @@ class ReprResult:
         self._gdt_1 = None
         self._ost_query = None
         self._flat_mapping = None
+        self._inconsistent_residues = None
 
     @property
     def lDDT(self):
@@ -228,7 +229,7 @@ class ReprResult:
 
     @property
     def mdl_view(self):
-        """ The :attr:`ref_view` represention in the model
+        """ The :attr:`ref_view` representation in the model
 
         :type: :class:`ost.mol.EntityView`
         """
@@ -249,7 +250,22 @@ class ReprResult:
         :type: :class:`mol.ResidueViewList`
         """
         return self.mdl_view.residues
-    
+
+    @property
+    def inconsistent_residues(self):
+        """ A list of mapped residue whose names do not match (eg. ALA in the
+        reference and LEU in the model).
+
+        The mismatches are reported as a tuple of :class:`~ost.mol.ResidueView`
+        (reference, model), or as an empty list if all the residue names match.
+
+        :type: :class:`list`
+        """
+        if self._inconsistent_residues is None:
+            self._inconsistent_residues = self._GetInconsistentResidues(
+                self.ref_residues, self.mdl_residues)
+        return self._inconsistent_residues
+
     @property
     def ref_bb_pos(self):
         """ Representative backbone positions for reference residues.
@@ -474,6 +490,18 @@ class ReprResult:
                 raise RuntimeError("Something terrible happened... RUN...")
             bb_pos.append(at.GetPos())
         return bb_pos
+
+    def _GetInconsistentResidues(self, ref_residues, mdl_residues):
+        """ Helper to extract a list of inconsistent residues.
+        """
+        if len(ref_residues) != len(mdl_residues):
+            raise ValueError("Something terrible happened... Reference and "
+                             "model lengths differ... RUN...")
+        inconsistent_residues = list()
+        for ref_residue, mdl_residue in zip(ref_residues, mdl_residues):
+            if ref_residue.name != mdl_residue.name:
+                inconsistent_residues.append((ref_residue, mdl_residue))
+        return inconsistent_residues
 
 
 class ChainMapper:
