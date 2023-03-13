@@ -20,11 +20,22 @@ class LigandScorer:
 
     At the moment, two scores are available:
 
-    * lDDT-PLI
-    * Symmetry-corrected RMSD
+    * lDDT-PLI, that looks at the conservation of protein-ligand contacts
+       with :func:`lDDT <ost.mol.alg.LocalDistDiffTest>`.
+    * Binding-site superposed, symmetry-corrected RMSD that assesses the
+      accuracy of the ligand pose.
 
-    The class takes care to perform chain mapping and assignment (mapping) of
-    model and target ligands. This assignment may differ between scores.
+    Both scores involve local chain mapping of the reference binding site
+    onto the model, symmetry-correction, and finally assignment (mapping)
+    of model and target ligands, as described in (Manuscript in preparation).
+
+    Results are available as matrices (`(lddt_pli|rmsd)_matrix`), where every
+    target-model score is reported in a matrix, or as `(lddt_pli|rmsd)` where
+    a model-target assignment has been determined, starting from the "best"
+    possible mapping and using each target and model ligand in a single
+    assignment, and the results are reported in a dictionary. In addition,
+    (`(lddt_pli|rmsd)_details`) methods are available with additional details
+    about different aspects of the scoring such as chain mapping.
 
     The class generally assumes that the
     :attr:`~ost.mol.ResidueHandle.is_ligand` property is properly set on all
@@ -40,14 +51,16 @@ class LigandScorer:
     cause ligands to be removed from the structure. If cleanup with Molck is
     needed, ligands should be kept and passed separately. Non-ligand residues
     should be valid compounds with atom names following the naming conventions
-    of the component dictionary. Non-standard residues are acceptable (and if
+    of the component dictionary. Non-standard residues are acceptable, and if
     the model contains a standard residue at that position, only atoms with
     matching names will be considered.
 
     Unlike most of OpenStructure, this class does not assume that the ligands
     (either in the model or the target) are part of the PDB component
     dictionary. They may have arbitrary residue names. Residue names do not
-    have to match between the model and the target.
+    have to match between the model and the target. Matching is based on
+    the calculation of isomorphisms which depend on the atom element name and
+    atom connectivity (bond order is ignored).
     It is up to the caller to ensure that the connectivity of atoms is properly
     set before passing any ligands to this class. Ligands with improper
     connectivity will lead to bogus results.
