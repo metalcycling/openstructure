@@ -21,7 +21,7 @@ class LigandScorer:
     At the moment, two scores are available:
 
     * lDDT-PLI, that looks at the conservation of protein-ligand contacts
-       with :func:`lDDT <ost.mol.alg.LocalDistDiffTest>`.
+      with :class:`lDDT <ost.mol.alg.lddt.lDDTScorer>`.
     * Binding-site superposed, symmetry-corrected RMSD that assesses the
       accuracy of the ligand pose.
 
@@ -30,11 +30,11 @@ class LigandScorer:
     of model and target ligands, as described in (Manuscript in preparation).
 
     Results are available as matrices (`(lddt_pli|rmsd)_matrix`), where every
-    target-model score is reported in a matrix, or as `(lddt_pli|rmsd)` where
+    target-model score is reported in a matrix; as `(lddt_pli|rmsd)` where
     a model-target assignment has been determined, starting from the "best"
     possible mapping and using each target and model ligand in a single
-    assignment, and the results are reported in a dictionary. In addition,
-    (`(lddt_pli|rmsd)_details`) methods are available with additional details
+    assignment, and the results are reported in a dictionary; and as
+    (`(lddt_pli|rmsd)_details`) methods, which report additional details
     about different aspects of the scoring such as chain mapping.
 
     The class generally assumes that the
