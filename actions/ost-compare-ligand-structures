@@ -284,8 +284,8 @@ def _LoadLigand(file):
     Load a single ligand from file names. Return an entity.
     """
     ligand_ent = ost.io.LoadEntity(file, format="sdf")
-    ligand_ent.Select("ele != H")
-    return ligand_ent.Copy()
+    ligand_view = ligand_ent.Select("ele != H")
+    return ost.mol.CreateEntityFromView(ligand_view, False)
 
 
 def _Validate(structure, ligands, legend, fault_tolerant=False):
