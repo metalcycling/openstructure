@@ -76,8 +76,24 @@ class LigandScorer:
     structures. Here is an example code snippet that will perform a reasonable
     cleanup. Keep in mind that this is most likely not going to work as
     expected with entities loaded from PDB files, as the `is_ligand` flag is
-    probably not set properly. ::
+    probably not set properly.
 
+    Here is a snippet example of how to use this code::
+
+        from ost.mol.alg.ligand_scoring import LigandScorer
+        from ost.mol.alg import Molck, MolckSettings
+
+        # Load data
+        # Structure model in PDB format, containing the receptor only
+        model = io.LoadPDB("path_to_model.pdb")
+        # Ligand model as SDF file
+        model_ligand = io.LoadEntity("path_to_ligand.sdf", format="sdf")
+        # Target loaded from mmCIF, containing the ligand
+        target, _ = io.LoadMMCIF("path_to_target.cif", seqres=True)
+
+        # Cleanup a copy of the structures
+        cleaned_model = model.Copy()
+        cleaned_target = target.Copy()
         molck_settings = MolckSettings(rm_unk_atoms=True,
                                        rm_non_std=False,
                                        rm_hyd_atoms=True,
@@ -86,20 +102,14 @@ class LigandScorer:
                                        colored=False,
                                        map_nonstd_res=False,
                                        assign_elem=True)
-        # Cleanup a copy of the structures
-        cleaned_model = model.Copy()
-        cleaned_target = target.Copy()
         Molck(cleaned_model, conop.GetDefaultLib(), molck_settings)
         Molck(cleaned_target, conop.GetDefaultLib(), molck_settings)
 
-        # LigandScorer can now be instanciated with the polymers from the
-        # molcked structures, and ligands from the original structures.
-        LigandScorer(model=cleaned_model.Select("ligand=False"),
-                     target=cleaned_target.Select("ligand=False"),
-                     model_ligands=[model.Select("ele != H and ligand=True")],
-                     target_ligands=[target.Select("ele != H and ligand=True")],
-                     ...
-                     )
+        # Setup scorer object and compute lDDT-PLI
+        model_ligands = [model_ligand.Select("ele != H")]
+        ls = LigandScorer(model=cleaned_model, target=cleaned_target, model_ligands=model_ligands)
+        print("lDDT-PLI:", ls.lddt_pli)
+        print("RMSD:", ls.rmsd)
 
     :param model: Model structure - a deep copy is available as :attr:`model`.
                   No additional processing (ie. Molck), checks,
