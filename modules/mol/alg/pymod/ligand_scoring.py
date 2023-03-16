@@ -153,7 +153,7 @@ class LigandScorer:
                                 or target ligand exits in the structure,
                                 and `rename_ligand_chain` is False, a
                                 RuntimeError will be raised. If
-                               `rename_ligand_chain` is True, the ligand will
+                                `rename_ligand_chain` is True, the ligand will
                                 be moved to a new chain instead, and the move
                                 will be logged to the console with SCRIPT
                                 level.
