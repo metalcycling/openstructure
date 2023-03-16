@@ -138,6 +138,16 @@ class LigandScorer:
     :param check_resnames:  On by default. Enforces residue name matches
                             between mapped model and target residues.
     :type check_resnames: :class:`bool`
+    :param rename_ligand_chain: If a residue with the same chain name and
+                                residue number than an explicitly passed model
+                                or target ligand exits in the structure,
+                                and `rename_ligand_chain` is False, a
+                                RuntimeError will be raised. If
+                               `rename_ligand_chain` is True, the ligand will
+                                be moved to a new chain instead, and the move
+                                will be logged to the console with SCRIPT
+                                level.
+    :type rename_ligand_chain: :class:`bool`
     :param chain_mapper: a chain mapper initialized for the target structure.
                          If None (default), a chain mapper will be initialized
                          lazily as required.
@@ -158,6 +168,7 @@ class LigandScorer:
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
                  resnum_alignments=False, check_resnames=True,
+                 rename_ligand_chain=False,
                  chain_mapper=None, substructure_match=False,
                  radius=4.0, lddt_pli_radius=6.0, lddt_bs_radius=10.0,
                  binding_sites_topn=100000):
@@ -180,7 +191,9 @@ class LigandScorer:
         if target_ligands is None:
             self.target_ligands = self._extract_ligands(self.target)
         else:
-            self.target_ligands = self._prepare_ligands(self.target, target, target_ligands)
+            self.target_ligands = self._prepare_ligands(self.target, target,
+                                                        target_ligands,
+                                                        rename_ligand_chain)
         if len(self.target_ligands) == 0:
             raise ValueError("No ligands in the target")
 
@@ -188,13 +201,16 @@ class LigandScorer:
         if model_ligands is None:
             self.model_ligands = self._extract_ligands(self.model)
         else:
-            self.model_ligands = self._prepare_ligands(self.model, model, model_ligands)
+            self.model_ligands = self._prepare_ligands(self.model, model,
+                                                       model_ligands,
+                                                       rename_ligand_chain)
         if len(self.model_ligands) == 0:
             raise ValueError("No ligands in the model")
 
         self._chain_mapper = chain_mapper
         self.resnum_alignments = resnum_alignments
         self.check_resnames = check_resnames
+        self.rename_ligand_chain = rename_ligand_chain
         self.substructure_match = substructure_match
         self.radius = radius
         self.lddt_pli_radius = lddt_pli_radius
@@ -266,7 +282,7 @@ class LigandScorer:
         return extracted_ligands
 
     @staticmethod
-    def _prepare_ligands(new_entity, old_entity, ligands):
+    def _prepare_ligands(new_entity, old_entity, ligands, rename_chain):
         """Prepare the ligands given into a list of ResidueHandles which are
         part of the copied entity, suitable for the model_ligands and
         target_ligands properties.
@@ -283,27 +299,40 @@ class LigandScorer:
         next_chain_num = 1
         new_editor = None
 
-        def _copy_residue(handle):
+        def _copy_residue(handle, rename_chain):
             """ Copy the residue handle into the new chain.
             Return the new residue handle."""
             nonlocal next_chain_num, new_editor
-
-            # Does a residue with the same name already exist?
-            already_exists = new_entity.FindResidue(handle.chain.name,
-                                                    handle.number).IsValid()
-            if already_exists:
-                msg = "A residue number %s already exists in chain %s" % (
-                    handle.number, handle.chain.name)
-                raise RuntimeError(msg)
 
             # Instantiate the editor
             if new_editor is None:
                 new_editor = new_entity.EditXCS()
 
-            # Get or create the chain
             new_chain = new_entity.FindChain(handle.chain.name)
             if not new_chain.IsValid():
                 new_chain = new_editor.InsertChain(handle.chain.name)
+            else:
+                # Does a residue with the same name already exist?
+                already_exists = new_chain.FindResidue(handle.number).IsValid()
+                if already_exists:
+                    if rename_chain:
+                        chain_ext = 2  # Extend the chain name by this
+                        while True:
+                            new_chain_name = handle.chain.name + "_" + str(chain_ext)
+                            new_chain = new_entity.FindChain(new_chain_name)
+                            if new_chain.IsValid():
+                                chain_ext += 1
+                                continue
+                            else:
+                                new_chain = new_editor.InsertChain(new_chain_name)
+                                break
+                        LogScript("Moved ligand residue %s to new chain %s" % (
+                            handle.qualified_name, new_chain.name))
+                    else:
+                        msg = "A residue number %s already exists in chain %s" % (
+                            handle.number, handle.chain.name)
+                        raise RuntimeError(msg)
+
             # Add the residue with its original residue number
             new_res = new_editor.AppendResidue(new_chain, handle, deep=True)
             for old_atom in handle.atoms:
@@ -313,7 +342,7 @@ class LigandScorer:
                     new_editor.Connect(new_first, new_second)
             return new_res
 
-        def _process_ligand_residue(res):
+        def _process_ligand_residue(res, rename_chain):
             """Copy or fetch the residue. Return the residue handle."""
             if res.entity.handle == old_entity.handle:
                 # Residue is already in copied entity. We only need to grab it
@@ -321,7 +350,7 @@ class LigandScorer:
                 LogVerbose("Ligand residue %s already in entity" % res.handle.qualified_name)
             else:
                 # Residue is not part of the entity, need to copy it first
-                new_res = _copy_residue(res.handle)
+                new_res = _copy_residue(res.handle, rename_chain)
                 LogVerbose("Copied ligand residue %s" % res.handle.qualified_name)
             new_res.SetIsLigand(True)
             return new_res
@@ -329,10 +358,10 @@ class LigandScorer:
         for ligand in ligands:
             if isinstance(ligand, mol.EntityHandle) or isinstance(ligand, mol.EntityView):
                 for residue in ligand.residues:
-                    new_residue = _process_ligand_residue(residue)
+                    new_residue = _process_ligand_residue(residue, rename_chain)
                     extracted_ligands.append(new_residue)
             elif isinstance(ligand, mol.ResidueHandle) or isinstance(ligand, mol.ResidueView):
-                new_residue = _process_ligand_residue(ligand)
+                new_residue = _process_ligand_residue(ligand, rename_chain)
                 extracted_ligands.append(new_residue)
             else:
                 raise RuntimeError("Ligands should be given as Entity or Residue")
