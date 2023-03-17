@@ -21,7 +21,9 @@
  */
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/convenience.hpp>
 #include <boost/format.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 #include <boost/lexical_cast.hpp>
 #include <ost/mol/bond_handle.hh>
 #include <ost/conop/conop.hh>
@@ -58,7 +60,7 @@ void SDFReader::Import(mol::EntityHandle& ent)
 {
   String line;
   mol::XCSEditor editor=ent.EditXCS(mol::BUFFERED_EDIT);
-  while (std::getline(instream_,line)) {
+  while (std::getline(in_,line)) {
     ++line_num;
 
     // std::getline removes EOL character but may leave a DOS CR (\r) in Unix
@@ -87,7 +89,7 @@ void SDFReader::Import(mol::EntityHandle& ent)
         throw IOException(str(format(msg) % line_num));
       }
       String data_value="";
-      while(std::getline(instream_,line) && !boost::iequals(line, "")) {
+      while(std::getline(in_,line) && !boost::iequals(line, "")) {
         data_value.append(line);
       }
       curr_chain_.SetStringProp(data_header, data_value);
@@ -103,6 +105,10 @@ void SDFReader::Import(mol::EntityHandle& ent)
 
 void SDFReader::ClearState(const boost::filesystem::path& loc)
 {
+  if (boost::iequals(".gz", boost::filesystem::extension(loc))) {
+    in_.push(boost::iostreams::gzip_decompressor());
+  }
+  in_.push(instream_);
   if(!infile_) throw IOException("could not open "+loc.string());
   curr_chain_=mol::ChainHandle();
   curr_residue_=mol::ResidueHandle();

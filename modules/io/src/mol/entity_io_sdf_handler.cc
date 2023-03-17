@@ -69,7 +69,7 @@ bool sdf_handler_is_responsible_for(const boost::filesystem::path& loc,
   if(type=="auto") {
 	String match_suf_string=loc.string();
     std::transform(match_suf_string.begin(),match_suf_string.end(),match_suf_string.begin(),tolower);
-    if(detail::FilenameEndsWith(match_suf_string,".sdf")) {
+    if(detail::FilenameEndsWith(match_suf_string,".sdf") || detail::FilenameEndsWith(match_suf_string,".sdf.gz")) {
       return true;
     }
 
