@@ -61,6 +61,13 @@ void SDFReader::Import(mol::EntityHandle& ent)
   while (std::getline(instream_,line)) {
     ++line_num;
 
+    // std::getline removes EOL character but may leave a DOS CR (\r) in Unix
+    size_t cr_pos = line.find("\r");
+    if (cr_pos != String::npos) {
+        LOG_TRACE( "Remove CR@" << cr_pos);
+        line.erase(cr_pos);
+    }
+
     if (line_num<=4) {
       ParseAndAddHeader(line, line_num, ent, editor);
     } else if (line_num<=atom_count_+4) {
