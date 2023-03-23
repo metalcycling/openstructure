@@ -236,8 +236,10 @@ After downloading the file use :program:`chemdict_tool` to convert the MMCIF  di
   
   chemdict_tool create <components.cif> <compounds.chemlib>
 
-Note that the :program:`chemdict_tool` only understands `.cif` and `.cif.gz` 
-files. If you have would like to use other sources for the compound definitions, consider writing a script by using the :doc:`compound library <compoundlib>` API.
+Notes:
+
+- The :program:`chemdict_tool` only understands `.cif` and `.cif.gz` files. If you have would like to use other sources for the compound definitions, consider writing a script by using the :doc:`compound library <compoundlib>` API.
+- This also loads compounds which are obsoleted by the PDB to maximize compatibility with older PDB files.
 
 If you are working with CHARMM trajectory files, you will also have to add the 
 definitions for CHARMM. Assuming your are in the top-level source directory of 
