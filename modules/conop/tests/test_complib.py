@@ -23,9 +23,11 @@ class TestCompLib(unittest.TestCase):
 
         comp_001 = complib.FindCompound("001")
         comp_hello = complib.FindCompound("hello")
+        comp_yolo = complib.FindCompound("yolo")
 
         self.assertFalse(comp_001 is None)
         self.assertFalse(comp_hello is None)
+        self.assertTrue(comp_yolo is None)
 
 if __name__ == "__main__":
     from ost import testutils
