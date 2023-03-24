@@ -109,8 +109,8 @@ be extended with custom  connectivity information, if required.
 
 .. class:: HeuristicProcessor(check_bond_feasibility=False, \
                               assign_torsions=True, connect=True, \
-                              peptide_bonds=True,
-                              connect_hetatm=True,
+                              peptide_bonds=True, \
+                              connect_hetatm=True, \
                               zero_occ_treatment=CONOP_WARN)
    
   The :class:`HeuristicProcessor` implements the :class:`Processor` interface.
