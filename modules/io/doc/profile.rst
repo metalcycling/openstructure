@@ -154,8 +154,11 @@ The IOProfile Class
     Only relevant when reading PDB format. When set to true, reads CONECT
     statements and applies them in the pdb reader. This can result in
     hydrogen bonds salt bridges etc. to be connected. Check the PDB format
-    definition for more info. Disables connectity generation in case of HETATM
-    in processor except for water.
+    definition for more info. This may cause issues in subsequent processing
+    with the processor as we suddenly have two places where connectivity is
+    built. For the use case of valid CONECT statements for all hetatms, you
+    may want to disable processing of bonds between them in
+    :attr:`ost.conop.Processor.connect_hetatm`
 
   .. attribute:: processor
 
