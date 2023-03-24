@@ -7,15 +7,13 @@ Connectivity
 Motivation
 --------------------------------------------------------------------------------
 
-
 The connectivity of atoms is notoriously difficult to come by for biological 
 macromolecules. PDB files, the de facto standard exchange format for structural 
 information allows bonds to be specified in CONECT records. However, they are not
-mandatory. Many programs, especially the ones not requiring on connectivity of 
+mandatory. Many programs, especially the ones not depending on connectivity of
 atoms, do not write CONECT records. As a result, programs and structural biology 
 frameworks can't rely on connectivity information to be present. The connectivity
 information needs to be derived in the program itself.
-
 
 Loader heuristics are great if you are the one that implemented them but are 
 problematic if you are just the user of a software that has them. As time goes 
@@ -41,12 +39,13 @@ Processors
 
 The exact behaviour for a processor is implementation-specific. So far, two
 classes implement the processor interface: A heuristic and a rule-based
-processor. The processor mainly differ in the source of their connectivity
-information. The Heuristicprocessor uses a hard-coded heuristic connectivity
-table for the 20  standard amino acids as well as nucleotides.For other
-compounds such as ligands the HeuristicProcessor runs a distance-based
+processor. The processors mainly differ in the source of their connectivity
+information. The `HeuristicProcessor` uses a hard-coded heuristic connectivity
+table for the 20  standard amino acids as well as nucleotides. For other
+compounds such as ligands the `HeuristicProcessor` runs a distance-based
 connectivity algorithm that connects two atoms if they are closer than a certain
-threshold. The RuleBasedProcessor uses a connectivity library containing all
+threshold. The `RuleBasedProcessor` uses the
+:doc:`compound library <compoundlib>`, a connectivity library containing all
 molecular components present in the PDB files on PDB.org. The library can easily
 be extended with custom  connectivity information, if required.
 
