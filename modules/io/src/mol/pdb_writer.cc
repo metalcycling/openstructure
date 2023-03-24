@@ -35,6 +35,7 @@
 #include <ost/mol/residue_handle.hh>
 #include <ost/mol/chain_handle.hh>
 #include <ost/mol/entity_visitor.hh>
+#include <ost/mol/bond_handle.hh>
 #include "pdb_writer.hh"
 
 using boost::format;
@@ -337,20 +338,21 @@ public:
   }
 private:
 public:
-  virtual bool VisitAtom(const mol::AtomHandle& atom) {
+virtual bool VisitAtom(const mol::AtomHandle& atom) {
     if (atom.IsHetAtom()) {
       bool has_partner=false;
       int atom_index=atom_indices_[atom.GetHashCode()];
       mol::AtomHandleList partners=atom.GetBondPartners();
       std::list<int> partner_indices;
-      for (mol::AtomHandleList::const_iterator i=partners.begin();
-           i!=partners.end(); ++i) {
-        int pind=atom_indices_[i->GetHashCode()];
-        if (pind!=0) {
-          partner_indices.push_back(pind);
-          has_partner=true;
+        for (auto partner : partners){
+          mol::BondHandle bond = atom.FindBondToAtom(partner);
+          int pind=atom_indices_[partner.GetHashCode()];
+          if (pind!=0) {   
+            for (int i=0; i < int(bond.GetBondOrder()); i++)
+              {partner_indices.push_back(pind);}
+            has_partner=true;
+          }
         }
-      }
       if (has_partner) {
         write_conect(ostr_, atom_index, partner_indices);
       }

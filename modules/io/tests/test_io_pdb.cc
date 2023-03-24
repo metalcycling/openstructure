@@ -724,13 +724,15 @@ BOOST_AUTO_TEST_CASE(write_ter6)
                             "testfiles/pdb/ter4-out.pdb"));
 }
 
-BOOST_AUTO_TEST_CASE(write_conect)
+BOOST_AUTO_TEST_CASE(read_write_conect)
 {
   // this scope is required to force the writer stream to be closed before
   // opening the file again in compare_files. Avoids a race condition.
   {
-    PDBReader reader(String("testfiles/pdb/conect.pdb"), IOProfile());
-    PDBWriter writer(String("testfiles/pdb/conect-out.pdb"), IOProfile());
+    IOProfile profile;
+    profile.read_conect=true;
+    PDBReader reader(String("testfiles/pdb/conect.pdb"), profile);
+    PDBWriter writer(String("testfiles/pdb/conect-out.pdb"), profile);
     mol::EntityHandle ent=mol::CreateEntity();
     reader.Import(ent);
     conop::HeuristicProcessor heu_proc;
@@ -973,7 +975,7 @@ BOOST_AUTO_TEST_CASE(charmm_rname)
 {
   {
     PDBWriter writer(String("testfiles/pdb/charmm_rname-out.pdb"),
-                     IOProfile("CHARMM", false, false, false, false, false));
+                     IOProfile("CHARMM", false, false, false, false, false, false));
 
     mol::EntityHandle ent=mol::CreateEntity();
     mol::XCSEditor edi=ent.EditXCS();
@@ -992,7 +994,7 @@ BOOST_AUTO_TEST_CASE(charmm_longcname)
 {
   {
     PDBWriter writer(String("testfiles/pdb/charmm_longcname-out.pdb"),
-                     IOProfile("CHARMM", false, false, false, false, false));
+                     IOProfile("CHARMM", false, false, false, false, false, false));
 
     mol::EntityHandle ent=mol::CreateEntity();
     mol::XCSEditor edi=ent.EditXCS();
@@ -1011,7 +1013,7 @@ BOOST_AUTO_TEST_CASE(write_charmm_ter)
 {
   {
     PDBWriter writer(String("testfiles/pdb/charmm_ter-out.pdb"),
-                     IOProfile("CHARMM", false, false, false, false, false));
+                     IOProfile("CHARMM", false, false, false, false, false, false));
 
     mol::EntityHandle ent=mol::CreateEntity();
     mol::XCSEditor edi=ent.EditXCS();

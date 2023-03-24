@@ -304,6 +304,9 @@ void Processor::ConnectAtomsOfResidue(mol::ResidueHandle rh,
                                   a2.GetElement()=="D")) {
           continue;
         }
+        if (!connect_hetatm_ && a1.IsHetAtom() && a2.IsHetAtom()) {
+          continue;
+        }
         if (!this->GetCheckBondFeasibility()) {
           e.Connect(a1, a2, bond.order);
         } else { 
@@ -391,6 +394,9 @@ void Processor::DistanceBasedConnect(mol::AtomHandle atom) const
   for (mol::AtomHandleList::const_iterator it=alist.begin(),
        e=alist.end();it!=e;++it) {
     if (*it!=atom) {
+      if (!connect_hetatm_ && it->IsHetAtom() && atom.IsHetAtom()) {
+        continue;
+      }
       if (IsBondFeasible(atom, *it)) {
         if (it->GetResidue()==res_a ||
             Processor::AreResiduesConsecutive(res_a, it->GetResidue())) {

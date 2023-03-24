@@ -94,6 +94,15 @@ be extended with custom  connectivity information, if required.
 
     :type: :class:`ConopAction`
 
+  .. attribute:: connect_hetatm
+
+    :type: :class:`bool`
+
+    Whether to connect atoms that are both hetatms. Enabled by default.
+    Disabling can be useful if there are compounds which are not covered
+    by the PDB component dictionary and you prefer to create your own
+    connectivity for those.
+
   .. method:: Process(ent)
   
     Processess the entity *ent* according to the current options.
@@ -101,7 +110,9 @@ be extended with custom  connectivity information, if required.
 
 .. class:: HeuristicProcessor(check_bond_feasibility=False, \
                               assign_torsions=True, connect=True, \
-                              peptide_bonds=True, zero_occ_treatment=CONOP_WARN)
+                              peptide_bonds=True,
+                              connect_hetatm=True,
+                              zero_occ_treatment=CONOP_WARN)
    
   The :class:`HeuristicProcessor` implements the :class:`Processor` interface.
   Refer to its documentation for methods and accessors common to all processor.
@@ -110,6 +121,7 @@ be extended with custom  connectivity information, if required.
   :param assign_torsions: Sets :attr:`~Processor.assign_torsions`
   :param connect: Sets :attr:`~Processor.connect`
   :param peptide_bonds: Sets :attr:`~Processor.peptide_bonds`
+  :param connect_hetatm: Sets :attr:`~Processor.connect_hetatm`
   :param zero_occ_treatment: Sets :attr:`~Processor.zero_occ_treatment`
 
 
@@ -119,7 +131,8 @@ be extended with custom  connectivity information, if required.
                               unknown_atom_treatment=CONOP_WARN, \
                               check_bond_feasibility=False, \
                               assign_torsions=True, connect=True, \
-                              peptide_bonds=True, zero_occ_treatment=CONOP_WARN)
+                              peptide_bonds=True, connect_hetatm=True, \
+                              zero_occ_treatment=CONOP_WARN)
    
   The :class:`RuleBasedProcessor` implements the :class:`Processor` interface.
   Refer to its documentation for methods and accessors common to all processor.
@@ -134,6 +147,7 @@ be extended with custom  connectivity information, if required.
   :param assign_torsions: Sets :attr:`~Processor.assign_torsions`
   :param connect: Sets :attr:`~Processor.connect`
   :param peptide_bonds: Sets :attr:`~Processor.peptide_bonds`
+  :param connect_hetatm: Sets :attr:`~Processor.connect_hetatm`
   :param zero_occ_treatment: Sets :attr:`~Processor.zero_occ_treatment`
 
   .. attribute:: fix_elements

@@ -28,7 +28,7 @@ void export_rule_based() {
   class_<RuleBasedProcessor, RuleBasedProcessorPtr, 
          boost::noncopyable, bases<Processor> >("RuleBasedProcessor", 
          init<CompoundLibPtr>())
-    .def(init<CompoundLibPtr,bool,bool,ConopAction,ConopAction,bool,bool,bool,bool,ConopAction>(
+    .def(init<CompoundLibPtr,bool,bool,ConopAction,ConopAction,bool,bool,bool,bool,bool,ConopAction>(
          (arg("lib"), arg("fix_elements")=true, arg("strict_hydrogens")=false,
          arg("unknown_res_treatment")=CONOP_WARN,
          arg("unknown_atom_treatment")=CONOP_WARN,
@@ -36,6 +36,7 @@ void export_rule_based() {
          arg("assign_torsions")=true,
          arg("connect")=true,
          arg("peptide_bonds")=true,
+         arg("connect_hetatm")=true,
          arg("zero_occ_treatment")=CONOP_WARN)))
     .add_property("fix_element", &RuleBasedProcessor::GetFixElement,
                  &RuleBasedProcessor::SetFixElement)

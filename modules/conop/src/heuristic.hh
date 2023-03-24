@@ -41,8 +41,9 @@ public:
   virtual ProcessorPtr Copy() const {
     return ProcessorPtr(new HeuristicProcessor(*this));
   }
-  HeuristicProcessor(bool bf, bool at, bool cn, bool aa, ConopAction zo): 
-    Processor(bf, at, cn, aa, zo),
+  HeuristicProcessor(bool bf, bool at, bool cn, bool aa, bool ch,
+                     ConopAction zo): 
+    Processor(bf, at, cn, aa, ch, zo),
     lib_()
   {}
 
