@@ -151,14 +151,15 @@ The IOProfile Class
 
     :type: bool
 
-    Only relevant when reading PDB format. When set to true, reads CONECT
-    statements and applies them in the pdb reader. This can result in
-    hydrogen bonds salt bridges etc. to be connected. Check the PDB format
-    definition for more info. This may cause issues in subsequent processing
-    with the processor as we suddenly have two places where connectivity is
-    built. For the use case of valid CONECT statements for all hetatms, you
-    may want to disable processing of bonds between them in
-    :attr:`ost.conop.Processor.connect_hetatm`
+    Only relevant when reading files in PDB format. When set to true, reads CONECT
+    statements and applies them in the PDB reader. This can result in
+    hydrogen bonds, salt bridges etc. to be connected. Check the PDB format
+    definition for more info. This may cause issues in subsequent processing,
+    such as bonds being overriden, or extra, inconsistent bonds, as the
+    processor suddenly has two separate sources of connectivity.
+    For the use case where the input PDB file contains valid CONECT
+    statements for all hetatms, you may want to disable processing of bonds
+    between them in :attr:`ost.conop.Processor.connect_hetatm`
 
   .. attribute:: processor
 
