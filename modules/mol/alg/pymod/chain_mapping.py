@@ -1278,7 +1278,7 @@ class ChainMapper:
             ch_name = r.GetChain().GetName()
             rnum = r.GetNumber()
             target_r = self.target.FindResidue(ch_name, rnum)
-            if target_r is None:
+            if not target_r.IsValid():
                 raise RuntimeError(f"substructure has residue "
                                    f"{r.GetQualifiedName()} which is not in "
                                    f"self.target")
@@ -1290,7 +1290,7 @@ class ChainMapper:
                                    f"EntityHandle")
             for a in r.atoms:
                 target_a = target_r.FindAtom(a.GetName())
-                if target_a is None:
+                if not target_a.IsValid():
                     raise RuntimeError(f"substructure has atom "
                                        f"{a.GetQualifiedName()} which is not "
                                        f"in self.target")
@@ -1305,7 +1305,7 @@ class ChainMapper:
             ca = r.FindAtom("CA")
             c3 = r.FindAtom("C3'") # FindAtom with prime in string is tested
                                    # and works
-            if ca is None and c3 is None:
+            if not ca.IsValid() and not c3.IsValid():
                 raise RuntimeError("All residues in substructure must contain "
                                    "a backbone atom named CA or C3\'")
 
