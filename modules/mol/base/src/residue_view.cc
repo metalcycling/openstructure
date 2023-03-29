@@ -285,4 +285,10 @@ bool ResidueView::HasAtoms() const {
   return data_->atoms.size()>0;
 }
 
+unsigned long ResidueView::GetHashCode() const
+{
+  this->CheckValidity();
+  return reinterpret_cast<unsigned long>(data_.get());
+}
+
 }} //ns

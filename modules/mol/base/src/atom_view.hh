@@ -87,7 +87,7 @@ public:
   /// 
   /// The unique id is the same for all AtomViews pointing to the same atom 
   /// view data. 
-  long GetHashCode() const;
+  unsigned long GetHashCode() const;
   bool operator==(const AtomView& rhs) const;
   bool operator!=(const AtomView& rhs) const;
 protected:

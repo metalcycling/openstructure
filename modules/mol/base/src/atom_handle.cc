@@ -116,10 +116,10 @@ AtomHandle AtomHandle::GetHandle() const
   return *this;
 }
 
-long AtomHandle::GetHashCode() const 
+unsigned long AtomHandle::GetHashCode() const
 {
   this->CheckValidity();  
-  return reinterpret_cast<long>(Impl().get());
+  return reinterpret_cast<unsigned long>(Impl().get());
 }
 
 }} // ns

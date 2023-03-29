@@ -94,7 +94,10 @@ void export_ResidueView()
     .def("GetGeometricStart", geom_start<ResidueView>)
     .def("GetGeometricEnd", geom_end<ResidueView>) 
     .def("GetBounds", &ResidueView::GetBounds)
-    .add_property("bounds", &ResidueView::GetBounds)    
+    .add_property("bounds", &ResidueView::GetBounds)
+    .def("__hash__", &ResidueView::GetHashCode)
+    .def("GetHashCode", &ResidueView::GetHashCode)
+    .add_property("hash_code", &ResidueView::GetHashCode)
   ;
 
 

@@ -116,6 +116,9 @@ void export_Chain()
     .def("GetGeometricEnd", geom_end<ChainHandle>)
     .def(self==self)
     .def(self!=self)
+    .def("__hash__", &ChainHandle::GetHashCode)
+    .def("GetHashCode", &ChainHandle::GetHashCode)
+    .add_property("hash_code", &ChainHandle::GetHashCode)
   ;
   
   class_<ChainHandleList>("ChainHandleList", no_init)

@@ -87,7 +87,7 @@ public:
   /// 
   /// Get hash code that uniquely identifies every atom. The hash code is
   /// identical for all atom views pointing to a given atom.
-  long GetHashCode() const;
+  unsigned long GetHashCode() const;
   
   bool operator==(const AtomHandle& ref) const;
   bool operator!=(const AtomHandle& ref) const;

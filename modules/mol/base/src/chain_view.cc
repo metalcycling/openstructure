@@ -477,5 +477,11 @@ bool ChainView::HasAtoms() const {
   return false;
 }
 
+unsigned long ChainView::GetHashCode() const
+{
+  this->CheckValidity();
+  return reinterpret_cast<unsigned long>(data_.get());
+}
+
 }} // ns
 

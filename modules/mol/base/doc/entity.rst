@@ -484,6 +484,15 @@ The Handle Classes
 
      :type: :class:`ChainType`.
 
+  .. attribute:: hash_code
+
+    A unique identifier for this chain. Note that a deep copy of an entity (see
+    :meth:`EntityHandle.Copy`) will have chains with differing identifiers.
+    Shallow copies of the entity preserve the identifier.
+    Also available as :meth:`GetHashCode`.
+
+    :type: int
+
   .. attribute:: valid
 
     Validity of handle.
@@ -557,6 +566,12 @@ The Handle Classes
   .. method:: GetDescription()
 
     See :attr:`description`
+
+  .. method:: GetHashCode()
+
+    See :attr:`hash_code`
+
+    :rtype: int
 
   .. method:: IsValid()
   
@@ -784,6 +799,15 @@ The Handle Classes
 
     :type: :class:`~ost.geom.Vec3`
 
+  .. attribute:: hash_code
+
+    A unique identifier for this residue. Note that a deep copy of an entity (see
+    :meth:`EntityHandle.Copy`) will have residues with differing identifiers.
+    Shallow copies of the entity preserve the identifier. Also available as
+    :meth:`GetHashCode`.
+
+    :type: int
+
   .. attribute:: valid
 
     Validity of handle.
@@ -959,6 +983,12 @@ The Handle Classes
     
     See :attr:`central_normal`
 
+  .. method:: GetHashCode()
+
+    See :attr:`hash_code`
+
+    :rtype: int
+
   .. method:: IsValid()
   
     See :attr:`valid`
@@ -1099,7 +1129,8 @@ The Handle Classes
     :meth:`EntityHandle.Copy`) will have atoms with differing identifiers.
     Shallow copies of the entity preserve the identifier. Atom views on a handle
     have different identifiers, but the atom view handles (see
-    :attr:`AtomView.handle`) have the same identifier.
+    :attr:`AtomView.handle`) have the same identifier. Also available
+    as :meth:`GetHashCode`.
 
     :type: int
 
@@ -1331,7 +1362,7 @@ The View Classes
 .. class:: EntityView
 
   An entity view represents a structural subset of an :class:`EntityHandle`. For 
-  an introduction ,see :doc:`../../intro-01`.
+  an introduction, see :doc:`../../intro-01`.
 
   .. attribute:: handle
 
@@ -1703,6 +1734,14 @@ The View Classes
 
     :type: :class:`ChainHandle`
 
+  .. attribute:: hash_code
+
+    A unique identifier for this chain view. Note, that this is not the same as
+    for the chain handle (see :attr:`ChainHandle.hash_code`).
+    Also available as :meth:`GetHashCode`.
+
+    :type: int
+
   .. attribute:: name
   
      The chain name. The name uniquely identifies the chain in the entity. In
@@ -1863,6 +1902,10 @@ The View Classes
 
     See :attr:`handle`
 
+  .. method:: GetHashCode()
+    
+    See :attr:`hash_code`
+
   .. method:: GetMass()
 
     See :attr:`mass`
@@ -1926,6 +1969,14 @@ The View Classes
     :meth:`GetHandle`.
 
     :type: :class:`ResidueHandle`
+
+  .. attribute:: hash_code
+
+    A unique identifier for this residue view. Note, that this is not the same as
+    for the residue handle (see :attr:`ResidueHandle.hash_code`).
+    Also available as :meth:`GetHashCode`.
+
+    :type: int
 
   .. attribute:: name
                  qualified_name
@@ -1993,6 +2044,10 @@ The View Classes
   .. method:: GetHandle()
 
     See :attr:`handle`
+
+  .. method:: GetHashCode()
+    
+    See :attr:`hash_code`
 
   .. method:: GetName
               GetQualifiedName
@@ -2093,6 +2148,7 @@ The View Classes
 
     A unique identifier for this atom view. Note, that this is not the same as
     for the atom handle (see :attr:`AtomHandle.hash_code`).
+    Also available as :meth:`GetHashCode`.
 
     :type: int
 
