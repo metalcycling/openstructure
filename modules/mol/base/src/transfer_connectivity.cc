@@ -110,24 +110,28 @@ public:
     }
     // educated guess: we are trying to connect to the previous/next residue
     std::map<ResidueHandle, ResidueHandle>::const_iterator j;
-    j = to_from_->find(dst_res.GetPrev());
-    if (j != to_from_->end()) {
-      if (j->second == r) {
-        if (CheckInsertionCode(
-                              j->first.FindAtom(src_atom.GetName()).GetResidue(),
-                              r, dst_res)) {
-          return j->first.FindAtom(src_atom.GetName());
+    if (dst_res.GetPrev().IsValid()) {
+      j = to_from_->find(dst_res.GetPrev());
+      if (j != to_from_->end()) {
+        if (j->second == r) {
+          if (CheckInsertionCode(
+                                j->first.FindAtom(src_atom.GetName()).GetResidue(),
+                                r, dst_res)) {
+            return j->first.FindAtom(src_atom.GetName());
+          }
         }
       }
     }
-    j = to_from_->find(dst_res.GetNext());
-    if (j != to_from_->end()) {
-      if (j->second == r) {
-        if (CheckInsertionCode(
-                              j->first.FindAtom(src_atom.GetName()).GetResidue(),
-                              r, dst_res)) {
-            return j->first.FindAtom(src_atom.GetName());
-          }
+    if (dst_res.GetNext().IsValid()) {
+      j = to_from_->find(dst_res.GetNext());
+      if (j != to_from_->end()) {
+        if (j->second == r) {
+          if (CheckInsertionCode(
+                                j->first.FindAtom(src_atom.GetName()).GetResidue(),
+                                r, dst_res)) {
+              return j->first.FindAtom(src_atom.GetName());
+            }
+        }
       }
     }
     // still nothing. scan linearly through all residues.
