@@ -123,7 +123,8 @@ void PDBReader::ParseCompndEntry (const StringRef& line, int line_num)
                   << ": record is too short");
       return;
     }
-    std::stringstream ss("invalid COMPND record on line ");
+    std::stringstream ss;
+    ss << "invalid COMPND record on line ";
     ss << line_num <<": record is too short";
     throw IOException(ss.str());
   }
@@ -133,7 +134,8 @@ void PDBReader::ParseCompndEntry (const StringRef& line, int line_num)
                   << ": record is too long");
       return;
     }
-    std::stringstream ss("invalid COMPND record on line ");
+    std::stringstream ss;
+    ss << "invalid COMPND record on line ";
     ss << line_num <<": whole record is too long";
     throw IOException(ss.str());
   }
@@ -255,7 +257,8 @@ void PDBReader::ParseSeqRes(const StringRef& line, int line_num)
                   << ": record is too short");
       return;
     }
-    std::stringstream ss("invalid SEQRES record on line ");
+    std::stringstream ss;
+    ss << "invalid SEQRES record on line ";
     ss << line_num <<": record is too short";
     throw IOException(ss.str());
   }
@@ -942,7 +945,8 @@ void PDBReader::ParseConectEntry (const StringRef& line, int line_num, mol::Enti
                   << ": record is too short");
       return;
     }
-    std::stringstream ss("invalid CONECT record on line ");
+    std::stringstream ss;
+    ss << "invalid CONECT record on line ";
     ss << line_num <<": record is too short";
     throw IOException(ss.str());
   }
@@ -952,7 +956,8 @@ void PDBReader::ParseConectEntry (const StringRef& line, int line_num, mol::Enti
                   << ": record is too long");
       return;
     }
-    std::stringstream ss("invalid CONECT record on line ");
+    std::stringstream ss;
+    ss << "invalid CONECT record on line ";
     ss << line_num <<": whole record is too long";
     throw IOException(ss.str());
   }
