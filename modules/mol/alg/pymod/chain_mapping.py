@@ -19,6 +19,14 @@ from ost import geom
 from ost.mol.alg import lddt
 from ost.mol.alg import qsscore
 
+def _CSel(ent, cnames):
+    """ Returns view with specified chains
+
+    Ensures that quotation marks are around chain names to not confuse
+    OST query language with weird special characters.
+    """
+    query = "cname=" + ','.join([mol.QueryQuoteName(cname) for cname in cnames])
+    return ent.Select(query)
 
 class MappingResult:
     """ Result object for the chain mapping functions in :class:`ChainMapper`
@@ -26,11 +34,12 @@ class MappingResult:
     Constructor is directly called within the functions, no need to construct
     such objects yourself.
     """
-    def __init__(self, target, model, chem_groups, mapping, alns,
+    def __init__(self, target, model, chem_groups, chem_mapping, mapping, alns,
                  opt_score=None):
         self._target = target
         self._model = model
         self._chem_groups = chem_groups
+        self._chem_mapping = chem_mapping
         self._mapping = mapping
         self._alns = alns
         self._opt_score = opt_score
@@ -63,6 +72,14 @@ class MappingResult:
         :class:`list` of :class:`list` of :class:`str` (chain names)
         """
         return self._chem_groups
+
+    @property
+    def chem_mapping(self):
+        """ Assigns chains in :attr:`~model` to :attr:`~chem_groups`.
+
+        :class:`list` of :class:`list` of :class:`str` (chain names)
+        """
+        return self._chem_mapping
 
     @property
     def mapping(self):
@@ -180,6 +197,7 @@ class ReprResult:
         self._gdt_1 = None
         self._ost_query = None
         self._flat_mapping = None
+        self._inconsistent_residues = None
 
     @property
     def lDDT(self):
@@ -211,7 +229,7 @@ class ReprResult:
 
     @property
     def mdl_view(self):
-        """ The :attr:`ref_view` represention in the model
+        """ The :attr:`ref_view` representation in the model
 
         :type: :class:`ost.mol.EntityView`
         """
@@ -232,7 +250,22 @@ class ReprResult:
         :type: :class:`mol.ResidueViewList`
         """
         return self.mdl_view.residues
-    
+
+    @property
+    def inconsistent_residues(self):
+        """ A list of mapped residue whose names do not match (eg. ALA in the
+        reference and LEU in the model).
+
+        The mismatches are reported as a tuple of :class:`~ost.mol.ResidueView`
+        (reference, model), or as an empty list if all the residue names match.
+
+        :type: :class:`list`
+        """
+        if self._inconsistent_residues is None:
+            self._inconsistent_residues = self._GetInconsistentResidues(
+                self.ref_residues, self.mdl_residues)
+        return self._inconsistent_residues
+
     @property
     def ref_bb_pos(self):
         """ Representative backbone positions for reference residues.
@@ -383,7 +416,9 @@ class ReprResult:
                 chain_rnums[chname].append(str(rnum))
             chain_queries = list()
             for k,v in chain_rnums.items():
-                chain_queries.append(f"(cname={k} and rnum={','.join(v)})")
+                q = f"(cname={mol.QueryQuoteName(k)} and "
+                q += f"rnum={','.join(v)})"
+                chain_queries.append(q)
             self._ost_query = " or ".join(chain_queries)
         return self._ost_query
 
@@ -455,6 +490,18 @@ class ReprResult:
                 raise RuntimeError("Something terrible happened... RUN...")
             bb_pos.append(at.GetPos())
         return bb_pos
+
+    def _GetInconsistentResidues(self, ref_residues, mdl_residues):
+        """ Helper to extract a list of inconsistent residues.
+        """
+        if len(ref_residues) != len(mdl_residues):
+            raise ValueError("Something terrible happened... Reference and "
+                             "model lengths differ... RUN...")
+        inconsistent_residues = list()
+        for ref_residue, mdl_residue in zip(ref_residues, mdl_residues):
+            if ref_residue.name != mdl_residue.name:
+                inconsistent_residues.append((ref_residue, mdl_residue))
+        return inconsistent_residues
 
 
 class ChainMapper:
@@ -840,11 +887,11 @@ class ChainMapper:
                 for ref_ch, mdl_ch in zip(ref_group, mdl_group):
                     if ref_ch is not None and mdl_ch is not None:
                         aln = ref_mdl_alns[(ref_ch, mdl_ch)]
-                        aln.AttachView(0, self.target.Select(f"cname={ref_ch}"))
-                        aln.AttachView(1, mdl.Select(f"cname={mdl_ch}"))
+                        aln.AttachView(0, _CSel(self.target, [ref_ch]))
+                        aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                         alns[(ref_ch, mdl_ch)] = aln
-            return MappingResult(self.target, mdl, self.chem_groups, one_to_one,
-                                 alns)
+            return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                                 one_to_one, alns)
 
         mapping = None
         opt_lddt = None
@@ -876,12 +923,12 @@ class ChainMapper:
             for ref_ch, mdl_ch in zip(ref_group, mdl_group):
                 if ref_ch is not None and mdl_ch is not None:
                     aln = ref_mdl_alns[(ref_ch, mdl_ch)]
-                    aln.AttachView(0, self.target.Select(f"cname={ref_ch}"))
-                    aln.AttachView(1, mdl.Select(f"cname={mdl_ch}"))
+                    aln.AttachView(0, _CSel(self.target, [ref_ch]))
+                    aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                     alns[(ref_ch, mdl_ch)] = aln
 
-        return MappingResult(self.target, mdl, self.chem_groups, mapping,
-                             alns, opt_score = opt_lddt)
+        return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                             mapping, alns, opt_score = opt_lddt)
 
 
     def GetQSScoreMapping(self, model, contact_d = 12.0, strategy = "naive",
@@ -957,11 +1004,11 @@ class ChainMapper:
                 for ref_ch, mdl_ch in zip(ref_group, mdl_group):
                     if ref_ch is not None and mdl_ch is not None:
                         aln = ref_mdl_alns[(ref_ch, mdl_ch)]
-                        aln.AttachView(0, self.target.Select(f"cname={ref_ch}"))
-                        aln.AttachView(1, mdl.Select(f"cname={mdl_ch}"))
+                        aln.AttachView(0, _CSel(self.target, [ref_ch]))
+                        aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                         alns[(ref_ch, mdl_ch)] = aln
-            return MappingResult(self.target, mdl, self.chem_groups, one_to_one,
-                                 alns)
+            return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                                 one_to_one, alns)
         mapping = None
         opt_qsscore = None
 
@@ -993,12 +1040,12 @@ class ChainMapper:
             for ref_ch, mdl_ch in zip(ref_group, mdl_group):
                 if ref_ch is not None and mdl_ch is not None:
                     aln = ref_mdl_alns[(ref_ch, mdl_ch)]
-                    aln.AttachView(0, self.target.Select(f"cname={ref_ch}"))
-                    aln.AttachView(1, mdl.Select(f"cname={mdl_ch}"))
+                    aln.AttachView(0, _CSel(self.target, [ref_ch]))
+                    aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                     alns[(ref_ch, mdl_ch)] = aln
 
-        return MappingResult(self.target, mdl, self.chem_groups, mapping,
-                             alns, opt_score = opt_qsscore)
+        return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                             mapping, alns, opt_score = opt_qsscore)
 
     def GetRigidMapping(self, model, strategy = "greedy_single_gdtts",
                         single_chain_gdtts_thresh=0.4, subsampling=None,
@@ -1095,11 +1142,11 @@ class ChainMapper:
                 for ref_ch, mdl_ch in zip(ref_group, mdl_group):
                     if ref_ch is not None and mdl_ch is not None:
                         aln = ref_mdl_alns[(ref_ch, mdl_ch)]
-                        aln.AttachView(0, self.target.Select(f"cname={ref_ch}"))
-                        aln.AttachView(1, mdl.Select(f"cname={mdl_ch}"))
+                        aln.AttachView(0, _CSel(self.target, [ref_ch]))
+                        aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                         alns[(ref_ch, mdl_ch)] = aln
-            return MappingResult(self.target, mdl, self.chem_groups, one_to_one,
-                                 alns)
+            return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                                 one_to_one, alns)
 
         trg_group_pos, mdl_group_pos = _GetRefPos(self.target, mdl,
                                                   self.chem_group_alignments,
@@ -1174,12 +1221,12 @@ class ChainMapper:
             for ref_ch, mdl_ch in zip(ref_group, mdl_group):
                 if ref_ch is not None and mdl_ch is not None:
                     aln = ref_mdl_alns[(ref_ch, mdl_ch)]
-                    aln.AttachView(0, self.target.Select(f"cname={ref_ch}"))
-                    aln.AttachView(1, mdl.Select(f"cname={mdl_ch}"))
+                    aln.AttachView(0, _CSel(self.target, [ref_ch]))
+                    aln.AttachView(1, _CSel(mdl, [mdl_ch]))
                     alns[(ref_ch, mdl_ch)] = aln
 
-        return MappingResult(self.target, mdl, self.chem_groups, final_mapping,
-                             alns)
+        return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
+                             final_mapping, alns)
 
 
     def GetRepr(self, substructure, model, topn=1, inclusion_radius=15.0,
@@ -1231,7 +1278,7 @@ class ChainMapper:
             ch_name = r.GetChain().GetName()
             rnum = r.GetNumber()
             target_r = self.target.FindResidue(ch_name, rnum)
-            if target_r is None:
+            if not target_r.IsValid():
                 raise RuntimeError(f"substructure has residue "
                                    f"{r.GetQualifiedName()} which is not in "
                                    f"self.target")
@@ -1243,7 +1290,7 @@ class ChainMapper:
                                    f"EntityHandle")
             for a in r.atoms:
                 target_a = target_r.FindAtom(a.GetName())
-                if target_a is None:
+                if not target_a.IsValid():
                     raise RuntimeError(f"substructure has atom "
                                        f"{a.GetQualifiedName()} which is not "
                                        f"in self.target")
@@ -1258,7 +1305,7 @@ class ChainMapper:
             ca = r.FindAtom("CA")
             c3 = r.FindAtom("C3'") # FindAtom with prime in string is tested
                                    # and works
-            if ca is None and c3 is None:
+            if not ca.IsValid() and not c3.IsValid():
                 raise RuntimeError("All residues in substructure must contain "
                                    "a backbone atom named CA or C3\'")
 
@@ -1301,7 +1348,7 @@ class ChainMapper:
         substructure_ref_mdl_alns = dict()
         mdl_views = dict()
         for ch in mdl.chains:
-            mdl_views[ch.GetName()] = mdl.Select(f"cname={ch.GetName()}")
+            mdl_views[ch.GetName()] = _CSel(mdl, [ch.GetName()])
         for chem_group, mapping in zip(substructure_chem_groups,
                                        substructure_chem_mapping):
             for ref_ch in chem_group:
@@ -1316,7 +1363,7 @@ class ChainMapper:
                         idx_in_seq = ref_seq.GetPos(idx)
                         tmp[idx_in_seq] = ref_seq[idx_in_seq]
                     ref_seq = seq.CreateSequence(ref_ch, ''.join(tmp))
-                    ref_seq.AttachView(substructure.Select(f"cname={ref_ch}"))
+                    ref_seq.AttachView(_CSel(substructure, [ref_ch]))
                     mdl_seq = full_aln.GetSequence(1)
                     mdl_seq = seq.CreateSequence(mdl_seq.GetName(),
                                                  mdl_seq.GetString())
@@ -1491,7 +1538,7 @@ class ChainMapper:
 
             s = ''.join([r.one_letter_code for r in ch.residues])
             s = seq.CreateSequence(ch.GetName(), s)
-            s.AttachView(view.Select(f"cname={ch.GetName()}"))
+            s.AttachView(_CSel(view, [ch.GetName()]))
             if n_pep == n_res:
                 polypep_seqs.AddSequence(s)
             elif n_nuc == n_res:
@@ -1499,10 +1546,17 @@ class ChainMapper:
             else:
                 raise RuntimeError("This shouldnt happen")
 
+        if len(polypep_seqs) == 0 and len(polynuc_seqs) == 0:
+            raise RuntimeError(f"No chain fulfilled minimum length requirement "
+                               f"to be considered in chain mapping "
+                               f"({self.min_pep_length} for peptide chains, "
+                               f"{self.min_nuc_length} for nucleotide chains) "
+                               f"- mapping failed")
+
         # select for chains for which we actually extracted the sequence
         chain_names = [s.GetAttachedView().chains[0].name for s in polypep_seqs]
         chain_names += [s.GetAttachedView().chains[0].name for s in polynuc_seqs]
-        view = view.Select(f"cname={','.join(chain_names)}")
+        view = _CSel(view, chain_names)
 
         return (view, polypep_seqs, polynuc_seqs)
 
@@ -1969,14 +2023,15 @@ class _lDDTDecomposer:
     def _SetupScorer(self):
         for ch in self.ref.chains:
             # Select everything close to that chain
-            query = f"{self.inclusion_radius} <> [cname={ch.GetName()}] "
-            query += f"and cname!={ch.GetName()}"
+            query = f"{self.inclusion_radius} <> "
+            query += f"[cname={mol.QueryQuoteName(ch.GetName())}] "
+            query += f"and cname!={mol.QueryQuoteName(ch.GetName())}"
             for close_ch in self.ref.Select(query).chains:
                 k1 = (ch.GetName(), close_ch.GetName())
                 k2 = (close_ch.GetName(), ch.GetName())
                 if k1 not in self.interface_scorer and \
                 k2 not in self.interface_scorer:
-                    dimer_ref = self.ref.Select(f"cname={k1[0]},{k1[1]}")
+                    dimer_ref = _CSel(self.ref, [k1[0], k1[1]])
                     s = lddt.lDDTScorer(dimer_ref, bb_only=True)
                     self.interface_scorer[k1] = s
                     self.interface_scorer[k2] = s
@@ -1998,7 +2053,7 @@ class _lDDTDecomposer:
         # add any missing single chain scorer
         for ch in self.ref.chains:
             if ch.GetName() not in self.single_chain_scorer:
-                single_chain_ref = self.ref.Select(f"cname={ch.GetName()}")
+                single_chain_ref = _CSel(self.ref, [ch.GetName()])
                 self.single_chain_scorer[ch.GetName()] = \
                 lddt.lDDTScorer(single_chain_ref, bb_only = True)
                 self.n += self.single_chain_scorer[ch.GetName()].n_distances
@@ -2037,7 +2092,7 @@ class _lDDTDecomposer:
         if not (ref_ch, mdl_ch) in self.single_chain_cache:
             alns = dict()
             alns[mdl_ch] = self.ref_mdl_alns[(ref_ch, mdl_ch)]
-            mdl_sel = self.mdl.Select(f"cname={mdl_ch}")
+            mdl_sel = _CSel(self.mdl, [mdl_ch])
             s = self.single_chain_scorer[ref_ch]
             _,_,_,conserved,_,_,_ = s.lDDT(mdl_sel,
                                            residue_mapping=alns,
@@ -2055,7 +2110,7 @@ class _lDDTDecomposer:
             alns = dict()
             alns[mdl_ch1] = self.ref_mdl_alns[(ref_ch1, mdl_ch1)]
             alns[mdl_ch2] = self.ref_mdl_alns[(ref_ch2, mdl_ch2)]
-            mdl_sel = self.mdl.Select(f"cname={mdl_ch1},{mdl_ch2}")
+            mdl_sel = _CSel(self.mdl, [mdl_ch1, mdl_ch2])
             s = self.interface_scorer[(ref_ch1, ref_ch2)]
             _,_,_,conserved,_,_,_ = s.lDDT(mdl_sel,
                                            residue_mapping=alns,
@@ -2103,7 +2158,8 @@ class _lDDTGreedySearcher(_lDDTDecomposer):
         for ch in self.mdl.chains:
             ch_name = ch.GetName()
             self.mdl_neighbors[ch_name] = set()
-            query = f"{d} <> [cname={ch_name}] and cname !={ch_name}"
+            query = f"{d} <> [cname={mol.QueryQuoteName(ch_name)}]"
+            query += f" and cname !={mol.QueryQuoteName(ch_name)}"
             for close_ch in self.mdl.Select(query).chains:
                 self.mdl_neighbors[ch_name].add(close_ch.GetName())
 
@@ -2524,7 +2580,7 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
         self.single_chain_scorer = dict()
         self.single_chain_cache = dict()
         for ch in self.ref.chains:
-            single_chain_ref = self.ref.Select(f"cname={ch.GetName()}")
+            single_chain_ref = _CSel(self.ref, [ch.GetName()])
             self.single_chain_scorer[ch.GetName()] = \
             lddt.lDDTScorer(single_chain_ref, bb_only = True)
 
@@ -2532,7 +2588,7 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
         if not (ref_ch, mdl_ch) in self.single_chain_cache:
             alns = dict()
             alns[mdl_ch] = self.ref_mdl_alns[(ref_ch, mdl_ch)]
-            mdl_sel = self.mdl.Select(f"cname={mdl_ch}")
+            mdl_sel = _CSel(self.mdl, [mdl_ch])
             s = self.single_chain_scorer[ref_ch]
             _,_,_,conserved,_,_,_ = s.lDDT(mdl_sel,
                                            residue_mapping=alns,
@@ -3302,7 +3358,7 @@ def _ExtractMSAPos(msa, s_idx, indices, view):
     Indices refers to column indices in msa!
     """
     s = msa.GetSequence(s_idx)
-    s_v = view.Select(f"cname={s.GetName()}")
+    s_v = _CSel(view, [s.GetName()])
 
     # sanity check
     assert(len(s.GetGaplessString()) == len(s_v.residues))

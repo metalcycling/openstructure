@@ -94,7 +94,7 @@ The IOProfile Class
 
 .. class:: IOProfile(dialect='PDB', quack_mode=False, fault_tolerant=False,\
                      join_spread_atom_records=False, no_hetatms=False,\
-                     calpha_only=False, processor=None)
+                     calpha_only=False, read_conect=False, processor=None)
 
   Aggregates flags that control the import of molecular structures.
 
@@ -146,6 +146,20 @@ The IOProfile Class
     When set to true, forces the importer to only load atoms named CA. This is
     most useful in combination with protein-only PDB files to speed up
     subsequent processing and importing.
+
+  .. attribute:: read_conect
+
+    :type: bool
+
+    Only relevant when reading files in PDB format. When set to true, reads CONECT
+    statements and applies them in the PDB reader. This can result in
+    hydrogen bonds, salt bridges etc. to be connected. Check the PDB format
+    definition for more info. This may cause issues in subsequent processing,
+    such as bonds being overriden, or extra, inconsistent bonds, as the
+    processor suddenly has two separate sources of connectivity.
+    For the use case where the input PDB file contains valid CONECT
+    statements for all hetatms, you may want to disable processing of bonds
+    between them in :attr:`ost.conop.Processor.connect_hetatm`
 
   .. attribute:: processor
 

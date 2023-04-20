@@ -20,11 +20,22 @@ class LigandScorer:
 
     At the moment, two scores are available:
 
-    * lDDT-PLI
-    * Symmetry-corrected RMSD
+    * lDDT-PLI, that looks at the conservation of protein-ligand contacts
+      with :class:`lDDT <ost.mol.alg.lddt.lDDTScorer>`.
+    * Binding-site superposed, symmetry-corrected RMSD that assesses the
+      accuracy of the ligand pose.
 
-    The class takes care to perform chain mapping and assignment (mapping) of
-    model and target ligands. This assignment may differ between scores.
+    Both scores involve local chain mapping of the reference binding site
+    onto the model, symmetry-correction, and finally assignment (mapping)
+    of model and target ligands, as described in (Manuscript in preparation).
+
+    Results are available as matrices (`(lddt_pli|rmsd)_matrix`), where every
+    target-model score is reported in a matrix; as `(lddt_pli|rmsd)` where
+    a model-target assignment has been determined, starting from the "best"
+    possible mapping and using each target and model ligand in a single
+    assignment, and the results are reported in a dictionary; and as
+    (`(lddt_pli|rmsd)_details`) methods, which report additional details
+    about different aspects of the scoring such as chain mapping.
 
     The class generally assumes that the
     :attr:`~ost.mol.ResidueHandle.is_ligand` property is properly set on all
@@ -40,14 +51,16 @@ class LigandScorer:
     cause ligands to be removed from the structure. If cleanup with Molck is
     needed, ligands should be kept and passed separately. Non-ligand residues
     should be valid compounds with atom names following the naming conventions
-    of the component dictionary. Non-standard residues are acceptable (and if
+    of the component dictionary. Non-standard residues are acceptable, and if
     the model contains a standard residue at that position, only atoms with
     matching names will be considered.
 
     Unlike most of OpenStructure, this class does not assume that the ligands
     (either in the model or the target) are part of the PDB component
     dictionary. They may have arbitrary residue names. Residue names do not
-    have to match between the model and the target.
+    have to match between the model and the target. Matching is based on
+    the calculation of isomorphisms which depend on the atom element name and
+    atom connectivity (bond order is ignored).
     It is up to the caller to ensure that the connectivity of atoms is properly
     set before passing any ligands to this class. Ligands with improper
     connectivity will lead to bogus results.
@@ -63,8 +76,24 @@ class LigandScorer:
     structures. Here is an example code snippet that will perform a reasonable
     cleanup. Keep in mind that this is most likely not going to work as
     expected with entities loaded from PDB files, as the `is_ligand` flag is
-    probably not set properly. ::
+    probably not set properly.
 
+    Here is a snippet example of how to use this code::
+
+        from ost.mol.alg.ligand_scoring import LigandScorer
+        from ost.mol.alg import Molck, MolckSettings
+
+        # Load data
+        # Structure model in PDB format, containing the receptor only
+        model = io.LoadPDB("path_to_model.pdb")
+        # Ligand model as SDF file
+        model_ligand = io.LoadEntity("path_to_ligand.sdf", format="sdf")
+        # Target loaded from mmCIF, containing the ligand
+        target, _ = io.LoadMMCIF("path_to_target.cif", seqres=True)
+
+        # Cleanup a copy of the structures
+        cleaned_model = model.Copy()
+        cleaned_target = target.Copy()
         molck_settings = MolckSettings(rm_unk_atoms=True,
                                        rm_non_std=False,
                                        rm_hyd_atoms=True,
@@ -73,20 +102,14 @@ class LigandScorer:
                                        colored=False,
                                        map_nonstd_res=False,
                                        assign_elem=True)
-        # Cleanup a copy of the structures
-        cleaned_model = model.Copy()
-        cleaned_target = target.Copy()
         Molck(cleaned_model, conop.GetDefaultLib(), molck_settings)
         Molck(cleaned_target, conop.GetDefaultLib(), molck_settings)
 
-        # LigandScorer can now be instanciated with the polymers from the
-        # molcked structures, and ligands from the original structures.
-        LigandScorer(model=cleaned_model.Select("ligand=False"),
-                     target=cleaned_target.Select("ligand=False"),
-                     model_ligands=[model.Select("ele != H and ligand=True")],
-                     target_ligands=[target.Select("ele != H and ligand=True")],
-                     ...
-                     )
+        # Setup scorer object and compute lDDT-PLI
+        model_ligands = [model_ligand.Select("ele != H")]
+        ls = LigandScorer(model=cleaned_model, target=cleaned_target, model_ligands=model_ligands)
+        print("lDDT-PLI:", ls.lddt_pli)
+        print("RMSD:", ls.rmsd)
 
     :param model: Model structure - a deep copy is available as :attr:`model`.
                   No additional processing (ie. Molck), checks,
@@ -125,6 +148,16 @@ class LigandScorer:
     :param check_resnames:  On by default. Enforces residue name matches
                             between mapped model and target residues.
     :type check_resnames: :class:`bool`
+    :param rename_ligand_chain: If a residue with the same chain name and
+                                residue number than an explicitly passed model
+                                or target ligand exits in the structure,
+                                and `rename_ligand_chain` is False, a
+                                RuntimeError will be raised. If
+                                `rename_ligand_chain` is True, the ligand will
+                                be moved to a new chain instead, and the move
+                                will be logged to the console with SCRIPT
+                                level.
+    :type rename_ligand_chain: :class:`bool`
     :param chain_mapper: a chain mapper initialized for the target structure.
                          If None (default), a chain mapper will be initialized
                          lazily as required.
@@ -145,6 +178,7 @@ class LigandScorer:
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
                  resnum_alignments=False, check_resnames=True,
+                 rename_ligand_chain=False,
                  chain_mapper=None, substructure_match=False,
                  radius=4.0, lddt_pli_radius=6.0, lddt_bs_radius=10.0,
                  binding_sites_topn=100000):
@@ -167,7 +201,9 @@ class LigandScorer:
         if target_ligands is None:
             self.target_ligands = self._extract_ligands(self.target)
         else:
-            self.target_ligands = self._prepare_ligands(self.target, target, target_ligands)
+            self.target_ligands = self._prepare_ligands(self.target, target,
+                                                        target_ligands,
+                                                        rename_ligand_chain)
         if len(self.target_ligands) == 0:
             raise ValueError("No ligands in the target")
 
@@ -175,13 +211,16 @@ class LigandScorer:
         if model_ligands is None:
             self.model_ligands = self._extract_ligands(self.model)
         else:
-            self.model_ligands = self._prepare_ligands(self.model, model, model_ligands)
+            self.model_ligands = self._prepare_ligands(self.model, model,
+                                                       model_ligands,
+                                                       rename_ligand_chain)
         if len(self.model_ligands) == 0:
             raise ValueError("No ligands in the model")
 
         self._chain_mapper = chain_mapper
         self.resnum_alignments = resnum_alignments
         self.check_resnames = check_resnames
+        self.rename_ligand_chain = rename_ligand_chain
         self.substructure_match = substructure_match
         self.radius = radius
         self.lddt_pli_radius = lddt_pli_radius
@@ -253,7 +292,7 @@ class LigandScorer:
         return extracted_ligands
 
     @staticmethod
-    def _prepare_ligands(new_entity, old_entity, ligands):
+    def _prepare_ligands(new_entity, old_entity, ligands, rename_chain):
         """Prepare the ligands given into a list of ResidueHandles which are
         part of the copied entity, suitable for the model_ligands and
         target_ligands properties.
@@ -270,27 +309,40 @@ class LigandScorer:
         next_chain_num = 1
         new_editor = None
 
-        def _copy_residue(handle):
+        def _copy_residue(handle, rename_chain):
             """ Copy the residue handle into the new chain.
             Return the new residue handle."""
             nonlocal next_chain_num, new_editor
-
-            # Does a residue with the same name already exist?
-            already_exists = new_entity.FindResidue(handle.chain.name,
-                                                    handle.number).IsValid()
-            if already_exists:
-                msg = "A residue number %s already exists in chain %s" % (
-                    handle.number, handle.chain.name)
-                raise RuntimeError(msg)
 
             # Instantiate the editor
             if new_editor is None:
                 new_editor = new_entity.EditXCS()
 
-            # Get or create the chain
             new_chain = new_entity.FindChain(handle.chain.name)
             if not new_chain.IsValid():
                 new_chain = new_editor.InsertChain(handle.chain.name)
+            else:
+                # Does a residue with the same name already exist?
+                already_exists = new_chain.FindResidue(handle.number).IsValid()
+                if already_exists:
+                    if rename_chain:
+                        chain_ext = 2  # Extend the chain name by this
+                        while True:
+                            new_chain_name = handle.chain.name + "_" + str(chain_ext)
+                            new_chain = new_entity.FindChain(new_chain_name)
+                            if new_chain.IsValid():
+                                chain_ext += 1
+                                continue
+                            else:
+                                new_chain = new_editor.InsertChain(new_chain_name)
+                                break
+                        LogScript("Moved ligand residue %s to new chain %s" % (
+                            handle.qualified_name, new_chain.name))
+                    else:
+                        msg = "A residue number %s already exists in chain %s" % (
+                            handle.number, handle.chain.name)
+                        raise RuntimeError(msg)
+
             # Add the residue with its original residue number
             new_res = new_editor.AppendResidue(new_chain, handle, deep=True)
             for old_atom in handle.atoms:
@@ -300,7 +352,7 @@ class LigandScorer:
                     new_editor.Connect(new_first, new_second)
             return new_res
 
-        def _process_ligand_residue(res):
+        def _process_ligand_residue(res, rename_chain):
             """Copy or fetch the residue. Return the residue handle."""
             if res.entity.handle == old_entity.handle:
                 # Residue is already in copied entity. We only need to grab it
@@ -308,7 +360,7 @@ class LigandScorer:
                 LogVerbose("Ligand residue %s already in entity" % res.handle.qualified_name)
             else:
                 # Residue is not part of the entity, need to copy it first
-                new_res = _copy_residue(res.handle)
+                new_res = _copy_residue(res.handle, rename_chain)
                 LogVerbose("Copied ligand residue %s" % res.handle.qualified_name)
             new_res.SetIsLigand(True)
             return new_res
@@ -316,10 +368,10 @@ class LigandScorer:
         for ligand in ligands:
             if isinstance(ligand, mol.EntityHandle) or isinstance(ligand, mol.EntityView):
                 for residue in ligand.residues:
-                    new_residue = _process_ligand_residue(residue)
+                    new_residue = _process_ligand_residue(residue, rename_chain)
                     extracted_ligands.append(new_residue)
             elif isinstance(ligand, mol.ResidueHandle) or isinstance(ligand, mol.ResidueView):
-                new_residue = _process_ligand_residue(ligand)
+                new_residue = _process_ligand_residue(ligand, rename_chain)
                 extracted_ligands.append(new_residue)
             else:
                 raise RuntimeError("Ligands should be given as Entity or Residue")
@@ -479,14 +531,16 @@ class LigandScorer:
                         rmsd_full_matrix[target_i, model_i] = {
                             "rmsd": rmsd,
                             "lddt_bs": binding_site.lDDT,
-                            "bs_num_res": len(binding_site.substructure.residues),
-                            "bs_num_overlap_res": len(binding_site.ref_residues),
+                            "bs_ref_res": binding_site.substructure.residues,
+                            "bs_ref_res_mapped": binding_site.ref_residues,
+                            "bs_mdl_res_mapped": binding_site.mdl_residues,
                             "bb_rmsd": binding_site.bb_rmsd,
                             "target_ligand": target_ligand,
                             "model_ligand": model_ligand,
                             "chain_mapping": binding_site.GetFlatChainMapping(),
                             "transform": binding_site.transform,
                             "substructure_match": substructure_match,
+                            "inconsistent_residues": binding_site.inconsistent_residues,
                         }
                         LogDebug("Saved RMSD")
 
@@ -538,14 +592,16 @@ class LigandScorer:
                                 "rmsd": rmsd,
                                 "lddt_bs": binding_site.lDDT,
                                 "lddt_pli_n_contacts": lddt_tot,
-                                "bs_num_res": len(binding_site.substructure.residues),
-                                "bs_num_overlap_res": len(binding_site.ref_residues),
+                                "bs_ref_res": binding_site.substructure.residues,
+                                "bs_ref_res_mapped": binding_site.ref_residues,
+                                "bs_mdl_res_mapped": binding_site.mdl_residues,
                                 "bb_rmsd": binding_site.bb_rmsd,
                                 "target_ligand": target_ligand,
                                 "model_ligand": model_ligand,
                                 "chain_mapping": binding_site.GetFlatChainMapping(),
                                 "transform": binding_site.transform,
                                 "substructure_match": substructure_match,
+                                "inconsistent_residues": binding_site.inconsistent_residues,
                             }
                             LogDebug("Saved lDDT-PLI")
 
@@ -656,13 +712,13 @@ class LigandScorer:
             trg_idx, mdl_idx = assignment
             mdl_lig = self.model_ligands[mdl_idx]
             mdl_cname = mdl_lig.chain.name
-            mdl_restuple = (mdl_lig.number.num, mdl_lig.number.ins_code)
+            mdl_resnum = mdl_lig.number
             if mdl_cname not in out_main:
                 out_main[mdl_cname] = {}
                 out_details[mdl_cname] = {}
-            out_main[mdl_cname][mdl_restuple] = data[
+            out_main[mdl_cname][mdl_resnum] = data[
                 trg_idx, mdl_idx][main_key]
-            out_details[mdl_cname][mdl_restuple] = data[
+            out_details[mdl_cname][mdl_resnum] = data[
                 trg_idx, mdl_idx]
         return out_main, out_details
 
@@ -727,7 +783,7 @@ class LigandScorer:
     @property
     def rmsd(self):
         """Get a dictionary of RMSD score values, keyed by model ligand
-        (chain name, tuple(residue number, insertion code)).
+        (chain name, :class:`~ost.mol.ResNum`).
 
         :rtype: :class:`dict`
         """
@@ -738,15 +794,21 @@ class LigandScorer:
     @property
     def rmsd_details(self):
         """Get a dictionary of RMSD score details (dictionaries), keyed by
-        model ligand (chain name, tuple(residue number, insertion code)).
+        model ligand (chain name, :class:`~ost.mol.ResNum`).
 
         Each sub-dictionary contains the following information:
 
         * `rmsd`: the RMSD score value.
         * `lddt_bs`: the lDDT-BS score of the binding site.
-        * `bs_num_res`: number of residues in the target binding site.
-        * `bs_num_overlap_res`: number of residues in the model overlapping
-          with the target binding site.
+        * `bs_ref_res`: a list of residues (:class:`~ost.mol.ResidueHandle`)
+          that define the binding site in the reference.
+        * `bs_ref_res_mapped`: a list of residues
+          (:class:`~ost.mol.ResidueHandle`) in the reference binding site
+          that could be mapped to the model.
+        * `bs_mdl_res_mapped`: a list of residues
+          (:class:`~ost.mol.ResidueHandle`) in the model that were mapped to
+          the reference binding site. The residues are in the same order as
+          `bs_ref_res_mapped`.
         * `bb_rmsd`: the RMSD of the binding site backbone after superposition
         * `target_ligand`: residue handle of the target ligand.
         * `model_ligand`: residue handle of the model ligand.
@@ -757,6 +819,13 @@ class LigandScorer:
           (substructure) match. A value of `True` indicates that the target
           ligand covers only part of the model, while `False` indicates a
           perfect match.
+        * `inconsistent_residues`: a list of tuples of mapped residues views
+          (:class:`~ost.mol.ResidueView`) with residue names that differ
+          between the reference and the model, respectively.
+          The list is empty if all residue names match, which is guaranteed
+          if `check_resnames=True`.
+          Note: more binding site mappings may be explored during scoring,
+          but only inconsistencies in the selected mapping are reported.
 
         :rtype: :class:`dict`
         """
@@ -767,7 +836,7 @@ class LigandScorer:
     @property
     def lddt_pli(self):
         """Get a dictionary of lDDT-PLI score values, keyed by model ligand
-        (chain name, tuple(residue number, insertion code)).
+        (chain name, :class:`~ost.mol.ResNum`).
 
         :rtype: :class:`dict`
         """
@@ -778,7 +847,7 @@ class LigandScorer:
     @property
     def lddt_pli_details(self):
         """Get a dictionary of lDDT-PLI score details (dictionaries), keyed by
-        model ligand (chain name, tuple(residue number, insertion code)).
+        model ligand (chain name, :class:`~ost.mol.ResNum`).
 
         Each sub-dictionary contains the following information:
 
@@ -791,9 +860,15 @@ class LigandScorer:
         * `lddt_pli_n_contacts`: number of total contacts used in lDDT-PLI,
           summed over all thresholds. Can be divided by 8 to obtain the number
           of atomic contacts.
-        * `bs_num_res`: number of residues in the target binding site.
-        * `bs_num_overlap_res`: number of residues in the model overlapping
-          with the target binding site.
+        * `bs_ref_res`: a list of residues (:class:`~ost.mol.ResidueHandle`)
+          that define the binding site in the reference.
+        * `bs_ref_res_mapped`: a list of residues
+          (:class:`~ost.mol.ResidueHandle`) in the reference binding site
+          that could be mapped to the model.
+        * `bs_mdl_res_mapped`: a list of residues
+          (:class:`~ost.mol.ResidueHandle`) in the model that were mapped to
+          the reference binding site. The residues are in the same order as
+          `bs_ref_res_mapped`.
         * `bb_rmsd`: the RMSD of the binding site backbone after superposition.
           Note: not used for lDDT-PLI computation.
         * `target_ligand`: residue handle of the target ligand.
@@ -806,6 +881,13 @@ class LigandScorer:
           (substructure) match. A value of `True` indicates that the target
           ligand covers only part of the model, while `False` indicates a
           perfect match.
+        * `inconsistent_residues`: a list of tuples of mapped residues views
+          (:class:`~ost.mol.ResidueView`) with residue names that differ
+          between the reference and the model, respectively.
+          The list is empty if all residue names match, which is guaranteed
+          if `check_resnames=True`.
+          Note: more binding site mappings may be explored during scoring,
+          but only inconsistencies in the selected mapping are reported.
 
         :rtype: :class:`dict`
         """

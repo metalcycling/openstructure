@@ -83,7 +83,8 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
             fault_tolerant=None, load_multi=False, quack_mode=None,
             join_spread_atom_records=None, calpha_only=None,
             profile='DEFAULT', remote=False, remote_repo='pdb',
-            dialect=None, seqres=False, bond_feasibility_check=None):
+            dialect=None, seqres=False, bond_feasibility_check=None,
+            read_conect=False):
   """
   Load PDB file from disk and return one or more entities. Several options 
   allow to customize the exact behaviour of the PDB import. For more information 
@@ -169,6 +170,16 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
                                  If set, overrides the value of
                                  :attr:`ost.conop.Processor.check_bond_feasibility`
   :type bond_feasibility_check: :class:`bool`
+  :param read_conect: By default, OpenStructure doesn't read CONECT statements in
+                      a pdb file. Reason is that they're often missing and we prefer
+                      to rely on the chemical component dictionary from the PDB.
+                      However, there may be cases where you really want these CONECT
+                      statements. For example novel compounds with no entry in
+                      the chemical component dictionary. Setting this to True has
+                      two effects: 1) CONECT statements are read and blindly applied
+                      2) The processor does not connect any pair of HETATOM atoms in
+                      order to not interfer with the CONECT statements.
+  :type read_conect: :class:`bool`
 
   :rtype: :class:`~ost.mol.EntityHandle` or a list thereof if `load_multi` is 
       True.  
@@ -194,9 +205,12 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
   prof.no_hetatms=_override(prof.no_hetatms, no_hetatms)
   prof.dialect=_override(prof.dialect, dialect)
   prof.quack_mode=_override(prof.quack_mode, quack_mode)
+  prof.read_conect=_override(prof.read_conect, read_conect)
   if prof.processor:
     prof.processor.check_bond_feasibility=_override(prof.processor.check_bond_feasibility, 
                                                     bond_feasibility_check)
+    prof.processor.connect_hetatm=_override(prof.processor.connect_hetatm,
+                                            not read_conect)
   prof.fault_tolerant=_override(prof.fault_tolerant, fault_tolerant)
   prof.join_spread_atom_records=_override(prof.join_spread_atom_records,
                                           join_spread_atom_records)

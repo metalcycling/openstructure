@@ -196,6 +196,12 @@ public:
   /// \brief return view based on query String.
   /// \sa Query
   EntityView Select(const String& query_string, QueryFlags flags=0) const;
+
+  /// \brief get unique id
+  ///
+  /// The unique id is the same for all ChainViews pointing to the same chain
+  /// view data.
+  unsigned long GetHashCode() const;
     
   bool operator==(const ChainView& rhs) const;
   bool operator!=(const ChainView& rhs) const;

@@ -113,6 +113,9 @@ void export_ChainView()
     .add_property("bounds", &ChainView::GetBounds)
     .def(self==self)
     .def(self!=self)
+    .def("__hash__", &ChainView::GetHashCode)
+    .def("GetHashCode", &ChainView::GetHashCode)
+    .add_property("hash_code", &ChainView::GetHashCode)
   ;
 
 

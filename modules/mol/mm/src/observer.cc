@@ -55,7 +55,7 @@ void TrajWriter::Init(boost::shared_ptr<OpenMM::Context> c,
   registered_ = true;
 
   context_ = c;
-  ost::io::IOProfile profile("CHARMM",false,false,false,false,false);
+  ost::io::IOProfile profile("CHARMM",false,false,false,false,false,false);
   ost::io::PDBWriter writer(pdb_filename_, profile);
   writer.Write(ent.GetAtomList());
 

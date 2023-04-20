@@ -161,10 +161,10 @@ void AtomView::RemoveBondInternal(const BondHandle& bond)
   }
 }
 
-long AtomView::GetHashCode() const 
+unsigned long AtomView::GetHashCode() const
 {
   this->CheckValidity();  
-  return reinterpret_cast<long>(data_.get());
+  return reinterpret_cast<unsigned long>(data_.get());
 } 
 
 }} // ns

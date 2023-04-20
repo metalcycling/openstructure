@@ -22,6 +22,7 @@
 #ifndef OST_IO_SDF_READER_HH
 #define OST_IO_SDF_READER_HH
 
+#include <boost/iostreams/filtering_stream.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <ost/mol/chain_handle.hh>
 #include <ost/mol/residue_handle.hh>
@@ -61,6 +62,7 @@ private:
   int line_num;
   boost::filesystem::ifstream infile_;
   std::istream& instream_;
+  boost::iostreams::filtering_stream<boost::iostreams::input>  in_;
 };
 
 }}

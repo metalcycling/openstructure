@@ -403,7 +403,11 @@ class lDDTScorer:
         :param model: Model to be scored - models are preferably scored upon
                       performing stereo-chemistry checks in order to punish for
                       non-sensical irregularities. This must be done separately
-                      as a pre-processing step.
+                      as a pre-processing step. Target contacts that are not
+                      covered by *model* are considered not conserved, thus
+                      decreasing lDDT score. This also includes missing model
+                      chains or model chains for which no mapping is provided in
+                      *chain_mapping*.
         :type model: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
         :param thresholds: Thresholds of distance differences to be considered
                            as correct - see docs in constructor for more info.
@@ -682,8 +686,8 @@ class lDDTScorer:
             ch_name = chain.GetName()
             if ch_name not in chain_mapping:
                 sm = self.symmetry_settings
-                dummy_scorer = lDDTScorer(model.Select("cname="+ch_name),
-                                          self.compound_lib,
+                mdl_sel = model.Select(f"cname={mol.QueryQuoteName(ch_name)}")
+                dummy_scorer = lDDTScorer(mdl_sel, self.compound_lib,
                                           symmetry_settings = sm,
                                           inclusion_radius = self.inclusion_radius,
                                           bb_only = self.bb_only)

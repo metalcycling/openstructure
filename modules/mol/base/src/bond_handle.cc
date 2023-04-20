@@ -122,6 +122,7 @@ void BondHandle::Apply(EntityViewVisitor& v)
 
 unsigned long BondHandle::GetHashCode() const
 {
+  this->CheckValidity();
   return reinterpret_cast<unsigned long>(impl_.get());
 }
 

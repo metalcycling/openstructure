@@ -7,8 +7,9 @@ Example: ost compare-ligand-structures \\
     -r reference.cif \\
     --lddt-pli --rmsd
 
-Only minimal cleanup steps are performed (remove hydrogens, and for structures
-only, remove unknown atoms and cleanup element column).
+Structures of polymer entities (proteins and nucleotides) can be given in PDB
+or mmCIF format. If the structure is given in mmCIF format, only the asymmetric
+unit (AU) is used for scoring.
 
 Ligands can be given as path to SDF files containing the ligand for both model
 (--model-ligands/-ml) and reference (--reference-ligands/-rl). If omitted,
@@ -18,6 +19,12 @@ given in mmCIF format, this is based on the annotation as "non polymer entity"
 For structures given in PDB format, this is based on the HET records and is
 normally not what you want. You should always give ligands as SDF for
 structures in PDB format.
+
+Polymer/oligomeric ligands (saccharides, peptides, nucleotides) are not
+supported.
+
+Only minimal cleanup steps are performed (remove hydrogens, and for structures
+of polymers only, remove unknown atoms and cleanup element column).
 
 Ligands in mmCIF and PDB files must comply with the PDB component dictionary
 definition, and have properly named residues and atoms, in order for
@@ -41,7 +48,7 @@ options, this is a dictionary with three keys:
 
 Each score is opt-in and, be enabled with optional arguments and is added
 to the output. Keys correspond to the values in "model_ligands" above.
-Only mapped ligands are reported.
+Only assigned (mapped) ligands are reported.
 """
 
 import argparse
@@ -111,7 +118,7 @@ def _ParseArgs():
         "--model-format",
         dest="model_format",
         default="auto",
-        choices=["pdb", "mmcif"],
+        choices=["pdb", "mmcif", "cif"],
         help=("Format of model file. Inferred from path if not given."))
 
     parser.add_argument(
@@ -120,7 +127,7 @@ def _ParseArgs():
         "--ref-format",
         dest="reference_format",
         default="auto",
-        choices=["cif", "mmcif"],
+        choices=["pdb", "mmcif", "cif"],
         help=("Format of reference file. Inferred from path if not given."))
 
     parser.add_argument(
@@ -141,13 +148,19 @@ def _ParseArgs():
               "a global BLOSUM62-based alignment (NUC44 for nucleotides)."))
 
     parser.add_argument(
-        "-cr",
-        "--check-resnames",
-        dest="check_resnames",
-        default=True,
-        action="store_false",
-        help=("Enforce residue name matches between mapped model and target"
-              "residues."))
+        "-ec",
+        "--enforce-consistency",
+        dest="enforce_consistency",
+        default=False,
+        action="store_true",
+        help=("Enforce consistency of residue names between the reference "
+              "binding site and the model. By default residue name "
+              "discrepancies are reported but the program proceeds. "
+              "If this is set to True, the program will fail with an error "
+              "message if the residues names differ. "
+              "Note: more binding site mappings may be explored during "
+              "scoring, but only inconsistencies in the selected mapping are "
+              "reported."))
 
     parser.add_argument(
         "-sm",
@@ -271,8 +284,8 @@ def _LoadLigand(file):
     Load a single ligand from file names. Return an entity.
     """
     ligand_ent = ost.io.LoadEntity(file, format="sdf")
-    ligand_ent.Select("ele != H")
-    return ligand_ent.Copy()
+    ligand_view = ligand_ent.Select("ele != H")
+    return ost.mol.CreateEntityFromView(ligand_view, False)
 
 
 def _Validate(structure, ligands, legend, fault_tolerant=False):
@@ -302,7 +315,8 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         model_ligands=model_ligands,
         target_ligands=reference_ligands,
         resnum_alignments=args.residue_number_alignment,
-        check_resnames=args.check_resnames,
+        check_resnames=args.enforce_consistency,
+        rename_ligand_chain=True,
         substructure_match=args.substructure_match,
         radius=args.radius,
         lddt_pli_radius=args.lddt_pli_radius,
@@ -343,7 +357,19 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 lddt_pli["reference_ligand"] = reference_ligands_map[
                     lddt_pli.pop("target_ligand")]
                 lddt_pli["model_ligand"] = model_key
-                lddt_pli["transform"] = str(lddt_pli["transform"])
+                transform_data = lddt_pli["transform"].data
+                lddt_pli["transform"] = [transform_data[i:i + 4]
+                                         for i in range(0, len(transform_data),
+                                                        4)]
+                lddt_pli["bs_ref_res"] = [r.qualified_name for r in
+                                          lddt_pli["bs_ref_res"]]
+                lddt_pli["bs_ref_res_mapped"] = [r.qualified_name for r in
+                                                 lddt_pli["bs_ref_res_mapped"]]
+                lddt_pli["bs_mdl_res_mapped"] = [r.qualified_name for r in
+                                                 lddt_pli["bs_mdl_res_mapped"]]
+                lddt_pli["inconsistent_residues"] = ["%s-%s" %(
+                    x.qualified_name, y.qualified_name) for x,y in lddt_pli[
+                    "inconsistent_residues"]]
                 out["lddt_pli"][model_key] = lddt_pli
 
     if args.rmsd:
@@ -354,7 +380,18 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 rmsd["reference_ligand"] = reference_ligands_map[
                     rmsd.pop("target_ligand")]
                 rmsd["model_ligand"] = model_key
-                rmsd["transform"] = str(rmsd["transform"])
+                transform_data = rmsd["transform"].data
+                rmsd["transform"] = [transform_data[i:i + 4]
+                                     for i in range(0, len(transform_data), 4)]
+                rmsd["bs_ref_res"] = [r.qualified_name for r in
+                                      rmsd["bs_ref_res"]]
+                rmsd["bs_ref_res_mapped"] = [r.qualified_name for r in
+                                             rmsd["bs_ref_res_mapped"]]
+                rmsd["bs_mdl_res_mapped"] = [r.qualified_name for r in
+                                             rmsd["bs_mdl_res_mapped"]]
+                rmsd["inconsistent_residues"] = ["%s-%s" %(
+                    x.qualified_name, y.qualified_name) for x,y in rmsd[
+                    "inconsistent_residues"]]
                 out["rmsd"][model_key] = rmsd
 
     return out

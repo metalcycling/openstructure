@@ -179,5 +179,49 @@ BOOST_AUTO_TEST_CASE(quack_types_unknown_residues) {
 
 }
 
+
+BOOST_AUTO_TEST_CASE(hetatom_connect_heuristic) {
+
+  // STEP 1: Specify two atoms as hetatoms - they should be connected
+  // by the processor
+  mol::EntityHandle e = Builder()
+    .Chain("A")
+      .Residue("GLY")
+        .Atom("N", geom::Vec3(-8.22, 35.20, 22.39))
+        .Atom("CA", geom::Vec3(-8.28, 36.36, 21.49))
+        .Atom("C", geom::Vec3(-8.59, 35.93, 20.06))
+        .Atom("O", geom::Vec3(-7.88, 36.30, 19.12))
+        .Atom("CB", geom::Vec3(-6.96, 37.11, 21.53))
+  ;
+
+  ost::mol::AtomHandleList atoms = e.GetAtomList();
+  atoms[0].SetHetAtom(true); // N
+  atoms[1].SetHetAtom(true); // CA
+  HeuristicProcessor proc;
+  proc.Process(e);
+  BOOST_CHECK(mol::BondExists(e.FindAtom("A", 1, "N"), e.FindAtom("A", 1, "CA")));
+  BOOST_CHECK(mol::BondExists(e.FindAtom("A", 1, "CA"), e.FindAtom("A", 1, "C")));
+  
+  // STEP 2: Same thing again but we tell the processor NOT to connect
+  // hetatoms
+  e = Builder()
+    .Chain("A")
+      .Residue("GLY")
+        .Atom("N", geom::Vec3(-8.22, 35.20, 22.39))
+        .Atom("CA", geom::Vec3(-8.28, 36.36, 21.49))
+        .Atom("C", geom::Vec3(-8.59, 35.93, 20.06))
+        .Atom("O", geom::Vec3(-7.88, 36.30, 19.12))
+        .Atom("CB", geom::Vec3(-6.96, 37.11, 21.53))
+  ;
+
+  atoms = e.GetAtomList();
+  atoms[0].SetHetAtom(true); // N
+  atoms[1].SetHetAtom(true); // CA
+  proc.SetConnectHetatm(false);
+  proc.Process(e);
+  BOOST_CHECK(!mol::BondExists(e.FindAtom("A", 1, "N"), e.FindAtom("A", 1, "CA")));
+  BOOST_CHECK(mol::BondExists(e.FindAtom("A", 1, "CA"), e.FindAtom("A", 1, "C")));
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 

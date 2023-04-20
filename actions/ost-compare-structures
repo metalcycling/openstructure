@@ -5,25 +5,35 @@ Example: ost compare-structures -m model.pdb -r reference.cif
 
 Loads the structures and performs basic cleanup:
 
- * Assign elements according to the PDB compound dictionary
+ * Assign elements according to the PDB Chemical Component Dictionary
  * Map nonstandard residues to their parent residues as defined by the PDB
-   compound dictionary, e.g. phospho-serine => serine
+   Chemical Component Dictionary, e.g. phospho-serine => serine
  * Remove hydrogens
  * Remove OXT atoms
  * Remove unknown atoms, i.e. atoms that are not expected according to the PDB
-   compound dictionary
+   Chemical Component Dictionary
+ * Select for peptide/nucleotide residues
 
 The cleaned structures are optionally dumped using -d/--dump-structures
 
 Output is written in JSON format (default: out.json). In case of no additional
-options, this is a dictionary with five keys:
+options, this is a dictionary with 8 keys:
 
+ * "reference_chains": Chain names of reference
+ * "model_chains": Chain names of model
+ * "chem_groups": Groups of polypeptides/polynucleotides from reference that
+   are considered chemically equivalent. You can derive stoichiometry from this.
+   Contains only chains that are considered in chain mapping, i.e. pass a
+   size threshold (defaults: 10 for peptides, 4 for nucleotides).
+ * "chem_mapping": List of same length as "chem_groups". Assigns model chains to
+   the respective chem group. Again, only contains chains that are considered
+   in chain mapping.
  * "chain_mapping": A dictionary with reference chain names as keys and the
-   mapped model chain names as values.
+   mapped model chain names as values. Missing chains are either not mapped
+   (but present in "chem_groups", "chem_mapping") or were not considered in
+   chain mapping (short peptides etc.)
  * "aln": Pairwise sequence alignment for each pair of mapped chains in fasta
    format.
- * "chem_groups": Groups of polypeptides/polynucleotides that are considered
-   chemically equivalent. You can derive stoichiometry from this.
  * "inconsistent_residues": List of strings that represent name mismatches of
    aligned residues in form
    <trg_cname>.<trg_rname><trg_rnum>-<mdl_cname>.<mdl_rname><mdl_rnum>.
@@ -41,7 +51,7 @@ enabling -rna/--residue-number-alignment is recommended.
 
 Each score is opt-in and can be enabled with optional arguments.
 
-Example to compute local and per-residue lDDT values as well as QS-score:
+Example to compute global and per-residue lDDT values as well as QS-score:
 
 ost compare-structures -m model.pdb -r reference.cif --lddt --local-lddt \
 --qs-score
@@ -117,9 +127,9 @@ def _ParseArgs():
         default=None,
         type=int,
         help=("Only has an effect if model is in mmcif format. By default, "
-              "the assymetric unit (AU) is used for scoring. If there are "
-              "biounits defined in the mmcif file, you can specify the index "
-              "of the one which should be used."))
+              "the asymmetric unit (AU) is used for scoring. If there are "
+              "biounits defined in the mmcif file, you can specify the "
+              "(0-based) index of the one which should be used."))
 
     parser.add_argument(
         "-rb",
@@ -129,9 +139,9 @@ def _ParseArgs():
         default=None,
         type=int,
         help=("Only has an effect if reference is in mmcif format. By default, "
-              "the assymetric unit (AU) is used for scoring. If there are "
-              "biounits defined in the mmcif file, you can specify the index "
-              "of the one which should be used."))
+              "the asymmetric unit (AU) is used for scoring. If there are "
+              "biounits defined in the mmcif file, you can specify the "
+              "(0-based) index of the one which should be used."))
 
     parser.add_argument(
         "-rna",
@@ -380,7 +390,7 @@ def _LoadStructure(structure_path, sformat=None, fault_tolerant=False,
                          fault_tolerant=fault_tolerant)
             if bu_idx >= len(cif_info.biounits):
                 raise RuntimeError(f"Invalid biounit index - requested {bu_idx} "
-                                  f"cif file has {len(cif_info.biounits)}")
+                                   f"must be < {len(cif_info.biounits)}.")
             biounit = cif_info.biounits[bu_idx]
             entity = biounit.PDBize(cif_entity, min_polymer_size=0)
             if not entity.IsValid():
@@ -458,10 +468,13 @@ def _Process(model, reference, args):
         raise RuntimeError(f"Inconsistent residues observed: {' '.join(ir)}")
 
     out = dict()
+    out["reference_chains"] = [ch.GetName() for ch in scorer.target.chains]
+    out["model_chains"] = [ch.GetName() for ch in scorer.model.chains]
+    out["chem_groups"] = scorer.chain_mapper.chem_groups
+    out["chem_mapping"] = scorer.mapping.chem_mapping
     out["chain_mapping"] = scorer.mapping.GetFlatMapping()
     out["aln"] = [_AlnToFastaStr(aln) for aln in scorer.aln]
     out["inconsistent_residues"] = ir
-    out["chem_groups"] = scorer.chain_mapper.chem_groups
 
     if args.lddt:
         out["lddt"] = scorer.lddt

@@ -130,11 +130,29 @@ class Scorer:
                  molck_settings = None, naive_chain_mapping_thresh=12,
                  cad_score_exec = None, custom_mapping=None):
 
-        model = model.Select("peptide=True or nucleotide=True")
-        self._model = mol.CreateEntityFromView(model, False)
+        if isinstance(model, mol.EntityView):
+            model = mol.CreateEntityFromView(model, False)
+        else:
+            model = model.Copy()
 
-        target = target.Select("peptide=True or nucleotide=True")
-        self._target = mol.CreateEntityFromView(target, False)
+        if isinstance(target, mol.EntityView):
+            target = mol.CreateEntityFromView(target, False)
+        else:
+            target = target.Copy()
+
+        if molck_settings is None:
+            molck_settings = MolckSettings(rm_unk_atoms=True,
+                                           rm_non_std=False,
+                                           rm_hyd_atoms=True,
+                                           rm_oxt_atoms=True,
+                                           rm_zero_occ_atoms=False,
+                                           colored=False,
+                                           map_nonstd_res=True,
+                                           assign_elem=True)
+        Molck(model, conop.GetDefaultLib(), molck_settings)
+        Molck(target, conop.GetDefaultLib(), molck_settings)
+        self._model = model.Select("peptide=True or nucleotide=True")
+        self._target = target.Select("peptide=True or nucleotide=True")
 
         # catch models which have empty chain names
         for ch in self._model.chains:
@@ -174,17 +192,6 @@ class Scorer:
                                        "must be strictly increasing if "
                                        "resnum_alignments are enabled")
 
-        if molck_settings is None:
-            molck_settings = MolckSettings(rm_unk_atoms=True,
-                                           rm_non_std=False,
-                                           rm_hyd_atoms=True,
-                                           rm_oxt_atoms=True,
-                                           rm_zero_occ_atoms=False,
-                                           colored=False,
-                                           map_nonstd_res=True,
-                                           assign_elem=True)
-        Molck(self._model, conop.GetDefaultLib(), molck_settings)
-        Molck(self._target, conop.GetDefaultLib(), molck_settings)
         self.resnum_alignments = resnum_alignments
         self.naive_chain_mapping_thresh = naive_chain_mapping_thresh
         self.cad_score_exec = cad_score_exec
@@ -1095,11 +1102,17 @@ class Scorer:
         # - the two above including nonmapped_interfaces => set DockQ to 0.0
         scores = np.array(self._dockq_scores)
         weights = np.array(self._native_contacts)
-        self._dockq_ave = np.mean(scores)
+        if len(scores) > 0:
+            self._dockq_ave = np.mean(scores)
+        else:
+            self._dockq_ave = 0.0
         self._dockq_wave = np.sum(np.multiply(weights/np.sum(weights), scores))
         scores = np.append(scores, [0.0]*len(self._nonmapped_interfaces))
         weights = np.append(weights, self._nonmapped_interfaces_contacts)
-        self._dockq_ave_full = np.mean(scores)
+        if len(scores) > 0:
+            self._dockq_ave_full = np.mean(scores)
+        else:
+            self._dockq_ave_full = 0.0
         self._dockq_wave_full = np.sum(np.multiply(weights/np.sum(weights),
                                                    scores))
 

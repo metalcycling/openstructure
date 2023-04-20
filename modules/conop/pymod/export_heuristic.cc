@@ -29,11 +29,12 @@ void export_heuristic() {
   class_<HeuristicProcessor, HeuristicProcessorPtr, 
          boost::noncopyable, bases<Processor> >("HeuristicProcessor", 
          init<>())
-    .def(init<bool,bool,bool,bool,ConopAction>(
+    .def(init<bool,bool,bool,bool,bool,ConopAction>(
          (arg("check_bond_feasibility")=false,
          arg("assign_torsions")=true,
          arg("connect")=true,
          arg("peptide_bonds")=true,
+         arg("connect_hetatm")=true,
          arg("zero_occ_treatment")=CONOP_WARN)))
   ;
 }

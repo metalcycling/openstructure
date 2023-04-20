@@ -36,13 +36,23 @@ namespace ost { namespace conop {
 
 namespace {
 
+/*
+COMMENT ON CREATE_CMD
+
+CREATE_CMD specifies so called affinities. e.g. VARCHAR(64) where common sense
+interprets the number 64 as max length of entries in that column.
+However, sqlite 3 totally ignores this an interprets it as TEXT without any
+limits. Long story short, don't worry about formulas longer than 64 characters
+or longer names etc.
+*/
+
 const char* CREATE_CMD[]={
 "CREATE TABLE IF NOT EXISTS chemlib_info (                                      "
 "  creation_date     TIMESTAMP,                                                 "
 "  ost_version_used  VARCHAR(64) NOT NULL);",
 "CREATE TABLE IF NOT EXISTS chem_compounds (                                    "
 "  id                INTEGER PRIMARY KEY AUTOINCREMENT,                         "
-"  tlc               VARCHAR(3) NOT NULL,                                       "
+"  tlc               VARCHAR(5) NOT NULL,                                       "
 "  olc               VARCHAR(1) NOT NULL,                                       "
 "  dialect           VARCHAR(1) NOT NULL,                                       "
 "  chem_class        VARCHAR(1),                                                "

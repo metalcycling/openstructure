@@ -19,7 +19,8 @@ Comparing two structures
 --------------------------------------------------------------------------------
 
 You can compare two structures from the command line with the
-``ost compare-structures`` action.
+``ost compare-structures`` action. This can be considered a command line
+interface to :class:`ost.mol.alg.scoring.Scorer`
 
 .. warning::
 
@@ -47,26 +48,36 @@ Details on the usage (output of ``ost compare-structures --help``):
   Example: ost compare-structures -m model.pdb -r reference.cif
   
   Loads the structures and performs basic cleanup:
-  
-   * Assign elements according to the PDB compound dictionary
+
+   * Assign elements according to the PDB Chemical Component Dictionary
    * Map nonstandard residues to their parent residues as defined by the PDB
-     compound dictionary, e.g. phospho-serine => serine
+     Chemical Component Dictionary, e.g. phospho-serine => serine
    * Remove hydrogens
    * Remove OXT atoms
    * Remove unknown atoms, i.e. atoms that are not expected according to the PDB
-     compound dictionary
-  
+     Chemical Component Dictionary
+   * Select for peptide/nucleotide residues
+
   The cleaned structures are optionally dumped using -d/--dump-structures
   
   Output is written in JSON format (default: out.json). In case of no additional
-  options, this is a dictionary with five keys:
+  options, this is a dictionary with 8 keys:
   
+   * "reference_chains": Chain names of reference
+   * "model_chains": Chain names of model
+   * "chem_groups": Groups of polypeptides/polynucleotides from reference that
+     are considered chemically equivalent. You can derive stoichiometry from this.
+     Contains only chains that are considered in chain mapping, i.e. pass a
+     size threshold (defaults: 10 for peptides, 4 for nucleotides).
+   * "chem_mapping": List of same length as "chem_groups". Assigns model chains to
+     the respective chem group. Again, only contains chains that are considered
+     in chain mapping.
    * "chain_mapping": A dictionary with reference chain names as keys and the
-     mapped model chain names as values.
+     mapped model chain names as values. Missing chains are either not mapped
+     (but present in "chem_groups", "chem_mapping") or were not considered in
+     chain mapping (short peptides etc.)
    * "aln": Pairwise sequence alignment for each pair of mapped chains in fasta
      format.
-   * "chem_groups": Groups of polypeptides/polynucleotides that are considered
-     chemically equivalent. You can derive stoichiometry from this.
    * "inconsistent_residues": List of strings that represent name mismatches of
      aligned residues in form
      <trg_cname>.<trg_rname><trg_rnum>-<mdl_cname>.<mdl_rname><mdl_rnum>.
@@ -76,7 +87,7 @@ Details on the usage (output of ``ost compare-structures --help``):
    * "status": SUCCESS if everything ran through. In case of failure, the only
      content of the JSON output will be "status" set to FAILURE and an
      additional key: "traceback".
-  
+
   The pairwise sequence alignments are computed with Needleman-Wunsch using
   BLOSUM62 (NUC44 for nucleotides). Many benchmarking scenarios preprocess the
   structures to ensure matching residue numbers (CASP/CAMEO). In these cases,
@@ -84,14 +95,14 @@ Details on the usage (output of ``ost compare-structures --help``):
   
   Each score is opt-in and can be enabled with optional arguments.
   
-  Example to compute local and per-residue lDDT values as well as QS-score:
+  Example to compute global and per-residue lDDT values as well as QS-score:
   
   ost compare-structures -m model.pdb -r reference.cif --lddt --local-lddt --qs-score
   
   Example to inject custom chain mapping
   
   ost compare-structures -m model.pdb -r reference.cif -c A:B B:A
-
+  
   optional arguments:
     -h, --help            show this help message and exit
     -m MODEL, --model MODEL
@@ -113,12 +124,14 @@ Details on the usage (output of ``ost compare-structures --help``):
                           Only has an effect if model is in mmcif format. By
                           default, the assymetric unit (AU) is used for scoring.
                           If there are biounits defined in the mmcif file, you
-                          can specify the index of the one which should be used.
+                          can specify the (0-based) index of the one which
+                          should be used.
     -rb REFERENCE_BIOUNIT, --reference-biounit REFERENCE_BIOUNIT
                           Only has an effect if reference is in mmcif format. By
                           default, the assymetric unit (AU) is used for scoring.
                           If there are biounits defined in the mmcif file, you
-                          can specify the index of the one which should be used.
+                          can specify the (0-based) index of the one which
+                          should be used.
     -rna, --residue-number-alignment
                           Make alignment based on residue number instead of
                           using a global BLOSUM62-based alignment (NUC44 for
@@ -231,16 +244,25 @@ Details on the usage (output of ``ost compare-structures --help``):
 Comparing two structures with ligands
 --------------------------------------------------------------------------------
 
-You can compare two structures with non-polymer/small molecule ligands from the
-command line with the ``ost compare-ligand-structures`` action.
+You can compare two structures with non-polymer/small molecule ligands and
+compute lDDT-PLI and ligand RMSD scores from the command line with the
+``ost compare-ligand-structures`` action. This can be considered a command
+line interface to :class:`ost.mol.alg.ligand_scoring.LigandScorer`.
 
 Details on the usage (output of ``ost compare-ligand-structures --help``):
 
 .. code-block:: console
 
-  usage: ost compare-ligand-structures [-h] -m MODEL [-ml [MODEL_LIGANDS ...]] -r REFERENCE [-rl [REFERENCE_LIGANDS ...]] [-o OUTPUT] [-mf {pdb,mmcif}]
-                                     [-rf {cif,mmcif}] [-ft] [-rna] [-cr] [-sm] [--lddt-pli] [--rmsd] [--radius RADIUS] [--lddt-pli-radius LDDT_PLI_RADIUS]
-                                     [--lddt-bs-radius LDDT_BS_RADIUS] [-v VERBOSITY]
+    usage: ost compare-ligand-structures [-h] -m MODEL [-ml [MODEL_LIGANDS ...]]
+                                     -r REFERENCE
+                                     [-rl [REFERENCE_LIGANDS ...]]
+                                     [-o OUTPUT] [-mf {pdb,mmcif,cif}]
+                                     [-rf {pdb,mmcif,cif}] [-ft] [-rna] [-ec]
+                                     [-sm] [--lddt-pli] [--rmsd]
+                                     [--radius RADIUS]
+                                     [--lddt-pli-radius LDDT_PLI_RADIUS]
+                                     [--lddt-bs-radius LDDT_BS_RADIUS]
+                                     [-v VERBOSITY]
 
     Evaluate model with non-polymer/small molecule ligands against reference.
 
@@ -250,8 +272,9 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
         -r reference.cif \
         --lddt-pli --rmsd
 
-    Only minimal cleanup steps are performed (remove hydrogens, and for structures
-    only, remove unknown atoms and cleanup element column).
+    Structures of polymer entities (proteins and nucleotides) can be given in PDB
+    or mmCIF format. If the structure is given in mmCIF format, only the asymmetric
+    unit (AU) is used for scoring.
 
     Ligands can be given as path to SDF files containing the ligand for both model
     (--model-ligands/-ml) and reference (--reference-ligands/-rl). If omitted,
@@ -261,6 +284,12 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
     For structures given in PDB format, this is based on the HET records and is
     normally not what you want. You should always give ligands as SDF for
     structures in PDB format.
+
+    Polymer/oligomeric ligands (saccharides, peptides, nucleotides) are not
+    supported.
+
+    Only minimal cleanup steps are performed (remove hydrogens, and for structures
+    of polymers only, remove unknown atoms and cleanup element column).
 
     Ligands in mmCIF and PDB files must comply with the PDB component dictionary
     definition, and have properly named residues and atoms, in order for
@@ -284,41 +313,60 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
 
     Each score is opt-in and, be enabled with optional arguments and is added
     to the output. Keys correspond to the values in "model_ligands" above.
-    Only mapped ligands are reported.
+    Only assigned mapped ligands are reported.
 
-  options:
+    options:
       -h, --help            show this help message and exit
       -m MODEL, --mdl MODEL, --model MODEL
                             Path to model file.
-      -ml [MODEL_LIGANDS ...], --mdl-ligands [MODEL_LIGANDS ...], --model-ligands [MODEL_LIGANDS ...]
+      -ml [MODEL_LIGANDS ...], --mdl-ligands [MODEL_LIGANDS ...],
+                            --model-ligands [MODEL_LIGANDS ...]
                             Path to model ligand files.
       -r REFERENCE, --ref REFERENCE, --reference REFERENCE
                             Path to reference file.
-      -rl [REFERENCE_LIGANDS ...], --ref-ligands [REFERENCE_LIGANDS ...], --reference-ligands [REFERENCE_LIGANDS ...]
+      -rl [REFERENCE_LIGANDS ...], --ref-ligands [REFERENCE_LIGANDS ...],
+                            --reference-ligands [REFERENCE_LIGANDS ...]
                             Path to reference ligand files.
       -o OUTPUT, --out OUTPUT, --output OUTPUT
-                            Output file name. The output will be saved as a JSON file. default: out.json
-      -mf {pdb,mmcif}, --mdl-format {pdb,mmcif}, --model-format {pdb,mmcif}
-                            Format of model file. Inferred from path if not given.
-      -rf {cif,mmcif}, --reference-format {cif,mmcif}, --ref-format {cif,mmcif}
-                            Format of reference file. Inferred from path if not given.
+                            Output file name. The output will be saved as a JSON
+                            file. default: out.json
+      -mf {pdb,mmcif,cif}, --mdl-format {pdb,mmcif,cif},
+                            --model-format {pdb,mmcif,cif}
+                            Format of model file. Inferred from path if not
+                            given.
+      -rf {pdb,mmcif,cif}, --reference-format {pdb,mmcif,cif},
+                            --ref-format {pdb,mmcif,cif}
+                            Format of reference file. Inferred from path if not
+                            given.
       -ft, --fault-tolerant
                             Fault tolerant parsing.
       -rna, --residue-number-alignment
-                            Make alignment based on residue number instead of using a global BLOSUM62-based alignment (NUC44 for nucleotides).
-      -cr, --check-resnames
-                            Enforce residue name matches between mapped model and targetresidues.
+                            Make alignment based on residue number instead of
+                            using a global BLOSUM62-based alignment (NUC44 for
+                            nucleotides).
+      -ec, --enforce-consistency
+                            Enforce consistency of residue names between the
+                            reference binding site and the model. By default
+                            residue name discrepancies are reported but the
+                            program proceeds. If this is set to True, the program
+                            will fail with an error message if the residues names
+                            differ. Note: more binding site mappings may be
+                            explored during scoring, but only inconsistencies in
+                            the selected mapping are reported.
       -sm, --substructure-match
                             Allow incomplete target ligands.
       --lddt-pli            Compute lDDT-PLI score and store as key "lddt-pli".
-      --rmsd                Compute RMSD score and store as key "lddt-pli".
-      --radius RADIUS       Inclusion radius for the binding site. Any residue with atoms within this distance of the ligand will be included in the binding site.
+      --rmsd                Compute RMSD score and store as key "rmsd".
+      --radius RADIUS       Inclusion radius for the binding site. Any residue
+                            with atoms within this distance of the ligand will be
+                            included in the binding site.
       --lddt-pli-radius LDDT_PLI_RADIUS
                             lDDT inclusion radius for lDDT-PLI.
       --lddt-bs-radius LDDT_BS_RADIUS
                             lDDT inclusion radius for lDDT-BS.
       -v VERBOSITY, --verbosity VERBOSITY
                             Set verbosity level. Defaults to 3 (INFO).
+
 
 Additional information about the scores and output values is available in
 :meth:`rmsd_details <ost.mol.alg.ligand_scoring.LigandScorer.rmsd_details>` and

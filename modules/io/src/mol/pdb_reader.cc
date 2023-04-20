@@ -27,6 +27,7 @@
 #include <ost/profile.hh>
 #include <ost/log.hh>
 #include <ost/message.hh>
+#include <ost/mol/bond_handle.hh>
 
 #include <ost/conop/conop.hh>
 #include <ost/geom/mat3.hh>
@@ -122,7 +123,8 @@ void PDBReader::ParseCompndEntry (const StringRef& line, int line_num)
                   << ": record is too short");
       return;
     }
-    std::stringstream ss("invalid COMPND record on line ");
+    std::stringstream ss;
+    ss << "invalid COMPND record on line ";
     ss << line_num <<": record is too short";
     throw IOException(ss.str());
   }
@@ -132,7 +134,8 @@ void PDBReader::ParseCompndEntry (const StringRef& line, int line_num)
                   << ": record is too long");
       return;
     }
-    std::stringstream ss("invalid COMPND record on line ");
+    std::stringstream ss;
+    ss << "invalid COMPND record on line ";
     ss << line_num <<": whole record is too long";
     throw IOException(ss.str());
   }
@@ -254,7 +257,8 @@ void PDBReader::ParseSeqRes(const StringRef& line, int line_num)
                   << ": record is too short");
       return;
     }
-    std::stringstream ss("invalid SEQRES record on line ");
+    std::stringstream ss;
+    ss << "invalid SEQRES record on line ";
     ss << line_num <<": record is too short";
     throw IOException(ss.str());
   }
@@ -356,11 +360,16 @@ void PDBReader::Import(mol::EntityHandle& ent,
         break;
          case 'C':
          case 'c':
-           if (curr_line.size()<20) {
+           if (curr_line.size()<6) {
              LOG_TRACE("skipping entry");
              continue;
            }
-           if (IEquals(curr_line.substr(0, 6), StringRef("COMPND", 6))) {
+           else if (IEquals(curr_line.substr(0, 6), StringRef("CONECT", 6)) &&
+                    profile_.read_conect) {
+             LOG_TRACE("processing CONECT entry");
+             this->ParseConectEntry(curr_line, line_num_, ent);
+           }
+           else if (IEquals(curr_line.substr(0, 6), StringRef("COMPND", 6))) {
              LOG_TRACE("processing COMPND entry");
              this->ParseCompndEntry(curr_line, line_num_);
            }
@@ -566,7 +575,8 @@ bool PDBReader::EnsureLineLength(const StringRef& line, size_t size)
 bool PDBReader::ParseAtomIdent(const StringRef& line, int line_num, 
                                String& chain_name,  StringRef& res_name,
                                mol::ResNum& resnum, StringRef& atom_name, 
-                               char& alt_loc, const StringRef& record_type)
+                               char& alt_loc, const StringRef& record_type,
+                               int& serial)
 {
   if (!this->EnsureLineLength(line, 27)) {
     return false;
@@ -602,6 +612,13 @@ bool PDBReader::ParseAtomIdent(const StringRef& line, int line_num,
 
   char  ins_c=line[26];  
   resnum=to_res_num(res_num.second, ins_c);
+
+  std::pair<bool, int> tmp = line.substr(6, 5).trim().to_int();
+  if(tmp.first) {
+    // potentially not set - up to the caller to check for that
+    serial = tmp.second;
+  }
+
   return true;
 }
 
@@ -615,8 +632,10 @@ void PDBReader::ParseAnisou(const StringRef& line, int line_num,
   char alt_loc=0;
   StringRef res_name, atom_name;
   mol::ResNum res_num(0);
+  int serial = -1;
   if (!this->ParseAtomIdent(line, line_num, chain_name, res_name, res_num, 
-                            atom_name, alt_loc, StringRef("ANISOU", 6))) {
+                            atom_name, alt_loc, StringRef("ANISOU", 6),
+                            serial)) {
     return;                            
   }
   double anisou[6]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0};  
@@ -673,8 +692,9 @@ void PDBReader::ParseAndAddAtom(const StringRef& line, int line_num,
   String chain_name;
   StringRef res_name, atom_name;
   mol::ResNum res_num(0);
+  int serial = -1;
   if (!this->ParseAtomIdent(line, line_num, chain_name, res_name, res_num, 
-                            atom_name, alt_loc, record_type)) {
+                            atom_name, alt_loc, record_type, serial)) {
     return;                            
   }
   std::pair<bool, Real> charge, radius;
@@ -860,6 +880,9 @@ void PDBReader::ParseAndAddAtom(const StringRef& line, int line_num,
     ah.SetCharge(charge.second);
   }
   ah.SetHetAtom(record_type[0]=='H');
+  if(profile_.read_conect && serial != -1) {
+    this->amap_[serial] = ah;
+  }
 }
 
 void PDBReader::ParseHelixEntry(const StringRef& line)
@@ -910,5 +933,48 @@ void PDBReader::ParseStrandEntry(const StringRef& line)
    strand_list_.push_back(hse);
   }
 }
+
+void PDBReader::ParseConectEntry (const StringRef& line, int line_num, mol::EntityHandle& ent)
+{
+  if (line.size()<16) {
+    if (profile_.fault_tolerant) {
+      LOG_WARNING("invalid CONECT record on line " << line_num 
+                  << ": record is too short");
+      return;
+    }
+    std::stringstream ss;
+    ss << "invalid CONECT record on line ";
+    ss << line_num <<": record is too short";
+    throw IOException(ss.str());
+  }
+  if (line.rtrim().size()>80) {
+    if (profile_.fault_tolerant) {
+      LOG_WARNING("invalid CONECT record on line " << line_num 
+                  << ": record is too long");
+      return;
+    }
+    std::stringstream ss;
+    ss << "invalid CONECT record on line ";
+    ss << line_num <<": whole record is too long";
+    throw IOException(ss.str());
+  }
+  mol::XCSEditor editor=ent.EditXCS(mol::BUFFERED_EDIT);
+  const int starting_atom = line.substr(6,5).trim().to_int().second;
+  // map for bonds, in the form of <serial_number, bond_order>
+  std::map<int, unsigned char> connected_atoms;
+  for (int i=0; i<4; i++) {
+    if (static_cast<int>(line.length()) < 11+i*5+5) break;
+    const int connected_atom = line.substr(11+i*5, 5).trim().to_int().second;
+    connected_atoms[connected_atom]+=1;
+  }
+  for (auto& pair : connected_atoms) {
+    auto at_one_it = this->amap_.find(starting_atom);
+    auto at_two_it = this->amap_.find(pair.first);
+    if(at_one_it != this->amap_.end() && at_two_it != this->amap_.end()) {
+      editor.Connect(at_one_it->second, at_two_it->second, pair.second);
+    }
+  }
+}
+
 
 }}

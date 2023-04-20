@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 # ARGUMENTS
 ###########
-ARG OPENSTRUCTURE_VERSION="2.3.1"
+ARG OPENSTRUCTURE_VERSION="2.4.0"
 ARG SRC_FOLDER="/usr/local/src"
 ARG CPUS_FOR_MAKE=2
 ARG OPENMM_VERSION="7.7.0"
@@ -33,6 +33,7 @@ RUN apt-get update -y && apt-get install -y cmake \
                                             swig \
                                             clustalw \
                                             cython3 \
+                                            voronota \
                                             locales && \
                                             # CLEANUP
                                             rm -rf /var/lib/apt/lists/*
