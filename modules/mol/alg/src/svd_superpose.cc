@@ -19,7 +19,6 @@
 
 #include <stdexcept>
 #include <iostream>
-#include <boost/bind.hpp>
 
 #include <Eigen/SVD>
 #include <Eigen/Geometry>
@@ -39,7 +38,6 @@
 namespace ost { namespace mol { namespace alg {
 
 
-using boost::bind;
 typedef Eigen::Matrix<Real,3,1> EVec3;
 typedef Eigen::Matrix<Real,3,3> EMat3;
 typedef Eigen::Matrix<Real,4,4> EMat4;

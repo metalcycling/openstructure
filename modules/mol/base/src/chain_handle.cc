@@ -205,6 +205,7 @@ void ChainHandle::SetInSequence(const int index)
 
 unsigned long ChainHandle::GetHashCode() const
 {
+  this->CheckValidity();
   return reinterpret_cast<unsigned long>(Impl().get());
 }
 

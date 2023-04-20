@@ -65,10 +65,10 @@ class ImmutableGradientInfoHandler:
     qgrad = QtGui.QLinearGradient()
     for stop in stops:
       color = stop.GetColor()
-      qcolor = QtGui.QColor(color.Red()*255,
-                            color.Green()*255,
-                            color.Blue()*255,
-                            color.Alpha()*255)
+      qcolor = QtGui.QColor(int(color.Red()*255),
+                            int(color.Green()*255),
+                            int(color.Blue()*255),
+                            int(color.Alpha()*255))
       qgrad.setColorAt(stop.GetRel(), qcolor) 
     return qgrad 
   

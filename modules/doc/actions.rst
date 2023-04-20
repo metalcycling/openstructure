@@ -13,591 +13,361 @@ you can type ``ost <ACTION> -h`` to get a description on its usage.
 
 Here we list the most prominent actions with simple examples.
 
-.. ost-compare-structures:
+.. _ost compare structures:
 
 Comparing two structures
 --------------------------------------------------------------------------------
 
-You can compare two structures in terms of quaternary structure score and
-lDDT scores between two complexes from the command line with the
-``ost compare-structures`` action.
+You can compare two structures from the command line with the
+``ost compare-structures`` action. This can be considered a command line
+interface to :class:`ost.mol.alg.scoring.Scorer`
 
-In summary it performs the following steps:
+.. warning::
 
-- Read structures (PDB or mmCIF format, can be gzipped) and split into
-  biological assemblies (all possible pairs are scored).
-- Mandatory cleanup of hydrogen atoms, ligand and water chains, small
-  (< 20 residues) peptides or chains with no amino acids as described in
-  :attr:`QSscoreEntity.ent <ost.mol.alg.qsscoring.QSscoreEntity.ent>` and
-  :attr:`QSscoreEntity.removed_chains <ost.mol.alg.qsscoring.QSscoreEntity.removed_chains>`.
-- Optional cleanup of structures with :func:`~ost.mol.alg.Molck`.
-- Optional structural checks with :func:`~ost.mol.alg.CheckStructure`.
-- Unless user-provided, find chain mapping between complexes (see
-  :attr:`here <ost.mol.alg.qsscoring.QSscorer.chain_mapping>` for details)
-- Perform sequence alignment of chain pairs (unless user asks for alignment
-  based on residue numbers). Alignment can optionally checked for consistency
-  if 100% sequence identity is expected.
-- Compute scores requested by user (CA-RMSD of oligomer,
-  :mod:`QS scores of oligomer <ost.mol.alg.qsscoring>`,
-  :class:`single chain lDDT scores <ost.mol.alg.lDDTScorer>`,
-  :attr:`weighted average of single chain lDDT scores <ost.mol.alg.qsscoring.OligoLDDTScorer.weighted_lddt>`,
-  :attr:`lDDT score of oligomer <ost.mol.alg.qsscoring.OligoLDDTScorer.oligo_lddt>`).
-  Note that while the QS score is symmetric (same result when swapping reference
-  and model), the lDDT scores are not. Extra atoms in the model for mapped
-  chains have no effect on the score, while extra atoms in the reference reduce
-  the score. For the oligomeric variants (weighted-lDDT & oligo-lDDT), we do
-  :attr:`penalize for extra chains <ost.mol.alg.qsscoring.OligoLDDTScorer.penalize_extra_chains>`
-  in both reference and model.
-
-.. note ::
-
-  The action relies on OST's :mod:`~ost.mol.alg.qsscoring` module and has the
-  same requirements on your OST installation (needs compound library, ClustalW,
-  numpy and scipy).
+  ``compare-structures`` underwent a complete rewrite in OpenStructure
+  release 2.4.0. The old version is still available as
+  ``compare-structures-legacy`` with documentation available
+  :doc:`here <deprecated_actions>`.
 
 Details on the usage (output of ``ost compare-structures --help``):
 
 .. code-block:: console
 
-  usage: ost compare-structures [-h] -m MODEL -r REFERENCE [-v VERBOSITY]
-                                [-o OUTPUT] [-d] [-ds DUMP_SUFFIX]
-                                [-rs REFERENCE_SELECTION] [-ms MODEL_SELECTION]
-                                [-ca] [-ft] [-cl COMPOUND_LIBRARY] [-ml]
-                                [-rm REMOVE [REMOVE ...]] [-ce] [-mn] [-sc]
-                                [-p PARAMETER_FILE] [-bt BOND_TOLERANCE]
-                                [-at ANGLE_TOLERANCE]
-                                [-c CHAIN_MAPPING [CHAIN_MAPPING ...]]
-                                [--qs-max-mappings-extensive QS_MAX_MAPPINGS_EXTENSIVE]
-                                [-cc] [-rna] [-qs] [--qs-rmsd] [-l]
-                                [-ir INCLUSION_RADIUS] [-ss SEQUENCE_SEPARATION]
-                                [-spr]
+  usage: ost compare-structures [-h] -m MODEL -r REFERENCE [-o OUTPUT]
+                                [-mf {pdb,cif,mmcif}] [-rf {pdb,cif,mmcif}]
+                                [-mb MODEL_BIOUNIT] [-rb REFERENCE_BIOUNIT]
+                                [-rna] [-ec] [-d] [-ds DUMP_SUFFIX] [-ft]
+                                [-c CHAIN_MAPPING [CHAIN_MAPPING ...]] [--lddt]
+                                [--local-lddt] [--cad-score] [--local-cad-score]
+                                [--cad-exec CAD_EXEC] [--qs-score]
+                                [--rigid-scores] [--interface-scores]
+                                [--patch-scores]
+  
+  Evaluate model against reference 
+  
+  Example: ost compare-structures -m model.pdb -r reference.cif
+  
+  Loads the structures and performs basic cleanup:
 
-  Evaluate model structure against reference.
+   * Assign elements according to the PDB Chemical Component Dictionary
+   * Map nonstandard residues to their parent residues as defined by the PDB
+     Chemical Component Dictionary, e.g. phospho-serine => serine
+   * Remove hydrogens
+   * Remove OXT atoms
+   * Remove unknown atoms, i.e. atoms that are not expected according to the PDB
+     Chemical Component Dictionary
+   * Select for peptide/nucleotide residues
 
-  eg.
+  The cleaned structures are optionally dumped using -d/--dump-structures
+  
+  Output is written in JSON format (default: out.json). In case of no additional
+  options, this is a dictionary with 8 keys:
+  
+   * "reference_chains": Chain names of reference
+   * "model_chains": Chain names of model
+   * "chem_groups": Groups of polypeptides/polynucleotides from reference that
+     are considered chemically equivalent. You can derive stoichiometry from this.
+     Contains only chains that are considered in chain mapping, i.e. pass a
+     size threshold (defaults: 10 for peptides, 4 for nucleotides).
+   * "chem_mapping": List of same length as "chem_groups". Assigns model chains to
+     the respective chem group. Again, only contains chains that are considered
+     in chain mapping.
+   * "chain_mapping": A dictionary with reference chain names as keys and the
+     mapped model chain names as values. Missing chains are either not mapped
+     (but present in "chem_groups", "chem_mapping") or were not considered in
+     chain mapping (short peptides etc.)
+   * "aln": Pairwise sequence alignment for each pair of mapped chains in fasta
+     format.
+   * "inconsistent_residues": List of strings that represent name mismatches of
+     aligned residues in form
+     <trg_cname>.<trg_rname><trg_rnum>-<mdl_cname>.<mdl_rname><mdl_rnum>.
+     Inconsistencies may lead to corrupt results but do not abort the program.
+     Program abortion in these cases can be enforced with
+     -ec/--enforce-consistency.
+   * "status": SUCCESS if everything ran through. In case of failure, the only
+     content of the JSON output will be "status" set to FAILURE and an
+     additional key: "traceback".
 
-    ost compare-structures \
-        --model <MODEL> \
-        --reference <REF> \
-        --output output.json \
-        --lddt \
-        --structural-checks \
-        --consistency-checks \
-        --molck \
-        --remove oxt hyd \
-        --map-nonstandard-residues
-
-  Here we describe how the parameters can be set to mimick a CAMEO evaluation
-  (as of August 2018).
-
-  CAMEO calls the lddt binary as follows:
-
-    lddt \
-        -p <PARAMETER FILE> \
-        -f \
-        -a 15 \
-        -b 15 \
-        -r 15 \
-        <MODEL> \
-        <REF>
-
-  Only model structures are "Molck-ed" in CAMEO. The call to molck is as follows:
-
-    molck \
-        --complib=<COMPOUND LIB> \
-        --rm=hyd,oxt,unk,nonstd \
-        --fix-ele \
-        --map-nonstd \
-        --out=<OUTPUT> \
-        <FILEPATH>
-
-  To be as much compatible with with CAMEO as possible one should call
-  compare-structures as follows:
-
-    ost compare-structures \
-        --model <MODEL> \
-        --reference <REF> \
-        --output output.json \
-        --molck \
-        --remove oxt hyd unk nonstd \
-        --clean-element-column \
-        --map-nonstandard-residues \
-        --structural-checks \
-        --bond-tolerance 15.0 \
-        --angle-tolerance 15.0 \
-        --residue-number-alignment \
-        --consistency-checks \
-        --qs-score \
-        --lddt \
-        --inclusion-radius 15.0
-
+  The pairwise sequence alignments are computed with Needleman-Wunsch using
+  BLOSUM62 (NUC44 for nucleotides). Many benchmarking scenarios preprocess the
+  structures to ensure matching residue numbers (CASP/CAMEO). In these cases,
+  enabling -rna/--residue-number-alignment is recommended.
+  
+  Each score is opt-in and can be enabled with optional arguments.
+  
+  Example to compute global and per-residue lDDT values as well as QS-score:
+  
+  ost compare-structures -m model.pdb -r reference.cif --lddt --local-lddt --qs-score
+  
+  Example to inject custom chain mapping
+  
+  ost compare-structures -m model.pdb -r reference.cif -c A:B B:A
+  
   optional arguments:
     -h, --help            show this help message and exit
-
-  required arguments:
     -m MODEL, --model MODEL
-                          Path to the model file.
+                          Path to model file.
     -r REFERENCE, --reference REFERENCE
-                          Path to the reference file.
-
-  general arguments:
-    -v VERBOSITY, --verbosity VERBOSITY
-                          Set verbosity level. Defaults to 3.
+                          Path to reference file.
     -o OUTPUT, --output OUTPUT
-                          Output file name. The output will be saved as a JSON file.
+                          Output file name. The output will be saved as a JSON
+                          file. default: out.json
+    -mf {pdb,cif,mmcif}, --model-format {pdb,cif,mmcif}
+                          Format of model file. pdb reads pdb but also pdb.gz,
+                          same applies to cif/mmcif. Inferred from filepath if
+                          not given.
+    -rf {pdb,cif,mmcif}, --reference-format {pdb,cif,mmcif}
+                          Format of reference file. pdb reads pdb but also
+                          pdb.gz, same applies to cif/mmcif. Inferred from
+                          filepath if not given.
+    -mb MODEL_BIOUNIT, --model-biounit MODEL_BIOUNIT
+                          Only has an effect if model is in mmcif format. By
+                          default, the assymetric unit (AU) is used for scoring.
+                          If there are biounits defined in the mmcif file, you
+                          can specify the (0-based) index of the one which
+                          should be used.
+    -rb REFERENCE_BIOUNIT, --reference-biounit REFERENCE_BIOUNIT
+                          Only has an effect if reference is in mmcif format. By
+                          default, the assymetric unit (AU) is used for scoring.
+                          If there are biounits defined in the mmcif file, you
+                          can specify the (0-based) index of the one which
+                          should be used.
+    -rna, --residue-number-alignment
+                          Make alignment based on residue number instead of
+                          using a global BLOSUM62-based alignment (NUC44 for
+                          nucleotides).
+    -ec, --enforce-consistency
+                          Enforce consistency. By default residue name
+                          discrepancies between a model and reference are
+                          reported but the program proceeds. If this flag is ON,
+                          the program fails for these cases.
     -d, --dump-structures
-                          Dump cleaned structures used to calculate all the scores as
-                          PDB files using specified suffix. Files will be dumped to the
-                          same location as original files.
+                          Dump cleaned structures used to calculate all the
+                          scores as PDB files using specified suffix. Files will
+                          be dumped to the same location as original files.
     -ds DUMP_SUFFIX, --dump-suffix DUMP_SUFFIX
-                          Use this suffix to dump structures.
-                          Defaults to .compare.structures.pdb.
-    -rs REFERENCE_SELECTION, --reference-selection REFERENCE_SELECTION
-                          Selection performed on reference structures.
-    -ms MODEL_SELECTION, --model-selection MODEL_SELECTION
-                          Selection performed on model structures.
-    -ca, --c-alpha-only   Use C-alpha atoms only. Equivalent of calling the action with
-                          '--model-selection="aname=CA" --reference-selection="aname=CA"'
-                          options.
+                          Use this suffix to dump structures. Defaults to
+                          .compare.structures.pdb.
     -ft, --fault-tolerant
                           Fault tolerant parsing.
-    -cl COMPOUND_LIBRARY, --compound-library COMPOUND_LIBRARY
-                          Location of the compound library file (compounds.chemlib).
-                          If not provided, the following locations are searched in this
-                          order: 1. Working directory, 2. OpenStructure standard library
-                          location.
-
-  molecular check arguments:
-    -ml, --molck          Run molecular checker to clean up input.
-    -rm REMOVE [REMOVE ...], --remove REMOVE [REMOVE ...]
-                          Remove atoms and residues matching some criteria:
-                           * zeroocc - Remove atoms with zero occupancy
-                           * hyd - remove hydrogen atoms
-                           * oxt - remove terminal oxygens
-                           * nonstd - remove all residues not one of the 20
-                                      standard amino acids
-                           * unk - Remove unknown and atoms not following the
-                                   nomenclature
-                          Defaults to hyd.
-    -ce, --clean-element-column
-                          Clean up element column
-    -mn, --map-nonstandard-residues
-                          Map modified residues back to the parent amino acid, for
-                          example MSE -> MET, SEP -> SER.
-
-  structural check arguments:
-    -sc, --structural-checks
-                          Perform structural checks and filter input data.
-    -p PARAMETER_FILE, --parameter-file PARAMETER_FILE
-                          Location of the stereochemical parameter file
-                          (stereo_chemical_props.txt).
-                          If not provided, the following locations are searched in this
-                          order: 1. Working directory, 2. OpenStructure standard library
-                          location.
-    -bt BOND_TOLERANCE, --bond-tolerance BOND_TOLERANCE
-                          Tolerance in STD for bonds. Defaults to 12.
-    -at ANGLE_TOLERANCE, --angle-tolerance ANGLE_TOLERANCE
-                          Tolerance in STD for angles. Defaults to 12.
-
-  chain mapping arguments:
     -c CHAIN_MAPPING [CHAIN_MAPPING ...], --chain-mapping CHAIN_MAPPING [CHAIN_MAPPING ...]
-                          Mapping of chains between the reference and the model.
-                          Each separate mapping consist of key:value pairs where key
-                          is the chain name in reference and value is the chain name in
-                          model.
-    --qs-max-mappings-extensive QS_MAX_MAPPINGS_EXTENSIVE
-                          Maximal number of chain mappings to test for 'extensive'
-                          chain mapping scheme which is used as a last resort if
-                          other schemes failed. The extensive chain mapping search
-                          must in the worst case check O(N!) possible mappings for
-                          complexes with N chains. Two octamers without symmetry
-                          would require 322560 mappings to be checked. To limit
-                          computations, no scores are computed if we try more than
-                          the maximal number of chain mappings. Defaults to 1000000.
+                          Custom mapping of chains between the reference and the
+                          model. Each separate mapping consist of key:value
+                          pairs where key is the chain name in reference and
+                          value is the chain name in model.
+    --lddt                Compute global lDDT score with default
+                          parameterization and store as key "lddt".
+                          Stereochemical irregularities affecting lDDT are
+                          reported as keys "model_clashes", "model_bad_bonds",
+                          "model_bad_angles" and the respective reference
+                          counterparts.
+    --local-lddt          Compute per-residue lDDT scores with default
+                          parameterization and store as key "local_lddt". Score
+                          for model residue with number 42 in chain X can be
+                          extracted with: data["local_lddt"]["X"]["42"]. If
+                          there is an insertion code, lets say A, the last key
+                          becomes "42A" Stereochemical irregularities affecting
+                          lDDT are reported as keys "model_clashes",
+                          "model_bad_bonds", "model_bad_angles" and the
+                          respective reference counterparts.
+    --cad-score           Compute global CAD's atom-atom (AA) score and store as
+                          key "cad_score". --residue-number-alignment must be
+                          enabled to compute this score. Requires
+                          voronota_cadscore executable in PATH. Alternatively
+                          you can set cad-exec.
+    --local-cad-score     Compute local CAD's atom-atom (AA) scores and store as
+                          key "local_cad_score". Score for model residue with
+                          number 42 in chain X can be extracted with:
+                          data["local_cad_score"]["X"]["42"]. --residue-number-
+                          alignments must be enabled to compute this score.
+                          Requires voronota_cadscore executable in PATH.
+                          Alternatively you can set cad-exec.
+    --cad-exec CAD_EXEC   Path to voronota-cadscore executable (installed from
+                          https://github.com/kliment-olechnovic/voronota).
+                          Searches PATH if not set.
+    --qs-score            Compute QS-score, stored as key "qs_global", and the
+                          QS-best variant, stored as key "qs_best".
+    --rigid-scores        Computes rigid superposition based scores. They're
+                          based on a Kabsch superposition of all mapped CA
+                          positions (C3' for nucleotides). Makes the following
+                          keys available: "oligo_gdtts": GDT with distance
+                          thresholds [1.0, 2.0, 4.0, 8.0] given these positions
+                          and transformation, "oligo_gdtha": same with
+                          thresholds [0.5, 1.0, 2.0, 4.0], "rmsd": RMSD given
+                          these positions and transformation, "transform": the
+                          used 4x4 transformation matrix that superposes model
+                          onto reference.
+    --interface-scores    Per interface scores for each interface that has at
+                          least one contact in the reference, i.e. at least one
+                          pair of heavy atoms within 5A. The respective
+                          interfaces are available from key "interfaces" which
+                          is a list of tuples in form (ref_ch1, ref_ch2,
+                          mdl_ch1, mdl_ch2). Per-interface scores are available
+                          as lists referring to these interfaces and have the
+                          following keys: "nnat" (number of contacts in
+                          reference), "nmdl" (number of contacts in model),
+                          "fnat" (fraction of reference contacts which are also
+                          there in model), "fnonnat" (fraction of model contacts
+                          which are not there in target), "irmsd" (interface
+                          RMSD), "lrmsd" (ligand RMSD), "dockq_scores" (per-
+                          interface score computed from "fnat", "irmsd" and
+                          "lrmsd"), "interface_qs_global" and
+                          "interface_qs_best" (per-interface versions of the two
+                          QS-score variants). The DockQ score is strictly
+                          designed to score each interface individually. We also
+                          provide two averaged versions to get one full model
+                          score: "dockq_ave", "dockq_wave". The first is simply
+                          the average of "dockq_scores", the latter is a
+                          weighted average with weights derived from "nnat".
+                          These two scores only consider interfaces that are
+                          present in both, the model and the reference.
+                          "dockq_ave_full" and "dockq_wave_full" add zeros in
+                          the average computation for each interface that is
+                          only present in the reference but not in the model.
+    --patch-scores        Local interface quality score used in CASP15. Scores
+                          each model residue that is considered in the interface
+                          (CB pos within 8A of any CB pos from another chain (CA
+                          for GLY)). The local neighborhood gets represented by
+                          "interface patches" which are scored with QS-score and
+                          DockQ. Scores where not the full patches are
+                          represented by the reference are set to None. Model
+                          interface residues are available as key
+                          "model_interface_residues", reference interface
+                          residues as key "reference_interface_residues".
+                          Residues are represented as string in form
+                          <num><inscode>. The respective scores are available as
+                          keys "patch_qs" and "patch_dockq"
 
-  sequence alignment arguments:
-    -cc, --consistency-checks
-                          Take consistency checks into account. By default residue name
-                          consistency between a model-reference pair would be checked
-                          but only a warning message will be displayed and the script
-                          will continue to calculate scores. If this flag is ON, checks
-                          will not be ignored and if the pair does not pass the test
-                          all the scores for that pair will be marked as a FAILURE.
-    -rna, --residue-number-alignment
-                          Make alignment based on residue number instead of using
-                          a global BLOSUM62-based alignment.
 
-  QS score arguments:
-    -qs, --qs-score       Calculate QS-score.
-    --qs-rmsd             Calculate CA RMSD between shared CA atoms of mapped chains.
-                          This uses a superposition using all mapped chains which
-                          minimizes the CA RMSD.
+.. _ost compare ligand structures:
 
-  lDDT score arguments:
-    -l, --lddt            Calculate lDDT.
-    -ir INCLUSION_RADIUS, --inclusion-radius INCLUSION_RADIUS
-                          Distance inclusion radius for lDDT. Defaults to 15 A.
-    -ss SEQUENCE_SEPARATION, --sequence-separation SEQUENCE_SEPARATION
-                          Sequence separation. Only distances between residues whose
-                          separation is higher than the provided parameter are
-                          considered when computing the score. Defaults to 0.
-    -spr, --save-per-residue-scores
+Comparing two structures with ligands
+--------------------------------------------------------------------------------
 
+You can compare two structures with non-polymer/small molecule ligands and
+compute lDDT-PLI and ligand RMSD scores from the command line with the
+``ost compare-ligand-structures`` action. This can be considered a command
+line interface to :class:`ost.mol.alg.ligand_scoring.LigandScorer`.
 
-By default the verbosity is set to 3 which will result in the informations
-being shown in the console. The result can be (optionally) saved as JSON file
-which is the preferred way of parsing it as the log output might change in the
-future. Optionally, the local scores for lDDT can also be dumped to the output
-file. Additionally, cleaned up structures can be saved to the disk.
-The output file has following format:
-
-.. code-block:: none
-
-  {
-    "options": { ... },  # Options used to run the script
-    "result": {
-      "<MODEL NAME>": { # Model name extracted from the file name
-        "<REFERENCE NAME>": { # Reference name extracted from the file name
-          "info": {
-            "mapping": {
-              "alignments": <list of chain-chain alignments in FASTA format>,
-              "chain_mapping": <Mapping of chains eg. {"A": "B", "B": "A"}>,
-              "chain_mapping_scheme": <Scheme used to get mapping, check mapping manually
-                                       if "permissive" or "extensive">
-            },
-            "residue_names_consistent": <Are the residue numbers consistent? true or false>
-          },
-          "lddt": {
-            # calculated when --lddt (-l) option is selected
-            "oligo_lddt": {
-              "error": <ERROR message if any>,
-              "global_score": <calculated oligomeric lDDT score>,
-              "status": <SUCCESS or FAILURE>
-            },
-            "single_chain_lddt": [
-              # a list of chain-chain lDDTs
-              {
-                "conserved_contacts": <number of conserved contacts between model & reference>,
-                "error": <ERROR message if any>,
-                "global_score": <calculated single-chain lDDT score>,
-                "model_chain": <name of the chain in model>,
-                "reference_chain": <name of the chain in reference>,
-                "status": <SUCCESS or FAILURE>,
-                "total_contacts": <total number of contacts in reference>,
-                "per_residue_scores": [
-                  # per-residue lDDT scores
-                  # only calculated when --save-per-residue-scores (-spr) option is selected
-                  {
-                    "residue_name": <three letter code of the residue in reference chain>,
-                    "residue_number": <residue number in reference chain>,
-                    "lddt": <residue lDDT score>,
-                    "conserved_contacts": <conserved_contacts for given residue>,
-                    "total_contacts": <total_contacts for given residue>
-                  },
-                  .
-                  .
-                  .
-                ]
-              }
-            ],
-            "weighted_lddt": {
-              "error": <ERROR message if any>,
-              "global_score": <calculated weighted lDDT score>,
-              "status": <SUCCESS or FAILURE>
-            }
-          },
-          "qs_score": {
-            # calculated when --qs-score (-q) option is selected
-            "best_score": <Best QS-score>,
-            "error": <ERROR message if any>,
-            "global_score": <Global QS-score>,
-            "status": <SUCCESS or FAILURE>
-          }
-        }
-      }
-    }
-  }
-
-The "result" filed is a dictionary mapping from model to reference as eg. in
-mmCIF file there can be many entities and the script will compare all
-combinations.
-
-Example usage:
+Details on the usage (output of ``ost compare-ligand-structures --help``):
 
 .. code-block:: console
 
-  $ CAMEO_TARGET_URL=https://www.cameo3d.org/static/data/modeling/2019.07.13/6PO4_F
-  $ curl $CAMEO_TARGET_URL/bu_target_01.pdb > reference.pdb
-  $ curl $CAMEO_TARGET_URL/servers/server20/oligomodel-1/oligomodel-1.pdb > model.pdb
-  $ $OST_ROOT/bin/ost compare-structures \
-        --model model.pdb --reference reference.pdb --output output.json \
-        --qs-score --residue-number-alignment --lddt --structural-checks \
-        --consistency-checks --inclusion-radius 15.0 --bond-tolerance 15.0 \
-        --angle-tolerance 15.0 --molck --remove oxt hyd unk nonstd \
-        --clean-element-column --map-nonstandard-residues
+    usage: ost compare-ligand-structures [-h] -m MODEL [-ml [MODEL_LIGANDS ...]]
+                                     -r REFERENCE
+                                     [-rl [REFERENCE_LIGANDS ...]]
+                                     [-o OUTPUT] [-mf {pdb,mmcif,cif}]
+                                     [-rf {pdb,mmcif,cif}] [-ft] [-rna] [-ec]
+                                     [-sm] [--lddt-pli] [--rmsd]
+                                     [--radius RADIUS]
+                                     [--lddt-pli-radius LDDT_PLI_RADIUS]
+                                     [--lddt-bs-radius LDDT_BS_RADIUS]
+                                     [-v VERBOSITY]
 
-  ################################################################################
-  Reading input files (fault_tolerant=False)
-   --> reading model from model.pdb
-  imported 2 chains, 462 residues, 3400 atoms; with 0 helices and 0 strands
-   --> reading reference from reference.pdb
-  imported 3 chains, 471 residues, 3465 atoms; with 0 helices and 0 strands
-  ################################################################################
-  Cleaning up input with Molck
-  removing hydrogen atoms
-   --> removed 0 hydrogen atoms
-  removing OXT atoms
-   --> removed 3 OXT atoms
-  _.HCS1 is not a standard amino acid --> removed 
-  _.ADE2 is not a standard amino acid --> removed 
-  _.BO33 is not a standard amino acid --> removed 
-  _.ADE4 is not a standard amino acid --> removed 
-  _.HCS5 is not a standard amino acid --> removed 
-  _.BO36 is not a standard amino acid --> removed 
-  removing hydrogen atoms
-   --> removed 0 hydrogen atoms
-  removing OXT atoms
-   --> removed 0 OXT atoms
-  ################################################################################
-  Performing structural checks
-   --> for reference(s)
-  Checking reference.pdb
-  Checking stereo-chemistry
-  Average Z-Score for bond lengths: 0.33163
-  Bonds outside of tolerance range: 0 out of 2993
-  Bond  Avg Length  Avg zscore  Num Bonds
-  C-C 1.51236     0.03971     1682
-  C-N 1.46198     0.96819     603
-  C-O 1.25794     0.49967     674
-  C-S 1.80242     0.15292     34
-  Average Z-Score angle widths: -0.12077
-  Angles outside of tolerance range: 0 out of 3260
-  Filtering non-bonded clashes
-  0 non-bonded short-range distances shorter than tolerance distance
-  Distances shorter than tolerance are on average shorter by: 0.00000
-   --> for model(s)
-  Checking model.pdb
-  Checking stereo-chemistry
-  Average Z-Score for bond lengths: 0.23693
-  Bonds outside of tolerance range: 0 out of 2976
-  Bond  Avg Length  Avg zscore  Num Bonds
-  C-C 1.52020     0.40359     1674
-  C-N 1.43936     -0.19949    598
-  C-O 1.25221     0.20230     670
-  C-S 1.81182     0.38936     34
-  Average Z-Score angle widths: 0.04946
-  Angles outside of tolerance range: 0 out of 3241
-  Filtering non-bonded clashes
-  0 non-bonded short-range distances shorter than tolerance distance
-  Distances shorter than tolerance are on average shorter by: 0.00000
-  ################################################################################
-  Comparing model.pdb to reference.pdb
-  Chains in reference.pdb: AB
-  Chains in model.pdb: AB
-  Chemically equivalent chain-groups in reference.pdb: [['A', 'B']]
-  Chemically equivalent chain-groups in model.pdb: [['A', 'B']]
-  Chemical chain-groups mapping: {('A', 'B'): ('A', 'B')}
-  Identifying Symmetry Groups...
-  Symmetry threshold 0.1 used for angles of reference.pdb
-  Symmetry threshold 0.1 used for axis of reference.pdb
-  Symmetry threshold 0.1 used for angles of model.pdb
-  Symmetry threshold 0.1 used for axis of model.pdb
-  Selecting Symmetry Groups...
-  Symmetry-groups used in reference.pdb: [('A',), ('B',)]
-  Symmetry-groups used in model.pdb: [('A',), ('B',)]
-  Closed Symmetry with strict parameters
-  Mapping found: {'A': 'A', 'B': 'B'}
-  --------------------------------------------------------------------------------
-  Checking consistency between model.pdb and reference.pdb
-  Consistency check: OK
-  --------------------------------------------------------------------------------
-  Computing QS-score
-  QSscore reference.pdb, model.pdb: best: 0.96, global: 0.96
-  --------------------------------------------------------------------------------
-  Computing lDDT scores
-  lDDT settings: 
-  Inclusion Radius: 15
-  Sequence separation: 0
-  Cutoffs: 0.5, 1, 2, 4
-  Residue properties label: lddt
-  ===
-   --> Computing lDDT between model chain A and reference chain A
-  Coverage: 0.991416 (231 out of 233 residues)
-  Global LDDT score: 0.8955
-  (1194245 conserved distances out of 1333644 checked, over 4 thresholds)
-   --> Computing lDDT between model chain B and reference chain B
-  Coverage: 0.991379 (230 out of 232 residues)
-  Global LDDT score: 0.8998
-  (1200391 conserved distances out of 1334056 checked, over 4 thresholds)
-   --> Computing oligomeric lDDT score
-  Reference reference.pdb has: 2 chains
-  Model model.pdb has: 2 chains
-  Coverage: 0.991398 (461 out of 465 residues)
-  Oligo lDDT score: 0.8977
-   --> Computing weighted lDDT score
-  Weighted lDDT score: 0.8976
-  ################################################################################
-  Saving output into output.json
+    Evaluate model with non-polymer/small molecule ligands against reference.
 
-This reads the model and reference file and calculates QS- and lDDT-scores
-between them. In the example above the output file looks as follows (FASTA
-alignments were cut in display here for readability):
+    Example: ost compare-ligand-structures \
+        -m model.pdb \
+        -ml ligand.sdf \
+        -r reference.cif \
+        --lddt-pli --rmsd
 
-..  code snippet to fix output.json generated above
-  import json
-  json_data = json.load(open("output.json"))
-  mapping = json_data["result"]["model.pdb"]["reference.pdb"]["info"]["mapping"]
-  new_alns = list()
-  for aln in mapping["alignments"]:
-    aln_lines = aln.splitlines()
-    aln_lines[1] = aln_lines[1][:15] + "..."
-    aln_lines[3] = aln_lines[3][:15] + "..."
-    new_alns.append("\n".join(aln_lines))
-  mapping["alignments"] = new_alns
-  json_data["options"]["parameter_file"] = "Path to stage/share/openstructure/stereo_chemical_props.txt"
-  json_data["options"]["compound_library"] = "Path to stage/share/openstructure/compounds.chemlib"
-  json_data["options"]["cwd"] = "Path to current working directory"
-  with open("output_fixed.json", "w") as outfile:
-    json.dump(json_data, outfile, indent=2, sort_keys=True)
+    Structures of polymer entities (proteins and nucleotides) can be given in PDB
+    or mmCIF format. If the structure is given in mmCIF format, only the asymmetric
+    unit (AU) is used for scoring.
 
-.. code-block:: json
+    Ligands can be given as path to SDF files containing the ligand for both model
+    (--model-ligands/-ml) and reference (--reference-ligands/-rl). If omitted,
+    ligands will be detected in the model and reference structures. For structures
+    given in mmCIF format, this is based on the annotation as "non polymer entity"
+    (i.e. ligands in the _pdbx_entity_nonpoly mmCIF category) and works reliably.
+    For structures given in PDB format, this is based on the HET records and is
+    normally not what you want. You should always give ligands as SDF for
+    structures in PDB format.
 
-  {
-    "options": {
-      "angle_tolerance": 15.0, 
-      "bond_tolerance": 15.0, 
-      "c_alpha_only": false, 
-      "chain_mapping": null, 
-      "clean_element_column": true, 
-      "compound_library": "Path to stage/share/openstructure/compounds.chemlib", 
-      "consistency_checks": true, 
-      "cwd": "Path to current working directory", 
-      "dump_structures": false, 
-      "dump_suffix": ".compare.structures.pdb", 
-      "fault_tolerant": false, 
-      "inclusion_radius": 15.0, 
-      "lddt": true, 
-      "map_nonstandard_residues": true, 
-      "model": "model.pdb", 
-      "model_selection": "", 
-      "molck": true, 
-      "output": "output.json", 
-      "parameter_file": "Path to stage/share/openstructure/stereo_chemical_props.txt", 
-      "qs_max_mappings_extensive": 1000000, 
-      "qs_rmsd": false, 
-      "qs_score": true, 
-      "reference": "reference.pdb", 
-      "reference_selection": "", 
-      "remove": [
-        "oxt", 
-        "hyd", 
-        "unk", 
-        "nonstd"
-      ], 
-      "residue_number_alignment": true, 
-      "save_per_residue_scores": false, 
-      "sequence_separation": 0, 
-      "structural_checks": true, 
-      "verbosity": 3
-    }, 
-    "result": {
-      "model.pdb": {
-        "reference.pdb": {
-          "info": {
-            "mapping": {
-              "alignments": [
-                ">reference:A\n-NAMKIGIVGAMAQE...\n>model:A\n---MKIGIVGAMAQE...", 
-                ">reference:B\n-NAMKIGIVGAMAQE...\n>model:B\n---MKIGIVGAMAQE..."
-              ], 
-              "chain_mapping": {
-                "A": "A", 
-                "B": "B"
-              }, 
-              "chain_mapping_scheme": "strict"
-            }, 
-            "residue_names_consistent": true
-          }, 
-          "lddt": {
-            "oligo_lddt": {
-              "error": "", 
-              "global_score": 0.8977285786061329, 
-              "status": "SUCCESS"
-            }, 
-            "single_chain_lddt": [
-              {
-                "conserved_contacts": 1194245, 
-                "error": "", 
-                "global_score": 0.8954750895500183, 
-                "model_chain": "A", 
-                "reference_chain": "A", 
-                "status": "SUCCESS", 
-                "total_contacts": 1333644
-              }, 
-              {
-                "conserved_contacts": 1200391, 
-                "error": "", 
-                "global_score": 0.8998055458068848, 
-                "model_chain": "B", 
-                "reference_chain": "B", 
-                "status": "SUCCESS", 
-                "total_contacts": 1334056
-              }
-            ], 
-            "weighted_lddt": {
-              "error": "", 
-              "global_score": 0.8976406520766181, 
-              "status": "SUCCESS"
-            }
-          }, 
-          "qs_score": {
-            "best_score": 0.9619749105661133, 
-            "error": "", 
-            "global_score": 0.9619749105661133, 
-            "status": "SUCCESS"
-          }
-        }
-      }
-    }
-  }
+    Polymer/oligomeric ligands (saccharides, peptides, nucleotides) are not
+    supported.
 
-If all the structures are clean and have matching residue numbers, one can omit
-all the checking steps and calculate scores directly as here:
+    Only minimal cleanup steps are performed (remove hydrogens, and for structures
+    of polymers only, remove unknown atoms and cleanup element column).
 
-.. code:: console
+    Ligands in mmCIF and PDB files must comply with the PDB component dictionary
+    definition, and have properly named residues and atoms, in order for
+    ligand connectivity to be loaded correctly. Ligands loaded from SDF files
+    are exempt from this restriction, meaning any arbitrary ligand can be assessed.
 
-  $ $OST_ROOT/bin/ost compare-structures \
-        --model model.pdb --reference reference.pdb --output output_qs.json \
-        --qs-score --residue-number-alignment
+    Output is written in JSON format (default: out.json). In case of no additional
+    options, this is a dictionary with three keys:
 
-  ################################################################################
-  Reading input files (fault_tolerant=False)
-   --> reading model from model.pdb
-  imported 2 chains, 462 residues, 3400 atoms; with 0 helices and 0 strands
-   --> reading reference from reference.pdb
-  imported 3 chains, 471 residues, 3465 atoms; with 0 helices and 0 strands
-  ################################################################################
-  Comparing model.pdb to reference.pdb
-  Chains removed from reference.pdb: _
-  Chains in reference.pdb: AB
-  Chains in model.pdb: AB
-  Chemically equivalent chain-groups in reference.pdb: [['A', 'B']]
-  Chemically equivalent chain-groups in model.pdb: [['A', 'B']]
-  Chemical chain-groups mapping: {('A', 'B'): ('A', 'B')}
-  Identifying Symmetry Groups...
-  Symmetry threshold 0.1 used for angles of reference.pdb
-  Symmetry threshold 0.1 used for axis of reference.pdb
-  Symmetry threshold 0.1 used for angles of model.pdb
-  Symmetry threshold 0.1 used for axis of model.pdb
-  Selecting Symmetry Groups...
-  Symmetry-groups used in reference.pdb: [('A',), ('B',)]
-  Symmetry-groups used in model.pdb: [('A',), ('B',)]
-  Closed Symmetry with strict parameters
-  Mapping found: {'A': 'A', 'B': 'B'}
-  --------------------------------------------------------------------------------
-  Checking consistency between model.pdb and reference.pdb
-  Consistency check: OK
-  --------------------------------------------------------------------------------
-  Computing QS-score
-  QSscore reference.pdb, model.pdb: best: 0.96, global: 0.96
-  ################################################################################
-  Saving output into output_qs.json
+     * "model_ligands": A list of ligands in the model. If ligands were provided
+       explicitly with --model-ligands, elements of the list will be the paths to
+       the ligand SDF file(s). Otherwise, they will be the chain name and residue
+       number of the ligand, separated by a dot.
+     * "reference_ligands": A list of ligands in the reference. If ligands were
+       provided explicitly with --reference-ligands, elements of the list will be
+       the paths to the ligand SDF file(s). Otherwise, they will be the chain name
+       and residue number of the ligand, separated by a dot.
+     * "status": SUCCESS if everything ran through. In case of failure, the only
+       content of the JSON output will be "status" set to FAILURE and an
+       additional key: "traceback".
+
+    Each score is opt-in and, be enabled with optional arguments and is added
+    to the output. Keys correspond to the values in "model_ligands" above.
+    Only assigned mapped ligands are reported.
+
+    options:
+      -h, --help            show this help message and exit
+      -m MODEL, --mdl MODEL, --model MODEL
+                            Path to model file.
+      -ml [MODEL_LIGANDS ...], --mdl-ligands [MODEL_LIGANDS ...],
+                            --model-ligands [MODEL_LIGANDS ...]
+                            Path to model ligand files.
+      -r REFERENCE, --ref REFERENCE, --reference REFERENCE
+                            Path to reference file.
+      -rl [REFERENCE_LIGANDS ...], --ref-ligands [REFERENCE_LIGANDS ...],
+                            --reference-ligands [REFERENCE_LIGANDS ...]
+                            Path to reference ligand files.
+      -o OUTPUT, --out OUTPUT, --output OUTPUT
+                            Output file name. The output will be saved as a JSON
+                            file. default: out.json
+      -mf {pdb,mmcif,cif}, --mdl-format {pdb,mmcif,cif},
+                            --model-format {pdb,mmcif,cif}
+                            Format of model file. Inferred from path if not
+                            given.
+      -rf {pdb,mmcif,cif}, --reference-format {pdb,mmcif,cif},
+                            --ref-format {pdb,mmcif,cif}
+                            Format of reference file. Inferred from path if not
+                            given.
+      -ft, --fault-tolerant
+                            Fault tolerant parsing.
+      -rna, --residue-number-alignment
+                            Make alignment based on residue number instead of
+                            using a global BLOSUM62-based alignment (NUC44 for
+                            nucleotides).
+      -ec, --enforce-consistency
+                            Enforce consistency of residue names between the
+                            reference binding site and the model. By default
+                            residue name discrepancies are reported but the
+                            program proceeds. If this is set to True, the program
+                            will fail with an error message if the residues names
+                            differ. Note: more binding site mappings may be
+                            explored during scoring, but only inconsistencies in
+                            the selected mapping are reported.
+      -sm, --substructure-match
+                            Allow incomplete target ligands.
+      --lddt-pli            Compute lDDT-PLI score and store as key "lddt-pli".
+      --rmsd                Compute RMSD score and store as key "rmsd".
+      --radius RADIUS       Inclusion radius for the binding site. Any residue
+                            with atoms within this distance of the ligand will be
+                            included in the binding site.
+      --lddt-pli-radius LDDT_PLI_RADIUS
+                            lDDT inclusion radius for lDDT-PLI.
+      --lddt-bs-radius LDDT_BS_RADIUS
+                            lDDT inclusion radius for lDDT-BS.
+      -v VERBOSITY, --verbosity VERBOSITY
+                            Set verbosity level. Defaults to 3 (INFO).
+
+
+Additional information about the scores and output values is available in
+:meth:`rmsd_details <ost.mol.alg.ligand_scoring.LigandScorer.rmsd_details>` and
+:meth:`lddt_pli_details <ost.mol.alg.ligand_scoring.LigandScorer.lddt_pli_details>`.

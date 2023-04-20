@@ -95,6 +95,13 @@ behaviour.
         pdb_str = pdb.read()
         ent = io.PDBStrToEntity(pdb_str, ost.io.profiles['DEFAULT'], True)
 
+.. function:: SDFStrToEntity(sdf_string)
+
+  Load entity from a string in SDF format.
+
+  :param pdb_string: A SDF file as a string.
+
+  :rtype: :class:`~ost.mol.EntityHandle`.
 
 .. class:: ost.io.OMF
 
@@ -264,6 +271,14 @@ file:
       on the IO Profiles available, see :doc:`profile`.
   :raises: IOException if the restrictions of the PDB format are not satisfied
            (see :meth:`ost.io.SavePDB`)
+
+  :rtype: string.
+
+.. function:: EntityToSDFStr(ent)
+
+  Return entity as a string in SDF format.
+
+  :param entity: The :class:`~ost.mol.EntityHandle` or :class:`~ost.mol.EntityView`
 
   :rtype: string.
 

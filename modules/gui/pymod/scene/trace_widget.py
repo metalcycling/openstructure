@@ -58,7 +58,7 @@ class TraceWidget(RenderModeWidget):
     self.width_tube_spinbox_.setSingleStep(0.1)
     
     self.width_tube_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.width_tube_slider_.setRange(min_width*10.0, max_tube_width*10.0)
+    self.width_tube_slider_.setRange(int(min_width*10.0), int(max_tube_width*10.0))
     self.width_tube_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.width_tube_slider_.setTickInterval(1)
 
@@ -101,7 +101,7 @@ class TraceWidget(RenderModeWidget):
   def UpdateTubeRadiusGui(self,value):
     value = round(value, 2)
     if(abs(value*10.0 - self.width_tube_slider_.value())>=self.width_tube_slider_.singleStep()):
-      self.width_tube_slider_.setValue(value*10.0)
+      self.width_tube_slider_.setValue(int(value*10.0))
     if(abs(value - self.width_tube_spinbox_.value())>=self.width_tube_spinbox_.singleStep()):
       self.width_tube_spinbox_.setValue(value)
   

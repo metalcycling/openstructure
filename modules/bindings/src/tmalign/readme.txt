@@ -8,7 +8,7 @@
    Please report issues to yangzhanglab@umich.edu
 
    References to cite:
-   S Gong, C Zhang, Y Zhang. Bioinformatics (2019)
+   S Gong, C Zhang, Y Zhang. Bioinformatics, btz282 (2019)
    Y Zhang, J Skolnick. Nucl Acids Res 33, 2302-9 (2005)
 
    DISCLAIMER:
@@ -50,6 +50,17 @@
               (3) automatic detection of molecule type (protein vs RNA).
    2019/01/07: C Zhang added support for PDBx/mmCIF format.
    2019/02/09: Fixed asymmetric alignment bug.
+   2019/03/17: Added the -cp option for circular permutation
+   2019/03/27: Added the -mirror option for mirror structure alignment
+   2019/04/25: The RNA-align algorithm was published by Bioinformatics
+   2019/07/24: Fixed bug in displaying matching residues.
+               Added GDT and MaxSub to TMscore program.
+   2019/08/18: Prevent excessive circular permutation alignment by -cp.
+   2020/05/19: Add back rasmol output
+   2020/12/12: Fixed bug in double precision coordinate mmcif alignment
+   2021/01/07: Fixed bug in TMscore -c
+   2021/05/29: Remove unnecessary depedency on malloc.h, which prevent
+               compilation on Mac OS
 ===============================================================================
 
 =========================
@@ -84,4 +95,4 @@ fortran version, including RNA alignment and batch alignment of multiple
 structures. A full list of available options can be explored by:
   ./TMalign -h
 
-02/09/2019
+2021/05/20

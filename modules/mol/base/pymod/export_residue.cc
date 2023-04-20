@@ -71,6 +71,19 @@ namespace {
     }
     b->SetChemClass(ChemClass(st[0]));
   }
+
+  struct H {
+    std::size_t operator()(const ost::mol::ResNum& n) const {
+        std::size_t h1 = std::hash<int>{}(n.GetNum());
+        std::size_t h2 = std::hash<char>{}(n.GetInsCode());
+        return h1 ^ (h2 << 1);
+    }
+  };
+
+  int ResNumHash(const ost::mol::ResNum& n) {
+    return H{}(n);
+  }
+
 }
 
 void export_Residue()
@@ -118,6 +131,7 @@ void export_Residue()
     .add_property("ins_code", &ResNum::GetInsCode)
     .def("__str__", &ResNum::AsString)
     .def("__repr__", &ResNum::AsString)
+    .def("__hash__", &ResNumHash)
     .def(self<self)
     .def(self>self)
     .def(self>=self)
@@ -193,6 +207,8 @@ void export_Residue()
     .add_property("qualified_name", &ResidueBase::GetQualifiedName)
     .def("IsPeptideLinking", &ResidueBase::IsPeptideLinking)
     .add_property("peptide_linking", &ResidueBase::IsPeptideLinking)
+    .def("IsNucleotideLinking", &ResidueBase::IsNucleotideLinking)
+    .add_property("nucleotide_linking", &ResidueBase::IsNucleotideLinking)
     
     .def("GetCentralAtom", &ResidueBase::GetCentralAtom)
     .def("SetCentralAtom", &ResidueBase::SetCentralAtom)
@@ -212,10 +228,10 @@ void export_Residue()
     .add_property("chem_type", &ResidueBase::GetChemType)
     .add_property("is_ligand", &ResidueBase::IsLigand, &ResidueBase::SetIsLigand)
     .def("IsLigand", &ResidueBase::IsLigand)
-    .def("SetIsLigand", &ResidueBase::SetIsLigand)
+    .def("SetIsLigand", &ResidueBase::SetIsLigand, arg("ligand"))
     .add_property("is_protein", &ResidueBase::IsProtein,
                                 &ResidueBase::SetIsProtein)
-    .def("IsProtein", &ResidueBase::IsProtein)
+    .def("IsProtein", &ResidueBase::IsProtein, arg("protein"))
     .def("SetIsProtein", &ResidueBase::SetIsProtein)
     .add_property("number",
                    make_function(&ResidueBase::GetNumber,
@@ -259,6 +275,7 @@ void export_Residue()
     .def("GetAtomCount", &ResidueHandle::GetAtomCount)
     .def("GetBondCount", &ResidueHandle::GetBondCount)
     .add_property("atom_count", &ResidueHandle::GetAtomCount)
+    .add_property("bond_count", &ResidueHandle::GetBondCount)
     .add_property("index", &ResidueHandle::GetIndex)
     .def("Select", select_string, arg("flags")=0)
     .def("Select", select_query, arg("flags")=0)    
@@ -275,8 +292,10 @@ void export_Residue()
     .def(self==self)
     .def(self!=self)
     .def("__hash__", &ResidueHandle::GetHashCode)
+    .def("GetHashCode", &ResidueHandle::GetHashCode)
     .def("GetBounds", &ResidueHandle::GetBounds)
-    .add_property("bounds", &ResidueHandle::GetBounds)    
+    .add_property("bounds", &ResidueHandle::GetBounds)
+    .add_property("hash_code", &ResidueHandle::GetHashCode)    
   ;
 
   class_<ResidueHandleList>("ResidueHandleList", no_init)

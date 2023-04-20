@@ -47,7 +47,7 @@ void EventButton::mouseMoveEvent(QMouseEvent* event){
    QDrag* drag = new QDrag(this);
    drag->setMimeData(mimeData);
    drag->setHotSpot(event->pos() - this->rect().topLeft());
-   drag->start(Qt::MoveAction);
+   drag->exec(Qt::MoveAction);
 }
 
 void EventButton::dropEvent(QDropEvent* event){

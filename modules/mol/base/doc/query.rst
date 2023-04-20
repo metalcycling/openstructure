@@ -219,6 +219,9 @@ This index is the same for views and handles.
 **peptide** (bool): Whether the residue is :attr:`peptide linking
 <ResidueHandle.peptide_linking>`.
 
+**nucleotide** (bool): Whether the residue is :attr:`nucleotide linking
+<ResidueHandle.nucleotide_linking>`.
+
 **protein** (bool): Whether the residue is considered to be
 :attr:`part of a connected protein <ResidueHandle.is_protein>`.
 

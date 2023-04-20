@@ -18,7 +18,7 @@
 //------------------------------------------------------------------------------
 #include <algorithm>
 #include <limits>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <ost/log.hh>
 #include <ost/mol/bond_handle.hh>
 #include <ost/mol/residue_handle.hh>
@@ -31,7 +31,6 @@
 #include <ost/mol/impl/chain_impl.hh>
 #include <ost/mol/entity_handle.hh>
 
-using boost::bind;
 
 namespace ost { namespace mol {
 
@@ -182,7 +181,7 @@ ResidueView ChainView::FindResidue(const ResNum& number) const {
     return ResidueView();
   } else {
     i=std::find_if(l.begin(), l.end(), 
-                   bind(&ResidueView::GetNumber, _1)==number);
+                   bind(&ResidueView::GetNumber, boost::placeholders::_1)==number);
     return i==data_->residues.end() ? ResidueView() : *i;    
   }
 }
@@ -310,7 +309,7 @@ ResidueView ChainView::AddResidue(const ResidueView& residue_view,
 void ChainView::RemoveResidues() {
   this->CheckValidity();
   std::for_each(data_->residues.begin(), data_->residues.end(),
-                bind(&ResidueView::RemoveAtoms, _1));
+                bind(&ResidueView::RemoveAtoms, boost::placeholders::_1));
   data_->residues.clear();
   data_->handle_to_view.clear();
 }
@@ -340,7 +339,7 @@ int ChainView::GetResidueIndex(const ResNum& number) const
     i=p.first;
   } else {
     i=std::find_if(data_->residues.begin(), data_->residues.end(),
-                   bind(&ResidueView::GetNumber, _1)==number);    
+                   bind(&ResidueView::GetNumber, boost::placeholders::_1)==number);    
   }
 
   return i==data_->residues.end() ? -1 : i-data_->residues.begin();
@@ -476,6 +475,12 @@ bool ChainView::HasAtoms() const {
     }
   }
   return false;
+}
+
+unsigned long ChainView::GetHashCode() const
+{
+  this->CheckValidity();
+  return reinterpret_cast<unsigned long>(data_.get());
 }
 
 }} // ns

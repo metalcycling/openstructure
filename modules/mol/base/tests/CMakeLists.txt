@@ -14,6 +14,7 @@ set(OST_MOL_BASE_UNIT_TESTS
   test_transfer_connectivity.cc
   test_view_op.cc
   tests.cc
+  test_invalid.py
 )
 
 if (USE_NUMPY)

@@ -42,8 +42,16 @@ class TestClustalWBindings(unittest.TestCase):
     
   def testMultipleClustalW(self):
     aln=clustalw.ClustalW(self.multseq)
-    assert self.mult_alignment.ToString(80) == aln.ToString(80), \
-           "Multiple alignment differs from precomputed one"
+    # order of sequences in aln may differ (reported by Andrius Merkys who
+    # found architecture dependent behaviour)
+    # We therefore check for matching sequence names and respective sequences
+    # but not for order.
+    ref_sequences = {s.GetName(): str(s) for s in self.mult_alignment.sequences}
+    sequences = {s.GetName(): str(s) for s in aln.sequences}
+    self.assertEqual(sorted(ref_sequences.keys()), sorted(sequences.keys()))
+    for sname, s in ref_sequences.items():
+      self.assertEqual(s, sequences[sname])
+
 
   def testStringClustalW(self):
     aln=clustalw.ClustalW(self.strseq1, self.strseq2)

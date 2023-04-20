@@ -92,7 +92,7 @@ class HSCWidget(RenderModeWidget):
     self.width_tube_spinbox_.setSingleStep(0.1)
     
     self.width_tube_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.width_tube_slider_.setRange(min_width*10.0, max_tube_width*10.0)
+    self.width_tube_slider_.setRange(int(min_width*10.0), int(max_tube_width*10.0))
     self.width_tube_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.width_tube_slider_.setTickInterval(1)
     
@@ -105,7 +105,7 @@ class HSCWidget(RenderModeWidget):
     self.thickness_tube_spinbox_.setSingleStep(0.1)
     
     self.thickness_tube_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.thickness_tube_slider_.setRange(min_tube_ratio*10.0, max_tube_ratio*10)
+    self.thickness_tube_slider_.setRange(int(min_tube_ratio*10.0), int(max_tube_ratio*10))
     self.thickness_tube_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.thickness_tube_slider_.setTickInterval(1)
 
@@ -128,7 +128,7 @@ class HSCWidget(RenderModeWidget):
     self.width_helix_spinbox_.setSingleStep(0.1)
     
     self.width_helix_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.width_helix_slider_.setRange(min_width*10.0, max_width*10.0)
+    self.width_helix_slider_.setRange(int(min_width*10.0), int(max_width*10.0))
     self.width_helix_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.width_helix_slider_.setTickInterval(1)
     
@@ -141,7 +141,7 @@ class HSCWidget(RenderModeWidget):
     self.thickness_helix_spinbox_.setSingleStep(0.1)
     
     self.thickness_helix_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.thickness_helix_slider_.setRange(min_ratio*10.0,max_ratio*10.0)
+    self.thickness_helix_slider_.setRange(int(min_ratio*10.0), int(max_ratio*10.0))
     self.thickness_helix_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.thickness_helix_slider_.setTickInterval(1)
     
@@ -154,7 +154,7 @@ class HSCWidget(RenderModeWidget):
     self.ecc_helix_spinbox_.setSingleStep(0.1)
     
     self.ecc_helix_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.ecc_helix_slider_.setRange(min_ecc*10,max_ecc*10)
+    self.ecc_helix_slider_.setRange(int(min_ecc*10), int(max_ecc*10))
     self.ecc_helix_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.ecc_helix_slider_.setTickInterval(1)
     
@@ -182,7 +182,7 @@ class HSCWidget(RenderModeWidget):
     self.width_strand_spinbox_.setSingleStep(0.1)
     
     self.width_strand_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.width_strand_slider_.setRange(min_width*10, max_width*10)
+    self.width_strand_slider_.setRange(int(min_width*10), int(max_width*10))
     self.width_strand_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.width_strand_slider_.setTickInterval(1)
     
@@ -195,7 +195,7 @@ class HSCWidget(RenderModeWidget):
     self.thickness_strand_spinbox_.setSingleStep(0.1)
     
     self.thickness_strand_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.thickness_strand_slider_.setRange(min_ratio*10,max_ratio*10)
+    self.thickness_strand_slider_.setRange(int(min_ratio*10),int(max_ratio*10))
     self.thickness_strand_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.thickness_strand_slider_.setTickInterval(1)
     
@@ -208,7 +208,7 @@ class HSCWidget(RenderModeWidget):
     self.ecc_strand_spinbox_.setSingleStep(0.1)
     
     self.ecc_strand_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.ecc_strand_slider_.setRange(min_ecc*10,max_ecc*10)
+    self.ecc_strand_slider_.setRange(int(min_ecc*10), int(max_ecc*10))
     self.ecc_strand_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.ecc_strand_slider_.setTickInterval(1)  
     
@@ -439,56 +439,56 @@ class HSCWidget(RenderModeWidget):
   def UpdateTubeRadiusGui(self,value):
     value = round(value, 2)
     if(abs(value*10.0 - self.width_tube_slider_.value())>=self.width_tube_slider_.singleStep()):
-      self.width_tube_slider_.setValue(value*10.0)
+      self.width_tube_slider_.setValue(int(value*10.0))
     if(abs(value - self.width_tube_spinbox_.value())>=self.width_tube_spinbox_.singleStep()):
       self.width_tube_spinbox_.setValue(value)
 
   def UpdateTubeRatioGui(self,value):
     value = round(value, 2)
     if(abs(value*10.0 - self.thickness_tube_slider_.value())>=self.thickness_tube_slider_.singleStep()):
-      self.thickness_tube_slider_.setValue(value*10.0)
+      self.thickness_tube_slider_.setValue(int(value*10.0))
     if(abs(value - self.thickness_tube_spinbox_.value())>=self.thickness_tube_spinbox_.singleStep()):
       self.thickness_tube_spinbox_.setValue(value)
 
   def UpdateHelixWidthGui(self, value):
     value = round(value, 2)
     if(abs(value*10.0 - self.width_helix_slider_.value())>=self.width_helix_slider_.singleStep()):
-      self.width_helix_slider_.setValue(value*10.0)
+      self.width_helix_slider_.setValue(int(value*10.0))
     if(abs(value - self.width_helix_spinbox_.value())>=self.width_helix_spinbox_.singleStep()):
       self.width_helix_spinbox_.setValue(value)
     
   def UpdateHelixThicknessGui(self, value):
     value = round(value, 2)
     if(abs(value*10.0 - self.thickness_helix_slider_.value())>=self.thickness_helix_slider_.singleStep()):
-      self.thickness_helix_slider_.setValue(value*10.0)
+      self.thickness_helix_slider_.setValue(int(value*10.0))
     if(abs(value - self.thickness_helix_spinbox_.value())>=self.thickness_helix_spinbox_.singleStep()):
       self.thickness_helix_spinbox_.setValue(value)
     
   def UpdateHelixEccGui(self, value):
     value = round(value, 2)
     if(abs(value*10.0 - self.ecc_helix_slider_.value())>=self.ecc_helix_slider_.singleStep()):
-      self.ecc_helix_slider_.setValue(value*10.0)
+      self.ecc_helix_slider_.setValue(int(value*10.0))
     if(abs(value - self.ecc_helix_spinbox_.value())>=self.ecc_helix_spinbox_.singleStep()):
       self.ecc_helix_spinbox_.setValue(value)
     
   def UpdateStrandWidthGui(self, value):
     value = round(value, 2)
     if(abs(value*10.0 - self.width_strand_slider_.value())>=self.width_strand_slider_.singleStep()):
-      self.width_strand_slider_.setValue(value*10.0)
+      self.width_strand_slider_.setValue(int(value*10.0))
     if(abs(value - self.width_strand_spinbox_.value())>=self.width_strand_spinbox_.singleStep()):
       self.width_strand_spinbox_.setValue(value)
 
   def UpdateStrandThicknessGui(self, value):
     value = round(value, 2)
     if(abs(value*10.0 - self.thickness_strand_slider_.value())>=self.thickness_strand_slider_.singleStep()):
-      self.thickness_strand_slider_.setValue(value*10.0)
+      self.thickness_strand_slider_.setValue(int(value*10.0))
     if(abs(value - self.thickness_strand_spinbox_.value())>=self.thickness_strand_spinbox_.singleStep()):
       self.thickness_strand_spinbox_.setValue(value)
     
   def UpdateStrandEccGui(self, value):
     value = round(value, 2)
     if(abs(value*10.0 - self.ecc_strand_slider_.value())>=self.ecc_strand_slider_.singleStep()):
-      self.ecc_strand_slider_.setValue(value*10.0)
+      self.ecc_strand_slider_.setValue(int(value*10.0))
     if(abs(value - self.ecc_strand_spinbox_.value())>=self.ecc_strand_spinbox_.singleStep()):
       self.ecc_strand_spinbox_.setValue(value)
 

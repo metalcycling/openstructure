@@ -62,7 +62,6 @@ protected slots:
 protected:
   bool is_simple_expression(const QString& expr);
   void run_command_(std::pair<unsigned int,QString> pair);
-  bool is_simple_expression_(const QString& expr);
   QQueue<std::pair<unsigned int,QString> > exec_queue_;
   unsigned int command_id_;
   boost::shared_ptr<OutputRedirector>  output_redirector_;

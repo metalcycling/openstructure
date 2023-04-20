@@ -435,9 +435,9 @@ void DataViewerPanelBase::paintEvent(QPaintEvent* event)
       // Partial fix for buggy MDI on OSX. QMdiSubwindows hidden behind the opaque active window
       // still receive QPaintEvents. Redrawing the hidden windows may deplete the pixmap cache.
       // hasFocus() avoids the depletion but doesn't avoid the redraw.
-      if (update_raster_image_ || ( !QPixmapCache::find(cache_key, pm) && hasFocus())) {
+      if (update_raster_image_ || ( !QPixmapCache::find(cache_key, &pm) && hasFocus())) {
       #else
-      if (update_raster_image_ || ( !QPixmapCache::find(cache_key, pm))) {
+      if (update_raster_image_ || ( !QPixmapCache::find(cache_key, &pm))) {
       #endif
         RasterImage ri(blocksize,blocksize);
         ri.Fill(GetObservedData(),zoom_level_,
@@ -599,7 +599,7 @@ void DataViewerPanelBase::mouseMoveEvent(QMouseEvent* event)
       }
     }
     update_rubberband_from_selection_();
-  } else if((event->buttons() == Qt::MidButton) && HasSelection()) {
+  } else if((event->buttons() == Qt::MiddleButton) && HasSelection()) {
     update_rubberband_from_selection_();
   }
   last_x_=event->x();
@@ -610,7 +610,7 @@ void DataViewerPanelBase::mouseMoveEvent(QMouseEvent* event)
 void DataViewerPanelBase::wheelEvent(QWheelEvent* event)
 {
   if(!IsDataValid()) return;
-  if(event->delta()>0) {
+  if(event->angleDelta().y()>0) {
     zoom(-1);
   } else {
     zoom(1);
@@ -1071,7 +1071,11 @@ void DataViewerPanelBase::draw_pixel_values(QPainter& painter)
         unsigned char rgb = (rv>130.0) ? 0 : 255;
         painter.setPen(QColor(rgb,rgb,rgb));
         int string_h=painter.fontMetrics().height();
+#if (QT_VERSION < QT_VERSION_CHECK(5,11,0))
         int string_w=painter.fontMetrics().width(value_string);
+#else
+        int string_w=painter.fontMetrics().horizontalAdvance(value_string);
+#endif
         painter.drawText(p.x() - string_w/2, p.y() + string_h/2, value_string);
       }
     }
@@ -1087,7 +1091,11 @@ void DataViewerPanelBase::draw_pixel_values(QPainter& painter)
         unsigned char rgb = (rv>130.0) ? 0 : 255;
         painter.setPen(QColor(rgb,rgb,rgb));
         int string_h=painter.fontMetrics().height();
+#if (QT_VERSION < QT_VERSION_CHECK(5,11,0))
         int string_w=painter.fontMetrics().width(value_string);
+#else
+        int string_w=painter.fontMetrics().horizontalAdvance(value_string);
+#endif
         painter.drawText(p.x() - string_w/2, p.y() + string_h/2, value_string);
       }
     }

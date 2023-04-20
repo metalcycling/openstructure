@@ -81,7 +81,7 @@ struct MolckSettings{
 
 void MapNonStandardResidues(ost::mol::EntityHandle& ent,
                             ost::conop::CompoundLibPtr lib,
-                            bool log_diags = true);
+                            bool reprocess=true);
 
 void RemoveAtoms(ost::mol::EntityHandle& ent,
                  ost::conop::CompoundLibPtr lib,
@@ -90,7 +90,8 @@ void RemoveAtoms(ost::mol::EntityHandle& ent,
                  bool rm_hyd_atoms,
                  bool rm_oxt_atoms,
                  bool rm_zero_occ_atoms,
-                 bool colored=true);
+                 bool colored=true,
+                 bool reprocess=true);
 
 void CleanUpElementColumn(ost::mol::EntityHandle& ent,
                           ost::conop::CompoundLibPtr lib);

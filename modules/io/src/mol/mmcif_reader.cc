@@ -498,9 +498,11 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
   if (indices_[OCCUPANCY] != -1) { // unit test
     occ = this->TryGetReal(columns[indices_[OCCUPANCY]], "atom_site.occupancy");
   }
-  if (indices_[B_ISO_OR_EQUIV] != -1) { // unit test
-    temp = this->TryGetReal(columns[indices_[B_ISO_OR_EQUIV]],
-                            "atom_site.B_iso_or_equiv");
+  if (indices_[B_ISO_OR_EQUIV] != -1) {
+    if (!is_undef(columns[indices_[B_ISO_OR_EQUIV]])) {
+      temp = this->TryGetReal(columns[indices_[B_ISO_OR_EQUIV]],
+                              "atom_site.B_iso_or_equiv");
+    }
   }
 
   // determine element
@@ -521,7 +523,7 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
     update_residue=true;
   }
 
-  if(!curr_residue_) { // unit test
+  if(!curr_residue_) {
     update_residue=true;
     subst_res_id_ = cif_chain_name +
                     columns[indices_[AUTH_SEQ_ID]].str() +
@@ -1842,7 +1844,8 @@ void MMCifReader::OnEndData()
   for (atm_it = authors_map_.begin(); atm_it != authors_map_.end(); ++atm_it) {
     info_.AddAuthorsToCitation(StringRef(atm_it->first.c_str(),
                                          atm_it->first.length()),
-                               atm_it->second.second);
+                               atm_it->second.second,
+                               profile_.fault_tolerant);
   }
 
   bool found;

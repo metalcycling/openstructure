@@ -64,6 +64,7 @@ void export_ResidueView()
     .add_property("atoms",
                   make_function(&ResidueView::GetAtomList,
                                 return_value_policy<copy_const_reference>()))
+    .add_property("atom_count", &ResidueView::GetAtomCount)
     .def("FindAtom", string_find_atom, args("atom_name"))
     .def("AddAtom", add_atom_handle, X_add_atom_overloads(args("atom_handle", "flags")))
     .def("AddAtom", add_atom_view, X_add_atom_overloads(args("atom_view", "flags")))
@@ -93,7 +94,10 @@ void export_ResidueView()
     .def("GetGeometricStart", geom_start<ResidueView>)
     .def("GetGeometricEnd", geom_end<ResidueView>) 
     .def("GetBounds", &ResidueView::GetBounds)
-    .add_property("bounds", &ResidueView::GetBounds)    
+    .add_property("bounds", &ResidueView::GetBounds)
+    .def("__hash__", &ResidueView::GetHashCode)
+    .def("GetHashCode", &ResidueView::GetHashCode)
+    .add_property("hash_code", &ResidueView::GetHashCode)
   ;
 
 

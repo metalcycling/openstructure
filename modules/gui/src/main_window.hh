@@ -43,7 +43,7 @@ class DLLEXPORT_OST_GUI MainWindow: public QMainWindow
 
   typedef std::map<QWidget*,QDockWidget*> DockWidgetMap;
 public:
-  MainWindow(QWidget* parent=0, Qt::WindowFlags flags=0);
+  MainWindow(QWidget* parent=0, Qt::WindowFlags flags=Qt::WindowFlags());
 
   //! add a custom docking widget
   void AddDockWidget(QWidget* w, const QString& name, bool show=true, int area=2);

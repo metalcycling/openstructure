@@ -183,8 +183,8 @@ class TestLinearDB(unittest.TestCase):
     pos_2.append(geom.Vec3(-50000.34, -32.43, -33.2222))
     pos_2.append(geom.Vec3(50000.34, 32.43, 33.2222))
 
-    pos_3.append(geom.Vec3(87.909, 65.222, 1000.555))
-    pos_3.append(geom.Vec3(87.909, 65.222, 1000.555))
+    pos_3.append(geom.Vec3(87.909, 65.222, 1000.556))
+    pos_3.append(geom.Vec3(87.909, 65.222, 1000.556))
 
     # get the rounded target values (the accuracy with which they)
     # are stored in the container)

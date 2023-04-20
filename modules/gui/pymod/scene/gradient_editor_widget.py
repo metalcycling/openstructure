@@ -284,7 +284,7 @@ class MyGradientStop(ColorSelectWidget):
     return rel
   
   def MoveToNewPos(self):
-    self.move(self.pos_ - self.halflength_, 0)
+    self.move(int(self.pos_ - self.halflength_), 0)
     self.update()
     self.gradientChanged.emit()
  

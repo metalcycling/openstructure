@@ -34,7 +34,7 @@ public:
   typedef enum {
     LeftButton=Qt::LeftButton,
     RightButton=Qt::RightButton,
-    MiddleButton=Qt::MidButton
+    MiddleButton=Qt::MiddleButton
   } Button;
   typedef int Buttons;
 public:

@@ -135,7 +135,7 @@ class LevenbergMarquardt {
 //      LOG(INFO) << "u: " << u;
 //      LOG(INFO) << "v: " << v;
       AMatrixType A_augmented = A + u*AMatrixType::Identity(J.cols(), J.cols());
-      Solver solver(A_augmented, Eigen::ComputeThinU | Eigen::ComputeThinV);
+      Solver solver(A_augmented, Eigen::ComputeFullU | Eigen::ComputeFullV);
       dx = solver.solve(g);
       if (dx.norm() <= params.relative_step_threshold * x.norm()) {
           results.status = RELATIVE_STEP_SIZE_TOO_SMALL;

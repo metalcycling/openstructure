@@ -274,6 +274,18 @@ different levels of sequence identity:
 - BLOSUM80
 - BLOSUM100
 
+Two naive substitution matrices:
+
+- IDENTITY: Matches have score of 1, all other are 0
+- MATCH: Matches have score of 1, all other are -1
+
+Nucleotide substitution matrices:
+
+- NUC44: Nucleotide substitution matrix used in blastn that can deal with IUPAC
+  ambiguity codes. ATTENTION: has been edited to explicitely encode T/U
+  equivalence, i.e. you can just do `m.GetWeight('G', 'U')` instead of first
+  translating 'U' to 'T'. 
+
 
 .. _contact-prediction:
 

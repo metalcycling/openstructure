@@ -83,13 +83,15 @@ private:
   bool ParseAtomIdent(const StringRef& line, int line_num, 
                       String& chain_name, StringRef& res, 
                       mol::ResNum& resnum, StringRef& atom_name, char& alt_loc,
-                      const StringRef& record_type);
+                      const StringRef& record_type, int& serial);
   void ParseAnisou(const StringRef& line, int line_num,
                    mol::EntityHandle& h);
   void ParseHelixEntry(const StringRef& line);
   void ParseStrandEntry(const StringRef& line);
   void Init(const boost::filesystem::path& loc);
   bool EnsureLineLength(const StringRef& line, size_t size);
+  void ParseConectEntry(const StringRef& line, int line_num, mol::EntityHandle& ent);
+  std::map<int, mol::AtomHandle> amap_; // <serial_number, AtomHandle>
   mol::ChainHandle curr_chain_;
   mol::ResidueHandle curr_residue_;
   int chain_count_;

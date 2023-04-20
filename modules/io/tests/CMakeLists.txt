@@ -2,6 +2,7 @@ set(OST_IO_UNIT_TESTS
   test_io_pdb.py
   test_io_mmcif.py
   test_io_omf.py
+  test_io_sdf.py
   test_clustal.cc
   test_io_pdb.cc
   test_io_crd.cc

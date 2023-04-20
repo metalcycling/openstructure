@@ -51,7 +51,36 @@ class TestPDB(unittest.TestCase):
     crambin_pdb = io.LoadPDB('1crn', remote=True, remote_repo='pdb')
     self.assertEqual(len(crambin_pdb.residues), 46)
     self.assertEqual(len(crambin_pdb.atoms), 327)
-    
+
+  def test_conect(self):
+    """ See whether read_conect has an effect on reading CONECT
+    """
+    prot = io.LoadPDB("testfiles/pdb/conect.pdb")
+    res = prot.FindResidue("A", mol.ResNum(3))
+    a1 = res.FindAtom("N")
+    a2 = res.FindAtom("CA")
+    tmp = sorted([str(a1), str(a2)])
+    bond = None
+    for b in prot.bonds:
+      if sorted([str(b.GetFirst()), str(b.GetSecond())]) == tmp:
+        bond = b
+        break
+    self.assertTrue(bond is not None)
+    self.assertEqual(bond.bond_order, 1)
+
+    prot = io.LoadPDB("testfiles/pdb/conect.pdb", read_conect=True)
+    res = prot.FindResidue("A", mol.ResNum(3))
+    a1 = res.FindAtom("N")
+    a2 = res.FindAtom("CA")
+    tmp = sorted([str(a1), str(a2)])
+    bond = None
+    for b in prot.bonds:
+      if sorted([str(b.GetFirst()), str(b.GetSecond())]) == tmp:
+        bond = b
+        break
+    self.assertTrue(bond is not None)
+    self.assertEqual(bond.bond_order, 2) # now it should be two
+
 if __name__== '__main__':
   from ost import testutils
   testutils.RunTests()

@@ -26,6 +26,7 @@
 #include <ost/log.hh>
 #include <ost/conop/rule_based.hh>
 #include <ost/conop/conop.hh>
+#include <ost/mol/builder.hh>
 #include "helper.hh"
 
 using boost::unit_test_framework::test_suite;
@@ -55,13 +56,13 @@ BOOST_AUTO_TEST_CASE(rule_based_init_check)
   BOOST_CHECK_THROW(RuleBasedProcessor rbc1(lib), ost::Error);
   BOOST_CHECK_THROW(RuleBasedProcessor rbc2(lib, true, false, CONOP_WARN,
                                             CONOP_WARN, false, true, true, true,
-                                            CONOP_WARN), ost::Error);
+                                            true, CONOP_WARN), ost::Error);
   lib = load_lib();
   if (!lib) { return; }
   BOOST_CHECK_NO_THROW(RuleBasedProcessor rbc3(lib));
   BOOST_CHECK_NO_THROW(RuleBasedProcessor rbc4(lib, true, false, CONOP_WARN,
                                                CONOP_WARN, false, true, true,
-                                               true, CONOP_WARN));
+                                               true, true, CONOP_WARN));
 }
 
 BOOST_AUTO_TEST_CASE(rule_based_set_get_flags)
@@ -209,6 +210,52 @@ BOOST_AUTO_TEST_CASE(rule_based_unk_res)
   rbc.SetUnkResidueTreatment(CONOP_REMOVE);
   rbc.Process(ent2);
   BOOST_CHECK(!ent2.FindResidue("A", 1));
+}
+
+BOOST_AUTO_TEST_CASE(hetatom_connect_rule_based) {
+
+  CompoundLibPtr lib = load_lib();
+  if (!lib) { return; }
+
+  // STEP 1: Specify two atoms as hetatoms - they should be connected
+  // by the processor
+  mol::EntityHandle e = Builder()
+    .Chain("A")
+      .Residue("GLY")
+        .Atom("N", geom::Vec3(-8.22, 35.20, 22.39))
+        .Atom("CA", geom::Vec3(-8.28, 36.36, 21.49))
+        .Atom("C", geom::Vec3(-8.59, 35.93, 20.06))
+        .Atom("O", geom::Vec3(-7.88, 36.30, 19.12))
+        .Atom("CB", geom::Vec3(-6.96, 37.11, 21.53))
+  ;
+
+  ost::mol::AtomHandleList atoms = e.GetAtomList();
+  atoms[0].SetHetAtom(true); // N
+  atoms[1].SetHetAtom(true); // CA
+  RuleBasedProcessor proc(lib);
+  proc.Process(e);
+  BOOST_CHECK(mol::BondExists(e.FindAtom("A", 1, "N"), e.FindAtom("A", 1, "CA")));
+  BOOST_CHECK(mol::BondExists(e.FindAtom("A", 1, "CA"), e.FindAtom("A", 1, "C")));
+  
+  // STEP 2: Same thing again but we tell the processor NOT to connect
+  // hetatoms
+  e = Builder()
+    .Chain("A")
+      .Residue("GLY")
+        .Atom("N", geom::Vec3(-8.22, 35.20, 22.39))
+        .Atom("CA", geom::Vec3(-8.28, 36.36, 21.49))
+        .Atom("C", geom::Vec3(-8.59, 35.93, 20.06))
+        .Atom("O", geom::Vec3(-7.88, 36.30, 19.12))
+        .Atom("CB", geom::Vec3(-6.96, 37.11, 21.53))
+  ;
+
+  atoms = e.GetAtomList();
+  atoms[0].SetHetAtom(true); // N
+  atoms[1].SetHetAtom(true); // CA
+  proc.SetConnectHetatm(false);
+  proc.Process(e);
+  BOOST_CHECK(!mol::BondExists(e.FindAtom("A", 1, "N"), e.FindAtom("A", 1, "CA")));
+  BOOST_CHECK(mol::BondExists(e.FindAtom("A", 1, "CA"), e.FindAtom("A", 1, "C")));
 }
 
 BOOST_AUTO_TEST_SUITE_END();

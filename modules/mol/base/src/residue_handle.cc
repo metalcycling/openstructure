@@ -210,6 +210,7 @@ double ResidueHandle::GetMass() const
 
 unsigned long ResidueHandle::GetHashCode() const
 {
+  this->CheckValidity();
   return reinterpret_cast<unsigned long>(Impl().get());
 }
 

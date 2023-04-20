@@ -24,3 +24,4 @@ So far, the binding module includes:
   naccess
   lga
   cadscore
+  dockq

@@ -12,6 +12,7 @@ import datetime
 import ost
 from ost import seq
 from ost import settings
+from ost import io
 from ost.bindings import hhblits3
 
 class _UnitTestHHblitsLog(ost.LogSink):
@@ -157,8 +158,36 @@ class TestHHblitsBindings(unittest.TestCase):
           elst = efh.readlines()
         self.assertEqual(len(elst), len(tlst))
         for i in range(0, len(elst)):
+            if elst[i].startswith("NULL"):
+                break # only compare header, profile is checked separately
             if not elst[i].startswith(('FILE', 'COM', 'DATE')):
                 self.assertEqual(elst[i], tlst[i])
+
+        prof = io.LoadSequenceProfile(hhfile, format="hhm")
+        ref_prof = io.LoadSequenceProfile("testfiles/test.hmm", format="hhm")
+
+        hmm_transitions = [seq.HMMTransition.HMM_M2M, seq.HMMTransition.HMM_M2I,
+                           seq.HMMTransition.HMM_M2D, seq.HMMTransition.HMM_I2M,
+                           seq.HMMTransition.HMM_I2I, seq.HMMTransition.HMM_D2M,
+                           seq.HMMTransition.HMM_D2D]
+        self.assertEqual(prof.sequence, ref_prof.sequence)
+        self.assertEqual(prof.neff, ref_prof.neff)
+
+        for col, ref_col in zip(prof.columns, ref_prof.columns):
+            hmm_data = col.hmm_data
+            ref_hmm_data = ref_col.hmm_data
+            self.assertAlmostEqual(hmm_data.neff, ref_hmm_data.neff, places=2)
+            self.assertAlmostEqual(hmm_data.neff_i, ref_hmm_data.neff_i,
+                                   places=2)
+            self.assertAlmostEqual(hmm_data.neff_d, ref_hmm_data.neff_d,
+                                   places=2)
+            for t in hmm_transitions:
+                self.assertAlmostEqual(hmm_data.GetProb(t),
+                                       ref_hmm_data.GetProb(t), places=2)
+            for olc in "ARNDQEKSCMWYTVILGPHF":
+                self.assertAlmostEqual(col.GetFreq(olc), ref_col.GetFreq(olc),
+                                       places=2)
+
 
     def testA3mToProfileWithoutFileName(self):
         # test A3mToProfile to work without a given hhmake_file name
@@ -175,8 +204,35 @@ class TestHHblitsBindings(unittest.TestCase):
           elst = efh.readlines()
         self.assertEqual(len(elst), len(tlst))
         for i in range(0, len(elst)):
+            if elst[i].startswith("NULL"):
+                break # only compare header, profile is checked separately
             if not elst[i].startswith(('FILE', 'COM', 'DATE')):
                 self.assertEqual(elst[i], tlst[i])
+
+        prof = io.LoadSequenceProfile(hhfile, format="hhm")
+        ref_prof = io.LoadSequenceProfile("testfiles/test.hmm", format="hhm")
+
+        hmm_transitions = [seq.HMMTransition.HMM_M2M, seq.HMMTransition.HMM_M2I,
+                           seq.HMMTransition.HMM_M2D, seq.HMMTransition.HMM_I2M,
+                           seq.HMMTransition.HMM_I2I, seq.HMMTransition.HMM_D2M,
+                           seq.HMMTransition.HMM_D2D]
+        self.assertEqual(prof.sequence, ref_prof.sequence)
+        self.assertEqual(prof.neff, ref_prof.neff)
+
+        for col, ref_col in zip(prof.columns, ref_prof.columns):
+            hmm_data = col.hmm_data
+            ref_hmm_data = ref_col.hmm_data
+            self.assertAlmostEqual(hmm_data.neff, ref_hmm_data.neff, places=2)
+            self.assertAlmostEqual(hmm_data.neff_i, ref_hmm_data.neff_i,
+                                   places=2)
+            self.assertAlmostEqual(hmm_data.neff_d, ref_hmm_data.neff_d,
+                                   places=2)
+            for t in hmm_transitions:
+                self.assertAlmostEqual(hmm_data.GetProb(t),
+                                       ref_hmm_data.GetProb(t), places=2)
+            for olc in "ARNDQEKSCMWYTVILGPHF":
+                self.assertAlmostEqual(col.GetFreq(olc), ref_col.GetFreq(olc),
+                                       places=2)
         os.remove(hhfile)
 
     def testA3mToProfileWithExistingFile(self):

@@ -107,10 +107,11 @@ QVariant PythonNamespaceTreeModel::data(const QModelIndex &index, int role) cons
 Qt::ItemFlags PythonNamespaceTreeModel::flags(const QModelIndex &index) const
 {
   if (!index.isValid()){
-    return 0;
+    return Qt::ItemFlags();
   }
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
+
 
 QVariant PythonNamespaceTreeModel::headerData(int section, 
                                               Qt::Orientation orientation,

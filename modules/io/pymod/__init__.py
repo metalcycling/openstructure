@@ -21,11 +21,21 @@ import os, tempfile, ftplib, http.client
 from ._ost_io import *
 from ost import mol, geom, conop, seq
 
-profiles=None
-
 class IOProfiles:
   def __init__(self):
-     self._dict={}
+    self._dict={}
+
+    if conop.GetDefaultLib():
+      processor = conop.RuleBasedProcessor(conop.GetDefaultLib())
+    else:
+      processor = conop.HeuristicProcessor()
+    self['STRICT'] = IOProfile(dialect='PDB', fault_tolerant=False,
+                               quack_mode=False, processor=processor.Copy())
+    self['SLOPPY'] = IOProfile(dialect='PDB', fault_tolerant=True,
+                               quack_mode=True, processor=processor.Copy())
+    self['CHARMM'] = IOProfile(dialect='CHARMM', fault_tolerant=True,
+                               quack_mode=False, processor=processor.Copy())
+    self['DEFAULT'] = 'STRICT'
 
   def __getitem__(self, key):
     return IOProfileRegistry.Instance().Get(key)
@@ -36,25 +46,32 @@ class IOProfiles:
     IOProfileRegistry.Instance().Set(key, value)
     self._dict[key]=value
 
+  def Get(self, key):
+    """ Getter which keeps compound library up to date
+
+    Keeps compound library for default profiles up to date. Reason for that is
+    that conop.SetDefaultLib() after importing io has no effect. Processors
+    (and the associated compound library) are set at import. Custom profiles,
+    i.e. profiles that are not defined in constructor of this class, are
+    returned as is without any update.
+    """
+    if key not in ['STRICT', 'SLOPPY', 'CHARMM', 'DEFAULT']:
+      return self[key].Copy()
+    prof = self[key].Copy()
+    if conop.GetDefaultLib():
+      processor = conop.RuleBasedProcessor(conop.GetDefaultLib())
+    else:
+      processor = conop.HeuristicProcessor()
+    prof.processor = processor
+    return prof
+
   def __len__(self):
     return len(self._dict)
 
   def __iter__(self):
     return self._dict.__iter__()
 
-if not profiles:
-  profiles=IOProfiles()
-  if conop.GetDefaultLib():
-    processor = conop.RuleBasedProcessor(conop.GetDefaultLib())
-  else:
-    processor = conop.HeuristicProcessor()
-  profiles['STRICT']=IOProfile(dialect='PDB', fault_tolerant=False,
-                               quack_mode=False, processor=processor.Copy())
-  profiles['SLOPPY']=IOProfile(dialect='PDB', fault_tolerant=True,
-                               quack_mode=True, processor=processor.Copy())
-  profiles['CHARMM']=IOProfile(dialect='CHARMM', fault_tolerant=True,
-                               quack_mode=False, processor=processor.Copy())
-  profiles['DEFAULT']='STRICT'
+profiles = IOProfiles()
 
 def _override(val1, val2):
   if val2!=None:
@@ -66,7 +83,8 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
             fault_tolerant=None, load_multi=False, quack_mode=None,
             join_spread_atom_records=None, calpha_only=None,
             profile='DEFAULT', remote=False, remote_repo='pdb',
-            dialect=None, seqres=False, bond_feasibility_check=None):
+            dialect=None, seqres=False, bond_feasibility_check=None,
+            read_conect=False):
   """
   Load PDB file from disk and return one or more entities. Several options 
   allow to customize the exact behaviour of the PDB import. For more information 
@@ -74,25 +92,59 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
   
   Residues are flagged as ligand if they are mentioned in a HET record.
 
-  :param restrict_chains: If not an empty string, only chains listed in the
-     string will be imported.
+  :param filename: File to be loaded
+  :type filename: :class:`str`
 
-  :param fault_tolerant: Enable/disable fault-tolerant import. If set, overrides 
-     the value of :attr:`IOProfile.fault_tolerant`.
+  :param restrict_chains: If not an empty string, only chains listed in the
+                          string will be imported.
+  :type restrict_chains: :class:`str`
 
   :param no_hetatms: If set to True, HETATM records will be ignored. Overrides 
-      the value of :attr:`IOProfile.no_hetatms`
+                     the value of :attr:`IOProfile.no_hetatms`
+  :type no_hetatms: :class:`bool`
+
+  :param fault_tolerant: Enable/disable fault-tolerant import. If set, overrides 
+                         the value of :attr:`IOProfile.fault_tolerant`.
+  :type fault_tolerant: :class:`bool`
 
   :param load_multi: If set to True, a list of entities will be returned instead
-      of only the first. This is useful when dealing with multi-PDB files.
+                     of only the first. This is useful when dealing with
+                     multi-PDB files.
+  :type load_multi: :class:`bool`
+
+  :param quack_mode: Guess the chemical class for unknown residues based on its
+                     atoms and connectivity. If set, overrides the value of
+                     :attr:`IOProfile.quack_mode`.
+  :type quack_mode: :class:`bool`
 
   :param join_spread_atom_records: If set, overrides the value of 
-      :attr:`IOProfile.join_spread_atom_records`.
+                                   :attr:`IOProfile.join_spread_atom_records`.
+  :type join_spread_atom_records: :class:`bool`
+
+  :param calpha_only: When set to true, forces the importer to only load atoms
+                      named CA. If set, overrides the value of
+                      :attr:`IOProfile.calpha_only`.
+  :type calpha_only: :class:`bool`
+
+  :param profile: Aggregation of flags and algorithms to control import and
+                  processing of molecular structures. Can either be a
+                  :class:`str` specifying one of the default profiles
+                  ['DEFAULT', 'SLOPPY', 'CHARMM', 'STRICT'] or an actual object
+                  of type :class:`ost.io.IOProfile`. If a :class:`str` defines
+                  a default profile, :attr:`IOProfile.processor` is set to
+                  :class:`ost.conop.RuleBasedProcessor` with the currently
+                  set :class:`ost.conop.CompoundLib` available as
+                  :func:`ost.conop.GetDefaultLib()`. If no
+                  :class:`ost.conop.CompoundLib` is available,
+                  :class:`ost.conop.HeuristicProcessor` is used instead. See
+                  :doc:`profile` for more info.
+  :type profile: :class:`str`/:class:`ost.io.IOProfile`
   
-  :param remote: If set to True, the method tries to load the pdb from the 
-     remote repository given as *remote_repo*. The filename is then 
-     interpreted as the entry id as further specified for the *remote_repo*
-     parameter.
+  :param remote: If set to True, the method tries to load the pdb from the remote
+                 repository given as *remote_repo*. The filename is then
+                 interpreted as the entry id as further specified for the
+                 *remote_repo* parameter.
+  :type remote: :class:`bool`
 
   :param remote_repo: Remote repository to fetch structure if *remote* is True. 
                       Must be one in ['pdb', 'smtl', 'pdb_redo']. In case of 
@@ -100,18 +152,37 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
                       case pdb id, which loads the deposited assymetric unit 
                       (e.g. '1ake'). In case of 'smtl', the entry must also 
                       specify the desired biounit (e.g. '1ake.1').
+  :type remote_repo: :class:`str`
      
-  :rtype: :class:`~ost.mol.EntityHandle` or a list thereof if `load_multi` is 
-      True.
-
   :param dialect: Specifies the particular dialect to use. If set, overrides 
-    the value of :attr:`IOProfile.dialect`
+                  the value of :attr:`IOProfile.dialect`
+  :type dialect: :class:`str`
 
   :param seqres: Whether to read SEQRES records. If set to True, the loaded 
-    entity and seqres entry will be returned as a tuple.
+                 entity and seqres entry will be returned as a tuple.
+  :type seqres: :class:`bool`
 
-  :type dialect: :class:`str`
-  
+  :param bond_feasibility_check: Flag for :attr:`IOProfile.processor`. If
+                                 turned on, atoms are only connected by
+                                 bonds if they are within a reasonable distance
+                                 (as defined by
+                                 :func:`ost.conop.IsBondFeasible`).
+                                 If set, overrides the value of
+                                 :attr:`ost.conop.Processor.check_bond_feasibility`
+  :type bond_feasibility_check: :class:`bool`
+  :param read_conect: By default, OpenStructure doesn't read CONECT statements in
+                      a pdb file. Reason is that they're often missing and we prefer
+                      to rely on the chemical component dictionary from the PDB.
+                      However, there may be cases where you really want these CONECT
+                      statements. For example novel compounds with no entry in
+                      the chemical component dictionary. Setting this to True has
+                      two effects: 1) CONECT statements are read and blindly applied
+                      2) The processor does not connect any pair of HETATOM atoms in
+                      order to not interfer with the CONECT statements.
+  :type read_conect: :class:`bool`
+
+  :rtype: :class:`~ost.mol.EntityHandle` or a list thereof if `load_multi` is 
+      True.  
 
   :raises: :exc:`~ost.io.IOException` if the import fails due to an erroneous or 
       inexistent file
@@ -122,7 +193,7 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
     else:
       return val1
   if isinstance(profile, str):
-    prof=profiles[profile].Copy()
+    prof=profiles.Get(profile)
   elif isinstance(profile, IOProfile):
     prof=profile.Copy()
   else:
@@ -134,9 +205,12 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
   prof.no_hetatms=_override(prof.no_hetatms, no_hetatms)
   prof.dialect=_override(prof.dialect, dialect)
   prof.quack_mode=_override(prof.quack_mode, quack_mode)
+  prof.read_conect=_override(prof.read_conect, read_conect)
   if prof.processor:
     prof.processor.check_bond_feasibility=_override(prof.processor.check_bond_feasibility, 
                                                     bond_feasibility_check)
+    prof.processor.connect_hetatm=_override(prof.processor.connect_hetatm,
+                                            not read_conect)
   prof.fault_tolerant=_override(prof.fault_tolerant, fault_tolerant)
   prof.join_spread_atom_records=_override(prof.join_spread_atom_records,
                                           join_spread_atom_records)
@@ -207,9 +281,9 @@ def SavePDB(models, filename, dialect=None,  pqr=False, profile='DEFAULT'):
   if not getattr(models, '__len__', None):
     models=[models]
   if isinstance(profile, str):
-    profile=profiles[profile].Copy()
+    profile=profiles.Get(profile)
   elif isinstance(profile, IOProfile):
-    profile.Copy()
+    profile = profile.Copy()
   else:
     raise TypeError('profile must be of type string or IOProfile, '+\
                     'instead of %s'%type(profile))
@@ -275,7 +349,8 @@ def LoadCHARMMTraj(crd, dcd_file=None, profile='CHARMM',
       raise ValueError("No DCD filename given")
   return LoadCHARMMTraj_(crd, dcd_file, stride, lazy_load, detect_swap, swap_bytes)
 
-def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None, profile='DEFAULT', remote=False, seqres=False, info=False):
+def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
+              profile='DEFAULT', remote=False, seqres=False, info=False):
   """
   Load a mmCIF file and return one or more entities. Several options allow to
   customize the exact behaviour of the mmCIF import. For more information on
@@ -283,15 +358,36 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None, profile='DEFAULT'
   
   Residues are flagged as ligand if they are mentioned in a HET record.
 
+  :param filename: File to be loaded
+  :type filename: :class:`str`
+
   :param fault_tolerant: Enable/disable fault-tolerant import. If set, overrides
-     the value of :attr:`IOProfile.fault_tolerant`.
+                         the value of :attr:`IOProfile.fault_tolerant`.
+  :type fault_tolerant: :class:`bool`
+
+  :param calpha_only: When set to true, forces the importer to only load atoms
+                      named CA. If set, overrides the value of
+                      :attr:`IOProfile.calpha_only`.
+  :type calpha_only: :class:`bool`
+
+  :param profile: Aggregation of flags and algorithms to control import and
+                  processing of molecular structures. Can either be a
+                  :class:`str` specifying one of the default profiles
+                  ['DEFAULT', 'SLOPPY', 'CHARMM', 'STRICT'] or an actual object
+                  of type :class:`ost.io.IOProfile`. If a :class:`str` defines
+                  a default profile, :attr:`IOProfile.processor` is set to
+                  :class:`ost.conop.RuleBasedProcessor` with the currently
+                  set :class:`ost.conop.CompoundLib` available as
+                  :func:`ost.conop.GetDefaultLib()`. If no
+                  :class:`ost.conop.CompoundLib` is available,
+                  :class:`ost.conop.HeuristicProcessor` is used instead. See
+                  :doc:`profile` for more info.
+  :type profile: :class:`str`/:class:`ost.io.IOProfile`
 
   :param remote: If set to True, the method tries to load the pdb from the 
-     remote pdb repository www.pdb.org. The filename is then interpreted as the 
-     pdb id.
-
-  :rtype: :class:`~ost.mol.EntityHandle` (or tuple if *seqres* or *info* are
-          True).
+                 remote pdb repository www.pdb.org. The filename is then
+                 interpreted as the pdb id.
+  :type remote: :class:`bool`
 
   :param seqres: Whether to read SEQRES records. If True, a
                  :class:`~ost.seq.SequenceList` object is returned as the second
@@ -301,9 +397,14 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None, profile='DEFAULT'
                  :class:`compound library <ost.conop.CompoundLib>`
                  to be defined and accessible via
                  :func:`~ost.conop.GetDefaultLib` or an empty list is returned.
+  :type seqres: :class:`bool`
 
   :param info: Whether to return an info container with the other output.
                If True, a :class:`MMCifInfo` object is returned as last item.
+  :type info: :class:`bool`
+
+  :rtype: :class:`~ost.mol.EntityHandle` (or tuple if *seqres* or *info* are
+          True).
 
   :raises: :exc:`~ost.io.IOException` if the import fails due to an erroneous
            or non-existent file.
@@ -314,7 +415,7 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None, profile='DEFAULT'
     else:
       return val1
   if isinstance(profile, str):
-    prof = profiles[profile].Copy()
+    prof = profiles.Get(profile)
   else:
     prof = profile.Copy()
 

@@ -7,15 +7,13 @@ Connectivity
 Motivation
 --------------------------------------------------------------------------------
 
-
 The connectivity of atoms is notoriously difficult to come by for biological 
 macromolecules. PDB files, the de facto standard exchange format for structural 
 information allows bonds to be specified in CONECT records. However, they are not
-mandatory. Many programs, especially the ones not requiring on connectivity of 
+mandatory. Many programs, especially the ones not depending on connectivity of
 atoms, do not write CONECT records. As a result, programs and structural biology 
 frameworks can't rely on connectivity information to be present. The connectivity
 information needs to be derived in the program itself.
-
 
 Loader heuristics are great if you are the one that implemented them but are 
 problematic if you are just the user of a software that has them. As time goes 
@@ -41,17 +39,15 @@ Processors
 
 The exact behaviour for a processor is implementation-specific. So far, two
 classes implement the processor interface: A heuristic and a rule-based
-processor. The processor mainly differ in the source of their connectivity
-information. The Heuristicprocessor uses a hard-coded heuristic connectivity
-table for the 20  standard amino acids as well as nucleotides.For other
-compounds such as ligands the HeuristicProcessor runs a distance-based
+processor. The processors mainly differ in the source of their connectivity
+information. The `HeuristicProcessor` uses a hard-coded heuristic connectivity
+table for the 20  standard amino acids as well as nucleotides. For other
+compounds such as ligands the `HeuristicProcessor` runs a distance-based
 connectivity algorithm that connects two atoms if they are closer than a certain
-threshold. The RuleBasedProcessor uses a connectivity library containing all
+threshold. The `RuleBasedProcessor` uses the
+:doc:`compound library <compoundlib>`, a connectivity library containing all
 molecular components present in the PDB files on PDB.org. The library can easily
-be extended with custom  connectivity information, if required. If a
-:doc:`compound library <compoundlib>` is present, the
-:class:`RuleBasedProcessor` is enabled by default, otherwise the
-:class:`HeuristicProcessor` is used as a fallback.
+be extended with custom  connectivity information, if required.
 
 
 .. class:: Processor
@@ -97,6 +93,15 @@ be extended with custom  connectivity information, if required. If a
 
     :type: :class:`ConopAction`
 
+  .. attribute:: connect_hetatm
+
+    :type: :class:`bool`
+
+    Whether to connect atoms that are both hetatms. Enabled by default.
+    Disabling can be useful if there are compounds which are not covered
+    by the PDB component dictionary and you prefer to create your own
+    connectivity for those.
+
   .. method:: Process(ent)
   
     Processess the entity *ent* according to the current options.
@@ -104,7 +109,9 @@ be extended with custom  connectivity information, if required. If a
 
 .. class:: HeuristicProcessor(check_bond_feasibility=False, \
                               assign_torsions=True, connect=True, \
-                              peptide_bonds=True, zero_occ_treatment=CONOP_WARN)
+                              peptide_bonds=True, \
+                              connect_hetatm=True, \
+                              zero_occ_treatment=CONOP_WARN)
    
   The :class:`HeuristicProcessor` implements the :class:`Processor` interface.
   Refer to its documentation for methods and accessors common to all processor.
@@ -113,6 +120,7 @@ be extended with custom  connectivity information, if required. If a
   :param assign_torsions: Sets :attr:`~Processor.assign_torsions`
   :param connect: Sets :attr:`~Processor.connect`
   :param peptide_bonds: Sets :attr:`~Processor.peptide_bonds`
+  :param connect_hetatm: Sets :attr:`~Processor.connect_hetatm`
   :param zero_occ_treatment: Sets :attr:`~Processor.zero_occ_treatment`
 
 
@@ -122,7 +130,8 @@ be extended with custom  connectivity information, if required. If a
                               unknown_atom_treatment=CONOP_WARN, \
                               check_bond_feasibility=False, \
                               assign_torsions=True, connect=True, \
-                              peptide_bonds=True, zero_occ_treatment=CONOP_WARN)
+                              peptide_bonds=True, connect_hetatm=True, \
+                              zero_occ_treatment=CONOP_WARN)
    
   The :class:`RuleBasedProcessor` implements the :class:`Processor` interface.
   Refer to its documentation for methods and accessors common to all processor.
@@ -137,6 +146,7 @@ be extended with custom  connectivity information, if required. If a
   :param assign_torsions: Sets :attr:`~Processor.assign_torsions`
   :param connect: Sets :attr:`~Processor.connect`
   :param peptide_bonds: Sets :attr:`~Processor.peptide_bonds`
+  :param connect_hetatm: Sets :attr:`~Processor.connect_hetatm`
   :param zero_occ_treatment: Sets :attr:`~Processor.zero_occ_treatment`
 
   .. attribute:: fix_elements

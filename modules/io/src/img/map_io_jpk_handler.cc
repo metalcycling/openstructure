@@ -32,7 +32,6 @@
 #include <ost/io/io_exception.hh>
 
 #include <boost/function.hpp>
-#include <boost/bind.hpp>
 
 #include "jpk_util.hh"
 #include "tiff_util.hh"
@@ -125,8 +124,8 @@ void MapIOJpkHandler::Import(img::ImageHandle& image, const boost::filesystem::p
   }
   // mirror image in case of origin bottom left
   // code duplicated from io_tiff because jpk format ignores standard tiff tag for origin
-  uint16* reflect;
-  uint32* dummy;
+  uint16_t* reflect;
+  uint32_t* dummy;
  if(TIFFGetField(tfile,jpk_tags::GRID_REFLECT,&dummy,&reflect)){
     if(reflect){
       int maxsize=std::max<int>(image.GetExtent().GetSize()[0],image.GetExtent().GetSize()[1]);
@@ -220,8 +219,8 @@ void MapIOJpkHandler::Import(img::MapHandle& image, std::istream& loc,const Imag
   }
   // mirror image in case of origin bottom left
   // code duplicated from io_tiff because jpk format ignores standard tiff tag for origin
-  uint16* reflect;
-  uint32* dummy;
+  uint16_t* reflect;
+  uint32_t* dummy;
  if(TIFFGetField(tfile,jpk_tags::GRID_REFLECT,&dummy,&reflect)){
     if(reflect){
       int maxsize=std::max<int>(image.GetExtent().GetSize()[0],image.GetExtent().GetSize()[1]);

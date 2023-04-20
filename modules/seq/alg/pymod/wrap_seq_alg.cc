@@ -222,6 +222,9 @@ void export_contact_prediction()
     .value("BLOSUM62", SubstWeightMatrix::BLOSUM62)
     .value("BLOSUM80", SubstWeightMatrix::BLOSUM80)
     .value("BLOSUM100", SubstWeightMatrix::BLOSUM100)
+    .value("IDENTITY", SubstWeightMatrix::IDENTITY)
+    .value("MATCH", SubstWeightMatrix::MATCH)
+    .value("NUC44", SubstWeightMatrix::NUC44)
   ;
 }
 

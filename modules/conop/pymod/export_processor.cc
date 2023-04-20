@@ -86,6 +86,8 @@ void export_processor() {
                   &Processor::SetConnect)
     .add_property("peptide_bonds", &Processor::GetConnectAminoAcids,
                   &Processor::SetConnectAminoAcids)
+    .add_property("connect_hetatm", &Processor::GetConnectHetatm,
+                  &Processor::SetConnectHetatm)
     .add_property("zero_occ_treatment", &Processor::GetZeroOccTreatment,
                   &Processor::SetZeroOccTreatment)
     .def("Process", &Processor::Process, 

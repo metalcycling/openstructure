@@ -68,7 +68,7 @@ void MainWindow::AddDockWidget(QWidget* w, const QString& name, bool shown, int 
   QAction* act = new QAction(name,this);
   act->setCheckable(true);
   act->setChecked(shown);
-  act->setData(qVariantFromValue((QDockWidget*)dock));
+  act->setData(QVariant::fromValue((QDockWidget*)dock));
   WindowMenu()->addAction(act);
   
 }

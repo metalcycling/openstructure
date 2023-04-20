@@ -96,7 +96,8 @@ of the annotation available.
 
   .. attribute:: method
 
-    Stores the experimental method used to create the structure.
+    Stores the experimental method used to create the structure
+    (|exptl.method|_).
 
     Also available as :meth:`GetMethod`. May also be modified by
     :meth:`SetMethod`.
@@ -171,7 +172,7 @@ of the annotation available.
     :type citation: :class:`MMCifInfoCitation`
 
 
-  .. method:: AddAuthorsToCitation(id, authors)
+  .. method:: AddAuthorsToCitation(id, authors, fault_tolerant=False)
 
     Adds a list of authors to a specific citation.
 
@@ -179,6 +180,10 @@ of the annotation available.
     :type id: :class:`str`
     :param authors: List of authors.
     :type authors: :class:`~ost.StringList`
+    :param fault_tolerant: Logs a warning if *id* is not found and proceeds
+                           without setting anything if set to True. Raises
+                           otherwise.
+    :type fault_tolerant: :class:`bool`
 
   .. method:: GetCitations()
 
@@ -1307,6 +1312,9 @@ of the annotation available.
   .. method:: SetBondOrder
 
     See :attr:`bond_order`
+
+.. |exptl.method| replace:: ``exptl.method``
+.. _exptl.method: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_exptl.method.html
 
 ..  LocalWords:  cas isbn pubmed asu seqres conop ConnectAll casp COMPND OBSLTE
 ..  LocalWords:  SPRSDE pdb func autofunction exptl attr pdbx oper conf spr dif

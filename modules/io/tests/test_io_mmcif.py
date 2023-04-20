@@ -1,3 +1,4 @@
+import os
 import unittest
 import subprocess
 import ost
@@ -311,6 +312,15 @@ class TestMMCifInfo(unittest.TestCase):
     self.assertEqual(blinks[0].atom1.qualified_name, "B.NAG2.C1")
     blinks = info.GetEntityBranchByChain('C')
     self.assertEqual(len(blinks), 0)
+
+  def test_mmcif_fault_tolerant_citation(self):
+
+    p = os.path.join("testfiles", "mmcif", "AF-A0A024L8A3-F1-model_v4.cif.gz")
+    with self.assertRaises(Exception):
+      ent, seqres, info = io.LoadMMCIF(p, seqres=True, info=True)
+    ent, seqres, info = io.LoadMMCIF(p, seqres=True, info=True,
+                                     fault_tolerant=True)
+
 
 if __name__== '__main__':
   from ost import testutils

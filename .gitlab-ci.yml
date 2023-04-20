@@ -39,6 +39,7 @@ test:centos7.3:
     - module load dssp/2.2.1-foss-2018b-Boost-1.68.0-Python-3.6.6 
     - module load msms/2.6.1-linux-x86_64 
     - module load ClustalW2/2.1-foss-2018b
+    - module load networkx/2.5.1-foss-2018b-Python-3.6.6
     - echo "... done running centos7.3 'before_script'."
   script:
   - echo "Testing on CentOS 7..."

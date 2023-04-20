@@ -44,17 +44,20 @@ void export_Bond()
     .add_property("bond_order",
                   &BondHandle::GetBondOrder,
                   &BondHandle::SetBondOrder)
+    .add_property("valid", &BondHandle::IsValid)
     .def("GetFirst", &BondHandle::GetFirst)    
     .def("GetSecond",&BondHandle::GetSecond)
-    .def("GetOther",&BondHandle::GetOther)
+    .def("GetOther",&BondHandle::GetOther, arg("other_atom"))
     .def("GetLength",&BondHandle::GetLength)
     .def("GetBondOrder",&BondHandle::GetBondOrder)
-    .def("SetBondOrder",&BondHandle::SetBondOrder)
+    .def("SetBondOrder",&BondHandle::SetBondOrder, arg("order"))
     .def("IsValid", &BondHandle::IsValid)       
     .def("GetHashCode", &BondHandle::GetHashCode)
     .def(self == self)
     .def(self != self)
     .def(self_ns::str(self))
+    .def("__hash__", &BondHandle::GetHashCode)
+    .add_property("hash_code", &BondHandle::GetHashCode)
   ;    
   generic_prop_def<BondHandle>(bond_handle);
   class_<BondHandleList>("BondHandleList", no_init)

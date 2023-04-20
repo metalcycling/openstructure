@@ -1,4 +1,5 @@
 #include "se.h"
+#include "NWalign.h"
 
 using namespace std;
 
@@ -53,6 +54,10 @@ void print_extra_help()
 "                align by residue index and chain ID\n"
 "             3: (similar to TMscore -c, should be used with -ter <=1)\n"
 "                align by residue index and order of chain\n"
+"\n"
+"    -het     Whether to align residues marked as 'HETATM' in addition to 'ATOM  '\n"
+"             0: (default) only align 'ATOM  ' residues\n"
+"             1: align both 'ATOM  ' and 'HETATM' residues\n"
 "\n"
 "    -infmt1  Input format for chain1\n"
 "    -infmt2  Input format for chain2\n"
@@ -122,6 +127,7 @@ int main(int argc, char *argv[])
     int    ter_opt   =3;     // TER, END, or different chainID
     int    split_opt =0;     // do not split chain
     int    outfmt_opt=0;     // set -outfmt to full output
+    int    het_opt=0;        // do not read HETATM residues
     string atom_opt  ="auto";// use C alpha atom for protein and C3' for RNA
     string mol_opt   ="auto";// auto-detect the molecule type as protein/RNA
     string suffix_opt="";    // set -suffix to empty
@@ -206,6 +212,10 @@ int main(int argc, char *argv[])
         {
             byresi_opt=atoi(argv[i + 1]); i++;
         }
+        else if ( !strcmp(argv[i],"-het") && i < (argc-1) )
+        {
+            het_opt=atoi(argv[i + 1]); i++;
+        }
         else if (xname.size() == 0) xname=argv[i];
         else if (yname.size() == 0) yname=argv[i];
         else PrintErrorAndQuit(string("ERROR! Undefined option ")+argv[i]);
@@ -228,9 +238,9 @@ int main(int argc, char *argv[])
     if (dir_opt.size() && (dir1_opt.size() || dir2_opt.size()))
         PrintErrorAndQuit("-dir cannot be set with -dir1 or -dir2");
     if (atom_opt.size()!=4)
-        PrintErrorAndQuit("ERROR! atom name must have 4 characters, including space.");
+        PrintErrorAndQuit("ERROR! Atom name must have 4 characters, including space.");
     if (mol_opt!="auto" && mol_opt!="protein" && mol_opt!="RNA")
-        PrintErrorAndQuit("ERROR! molecule type must be either RNA or protein.");
+        PrintErrorAndQuit("ERROR! Molecule type must be either RNA or protein.");
     else if (mol_opt=="protein" && atom_opt=="auto")
         atom_opt=" CA ";
     else if (mol_opt=="RNA" && atom_opt=="auto")
@@ -303,7 +313,7 @@ int main(int argc, char *argv[])
         /* parse chain 1 */
         xname=chain1_list[i];
         xchainnum=get_PDB_lines(xname, PDB_lines1, chainID_list1,
-            mol_vec1, ter_opt, infmt1_opt, atom_opt, split_opt);
+            mol_vec1, ter_opt, infmt1_opt, atom_opt, split_opt, het_opt);
         if (!xchainnum)
         {
             cerr<<"Warning! Cannot parse file: "<<xname
@@ -333,7 +343,8 @@ int main(int argc, char *argv[])
                 {
                     yname=chain2_list[j];
                     ychainnum=get_PDB_lines(yname, PDB_lines2, chainID_list2,
-                        mol_vec2, ter_opt, infmt2_opt, atom_opt, split_opt);
+                        mol_vec2, ter_opt, infmt2_opt, atom_opt, split_opt,
+                        het_opt);
                     if (!ychainnum)
                     {
                         cerr<<"Warning! Cannot parse file: "<<yname
@@ -373,6 +384,7 @@ int main(int argc, char *argv[])
                     double TM_ali, rmsd_ali;  // TMscore and rmsd in standard_TMscore
                     int n_ali=0;
                     int n_ali8=0;
+                    int *invmap = new int[ylen+1];
 
                     /* entry function for structure alignment */
                     se_main(
@@ -382,24 +394,30 @@ int main(int argc, char *argv[])
                         rmsd0, L_ali, Liden, TM_ali, rmsd_ali, n_ali, n_ali8,
                         xlen, ylen, sequence, Lnorm_ass, d0_scale,
                         i_opt, a_opt, u_opt, d_opt,
-                        mol_vec1[chain_i]+mol_vec2[chain_j]);
+                        mol_vec1[chain_i]+mol_vec2[chain_j], 
+                        outfmt_opt, invmap);
+
+                    if (outfmt_opt>=2) 
+                        get_seqID(invmap, seqx, seqy, ylen, Liden, n_ali8);
 
                     /* print result */
                     output_results(
-                        xname.substr(dir1_opt.size()).c_str(),
-                        yname.substr(dir2_opt.size()).c_str(),
+                        xname.substr(dir1_opt.size()+dir_opt.size()).c_str(),
+                        yname.substr(dir2_opt.size()+dir_opt.size()).c_str(),
                         chainID_list1[chain_i].c_str(),
                         chainID_list2[chain_j].c_str(),
                         xlen, ylen, t0, u0, TM1, TM2, 
                         TM3, TM4, TM5, rmsd0, d0_out,
                         seqM.c_str(), seqxA.c_str(), seqyA.c_str(), Liden,
-                        n_ali8, n_ali, L_ali, TM_ali, rmsd_ali,
+                        n_ali8, L_ali, TM_ali, rmsd_ali,
                         TM_0, d0_0, d0A, d0B,
                         Lnorm_ass, d0_scale, d0a, d0u, 
-                        "", outfmt_opt, ter_opt, "",
-                        false, false, a_opt, u_opt, d_opt);
+                        "", outfmt_opt, ter_opt, 0, split_opt,
+                        0, "", false, a_opt, u_opt, d_opt, 0,
+                        resi_vec1, resi_vec2);
 
                     /* Done! Free memory */
+                    delete [] invmap;
                     seqM.clear();
                     seqxA.clear();
                     seqyA.clear();

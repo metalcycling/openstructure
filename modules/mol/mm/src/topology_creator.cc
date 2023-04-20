@@ -164,6 +164,21 @@ TopologyPtr TopologyCreator::Create(ost::mol::EntityHandle& ent,
     if(hc){
       hc->ApplyOnBuildingBlock(block);
       hc->ApplyOnResidue(*i,ed);
+      // hack for AMBER forcefield
+      // GROMACS hijacks the hydrogen constructor to construct terminal oxygens
+      // in the case of the AMBER forcefield, their elements are thus set to H.
+      // Forcefields in general don't care about elements, they just care for
+      // atom types and their respective masses. There is no easy way to tell
+      // the hydrogen constructor that the element is not H. I just hardcode the
+      // AMBER case here. Please forgive me...
+      ost::mol::AtomHandle at = i->FindAtom("OC1");
+      if(at.IsValid()) {
+        at.SetElement("O");
+      }
+      at = i->FindAtom("OC2");
+      if(at.IsValid()) {
+        at.SetElement("O");
+      }
     }
     //check for n terminus
     if(i->HasProp("n_ter")){
@@ -560,7 +575,9 @@ TopologyPtr TopologyCreator::Create(ost::mol::EntityHandle& ent,
           bonds.erase(bond_index);
           //There are only harmonic bonds supported
           parameters = (*j)->GetParam();
-          top->AddHarmonicBond(one,two,parameters[0],parameters[1]);
+          if(parameters[1] != 0.0) {
+            top->AddHarmonicBond(one,two,parameters[0],parameters[1]);
+          }
         }
       }
     }
@@ -585,7 +602,9 @@ TopologyPtr TopologyCreator::Create(ost::mol::EntityHandle& ent,
       }
 
       parameters = bond_ptr->GetParam();
-      top->AddHarmonicBond((*i)[0],(*i)[1],parameters[0],parameters[1]);
+      if(parameters[1] != 0.0) {
+        top->AddHarmonicBond((*i)[0],(*i)[1],parameters[0],parameters[1]);
+      }
     }
   }
 
@@ -611,14 +630,18 @@ TopologyPtr TopologyCreator::Create(ost::mol::EntityHandle& ent,
           parameters = (*j)->GetParam();
           switch((*j)->GetFuncType()){
             case HarmonicAngle:{
-              top->AddHarmonicAngle(angle_index[0],angle_index[1],angle_index[2],
-                                     parameters[0], parameters[1]);
+              if(parameters[1] != 0.0) {
+                top->AddHarmonicAngle(angle_index[0],angle_index[1],angle_index[2],
+                                      parameters[0], parameters[1]);
+              }
               break;
             }
             case UreyBradleyAngle:{
-              top->AddUreyBradleyAngle(angle_index[0],angle_index[1],angle_index[2],
-                                        parameters[0], parameters[1], parameters[2],
-                                        parameters[3]);
+              if(parameters[1] != 0.0 || parameters[3] != 0.0) {
+                top->AddUreyBradleyAngle(angle_index[0],angle_index[1],angle_index[2],
+                                          parameters[0], parameters[1], parameters[2],
+                                          parameters[3]);
+              }
               break;
             }
             default:{
@@ -653,14 +676,18 @@ TopologyPtr TopologyCreator::Create(ost::mol::EntityHandle& ent,
       parameters = angle_ptr->GetParam();
       switch(angle_ptr->GetFuncType()){
         case HarmonicAngle:{
-          top->AddHarmonicAngle((*i)[0],(*i)[1],(*i)[2],
-                                 parameters[0],parameters[1]);
+          if(parameters[1] != 0.0) {
+            top->AddHarmonicAngle((*i)[0],(*i)[1],(*i)[2],
+                                   parameters[0],parameters[1]);
+          }
           break;
         }
         case UreyBradleyAngle:{
-          top->AddUreyBradleyAngle((*i)[0],(*i)[1],(*i)[2],
-                                    parameters[0],parameters[1],
-                                    parameters[2],parameters[3]);
+          if(parameters[1] != 0.0 || parameters[3] != 0.0) {
+            top->AddUreyBradleyAngle((*i)[0],(*i)[1],(*i)[2],
+                                      parameters[0],parameters[1],
+                                      parameters[2],parameters[3]);
+          }
           break;
         }
         default:{
@@ -706,8 +733,10 @@ TopologyPtr TopologyCreator::Create(ost::mol::EntityHandle& ent,
           dihedrals_to_delete.insert(dihedral_index);
           //only periodic dihedrals are supported... 
           parameters = (*j)->GetParam();
-          top->AddPeriodicDihedral(one,two,three,four,
-                                   parameters[0],parameters[1],parameters[2]);
+          if(parameters[2] != 0.0) {
+            top->AddPeriodicDihedral(one,two,three,four,
+                                     parameters[0],parameters[1],parameters[2]);
+          }
         }
       }
     }
@@ -745,8 +774,10 @@ TopologyPtr TopologyCreator::Create(ost::mol::EntityHandle& ent,
       for(std::vector<InteractionPtr>::iterator j = dihedral_ptr.begin();
           j != dihedral_ptr.end(); ++j){
         parameters = (*j)->GetParam();
-        top->AddPeriodicDihedral((*i)[0],(*i)[1],(*i)[2],(*i)[3],
-                                  parameters[0],parameters[1],parameters[2]);
+        if(parameters[2] != 0.0) {
+          top->AddPeriodicDihedral((*i)[0],(*i)[1],(*i)[2],(*i)[3],
+                                    parameters[0],parameters[1],parameters[2]);
+        }
       }
     }
   }
@@ -772,13 +803,17 @@ TopologyPtr TopologyCreator::Create(ost::mol::EntityHandle& ent,
           parameters = (*j)->GetParam();
           switch((*j)->GetFuncType()){
             case PeriodicImproper:{
-              top->AddPeriodicImproper(one,two,three,four,
-                                       parameters[0],parameters[1],parameters[2]);
+              if(parameters[2] != 0.0) {
+                top->AddPeriodicImproper(one,two,three,four,
+                                         parameters[0],parameters[1],parameters[2]);
+              }
               break;
             }
             case HarmonicImproper:{
-              top->AddHarmonicImproper(one,two,three,four,
-                                       parameters[0],parameters[1]);
+              if(parameters[1] != 0.0) {
+                top->AddHarmonicImproper(one,two,three,four,
+                                         parameters[0],parameters[1]);
+              }
               break;
             }
             default:{
@@ -825,13 +860,17 @@ TopologyPtr TopologyCreator::Create(ost::mol::EntityHandle& ent,
         parameters = (*j)->GetParam();
         switch((*j)->GetFuncType()){
           case PeriodicImproper:{
-            top->AddPeriodicImproper((*i)[0],(*i)[1],(*i)[2],(*i)[3],
-                                      parameters[0],parameters[1],parameters[2]);
+            if(parameters[2] != 0.0) {
+              top->AddPeriodicImproper((*i)[0],(*i)[1],(*i)[2],(*i)[3],
+                                        parameters[0],parameters[1],parameters[2]);
+            }
             break;
           }
           case HarmonicImproper:{
-            top->AddHarmonicImproper((*i)[0],(*i)[1],(*i)[2],(*i)[3],
-                                      parameters[0],parameters[1]);
+            if(parameters[1] != 0.0) {
+              top->AddHarmonicImproper((*i)[0],(*i)[1],(*i)[2],(*i)[3],
+                                        parameters[0],parameters[1]);
+            }
             break;
           }
           default:{

@@ -88,6 +88,35 @@ BOOST_AUTO_TEST_CASE(throw_invalid_res_view)
   BOOST_CHECK_NO_THROW(CheckHandleValidity(res));
 }
 
+// Test that .GetHashCode() throws on invalid residue handle
+BOOST_AUTO_TEST_CASE(throw_hash_code_invalid_res_handle)
+{
+  ChainHandle chain;
+  EntityHandle ent=CreateEntity();
+  XCSEditor edi=ent.EditXCS();
+  chain=edi.InsertChain("A");
+  ResidueHandle res=chain.FindResidue(ResNum(1));
+  BOOST_CHECK_THROW(res.GetHashCode(), InvalidHandle);
+  edi.AppendResidue(chain, "GLY");
+  res=chain.FindResidue(ResNum(1));
+  BOOST_CHECK_NO_THROW(res.GetHashCode());
+}
+
+// Test that .GetHashCode() throws on invalid residue views
+BOOST_AUTO_TEST_CASE(throw_hash_code_invalid_res_view)
+{
+  ChainHandle chain;
+  EntityHandle ent=CreateEntity();
+  XCSEditor edi=ent.EditXCS();
+  chain=edi.InsertChain("A");
+  ResidueView res;
+  BOOST_CHECK_THROW(res.GetHashCode(), InvalidHandle);
+  edi.AppendResidue(chain, "GLY");
+  EntityView ent_view=ent.CreateFullView();
+  res=ent_view.FindChain("A").FindResidue(1);
+  BOOST_CHECK_NO_THROW(res.GetHashCode());
+}
+
 BOOST_AUTO_TEST_CASE(test_res_index)
 {
   EntityHandle eh=CreateEntity();

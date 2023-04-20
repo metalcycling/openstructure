@@ -370,7 +370,7 @@ void GLCanvas::HandleMouseMoveEvent(QMouseEvent* event) {
 
   QPoint delta=QPoint(event->x(), event->y())-last_pos_;
   if (event->buttons() & Qt::LeftButton) {
-    if (event->buttons() & Qt::MidButton) {
+    if (event->buttons() & Qt::MiddleButton) {
       if (event->modifiers() & Qt::ShiftModifier) {
         OnTransform(gfx::INPUT_COMMAND_SLABN,indx,
                     trg,0.5*static_cast<Real>(-delta.x()));
@@ -396,7 +396,7 @@ void GLCanvas::HandleMouseMoveEvent(QMouseEvent* event) {
       }
 
     }
-  } else if (event->buttons() & Qt::MidButton) {
+  } else if (event->buttons() & Qt::MiddleButton) {
       if (event->modifiers() & Qt::ShiftModifier) {
         OnTransform(gfx::INPUT_COMMAND_SLABN,indx,trg,
                     0.5*static_cast<Real>(-delta.x()));
@@ -485,7 +485,7 @@ void GLCanvas::keyReleaseEvent(QKeyEvent* event) {
 
 void GLCanvas::wheelEvent(QWheelEvent* event) {
   OnTransform(gfx::INPUT_COMMAND_TRANSZ,0,gfx::TRANSFORM_VIEW,
-              0.2*static_cast<Real>(-event->delta()));
+              0.2*static_cast<Real>(-event->angleDelta().y()));
 }
 
 bool GLCanvas::event(QEvent* event) {

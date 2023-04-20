@@ -26,6 +26,16 @@ using namespace ost::io;
 
 namespace{
 
+  template<typename T>
+  boost::python::list VecToList(const std::vector<T>& vec){
+    boost::python::list l;
+    for(typename std::vector<T>::const_iterator it=vec.begin();
+        it!=vec.end(); ++it){
+      l.append(*it);
+    }
+    return l;
+  }
+
   PyObject* wrap_to_bytes(OMFPtr omf) {
     String str = omf->ToString();
     return PyBytes_FromStringAndSize(str.c_str(), str.size());
@@ -36,12 +46,26 @@ namespace{
     return OMF::FromString(str);
   }
 
+  boost::python::list wrap_get_chain_names(OMFPtr omf) {
+    return VecToList<String>(omf->GetChainNames());
+  }
+
 }
 
 void export_omf_io() {
+
+  enum_<OMF::OMFOption>("OMFOption")
+    .value("DEFAULT_PEPLIB", OMF::DEFAULT_PEPLIB)
+    .value("LOSSY", OMF::LOSSY)
+    .value("AVG_BFACTORS", OMF::AVG_BFACTORS)
+    .value("ROUND_BFACTORS", OMF::ROUND_BFACTORS)
+    .value("SKIP_SS", OMF::SKIP_SS)
+    .value("INFER_PEP_BONDS", OMF::INFER_PEP_BONDS)
+  ;
+
   class_<OMF, OMFPtr>("OMF",no_init)
-    .def("FromEntity", &OMF::FromEntity).staticmethod("FromEntity")
-    .def("FromMMCIF", &OMF::FromMMCIF).staticmethod("FromMMCIF")
+    .def("FromEntity", &OMF::FromEntity, (arg("ent"), arg("options")=0)).staticmethod("FromEntity")
+    .def("FromMMCIF", &OMF::FromMMCIF, (arg("ent"), arg("mmcif_info"), arg("options")=0)).staticmethod("FromMMCIF")
     .def("FromFile", &OMF::FromFile).staticmethod("FromFile")
     .def("FromBytes", &wrap_from_bytes).staticmethod("FromBytes")
     .def("ToFile", &OMF::ToFile)
@@ -49,5 +73,11 @@ void export_omf_io() {
     .def("GetAU", &OMF::GetAU)
     .def("GetAUChain", &OMF::GetAUChain)
     .def("GetBU", &OMF::GetBU)
+    .def("GetName", &OMF::GetName)
+    .def("GetChainNames", &wrap_get_chain_names)
+    .def("GetPositions", &OMF::GetPositions, return_value_policy<reference_existing_object>(),(arg("cname")))
+    .def("GetBFactors", &OMF::GetBFactors, return_value_policy<reference_existing_object>(),(arg("cname")))
+    .def("GetAvgBFactors", &OMF::GetAvgBFactors,(arg("cname")))
+    .def("GetSequence", &OMF::GetSequence, (arg("cname")))
   ;
 }

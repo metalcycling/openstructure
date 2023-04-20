@@ -22,9 +22,21 @@ set(OST_MOL_ALG_PYMOD_MODULES
   structure_analysis.py
   helix_kinks.py
   hbond.py
+  lddt.py
+  qsscore.py
+  scoring.py
+  chain_mapping.py
+  stereochemistry.py
+  ligand_scoring.py
+  dockq.py
 )
 
 if (NOT ENABLE_STATIC)
   pymod(NAME mol_alg OUTPUT_DIR ost/mol/alg CPP ${OST_MOL_ALG_PYMOD_SOURCES}
         PY ${OST_MOL_ALG_PYMOD_MODULES})
 endif()
+
+copy_if_different("${CMAKE_CURRENT_SOURCE_DIR}" "${STAGE_DIR}/share/openstructure"
+                  "stereo_data.json" "STEREO_DATA"
+                  "ost_mol_alg_pymod")
+install(FILES "stereo_data.json" DESTINATION "share/openstructure/")

@@ -204,6 +204,10 @@ boost::logic::tribool QueryState::EvalResidue(const ResidueImplPtr& r) {
       case Prop::PEPTIDE:
         int_value=r->GetChemClass().IsPeptideLinking();
         s_[*i] = cmp_num<int>(ss.comp_op,int_value,boost::get<int>(ss.param));        
+        break; 
+      case Prop::NUCLEOTIDE:
+        int_value=r->GetChemClass().IsNucleotideLinking();
+        s_[*i] = cmp_num<int>(ss.comp_op,int_value,boost::get<int>(ss.param));        
         break;        
       case Prop::RBFAC:
         // This is ugly! Outcome is the same for a prefiltered view as it is for

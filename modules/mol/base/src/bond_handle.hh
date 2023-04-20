@@ -76,7 +76,6 @@ public:
 
   /// \brief get other atom
   /// Returns one of the two atoms that does not match the given one.
-  /// In python also available as the property other
   AtomHandle GetOther(const AtomHandle& a) const;
   //@}
 

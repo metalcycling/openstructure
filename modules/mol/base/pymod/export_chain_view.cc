@@ -87,6 +87,7 @@ void export_ChainView()
     .def("RemoveResidue", &ChainView::RemoveResidue)
     .def("RemoveResidues", &ChainView::RemoveResidues)
     .def("InSequence", &ChainView::InSequence)
+    .def("GetResidueIndex", &ChainView::GetResidueIndex)
     .def("GetResidueByIndex", &ChainView::GetResidueByIndex)
     .def("GetAtomCount", &ChainView::GetAtomCount)
     .def("GetResidueCount", &ChainView::GetResidueCount) 
@@ -112,6 +113,9 @@ void export_ChainView()
     .add_property("bounds", &ChainView::GetBounds)
     .def(self==self)
     .def(self!=self)
+    .def("__hash__", &ChainView::GetHashCode)
+    .def("GetHashCode", &ChainView::GetHashCode)
+    .add_property("hash_code", &ChainView::GetHashCode)
   ;
 
 

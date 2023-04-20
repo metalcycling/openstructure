@@ -121,7 +121,7 @@ void export_Molck()
 
   def("MapNonStandardResidues", &MapNonStandardResidues, (arg("ent"),
                                                           arg("lib"),
-                                                          arg("log_diags")=false));
+                                                          arg("reprocess")=true));
 
   def("RemoveAtoms", &RemoveAtoms, (arg("ent"),
                                     arg("lib"),
@@ -130,7 +130,8 @@ void export_Molck()
                                     arg("rm_hyd_atoms")=true,
                                     arg("rm_oxt_atoms")=false,
                                     arg("rm_zero_occ_atoms")=false,
-                                    arg("colored")=false));
+                                    arg("colored")=false,
+                                    arg("reprocess")=true));
 
   def("CleanUpElementColumn", &CleanUpElementColumn, (arg("ent"), arg("lib")));
 

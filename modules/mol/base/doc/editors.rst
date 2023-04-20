@@ -69,15 +69,21 @@ The basic functionality of editors is implemented in the EditorBase class.
      :returns:          :class:`ChainHandle`
 
   .. method:: AppendResidue(chain, residue_name, [res_num])
+              AppendResidue(chain, residue_name, deep=False)
   
      Append residue to the end of the chain. If res_num is not given, the
      residue number will be set to the residue number of the last added residue
      plus one. The insertion code is the same.
 
+     By default, atoms and bonds are not added. If deep is `True`, atoms (but
+     not bonds) are added to the new residue, including alternative atoms.
+
      :param chain: Must be a valid chain
      :type  chain: :class:`ChainHandle`
      :param residue_name: 3-letter-code of the residue, e.g. ``GLY``.
-     :type  residue_name: string
+     :type  residue_name: :class:`string`
+     :param deep: If set to true, insert atoms as well.
+     :type  deep: :class:`bool`
      :returns:     :class:`ResidueHandle`
 
   .. method:: RenameResidue(residue, new_name)
@@ -118,7 +124,9 @@ The basic functionality of editors is implemented in the EditorBase class.
   .. method:: InsertAtom(residue, atom_name, pos, element="", occupancy=1.0, \
                          b_factor=0.0, is_hetatm=False)
   
-    Insert new atom and add it to residue. For atoms with alternative atom locations use :meth:`InsertAltAtom`. If the element parameter is a valid 
+    Insert new atom and add it to residue. By convention, this should be the
+    chemical symbol in upper case. For atoms with alternative atom locations
+    use :meth:`InsertAltAtom`. If the element parameter is a valid
     element, the atom properties mass, charge, and radius are set to default 
     values for that element. If element is an empty string (or an invalid 
     element), the properties are set to rather meaningless default values. You 

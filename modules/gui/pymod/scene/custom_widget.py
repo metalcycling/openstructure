@@ -64,7 +64,7 @@ class CustomWidget(RenderModeWidget):
     self.radius_bond_spinbox_.setSingleStep(0.05)
     
     self.radius_bond_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.radius_bond_slider_.setRange(min_rad*100.0, max_bond_rad*100.0)
+    self.radius_bond_slider_.setRange(int(min_rad*100.0), int(max_bond_rad*100.0))
     self.radius_bond_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.radius_bond_slider_.setTickInterval(5)
     
@@ -78,7 +78,7 @@ class CustomWidget(RenderModeWidget):
     self.radius_sphere_spinbox_.setSingleStep(0.05)
     
     self.radius_sphere_slider_ = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-    self.radius_sphere_slider_.setRange(min_rad*100.0, max_sphere_rad*100.0)
+    self.radius_sphere_slider_.setRange(int(min_rad*100.0), int(max_sphere_rad*100.0))
     self.radius_sphere_slider_.setTickPosition(QtWidgets.QSlider.NoTicks)
     self.radius_sphere_slider_.setTickInterval(5)
     
@@ -148,14 +148,14 @@ class CustomWidget(RenderModeWidget):
   def UpdateSphereRadiusGui(self,value):
     value = round(value, 2)
     if(abs(value*100.0 - self.radius_sphere_slider_.value())>=self.radius_sphere_slider_.singleStep()):
-      self.radius_sphere_slider_.setValue(value*100.0)
+      self.radius_sphere_slider_.setValue(int(value*100.0))
     if (abs(value - self.radius_sphere_spinbox_.value())>=self.radius_sphere_spinbox_.singleStep()):
       self.radius_sphere_spinbox_.setValue(value)
 
   def UpdateBondRadiusGui(self,value):
     value = round(value, 2)
     if(abs(value*100.0 - self.radius_bond_slider_.value())>=self.radius_bond_slider_.singleStep()):
-      self.radius_bond_slider_.setValue(value*100.0)
+      self.radius_bond_slider_.setValue(int(value*100.0))
     if (abs(value - self.radius_bond_spinbox_.value())>=self.radius_bond_spinbox_.singleStep()):
       self.radius_bond_spinbox_.setValue(value)
 

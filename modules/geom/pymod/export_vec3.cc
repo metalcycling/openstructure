@@ -121,5 +121,13 @@ void export_Vec3()
     .add_property("principal_axes", &Vec3List::GetPrincipalAxes)
     .def("GetODRLine", &Vec3List::GetODRLine)
     .def("FitCylinder", wrap_FitCylinder,(arg("direction initial guess")))
+    .def("ApplyTransform", &Vec3List::ApplyTransform,(arg("transform")))
+    .def("GetSummedSquaredDistances", &Vec3List::GetSummedSquaredDistances,(arg("other")))
+    .def("GetRMSD", &Vec3List::GetRMSD,(arg("other")))
+    .def("GetGDTHA", &Vec3List::GetGDTHA, (arg("other"), arg("norm")=true))
+    .def("GetGDTTS", &Vec3List::GetGDTTS, (arg("other"), arg("norm")=true))
+    .def("GetGDT", &Vec3List::GetGDT, (arg("other"), arg("thresh"), arg("norm")=true))
+    .def("GetMinDist", &Vec3List::GetMinDist, (arg("other")))
+    .def("IsWithin", &Vec3List::IsWithin, (arg("other"), arg("dist")))
   ;
 }

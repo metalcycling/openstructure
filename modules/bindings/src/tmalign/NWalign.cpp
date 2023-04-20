@@ -47,6 +47,10 @@ void print_extra_help()
 "             one read all sequence; -split >=1 means each sequence is an\n"
 "             individual entry."
 "\n"
+"    -het     Whether to align residues marked as 'HETATM' in addition to 'ATOM  '\n"
+"             0: (default) only align 'ATOM  ' residues\n"
+"             1: align both 'ATOM  ' and 'HETATM' residues\n"
+"\n"
 "    -outfmt  Output format\n"
 "             0: (default) full output\n"
 "             1: fasta format compact output\n"
@@ -103,6 +107,7 @@ int main(int argc, char *argv[])
     int    ter_opt   =3;     // TER, END, or different chainID
     int    split_opt =0;     // do not split chain
     int    outfmt_opt=0;     // set -outfmt to full output
+    int    het_opt=0;        // do not read HETATM residues
     string atom_opt  ="auto";// use C alpha atom for protein and C3' for RNA
     string mol_opt   ="auto";// auto-detect the molecule type as protein/RNA
     string suffix_opt="";    // set -suffix to empty
@@ -167,6 +172,10 @@ int main(int argc, char *argv[])
         {
             glocal=atoi(argv[i + 1]); i++;
         }
+        else if ( !strcmp(argv[i],"-het") && i < (argc-1) )
+        {
+            het_opt=atoi(argv[i + 1]); i++;
+        }
         else if (xname.size() == 0) xname=argv[i];
         else if (yname.size() == 0) yname=argv[i];
         else PrintErrorAndQuit(string("ERROR! Undefined option ")+argv[i]);
@@ -189,9 +198,9 @@ int main(int argc, char *argv[])
     if (dir_opt.size() && (dir1_opt.size() || dir2_opt.size()))
         PrintErrorAndQuit("-dir cannot be set with -dir1 or -dir2");
     if (atom_opt.size()!=4)
-        PrintErrorAndQuit("ERROR! atom name must have 4 characters, including space.");
+        PrintErrorAndQuit("ERROR! Atom name must have 4 characters, including space.");
     if (mol_opt!="auto" && mol_opt!="protein" && mol_opt!="RNA")
-        PrintErrorAndQuit("ERROR! molecule type must be either RNA or protein.");
+        PrintErrorAndQuit("ERROR! Molecule type must be either RNA or protein.");
     else if (mol_opt=="protein" && atom_opt=="auto")
         atom_opt=" CA ";
     else if (mol_opt=="RNA" && atom_opt=="auto")
@@ -224,12 +233,12 @@ int main(int argc, char *argv[])
     vector<int> mol_vec2;              // molecule type of chain2, RNA if >0
     vector<string> chainID_list1;      // list of chainID1
     vector<string> chainID_list2;      // list of chainID2
-    int    i,j;                // file index
-    int    chain_i,chain_j;    // chain index
-    int    xlen, ylen;         // chain length
-    int    xchainnum,ychainnum;// number of chains in a PDB file
-    char   *seqx, *seqy;       // for the protein sequence 
-    int    l; // residue index
+    int  i,j;                // file index
+    int  chain_i,chain_j;    // chain index
+    int  xlen, ylen;         // chain length
+    int  xchainnum,ychainnum;// number of chains in a PDB file
+    char *seqx, *seqy;       // for the protein sequence 
+    int  l;                  // residue index
 
     /* loop over file names */
     for (i=0;i<chain1_list.size();i++)
@@ -239,7 +248,7 @@ int main(int argc, char *argv[])
         if (infmt1_opt>=4) xchainnum=get_FASTA_lines(xname, PDB_lines1, 
                 chainID_list1, mol_vec1, ter_opt, split_opt);
         else xchainnum=get_PDB_lines(xname, PDB_lines1, chainID_list1,
-                mol_vec1, ter_opt, infmt1_opt, atom_opt, split_opt);
+                mol_vec1, ter_opt, infmt1_opt, atom_opt, split_opt, het_opt);
         if (!xchainnum)
         {
             cerr<<"Warning! Cannot parse file: "<<xname
@@ -274,8 +283,8 @@ int main(int argc, char *argv[])
                          ychainnum=get_FASTA_lines(yname, PDB_lines2,
                             chainID_list2, mol_vec2, ter_opt, split_opt);
                     else ychainnum=get_PDB_lines(yname, PDB_lines2,
-                            chainID_list2, mol_vec2, ter_opt,
-                            infmt2_opt, atom_opt, split_opt);
+                            chainID_list2, mol_vec2, ter_opt, infmt2_opt,
+                            atom_opt, split_opt, het_opt);
                     if (!ychainnum)
                     {
                         cerr<<"Warning! Cannot parse file: "<<yname
@@ -305,15 +314,19 @@ int main(int argc, char *argv[])
                     int L_ali;                // Aligned length
                     double Liden=0;
                     string seqM, seqxA, seqyA;// for output alignment
+                    int *invmap = new int[ylen+1];
                     
-                    int aln_score=NWalign(seqx, seqy, xlen, ylen, seqxA, seqyA, 
-                        mol_vec1[chain_i]+mol_vec2[chain_j], glocal);
+                    int aln_score=NWalign_main(seqx, seqy, xlen, ylen,
+                        seqxA, seqyA, mol_vec1[chain_i]+mol_vec2[chain_j],
+                        invmap, (outfmt_opt>=2)?1:0, glocal);
                     
-                    get_seqID(seqxA, seqyA, seqM, Liden, L_ali);
+                    if (outfmt_opt>=2) get_seqID(invmap, seqx, seqy, 
+                        ylen, Liden, L_ali);
+                    else get_seqID(seqxA, seqyA, seqM, Liden, L_ali);
 
                     output_NWalign_results(
-                        xname.substr(dir1_opt.size()),
-                        yname.substr(dir2_opt.size()),
+                        xname.substr(dir1_opt.size()+dir_opt.size()),
+                        yname.substr(dir2_opt.size()+dir_opt.size()),
                         chainID_list1[chain_i].c_str(),
                         chainID_list2[chain_j].c_str(),
                         xlen, ylen, seqM.c_str(), seqxA.c_str(),
@@ -324,6 +337,7 @@ int main(int argc, char *argv[])
                     seqxA.clear();
                     seqyA.clear();
                     delete [] seqy;
+                    delete [] invmap;
                 } // chain_j
                 if (chain2_list.size()>1)
                 {

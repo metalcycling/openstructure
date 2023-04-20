@@ -30,6 +30,8 @@
 
 namespace ost { namespace io {
 
+const int OMF_VERSION = 2;
+
 class ChainData;
 class BioUnitData;
 class OMF;
@@ -93,7 +95,7 @@ struct BioUnitDefinition {
 
 struct ChainData {
 
-  ChainData() { }
+  ChainData(): ch_name(""), chain_type(ost::mol::CHAINTYPE_UNKNOWN) { }
 
   ChainData(const ost::mol::ChainHandle& chain,
             const std::vector<ResidueDefinition>& residue_definitions,
@@ -103,12 +105,19 @@ struct ChainData {
             const std::vector<int>& inter_residue_bond_orders,
             std::unordered_map<long, int>& atom_idx_mapper);
 
-  void ToStream(std::ostream& stream) const;
+  void ToStream(std::ostream& stream,
+                const std::vector<ResidueDefinition>& res_def,
+                bool lossy, bool avg_bfactors, bool round_bfactors,
+                bool skip_ss) const;
 
-  void FromStream(std::istream& stream);
+  void FromStream(std::istream& stream,
+                  const std::vector<ResidueDefinition>& res_def,
+                  int version, bool lossy, bool avg_bfactors,
+                  bool round_bfactors, bool skip_ss);
 
   // chain features
   String ch_name;
+  ost::mol::ChainType chain_type;
 
   // residue features
   std::vector<int> res_def_indices;
@@ -127,14 +136,39 @@ struct ChainData {
   std::vector<int> bond_orders;
 };
 
+
+class DefaultPepLib{
+public:
+  static DefaultPepLib& Instance() {
+    static DefaultPepLib instance;
+    return instance;
+  }
+  std::vector<ResidueDefinition> residue_definitions;
+
+private:
+  DefaultPepLib();
+  DefaultPepLib(DefaultPepLib const& copy); 
+  DefaultPepLib& operator=(DefaultPepLib const& copy);
+};
+
+
 class OMF {
 
 public:
 
-  static OMFPtr FromEntity(const ost::mol::EntityHandle& ent);
+  enum OMFOption {DEFAULT_PEPLIB = 1, LOSSY = 2, AVG_BFACTORS = 4,
+                  ROUND_BFACTORS = 8, SKIP_SS = 16, INFER_PEP_BONDS = 32};
+
+  bool OptionSet(OMFOption opt) const {
+    return (opt & options_) == opt;
+  }
+
+  static OMFPtr FromEntity(const ost::mol::EntityHandle& ent,
+                           uint8_t options = 0);
 
   static OMFPtr FromMMCIF(const ost::mol::EntityHandle& ent,
-                          const MMCifInfo& info);
+                          const MMCifInfo& info,
+                          uint8_t options = 0);
 
   static OMFPtr FromFile(const String& fn);
 
@@ -150,9 +184,28 @@ public:
 
   ost::mol::EntityHandle GetBU(int bu_idx) const;
 
+  int GetVersion() const { return version_; }
+
+  static int GetCurrentOMFVersion() { return OMF_VERSION; }
+
+  // data access without requirement of generating a full
+  // OpenStructure entity
+
+  String GetName() const { return name_; }
+
+  std::vector<String> GetChainNames() const;
+
+  const geom::Vec3List& GetPositions(const String& cname) const;
+
+  const std::vector<Real>& GetBFactors(const String& cname) const;
+
+  std::vector<Real> GetAvgBFactors(const String& cname) const;
+
+  String GetSequence(const String& cname) const;
+
 private:
   // only construct with static functions
-  OMF() { }
+  OMF(): options_(0) { }
 
   void ToStream(std::ostream& stream) const;
 
@@ -162,6 +215,7 @@ private:
                  const ChainDataPtr data, 
                  geom::Mat4 transform = geom::Mat4()) const;
 
+  String name_;
   std::vector<ResidueDefinition> residue_definitions_;
   std::vector<BioUnitDefinition> biounit_definitions_;
   std::map<String, ChainDataPtr> chain_data_;
@@ -174,6 +228,11 @@ private:
   std::vector<String> bond_chain_names_;
   std::vector<int> bond_atoms_;
   std::vector<int> bond_orders_;
+
+  // bitfield with options
+  uint8_t options_;
+
+  int version_;
 };
 
 }} //ns

@@ -66,19 +66,20 @@ protected:
   void DistanceBasedConnect(mol::AtomHandle atom) const;
   mol::AtomHandle LocateAtom(const mol::AtomHandleList&, int ordinal) const;
 public:
-  Processor(bool bf, bool at, bool cn, bool aa, ConopAction zo): check_bond_feasibility_(bf),
-    assign_torsions_(at), connect_(cn), connect_aa_(aa),
-    zero_occ_treatment_(zo) {}
+  Processor(bool bf, bool at, bool cn, bool aa, bool ch, ConopAction zo):
+    check_bond_feasibility_(bf), assign_torsions_(at), connect_(cn),
+    connect_aa_(aa), connect_hetatm_(ch), zero_occ_treatment_(zo) {}
   Processor(): check_bond_feasibility_(false),
     assign_torsions_(true), connect_(true), connect_aa_(true),
-    zero_occ_treatment_(CONOP_SILENT) {}
+    connect_hetatm_(true), zero_occ_treatment_(CONOP_SILENT) {}
+
   void SetConnect(bool connect) {
     connect_ = connect;
   }
-
   bool GetConnect() const {
     return connect_;
   }
+
   void SetAssignTorsions(bool flag) {
     assign_torsions_ = flag;
   }
@@ -92,23 +93,29 @@ public:
   void SetConnectAminoAcids(bool c) {
     connect_aa_ = c;
   }
+
+  bool GetConnectHetatm() const {
+    return connect_hetatm_;
+  }
+  void SetConnectHetatm(bool c) {
+    connect_hetatm_ = c;
+  }
+
   bool GetCheckBondFeasibility() const {
     return check_bond_feasibility_;
   }
-
 
   void SetCheckBondFeasibility(bool flag) {
     check_bond_feasibility_ = flag;
   }
 
-
   ConopAction GetZeroOccTreatment() const {
     return zero_occ_treatment_;
   }
-
   void SetZeroOccTreatment(ConopAction action) {
     zero_occ_treatment_ = action;
   }
+
   virtual String ToString() const = 0;
 protected:
   String OptionsToString() const; 
@@ -117,6 +124,7 @@ private:
   bool assign_torsions_;
   bool connect_;
   bool connect_aa_;
+  bool connect_hetatm_;
   ConopAction zero_occ_treatment_;
 };
 

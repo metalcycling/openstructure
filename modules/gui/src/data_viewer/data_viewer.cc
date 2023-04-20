@@ -51,6 +51,7 @@
 #include <QMenuBar>
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QScreen>
 namespace ost { namespace img { namespace gui {
 
 namespace {
@@ -64,7 +65,7 @@ int ipow(int base, unsigned int exponent){
 }
 
 DataViewer::DataViewer(QWidget* p, const ImageHandle& data, const QString& name):
-  ost::gui::MainWindow(p,0),
+  ost::gui::MainWindow(p),
   name_(name),
   panel_(new DataViewerPanel(data,this)),
   ov_manager_(new OverlayManager(this)),
@@ -312,7 +313,7 @@ void DataViewer::build(const ImageHandle& data)
   connect(panel_,SIGNAL(released()),this,SIGNAL(released()));
   
   if(!parentWidget()) {
-    resize(QApplication::desktop()->availableGeometry().adjusted(20,20,-20,-20).size());
+    resize(QGuiApplication::primaryScreen()->availableGeometry().adjusted(20,20,-20,-20).size());
   } else {
     resize(1100,800);
   }

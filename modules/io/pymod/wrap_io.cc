@@ -32,6 +32,7 @@ using namespace boost::python;
 #include <ost/io/mol/entity_io_mae_handler.hh>
 #include <ost/io/mol/entity_io_sdf_handler.hh>
 #include <ost/io/mol/pdb_reader.hh>
+#include <ost/io/mol/sdf_str.hh>
 #include <ost/io/mol/dcd_io.hh>
 #include <ost/io/stereochemical_params_reader.hh>
 using namespace ost;
@@ -64,6 +65,9 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(save_entity_view_ov,
 
 ost::mol::alg::StereoChemicalProps (*read_props_a)(String filename, bool check) = &ReadStereoChemicalPropsFile;
 ost::mol::alg::StereoChemicalProps (*read_props_b)(bool check) = &ReadStereoChemicalPropsFile;
+
+String (*sdf_str_a)(const mol::EntityHandle&)=&EntityToSDFString;
+String (*sdf_str_b)(const mol::EntityView&)=&EntityToSDFString;
 
 }
 
@@ -116,6 +120,11 @@ BOOST_PYTHON_MODULE(_ost_io)
   def("SaveSequence", &SaveSequence,
       (arg("sequence"), arg("filename"), arg("format")="auto"));
   def("LoadSDF", &LoadSDF);
+
+  def("EntityToSDFStr", sdf_str_a);
+  def("EntityToSDFStr", sdf_str_b);
+
+  def("SDFStrToEntity", &SDFStringToEntity);
 
   def("LoadCRD", &LoadCRD);
   def("LoadCHARMMTraj_", &LoadCHARMMTraj, (arg("ent"), arg("trj_filename"), 

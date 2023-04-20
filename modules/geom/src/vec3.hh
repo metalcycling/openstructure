@@ -37,6 +37,7 @@ class Vec2;
 class Vec4;
 class Line3;
 class Plane;
+class Mat4;
 
 /// \brief Three dimensional vector class, using Real precision.
 class DLLEXPORT_OST_GEOM Vec3:
@@ -336,6 +337,14 @@ public:
   Mat3 GetPrincipalAxes() const;
   Line3 GetODRLine() const;
   Plane GetODRPlane() const;
+  void ApplyTransform(const Mat4& m);
+  Real GetSummedSquaredDistances(const Vec3List& other) const;
+  Real GetRMSD(const Vec3List& other) const;
+  Real GetGDTHA(const Vec3List& other, bool norm=true) const;
+  Real GetGDTTS(const Vec3List& other, bool norm=true) const;
+  Real GetGDT(const Vec3List& other, Real thresh, bool norm=true) const;
+  Real GetMinDist(const Vec3List& other) const;
+  bool IsWithin(const Vec3List& other, Real dist) const;
 
   //This function fits a cylinder to the positions in Vec3List
   //It takes as argument an initial guess for the direction.

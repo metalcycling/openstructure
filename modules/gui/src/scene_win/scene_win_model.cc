@@ -228,7 +228,7 @@ QMimeData* SceneWinModel::mimeData(const QModelIndexList &indexes) const
   foreach (QModelIndex index, indexes) {
     if (index.isValid() && index.column()==1) {
       QString text = "scene['"+data(index, Qt::DisplayRole).toString()+"']";
-      encoded_data.append(text);
+      encoded_data.append(text.toUtf8());
     }
   }
   mimeData->setData("text/plain", encoded_data);

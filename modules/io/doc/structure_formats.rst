@@ -54,5 +54,5 @@ SDF - Structured Data File
 Chemical-data file format.
 
 *Recognized File Extensions*
-  .sdf
+  .sdf, .sdf.gz
   

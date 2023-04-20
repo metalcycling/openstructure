@@ -27,6 +27,7 @@
 #include <ost/img/alg/normalizer_factory.hh>
 #include <ost/io/img/image_format.hh>
 
+
 namespace ost { namespace io { namespace detail {
 /// \internal
 typedef void (*TIFFWarningHandler)(const char*, const char*, va_list);
@@ -48,7 +49,7 @@ struct tiff_warning_handler_wrapper {
 };
 
 /// \internal
-class complexint32:public std::complex<int32>{
+class complexint32:public std::complex<int32_t>{
 public:
 
   operator std::complex<Real>()
@@ -58,7 +59,7 @@ public:
 };
 
 /// \internal
-class complexint16:public std::complex<int16>{
+class complexint16:public std::complex<int16_t>{
 public:
 
   operator std::complex<Real>()
@@ -68,7 +69,7 @@ public:
 };
 
 /// \internal
-class complexint8:public std::complex<int8>{
+class complexint8:public std::complex<int8_t>{
 public:
 
   operator std::complex<Real>()
@@ -102,7 +103,7 @@ void CustomTIFFUnmapFileProc(thandle_t thandle, tdata_t tdata, toff_t toff);
 
 /// \internal
 template<typename IN_TYPE,typename OUT_TYPE, class IST>
-void do_tiff_read(tdata_t buf,unsigned int rps, unsigned int width, IST* is,unsigned int& current_row, uint16 spp)
+void do_tiff_read(tdata_t buf,unsigned int rps, unsigned int width, IST* is,unsigned int& current_row, uint16_t spp)
 {
   IN_TYPE* dp = static_cast<IN_TYPE*>(buf);
   for(uint r=0;r<rps;r++) {

@@ -728,6 +728,10 @@ probabilities between Match, Insertion or Deletion states or neff values
 
     :type: :class:`float`
 
+  .. attribute:: hmm_data
+
+    Shortcut for :func:`GetHMMData`/:func:`SetHMMData`
+
 
 .. class:: ProfileHandle
 

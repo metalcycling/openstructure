@@ -1040,7 +1040,7 @@ CompoundPtr MakeTYRCompound() {
 }
 CompoundPtr MakeGCompound() {
   CompoundPtr c( new Compound("G"));
-  c->SetOneLetterCode('Y');
+  c->SetOneLetterCode('G');
   c->SetChemClass(mol::ChemClass('R'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C10 H14 N5 O8 P");
@@ -1132,8 +1132,8 @@ CompoundPtr MakeGCompound() {
 }
 CompoundPtr MakeTCompound() {
   CompoundPtr c( new Compound("T"));
-  c->SetOneLetterCode('Y');
-  c->SetChemClass(mol::ChemClass('S'));
+  c->SetOneLetterCode('T');
+  c->SetChemClass(mol::ChemClass('R'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C10 H15 N2 O8 P");
   AtomSpec atoms[] = {
@@ -1219,7 +1219,7 @@ CompoundPtr MakeTCompound() {
 }
 CompoundPtr MakeACompound() {
   CompoundPtr c( new Compound("A"));
-  c->SetOneLetterCode('Y');
+  c->SetOneLetterCode('A');
   c->SetChemClass(mol::ChemClass('R'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C10 H14 N5 O7 P");
@@ -1309,7 +1309,7 @@ CompoundPtr MakeACompound() {
 }
 CompoundPtr MakeCCompound() {
   CompoundPtr c( new Compound("C"));
-  c->SetOneLetterCode('Y');
+  c->SetOneLetterCode('C');
   c->SetChemClass(mol::ChemClass('R'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C9 H14 N3 O8 P");
@@ -1394,7 +1394,7 @@ CompoundPtr MakeCCompound() {
 }
 CompoundPtr MakeUCompound() {
   CompoundPtr c( new Compound("U"));
-  c->SetOneLetterCode('Y');
+  c->SetOneLetterCode('U');
   c->SetChemClass(mol::ChemClass('R'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C9 H13 N2 O9 P");
@@ -1477,7 +1477,7 @@ CompoundPtr MakeUCompound() {
 }
 CompoundPtr MakeDGCompound() {
   CompoundPtr c( new Compound("DG"));
-  c->SetOneLetterCode('Y');
+  c->SetOneLetterCode('G');
   c->SetChemClass(mol::ChemClass('S'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C10 H14 N5 O7 P");
@@ -1567,7 +1567,7 @@ CompoundPtr MakeDGCompound() {
 }
 CompoundPtr MakeDTCompound() {
   CompoundPtr c( new Compound("DT"));
-  c->SetOneLetterCode('Y');
+  c->SetOneLetterCode('T');
   c->SetChemClass(mol::ChemClass('S'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C10 H15 N2 O8 P");
@@ -1654,7 +1654,7 @@ CompoundPtr MakeDTCompound() {
 }
 CompoundPtr MakeDUCompound() {
   CompoundPtr c( new Compound("DU"));
-  c->SetOneLetterCode('Y');
+  c->SetOneLetterCode('U');
   c->SetChemClass(mol::ChemClass('S'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C9 H13 N2 O8 P");
@@ -1735,7 +1735,7 @@ CompoundPtr MakeDUCompound() {
 }
 CompoundPtr MakeDCCompound() {
   CompoundPtr c( new Compound("DC"));
-  c->SetOneLetterCode('Y');
+  c->SetOneLetterCode('C');
   c->SetChemClass(mol::ChemClass('S'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C9 H14 N3 O7 P");
@@ -1818,7 +1818,7 @@ CompoundPtr MakeDCCompound() {
 }
 CompoundPtr MakeDACompound() {
   CompoundPtr c( new Compound("DA"));
-  c->SetOneLetterCode('Y');
+  c->SetOneLetterCode('A');
   c->SetChemClass(mol::ChemClass('S'));
   c->SetChemType(mol::ChemType('U'));
   c->SetFormula("C10 H14 N5 O6 P");

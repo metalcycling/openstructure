@@ -25,6 +25,7 @@
 #include "vecmat3_op.hh"
 #include "composite3.hh"
 #include "composite3_op.hh"
+#include "mat4.hh"
 
 namespace geom {
 
@@ -90,6 +91,133 @@ Plane Vec3List::GetODRPlane() const
   Vec3 origin=this->GetCenter();
   Vec3 normal=this->GetPrincipalAxes().GetRow(0);
   return Plane(origin,normal);
+}
+
+void Vec3List::ApplyTransform(const Mat4& m) 
+{
+  Real x,y,z;
+  for(uint i = 0; i < this->size(); ++i) {
+    x = (*this)[i][0];
+    y = (*this)[i][1];
+    z = (*this)[i][2];
+    (*this)[i][0] = m(0,0)*x+m(0,1)*y+m(0,2)*z+m(0,3);
+    (*this)[i][1] = m(1,0)*x+m(1,1)*y+m(1,2)*z+m(1,3);
+    (*this)[i][2] = m(2,0)*x+m(2,1)*y+m(2,2)*z+m(2,3);
+  }
+}
+
+Real Vec3List::GetSummedSquaredDistances(const Vec3List& other) const
+{
+  if(this->size() != other.size()) {
+    String m = "Inconsistent sizes in Vec3List::GetSummedSquaredDistances";
+    throw GeomException(m);
+  }
+  Real summed_squared_dist = 0.0;
+  for(uint i = 0; i < this->size(); ++i) {
+    summed_squared_dist += geom::Length2((*this)[i] - other[i]);
+  }
+  return summed_squared_dist;
+}
+
+Real Vec3List::GetRMSD(const Vec3List& other) const
+{
+  if(this->empty()) {
+    return 0.0;
+  } else {
+    Real summed_squared_dist = this->GetSummedSquaredDistances(other);
+    return std::sqrt(summed_squared_dist/this->size());
+  }
+}
+
+Real Vec3List::GetGDTHA(const Vec3List& other, bool norm) const
+{
+  if(this->size() != other.size()) {
+    String m = "Inconsistent sizes in Vec3List::GetNWithin";
+    throw GeomException(m);
+  }
+  int n = 0;
+  for(uint i = 0; i < this->size(); ++i) {
+    Real squared_d = geom::Length2((*this)[i] - other[i]);
+    // GDTHA default thresholds: [4,2,1,0.5]
+    if(squared_d < static_cast<Real>(16)) {
+      ++n;
+    }
+    if(squared_d < static_cast<Real>(4)) {
+      ++n;
+    }
+    if(squared_d < static_cast<Real>(1)) {
+      ++n;
+    }
+    if(squared_d < static_cast<Real>(0.25)) {
+      ++n;
+    }
+  }
+  return norm && !this->empty() ? static_cast<Real>(n)/(this->size()*4) : n;
+}
+
+Real Vec3List::GetGDTTS(const Vec3List& other, bool norm) const
+{
+  if(this->size() != other.size()) {
+    String m = "Inconsistent sizes in Vec3List::GetNWithin";
+    throw GeomException(m);
+  }
+  int n = 0;
+  for(uint i = 0; i < this->size(); ++i) {
+    Real squared_d = geom::Length2((*this)[i] - other[i]);
+    // GDTTS default thresholds: [8,4,2,1]
+    if(squared_d < static_cast<Real>(64)) {
+      ++n;
+    }
+    if(squared_d < static_cast<Real>(16)) {
+      ++n;
+    }
+    if(squared_d < static_cast<Real>(4)) {
+      ++n;
+    }
+    if(squared_d < static_cast<Real>(1)) {
+      ++n;
+    }
+  }
+  return norm && !this->empty() ? static_cast<Real>(n)/(this->size()*4) : n;
+}
+
+Real Vec3List::GetGDT(const Vec3List& other, Real thresh, bool norm) const
+{
+  if(this->size() != other.size()) {
+    String m = "Inconsistent sizes in Vec3List::GetNWithin";
+    throw GeomException(m);
+  }
+  int n = 0;
+  Real squared_thresh = thresh * thresh;
+  for(uint i = 0; i < this->size(); ++i) {
+    Real squared_d = geom::Length2((*this)[i] - other[i]);
+    if(squared_d < squared_thresh) {
+      ++n;
+    }
+  }
+  return norm && !this->empty() ? static_cast<Real>(n)/(this->size()) : n;
+}
+
+Real Vec3List::GetMinDist(const Vec3List& other) const {
+  Real min = std::numeric_limits<Real>::max();
+  for(size_t i = 0; i < this->size(); ++i) {
+    for(size_t j = 0; j < other.size(); ++j) {
+      min = std::min(min, geom::Length2((*this)[i] - other[j]));
+    }
+  }
+  return std::sqrt(min);
+}
+
+bool Vec3List::IsWithin(const Vec3List& other, Real dist) const {
+  Real squared_dist = dist*dist;
+  for(size_t i = 0; i < this->size(); ++i) {
+    for(size_t j = 0; j < other.size(); ++j) {
+      if(geom::Length2((*this)[i] - other[j]) <= squared_dist) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 std::pair<Line3, Real> Vec3List::FitCylinder(const Vec3& initial_direction) const

@@ -21,7 +21,9 @@
  */
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/convenience.hpp>
 #include <boost/format.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 #include <boost/lexical_cast.hpp>
 #include <ost/mol/bond_handle.hh>
 #include <ost/conop/conop.hh>
@@ -58,8 +60,15 @@ void SDFReader::Import(mol::EntityHandle& ent)
 {
   String line;
   mol::XCSEditor editor=ent.EditXCS(mol::BUFFERED_EDIT);
-  while (std::getline(instream_,line)) {
+  while (std::getline(in_,line)) {
     ++line_num;
+
+    // std::getline removes EOL character but may leave a DOS CR (\r) in Unix
+    size_t cr_pos = line.find("\r");
+    if (cr_pos != String::npos) {
+        LOG_TRACE( "Remove CR@" << cr_pos);
+        line.erase(cr_pos);
+    }
 
     if (line_num<=4) {
       ParseAndAddHeader(line, line_num, ent, editor);
@@ -80,7 +89,7 @@ void SDFReader::Import(mol::EntityHandle& ent)
         throw IOException(str(format(msg) % line_num));
       }
       String data_value="";
-      while(std::getline(instream_,line) && !boost::iequals(line, "")) {
+      while(std::getline(in_,line) && !boost::iequals(line, "")) {
         data_value.append(line);
       }
       curr_chain_.SetStringProp(data_header, data_value);
@@ -96,6 +105,10 @@ void SDFReader::Import(mol::EntityHandle& ent)
 
 void SDFReader::ClearState(const boost::filesystem::path& loc)
 {
+  if (boost::iequals(".gz", boost::filesystem::extension(loc))) {
+    in_.push(boost::iostreams::gzip_decompressor());
+  }
+  in_.push(instream_);
   if(!infile_) throw IOException("could not open "+loc.string());
   curr_chain_=mol::ChainHandle();
   curr_residue_=mol::ResidueHandle();
@@ -199,6 +212,8 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
   }
 
   String ele=boost::trim_copy(s_ele);
+  String upper_ele=ele;
+  std::transform(upper_ele.begin(),upper_ele.end(),upper_ele.begin(),toupper);
   String aname=boost::lexical_cast<String>(anum);
   
   Real charge=0.0;  
@@ -215,7 +230,7 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
 
   LOG_DEBUG("adding atom " << aname << " (" << s_ele << ") @" << apos);
 
-  mol::AtomHandle atom=editor.InsertAtom(curr_residue_, aname,apos, ele);  
+  mol::AtomHandle atom=editor.InsertAtom(curr_residue_, aname, apos, upper_ele);
   atom.SetHetAtom(hetatm);
   atom.SetCharge(charge);
 }

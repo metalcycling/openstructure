@@ -29,7 +29,6 @@
 #include <stdarg.h>
 
 #include <boost/function.hpp>
-#include <boost/bind.hpp>
 
 #include <ost/img/image_state.hh>
 #include <ost/img/progress.hh>
@@ -307,9 +306,9 @@ void MapIOTiffHandler::do_export(const img::MapHandle& image,TIFF* tfile,TIF& fo
 
   unsigned int width=image.GetSize().GetWidth();
   unsigned int height=image.GetSize().GetHeight();
-  uint16 spp=1;
-  uint16 fmt =0;
-  uint16 bpp =0 ;
+  uint16_t spp=1;
+  uint16_t fmt =0;
+  uint16_t bpp =0 ;
   img::Point ori=image.GetSpatialOrigin();
   geom::Vec3 sampling=image.GetPixelSampling();
   float xreso=sampling[0]/Units::cm,yreso=sampling[1]/Units::cm;
@@ -335,17 +334,17 @@ void MapIOTiffHandler::do_export(const img::MapHandle& image,TIFF* tfile,TIF& fo
       case OST_BIT8_FORMAT:
         fmt=SAMPLEFORMAT_INT;
         bpp=8;
-        fsr=detail::do_tiff_write<Real,int8,img::image_state::RealSpatialImageState>;
+        fsr=detail::do_tiff_write<Real,int8_t,img::image_state::RealSpatialImageState>;
         break;
       case OST_BIT16_FORMAT:
         fmt=SAMPLEFORMAT_INT;
         bpp=16;
-        fsr=detail::do_tiff_write<Real,int16,img::image_state::RealSpatialImageState>;
+        fsr=detail::do_tiff_write<Real,int16_t,img::image_state::RealSpatialImageState>;
         break;
       case OST_BIT32_FORMAT:
         fmt=SAMPLEFORMAT_INT;
         bpp=32;
-        fsr=detail::do_tiff_write<Real,int32,img::image_state::RealSpatialImageState>;
+        fsr=detail::do_tiff_write<Real,int32_t,img::image_state::RealSpatialImageState>;
         break;
       case OST_FLOAT_FORMAT:
         fmt=SAMPLEFORMAT_IEEEFP;
@@ -360,7 +359,7 @@ void MapIOTiffHandler::do_export(const img::MapHandle& image,TIFF* tfile,TIF& fo
       case OST_DEFAULT_FORMAT:
         fmt=SAMPLEFORMAT_INT;
         bpp=16;
-        fsr=detail::do_tiff_write<Real,int16,img::image_state::RealSpatialImageState>;
+        fsr=detail::do_tiff_write<Real,int16_t,img::image_state::RealSpatialImageState>;
         break;
       }
     }else{ // unsigned
@@ -368,17 +367,17 @@ void MapIOTiffHandler::do_export(const img::MapHandle& image,TIFF* tfile,TIF& fo
       case OST_BIT8_FORMAT:
         fmt=SAMPLEFORMAT_UINT;
         bpp=8;
-        fsr=detail::do_tiff_write<Real,uint8,img::image_state::RealSpatialImageState>;
+        fsr=detail::do_tiff_write<Real,uint8_t,img::image_state::RealSpatialImageState>;
         break;
       case OST_BIT16_FORMAT:
         fmt=SAMPLEFORMAT_UINT;
         bpp=16;
-        fsr=detail::do_tiff_write<Real,uint16,img::image_state::RealSpatialImageState>;
+        fsr=detail::do_tiff_write<Real,uint16_t,img::image_state::RealSpatialImageState>;
         break;
       case OST_BIT32_FORMAT:
         fmt=SAMPLEFORMAT_UINT;
         bpp=32;
-        fsr=detail::do_tiff_write<Real,uint32,img::image_state::RealSpatialImageState>;
+        fsr=detail::do_tiff_write<Real,uint32_t,img::image_state::RealSpatialImageState>;
         break;
       case OST_FLOAT_FORMAT:
         fmt=SAMPLEFORMAT_IEEEFP;
@@ -393,7 +392,7 @@ void MapIOTiffHandler::do_export(const img::MapHandle& image,TIFF* tfile,TIF& fo
       case OST_DEFAULT_FORMAT:
         fmt=SAMPLEFORMAT_UINT;
         bpp=16;
-        fsr=detail::do_tiff_write<Real,uint16,img::image_state::RealSpatialImageState>;
+        fsr=detail::do_tiff_write<Real,uint16_t,img::image_state::RealSpatialImageState>;
         break;
       }
     }
@@ -403,17 +402,17 @@ void MapIOTiffHandler::do_export(const img::MapHandle& image,TIFF* tfile,TIF& fo
     case OST_BIT8_FORMAT:
       fmt=SAMPLEFORMAT_COMPLEXINT;
       bpp=16;
-      fsc=detail::do_tiff_write<Complex,std::complex<int8>,img::image_state::ComplexSpatialImageState>;
+      fsc=detail::do_tiff_write<Complex,std::complex<int8_t>,img::image_state::ComplexSpatialImageState>;
       break;
     case OST_BIT16_FORMAT:
       fmt=SAMPLEFORMAT_COMPLEXINT;
       bpp=32;
-      fsc=detail::do_tiff_write<Complex,std::complex<int16>,img::image_state::ComplexSpatialImageState>;
+      fsc=detail::do_tiff_write<Complex,std::complex<int16_t>,img::image_state::ComplexSpatialImageState>;
       break;
     case OST_BIT32_FORMAT:
       fmt=SAMPLEFORMAT_COMPLEXINT;
       bpp=64;
-      fsc=detail::do_tiff_write<Complex,std::complex<int32>,img::image_state::ComplexSpatialImageState>;
+      fsc=detail::do_tiff_write<Complex,std::complex<int32_t>,img::image_state::ComplexSpatialImageState>;
       break;
     case OST_FLOAT_FORMAT:
       fmt=SAMPLEFORMAT_COMPLEXIEEEFP;
@@ -553,7 +552,7 @@ TIFF* MapIOTiffHandler::open_subimage_stream(std::istream& location,const TIF& f
 void MapIOTiffHandler::load_image_data(TIFF* tfile, img::ImageHandle& image,  const TIF& formattif)
 {
   unsigned int width,height,rps;
-  uint16 bpp,spp,plc,ori,reso=RESUNIT_NONE,fmt=SAMPLEFORMAT_UINT;
+  uint16_t bpp,spp,plc,ori,reso=RESUNIT_NONE,fmt=SAMPLEFORMAT_UINT;
   float xpos=0.0,ypos=0.0;
   float xreso=1.0,yreso=1.0;
 
@@ -650,21 +649,21 @@ void MapIOTiffHandler::load_image_data(TIFF* tfile, img::ImageHandle& image,  co
         detail::do_tiff_read<uchar,short,img::image_state::WordSpatialImageState>(buf,rowcount,width,is,current_row,spp);
       } else if(bpp==16) {
         uint rowcount = cread/(width*2*spp);
-        detail::do_tiff_read<uint16,short,img::image_state::WordSpatialImageState>(buf,rowcount,width,is,current_row,spp);
+        detail::do_tiff_read<uint16_t,short,img::image_state::WordSpatialImageState>(buf,rowcount,width,is,current_row,spp);
       } else if(bpp==32) {
         uint rowcount = cread/(width*4*spp);
-        detail::do_tiff_read<uint32,short,img::image_state::WordSpatialImageState>(buf,rowcount,width,is,current_row,spp);
+        detail::do_tiff_read<uint32_t,short,img::image_state::WordSpatialImageState>(buf,rowcount,width,is,current_row,spp);
       }
       img::Progress::Instance().AdvanceProgress(this);
     }
     LOG_VERBOSE("I/O Tiff: " << "done");
     img::Progress::Instance().DeRegister(this);
-    uint16 photometric;
+    uint16_t photometric;
     if(TIFFGetField(tfile,TIFFTAG_PHOTOMETRIC,&photometric)){
       if(photometric==PHOTOMETRIC_PALETTE ){
-        uint16* lookuptable_red;
-        uint16* lookuptable_green;
-        uint16* lookuptable_blue;
+        uint16_t* lookuptable_red;
+        uint16_t* lookuptable_green;
+        uint16_t* lookuptable_blue;
         TIFFGetField(tfile,TIFFTAG_COLORMAP,&lookuptable_red,&lookuptable_green,&lookuptable_blue);
         for(unsigned short* ptr = is->Data().GetData(); ptr<is->Data().GetEnd(); ++ptr) {
           long idx=static_cast<long>(*ptr);
@@ -703,9 +702,9 @@ void MapIOTiffHandler::load_image_data(TIFF* tfile, img::ImageHandle& image,  co
       if(bpp==8) {
         int rowcount = cread/(width*spp);
         if(fmt==SAMPLEFORMAT_INT){
-          detail::do_tiff_read<int8,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
+          detail::do_tiff_read<int8_t,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
         }else if(fmt==SAMPLEFORMAT_UINT){
-          detail::do_tiff_read<uint8,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
+          detail::do_tiff_read<uint8_t,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
         }else{
           std::ostringstream ostrs;
           ostrs << "TIFF images with "<<bpp << " bits per pixel and sample format "<< fmt<< " are not supported.";
@@ -714,9 +713,9 @@ void MapIOTiffHandler::load_image_data(TIFF* tfile, img::ImageHandle& image,  co
       } else if(bpp==16) {
         uint rowcount = cread/(width*2*spp);
         if(fmt==SAMPLEFORMAT_INT){
-          detail::do_tiff_read<int16,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
+          detail::do_tiff_read<int16_t,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
         }else if(fmt==SAMPLEFORMAT_UINT){
-          detail::do_tiff_read<uint16,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
+          detail::do_tiff_read<uint16_t,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
         }else if(fmt==SAMPLEFORMAT_COMPLEXINT){
           detail::do_tiff_read<detail::complexint8,Complex,img::image_state::ComplexSpatialImageState>(buf,rowcount,width,isc,current_row,spp);
         }else{
@@ -727,9 +726,9 @@ void MapIOTiffHandler::load_image_data(TIFF* tfile, img::ImageHandle& image,  co
       } else if(bpp==32) {
         uint rowcount = cread/(width*4*spp);
         if(fmt==SAMPLEFORMAT_INT){
-          detail::do_tiff_read<int32,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
+          detail::do_tiff_read<int32_t,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
         }else if(fmt==SAMPLEFORMAT_UINT){
-          detail::do_tiff_read<uint32,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
+          detail::do_tiff_read<uint32_t,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
         }else if(fmt==SAMPLEFORMAT_IEEEFP){
           detail::do_tiff_read<float,Real,img::image_state::RealSpatialImageState>(buf,rowcount,width,isr,current_row,spp);
         }else if(fmt==SAMPLEFORMAT_COMPLEXINT){
@@ -768,12 +767,12 @@ void MapIOTiffHandler::load_image_data(TIFF* tfile, img::ImageHandle& image,  co
     LOG_VERBOSE("I/O Tiff: " << "done");
 
     img::Progress::Instance().DeRegister(this);
-    uint16 photometric;
+    uint16_t photometric;
     if(TIFFGetField(tfile,TIFFTAG_PHOTOMETRIC,&photometric)){
       if(photometric==PHOTOMETRIC_PALETTE && image.GetType()==img::REAL){
-        uint16* lookuptable_red;
-        uint16* lookuptable_green;
-        uint16* lookuptable_blue;
+        uint16_t* lookuptable_red;
+        uint16_t* lookuptable_green;
+        uint16_t* lookuptable_blue;
         TIFFGetField(tfile,TIFFTAG_COLORMAP,&lookuptable_red,&lookuptable_green,&lookuptable_blue);
         for(Real* ptr = isr->Data().GetData(); ptr<isr->Data().GetEnd(); ++ptr) {
           long idx=static_cast<long>(*ptr);
