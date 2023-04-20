@@ -614,13 +614,10 @@ bool PDBReader::ParseAtomIdent(const StringRef& line, int line_num,
   resnum=to_res_num(res_num.second, ins_c);
 
   std::pair<bool, int> tmp = line.substr(6, 5).trim().to_int();
-  if(!tmp.first) {
-    if (profile_.fault_tolerant) {
-      return false;
-    }
-    throw IOException(str(format("invalid atom serial on line %d") % line_num));
+  if(tmp.first) {
+    // potentially not set - up to the caller to check for that
+    serial = tmp.second;
   }
-  serial = tmp.second;
 
   return true;
 }
