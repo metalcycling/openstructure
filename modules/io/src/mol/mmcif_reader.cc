@@ -581,7 +581,7 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
       curr_residue_=curr_chain_.FindResidue(res_num);
     }
     if (!curr_residue_.IsValid()) { // unit test
-      LOG_TRACE("new residue " << res_name << " " << res_num);
+      LOG_DEBUG("new residue " << res_name << " " << res_num);
       if (valid_res_num) {
         curr_residue_ = editor.AppendResidue(curr_chain_,
                                              res_name.str(),
