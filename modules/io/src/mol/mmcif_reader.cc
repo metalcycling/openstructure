@@ -559,6 +559,7 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
       ++chain_count_;
       // store entity id
       String ent_id = columns[indices_[LABEL_ENTITY_ID]].str();
+      curr_chain_.SetStringProp("entity_id", ent_id);
       chain_id_pairs_.push_back(std::pair<mol::ChainHandle,String>(curr_chain_,
                                                                    ent_id));
       info_.AddMMCifEntityIdTr(cif_chain_name, ent_id);
@@ -580,14 +581,20 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
       curr_residue_=curr_chain_.FindResidue(res_num);
     }
     if (!curr_residue_.IsValid()) { // unit test
-      LOG_DEBUG("new residue " << res_name << " " << res_num);
+      LOG_TRACE("new residue " << res_name << " " << res_num);
       if (valid_res_num) {
         curr_residue_ = editor.AppendResidue(curr_chain_,
                                              res_name.str(),
                                              res_num);
+
       } else {
         curr_residue_ = editor.AppendResidue(curr_chain_, res_name.str());
       }
+      curr_residue_.SetStringProp("pdb_auth_chain_name", auth_chain_name);
+      curr_residue_.SetStringProp("pdb_auth_resnum", columns[indices_[AUTH_SEQ_ID]].str());
+      curr_residue_.SetStringProp("pdb_auth_ins_code", columns[indices_[PDBX_PDB_INS_CODE]].str());
+      curr_residue_.SetStringProp("entity_id", columns[indices_[LABEL_ENTITY_ID]].str());
+      curr_residue_.SetStringProp("resnum", columns[indices_[LABEL_SEQ_ID]].str());
       warned_name_mismatch_=false;
       ++residue_count_; 
     }

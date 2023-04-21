@@ -1225,6 +1225,17 @@ BOOST_AUTO_TEST_CASE(mmcif_testreader)
   BOOST_CHECK(ch.IsValid());
   BOOST_TEST_MESSAGE("          done.");
 
+  BOOST_TEST_MESSAGE("          testing chain/residue mapping properties...");
+  BOOST_CHECK_EQUAL(ch.GetStringProp("pdb_auth_chain_name"), "A");
+  BOOST_CHECK_EQUAL(ch.GetStringProp("entity_id"), "1");
+  mol::ResidueHandle res = ch.FindResidue(12);
+  BOOST_CHECK(res.IsValid());
+  BOOST_CHECK_EQUAL(res.GetStringProp("pdb_auth_chain_name"), "A");
+  BOOST_CHECK_EQUAL(res.GetStringProp("pdb_auth_resnum"), "12");
+  BOOST_CHECK_EQUAL(res.GetStringProp("pdb_auth_ins_code"), "?");
+  BOOST_CHECK_EQUAL(res.GetStringProp("entity_id"), "1");
+  BOOST_TEST_MESSAGE("          done.");
+
   BOOST_TEST_MESSAGE("          testing numbering water...");
   ch = eh.FindChain("O");
   BOOST_CHECK(ch.IsValid());

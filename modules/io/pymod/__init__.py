@@ -356,10 +356,10 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
   customize the exact behaviour of the mmCIF import. For more information on
   these options, see :doc:`profile`.
   
-  Residues are flagged as ligand if they are not covered by an ``entity_poly``
-  record (ie. they are non-polymer entities in ``pdbx_entity_nonpoly``). Note
-  that all residues will be flagged as ligands if ``seqres=False`` (the
-  default).
+  Residues are flagged as ligand if they are not waters nor covered by an
+  ``entity_poly`` record (ie. they are non-polymer entities in
+  ``pdbx_entity_nonpoly``). Note that all residues except waters will be
+  flagged as ligands if ``seqres=False`` (the default).
 
   :param filename: File to be loaded
   :type filename: :class:`str`
