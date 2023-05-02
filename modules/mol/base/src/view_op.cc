@@ -295,7 +295,7 @@ public:
   } 
   virtual bool VisitChain(const ChainHandle& chain)
   {
-    chain_=ent_->InsertChain(chain.GetName());
+    chain_=ent_->InsertChain(chain.GetName(), chain.Impl(), false);
     return true;
   }
   
