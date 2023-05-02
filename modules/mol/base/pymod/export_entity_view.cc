@@ -215,8 +215,8 @@ void export_EntityView()
   def("CreateViewFromAtoms", create_view);
   def("CreateViewFromAtomList", create_view);
   
-  def("CreateEntityFromView", &CreateEntityFromView, 
-      arg("handle")=EntityHandle());
+  def("CreateEntityFromView", &CreateEntityFromView,
+      (arg("view"), arg("include_exlusive_atoms"), arg("handle")=EntityHandle()));
   class_<EntityViewList>("EntityViewList", init<>())
     .def(vector_indexing_suite<EntityViewList>())
   ;
