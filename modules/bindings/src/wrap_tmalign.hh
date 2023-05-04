@@ -56,7 +56,8 @@ TMAlignResult WrappedTMAlign(const geom::Vec3List& pos_one,
                              const geom::Vec3List& pos_two, 
                              const ost::seq::SequenceHandle& seq1,
                              const ost::seq::SequenceHandle& seq2,
-                             bool fast = false);
+                             bool fast = false,
+                             bool rna = false);
 
 TMAlignResult WrappedTMAlign(const ost::mol::ChainView& ent1,
                              const ost::mol::ChainView& ent2,

@@ -9,7 +9,7 @@ void print_version()
     cout << 
 "\n"
 " **********************************************************************\n"
-" * MM-align (Version 20200519): complex structure alignment           *\n"
+" * MM-align (Version 20220412): complex structure alignment           *\n"
 " * References: S Mukherjee, Y Zhang. Nucl Acids Res 37(11):e83 (2009) *\n"
 " * Please email comments and suggestions to yangzhanglab@umich.edu    *\n"
 " **********************************************************************"
@@ -440,36 +440,34 @@ int main(int argc, char *argv[])
 
         t2 = clock();
         float diff = ((float)t2 - (float)t1)/CLOCKS_PER_SEC;
-        printf("Total CPU time is %5.2f seconds\n", diff);
+        printf("#Total CPU time is %5.2f seconds\n", diff);
         return 0;
     }
 
     /* declare TM-score tables */
     int chain1_num=xa_vec.size();
     int chain2_num=ya_vec.size();
-    double **TM1_mat;
-    double **TM2_mat;
+    vector<string> tmp_str_vec(chain2_num,"");
     double **TMave_mat;
     double **ut_mat; // rotation matrices for all-against-all alignment
     int ui,uj,ut_idx;
-    NewArray(&TM1_mat,chain1_num,chain2_num);
-    NewArray(&TM2_mat,chain1_num,chain2_num);
     NewArray(&TMave_mat,chain1_num,chain2_num);
     NewArray(&ut_mat,chain1_num*chain2_num,4*3);
-    vector<string> tmp_str_vec(chain2_num,"");
     vector<vector<string> >seqxA_mat(chain1_num,tmp_str_vec);
     vector<vector<string> > seqM_mat(chain1_num,tmp_str_vec);
     vector<vector<string> >seqyA_mat(chain1_num,tmp_str_vec);
-    tmp_str_vec.clear();
+
+    double maxTMmono=-1;
+    int maxTMmono_i,maxTMmono_j;
 
     /* get all-against-all alignment */
+    if (len_aa+len_na>500) fast_opt=true;
     for (i=0;i<chain1_num;i++)
     {
         xlen=xlen_vec[i];
         if (xlen<3)
         {
-            for (j=0;j<chain2_num;j++)
-                TM1_mat[i][j]=TM2_mat[i][j]=TMave_mat[i][j]=-1;
+            for (j=0;j<chain2_num;j++) TMave_mat[i][j]=-1;
             continue;
         }
         seqx = new char[xlen+1];
@@ -489,14 +487,14 @@ int main(int argc, char *argv[])
 
             if (mol_vec1[i]*mol_vec2[j]<0) //no protein-RNA alignment
             {
-                TM1_mat[i][j]=TM2_mat[i][j]=TMave_mat[i][j]=-1;
+                TMave_mat[i][j]=-1;
                 continue;
             }
 
             ylen=ylen_vec[j];
             if (ylen<3)
             {
-                TM1_mat[i][j]=TM2_mat[i][j]=TMave_mat[i][j]=-1;
+                TMave_mat[i][j]=-1;
                 continue;
             }
             seqy = new char[ylen+1];
@@ -530,18 +528,22 @@ int main(int argc, char *argv[])
                 seqM, seqxA, seqyA,
                 rmsd0, L_ali, Liden, TM_ali, rmsd_ali, n_ali, n_ali8,
                 xlen, ylen, sequence, Lnorm_tmp, d0_scale,
-                0, false, true, false, true,
+                0, false, true, false, fast_opt,
                 mol_vec1[i]+mol_vec2[j],TMcut);
 
             /* store result */
             for (ui=0;ui<3;ui++)
                 for (uj=0;uj<3;uj++) ut_mat[ut_idx][ui*3+uj]=u0[ui][uj];
             for (uj=0;uj<3;uj++) ut_mat[ut_idx][9+uj]=t0[uj];
-            TM1_mat[i][j]=TM2; // normalized by chain1
-            TM2_mat[i][j]=TM1; // normalized by chain2
             seqxA_mat[i][j]=seqxA;
             seqyA_mat[i][j]=seqyA;
             TMave_mat[i][j]=TM4*Lnorm_tmp;
+            if (TMave_mat[i][j]>maxTMmono)
+            {
+                maxTMmono=TMave_mat[i][j];
+                maxTMmono_i=i;
+                maxTMmono_j=j;
+            }
 
             /* clean up */
             seqM.clear();
@@ -568,8 +570,7 @@ int main(int argc, char *argv[])
     if (total_score<=0) PrintErrorAndQuit("ERROR! No assignable chain");
 
     /* refine alignment for large oligomers */
-    int aln_chain_num=0;
-    for (i=0;i<chain1_num;i++) aln_chain_num+=(assign1_list[i]>=0);
+    int aln_chain_num=count_assign_pair(assign1_list,chain1_num);
     bool is_oligomer=(aln_chain_num>=3);
     if (aln_chain_num==2) // dimer alignment
     {
@@ -617,21 +618,89 @@ int main(int argc, char *argv[])
         DeleteArray(&xcentroids, chain1_num);
         DeleteArray(&ycentroids, chain2_num);
     }
-    if (len_aa+len_na>1000) fast_opt=true;
+
+    /* store initial assignment */
+    int init_pair_num=count_assign_pair(assign1_list,chain1_num);
+    int *assign1_init, *assign2_init;
+    assign1_init=new int[chain1_num];
+    assign2_init=new int[chain2_num];
+    double **TMave_init;
+    NewArray(&TMave_init,chain1_num,chain2_num);
+    vector<vector<string> >seqxA_init(chain1_num,tmp_str_vec);
+    vector<vector<string> >seqyA_init(chain1_num,tmp_str_vec);
+    vector<string> sequence_init;
+    copy_chain_assign_data(chain1_num, chain2_num, sequence_init,
+        seqxA_mat,  seqyA_mat,  assign1_list, assign2_list, TMave_mat,
+        seqxA_init, seqyA_init, assign1_init, assign2_init, TMave_init);
 
     /* perform iterative alignment */
-    for (int iter=0;iter<1;iter++)
+    double max_total_score=0; // ignore old total_score because previous
+                              // score was from monomeric chain superpositions
+    int max_iter=5-(int)((len_aa+len_na)/200);
+    if (max_iter<2) max_iter=2;
+    MMalign_iter(max_total_score, max_iter, xa_vec, ya_vec, seqx_vec, seqy_vec,
+        secx_vec, secy_vec, mol_vec1, mol_vec2, xlen_vec, ylen_vec,
+        xa, ya, seqx, seqy, secx, secy, len_aa, len_na, chain1_num, chain2_num,
+        TMave_mat, seqxA_mat, seqyA_mat, assign1_list, assign2_list, sequence,
+        d0_scale, fast_opt);
+
+    /* sometime MMalign_iter is even worse than monomer alignment */
+    if (max_total_score<maxTMmono)
     {
-        total_score=MMalign_search(xa_vec, ya_vec, seqx_vec, seqy_vec,
+        copy_chain_assign_data(chain1_num, chain2_num, sequence,
+            seqxA_init, seqyA_init, assign1_init, assign2_init, TMave_init,
+            seqxA_mat, seqyA_mat, assign1_list, assign2_list, TMave_mat);
+        for (i=0;i<chain1_num;i++)
+        {
+            if (i!=maxTMmono_i) assign1_list[i]=-1;
+            else assign1_list[i]=maxTMmono_j;
+        }
+        for (j=0;j<chain2_num;j++)
+        {
+            if (j!=maxTMmono_j) assign2_list[j]=-1;
+            else assign2_list[j]=maxTMmono_i;
+        }
+        sequence[0]=seqxA_mat[maxTMmono_i][maxTMmono_j];
+        sequence[1]=seqyA_mat[maxTMmono_i][maxTMmono_j];
+        max_total_score=maxTMmono;
+        MMalign_iter(max_total_score, max_iter, xa_vec, ya_vec, seqx_vec, seqy_vec,
             secx_vec, secy_vec, mol_vec1, mol_vec2, xlen_vec, ylen_vec,
-            xa, ya, seqx, seqy, secx, secy, len_aa, len_na,
-            chain1_num, chain2_num, TM1_mat, TM2_mat, TMave_mat,
-            seqxA_mat, seqyA_mat, assign1_list, assign2_list, sequence,
-            d0_scale, true);
-        total_score=enhanced_greedy_search(TMave_mat, assign1_list,
-            assign2_list, chain1_num, chain2_num);
-        if (total_score<=0) PrintErrorAndQuit("ERROR! No assignable chain");
+            xa, ya, seqx, seqy, secx, secy, len_aa, len_na, chain1_num, chain2_num,
+            TMave_mat, seqxA_mat, seqyA_mat, assign1_list, assign2_list, sequence,
+            d0_scale, fast_opt);
     }
+
+    /* perform cross chain alignment
+     * in some cases, this leads to dramatic improvement, esp for homodimer */
+    int iter_pair_num=count_assign_pair(assign1_list,chain1_num);
+    if (iter_pair_num>=init_pair_num) copy_chain_assign_data(
+        chain1_num, chain2_num, sequence_init,
+        seqxA_mat, seqyA_mat, assign1_list, assign2_list, TMave_mat,
+        seqxA_init, seqyA_init, assign1_init,  assign2_init,  TMave_init);
+    double max_total_score_cross=max_total_score;
+
+    //if (init_pair_num!=2 && is_oligomer==false) MMalign_cross(
+        //max_total_score_cross, max_iter, xa_vec, ya_vec, seqx_vec, seqy_vec,
+        //secx_vec, secy_vec, mol_vec1, mol_vec2, xlen_vec, ylen_vec,
+        //xa, ya, seqx, seqy, secx, secy, len_aa, len_na, chain1_num, chain2_num,
+        //TMave_init, seqxA_init, seqyA_init, assign1_init, assign2_init, sequence_init,
+        //d0_scale, true);
+    //else 
+    if (len_aa+len_na<10000)
+    {
+        MMalign_dimer(max_total_score_cross, xa_vec, ya_vec, seqx_vec, seqy_vec,
+            secx_vec, secy_vec, mol_vec1, mol_vec2, xlen_vec, ylen_vec,
+            xa, ya, seqx, seqy, secx, secy, len_aa, len_na, chain1_num, chain2_num,
+            TMave_init, seqxA_init, seqyA_init, assign1_init, assign2_init,
+            sequence_init, d0_scale, fast_opt);
+        if (max_total_score_cross>max_total_score) 
+        {
+            max_total_score=max_total_score_cross;
+            copy_chain_assign_data(chain1_num, chain2_num, sequence,
+                seqxA_init, seqyA_init, assign1_init, assign2_init, TMave_init,
+                seqxA_mat,  seqyA_mat,  assign1_list, assign2_list, TMave_mat);
+        }
+    } 
 
     /* final alignment */
     if (outfmt_opt==0) print_version();
@@ -641,7 +710,7 @@ int main(int argc, char *argv[])
         xa_vec, ya_vec, seqx_vec, seqy_vec,
         secx_vec, secy_vec, mol_vec1, mol_vec2, xlen_vec, ylen_vec,
         xa, ya, seqx, seqy, secx, secy, len_aa, len_na,
-        chain1_num, chain2_num, TM1_mat, TM2_mat, TMave_mat,
+        chain1_num, chain2_num, TMave_mat,
         seqxA_mat, seqM_mat, seqyA_mat, assign1_list, assign2_list, sequence,
         d0_scale, m_opt, o_opt, outfmt_opt, ter_opt, split_opt,
         a_opt, d_opt, fast_opt, full_opt, mirror_opt, resi_vec1, resi_vec2);
@@ -649,13 +718,18 @@ int main(int argc, char *argv[])
     /* clean up everything */
     delete [] assign1_list;
     delete [] assign2_list;
-    DeleteArray(&TM1_mat,  chain1_num);
-    DeleteArray(&TM2_mat,  chain1_num);
     DeleteArray(&TMave_mat,chain1_num);
     DeleteArray(&ut_mat,   chain1_num*chain2_num);
     vector<vector<string> >().swap(seqxA_mat);
     vector<vector<string> >().swap(seqM_mat);
     vector<vector<string> >().swap(seqyA_mat);
+    vector<string>().swap(tmp_str_vec);
+
+    delete [] assign1_init;
+    delete [] assign2_init;
+    DeleteArray(&TMave_init,chain1_num);
+    vector<vector<string> >().swap(seqxA_init);
+    vector<vector<string> >().swap(seqyA_init);
 
     vector<vector<vector<double> > >().swap(xa_vec); // structure of complex1
     vector<vector<vector<double> > >().swap(ya_vec); // structure of complex2
@@ -672,9 +746,11 @@ int main(int argc, char *argv[])
     vector<string>().swap(chain1_list);
     vector<string>().swap(chain2_list);
     vector<string>().swap(sequence);
+    vector<string>().swap(resi_vec1);  // residue index for chain1
+    vector<string>().swap(resi_vec2);  // residue index for chain2
 
     t2 = clock();
     float diff = ((float)t2 - (float)t1)/CLOCKS_PER_SEC;
-    printf("Total CPU time is %5.2f seconds\n", diff);
+    printf("#Total CPU time is %5.2f seconds\n", diff);
     return 0;
 }

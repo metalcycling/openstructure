@@ -26,9 +26,9 @@ ost::bindings::TMAlignResult WrapTMAlignPos(const geom::Vec3List& pos_one,
                                             const geom::Vec3List& pos_two, 
                                             const ost::seq::SequenceHandle& seq1,
                                             const ost::seq::SequenceHandle& seq2,
-                                            bool fast) {
+                                            bool fast, bool rna) {
 
-  return ost::bindings::WrappedTMAlign(pos_one, pos_two, seq1, seq2, fast);
+  return ost::bindings::WrappedTMAlign(pos_one, pos_two, seq1, seq2, fast, rna);
 }
 
 ost::bindings::TMAlignResult WrapTMAlignView(const ost::mol::ChainView& chain1,
@@ -51,7 +51,7 @@ void export_TMAlign() {
   ;
 
   def("WrappedTMAlign", &WrapTMAlignPos, (arg("pos1"), arg("pos2"), arg("seq1"), arg("seq2"),
-                                          arg("fast")=false));
+                                          arg("fast")=false, arg("rna")=false));
 
   def("WrappedTMAlign", &WrapTMAlignView, (arg("chain1"), arg("chain2"),
                                            arg("fast")=false));

@@ -1,4 +1,6 @@
-#include "TMscore.h"
+/* command line argument parsing and document of TMalign main program */
+
+#include "TMalign.h"
 
 using namespace std;
 
@@ -6,15 +8,12 @@ void print_version()
 {
     cout << 
 "\n"
-" *************************************************************************\n"
-" *                                 TM-SCORE                              *\n"
-" * A scoring function to assess the similarity of protein structures     *\n"
-" * Based on statistics:                                                  *\n"
-" *       0.0 < TM-score < 0.17, random structural similarity             *\n"
-" *       0.5 < TM-score < 1.00, in about the same fold                   *\n"
-" * Reference: Yang Zhang and Jeffrey Skolnick, Proteins 2004 57: 702-710 *\n"
-" * For comments, please email to: yangzhanglab@umich.edu                 *\n"
-" *************************************************************************"
+" **********************************************************************\n"
+" * TM-align (Version 20220623): protein and RNA structure alignment   *\n"
+" * References: Y Zhang, J Skolnick. Nucl Acids Res 33, 2302-9 (2005)  *\n"
+" *             S Gong, C Zhang, Y Zhang. Bioinformatics, bz282 (2019) *\n"
+" * Please email comments and suggestions to yangzhanglab@umich.edu    *\n"
+" **********************************************************************"
     << endl;
 }
 
@@ -22,13 +21,6 @@ void print_extra_help()
 {
     cout <<
 "Additional options:\n"
-"    -a       TM-score normalized by the average length of two structures\n"
-"             T or F, (default F)\n"
-"\n"
-"    -m       Output TM-score rotation matrix\n"
-"\n"
-"    -d       TM-score scaled by an assigned d0, e.g. 5 Angstroms\n"
-"\n"
 "    -fast    Fast but slightly inaccurate alignment\n"
 "\n"
 "    -dir     Perform all-against-all alignment among the list of PDB\n"
@@ -43,6 +35,9 @@ void print_extra_help()
 "    -dir2    Use chain1 to search a list of PDB chains listed by 'chain2_list'\n"
 "             under 'chain2_folder'\n"
 "             $ TMalign chain1 -dir2 chain2_folder/ chain2_list\n"
+"\n"
+"    -pair    (Only when -dir1 and -dir2 are set, default is no) whether to\n"
+"             perform pair alignment rather than all-against-all alignment\n"
 "\n"
 "    -suffix  (Only when -dir1 and/or -dir2 are set, default is empty)\n"
 "             add file name suffix to files listed by chain1_list or chain2_list\n"
@@ -71,6 +66,32 @@ void print_extra_help()
 "             2: tabular format very compact output\n"
 "            -1: full output, but without version or citation information\n"
 "\n"
+"    -byresi  Whether to assume residue index correspondence between the\n" 
+"             two structures. The same as -TMscore.\n"
+"             0: (default) sequence independent alignment\n"
+"             1: (same as TMscore program) sequence-dependent superposition,\n"
+"                i.e. align by residue index\n"
+"             2: (same as TMscore -c, should be used with -ter <=1)\n"
+"                align by residue index and chain ID\n"
+"             3: (similar to TMscore -c, should be used with -ter <=1)\n"
+"                align by residue index and order of chain\n"
+//"             4: sequence dependent alignment: perform Needleman-Wunsch\n"
+//"                global sequence alignment, followed by TM-score superposition\n"
+"             5: sequence dependent alignment: perform glocal sequence\n"
+"                alignment followed by TM-score superposition.\n"
+"                -byresi 5 is thee same as -seq\n"
+"\n"
+"    -TMcut   -1: (default) do not consider TMcut\n"
+"             Values in [0.5,1): Do not proceed with TM-align for this\n"
+"                 structure pair if TM-score is unlikely to reach TMcut.\n"
+"                 TMcut is normalized is set by -a option:\n"
+"                 -2: normalized by longer structure length\n"
+"                 -1: normalized by shorter structure length\n"
+"                  0: (default, same as F) normalized by second structure\n"
+"                  1: same as T, normalized by average structure length\n"
+"\n"
+"    -cp      ALignment with circular permutation\n"
+"\n"
 "    -mirror  Whether to align the mirror image of input structure\n"
 "             0: (default) do not align mirrored structure\n"
 "             1: align mirror of chain1 to origin chain2\n"
@@ -91,28 +112,44 @@ void print_extra_help()
 
 void print_help(bool h_opt=false)
 {
-    //print_version();
+    print_version();
     cout <<
 "\n"
-" Brief instruction for running TM-score program:\n"
-" (For detail: Zhang & Skolnick, Proteins, 2004 57:702-10)\n"
+"Usage: TMalign PDB1.pdb PDB2.pdb [Options]\n"
 "\n"
-" 1. Run TM-score to compare 'model' and 'native':\n"
-"     $ TMscore model.pdb native.pdb\n"
+"Options:\n"
+"    -u    TM-score normalized by user assigned length (the same as -L)\n"
+"          warning: it should be >= minimum length of the two structures\n"
+"          otherwise, TM-score may be >1\n"
 "\n"
-" 2. Run TM-score to compare two complex structures with multiple chains\n"
-"     $ TMscore -c model.pdb native.pdb\n"
+"    -a    TM-score normalized by the average length of two structures\n"
+"          T or F, (default F)\n"
 "\n"
-" 2. TM-score normalized with an assigned scale d0 e.g. 5 A:\n"
-"     $ TMscore model.pdb native.pdb -d 5\n"
+"    -i    Start with an alignment specified in fasta file 'align.txt'\n"
 "\n"
-" 3. TM-score normalized by a specific length, e.g. 120 AA:\n"
-"     $ TMscore model.pdb native.pdv -l 120\n"
+"    -I    Stick to the alignment specified in 'align.txt'\n"
 "\n"
-" 4. TM-score with superposition output, e.g. 'TM_sup.pdb':\n"
-"     $ TMscore model.pdb native.pdb -o TM_sup.pdb\n"
-"    To view superimposed atomic model by PyMOL:\n"
-"     $ pymol TM_sup.pdb native.pdb\n"
+"    -m    Output TM-align rotation matrix\n"
+"\n"
+"    -d    TM-score scaled by an assigned d0, e.g. 5 Angstroms\n"
+"\n"
+"    -o    Output the superposition of PDB1.pdb to TM_sup.pdb\n"
+"          $ TMalign PDB1.pdb PDB2.pdb -o TM_sup.pdb\n"
+"          To view superposed full-atom structures:\n"
+"          $ pymol TM_sup.pdb PDB2.pdb\n"
+"\n"
+"    -v    Print the version of TM-align\n"
+"\n"
+"    -h    Print the full help message, including options not available\n"
+"          in standard TM-align program\n"
+"\n"
+"    (Options -u, -a, -d, -o won't change the final structure alignment)\n\n"
+"Example usages:\n"
+"    TMalign PDB1.pdb PDB2.pdb\n"
+"    TMalign PDB1.pdb PDB2.pdb -u 100 -d 5.0\n"
+"    TMalign PDB1.pdb PDB2.pdb -a T -o PDB1.sup\n"
+"    TMalign PDB1.pdb PDB2.pdb -i align.txt\n"
+"    TMalign PDB1.pdb PDB2.pdb -m matrix.txt\n"
     <<endl;
 
     if (h_opt) print_extra_help();
@@ -123,6 +160,10 @@ void print_help(bool h_opt=false)
 int main(int argc, char *argv[])
 {
     if (argc < 2) print_help();
+
+
+    clock_t t1, t2;
+    t1 = clock();
 
     /**********************/
     /*    get argument    */
@@ -138,6 +179,7 @@ int main(int argc, char *argv[])
     bool h_opt = false; // print full help message
     bool v_opt = false; // print version
     bool m_opt = false; // flag for -m, output rotation matrix
+    int  i_opt = 0;     // 1 for -i, 3 for -I
     bool o_opt = false; // flag for -o, output superposed structure
     int  a_opt = 0;     // flag for -a, do not normalized by average length
     bool u_opt = false; // flag for -u, normalized by user specified length
@@ -150,15 +192,17 @@ int main(int argc, char *argv[])
     int    split_opt =0;     // do not split chain
     int    outfmt_opt=0;     // set -outfmt to full output
     bool   fast_opt  =false; // flags for -fast, fTM-align algorithm
+    int    cp_opt    =0;     // do not check circular permutation
     int    mirror_opt=0;     // do not align mirror
-    int    het_opt=0;        // do not read HETATM residues
+    int    het_opt   =0;     // do not read HETATM residues
     string atom_opt  ="auto";// use C alpha atom for protein and C3' for RNA
     string mol_opt   ="auto";// auto-detect the molecule type as protein/RNA
     string suffix_opt="";    // set -suffix to empty
     string dir_opt   ="";    // set -dir to empty
     string dir1_opt  ="";    // set -dir1 to empty
     string dir2_opt  ="";    // set -dir2 to empty
-    int    byresi_opt=1;     // TM-score without -c
+    bool   pair_opt=false;   // pair alignment
+    int    byresi_opt=0;     // set -byresi to 0
     vector<string> chain1_list; // only when -dir1 is set
     vector<string> chain2_list; // only when -dir2 is set
 
@@ -168,7 +212,7 @@ int main(int argc, char *argv[])
         {
             fname_super = argv[i + 1];     o_opt = true; i++;
         }
-        else if ( (!strcmp(argv[i],"-u") || !strcmp(argv[i],"-l") ||
+        else if ( (!strcmp(argv[i],"-u") || 
                    !strcmp(argv[i],"-L")) && i < (argc-1) )
         {
             Lnorm_ass = atof(argv[i + 1]); u_opt = true; i++;
@@ -196,6 +240,18 @@ int main(int argc, char *argv[])
         else if ( !strcmp(argv[i],"-h") )
         {
             h_opt = true;
+        }
+        else if ( !strcmp(argv[i],"-i") && i < (argc-1) )
+        {
+            if (i_opt==3)
+                PrintErrorAndQuit("ERROR! -i and -I cannot be used together");
+            fname_lign = argv[i + 1];      i_opt = 1; i++;
+        }
+        else if (!strcmp(argv[i], "-I") && i < (argc-1) )
+        {
+            if (i_opt==1)
+                PrintErrorAndQuit("ERROR! -I and -i cannot be used together");
+            fname_lign = argv[i + 1];      i_opt = 3; i++;
         }
         else if (!strcmp(argv[i], "-m") && i < (argc-1) )
         {
@@ -241,6 +297,10 @@ int main(int argc, char *argv[])
         {
             dir2_opt=argv[i + 1]; i++;
         }
+        else if ( !strcmp(argv[i],"-pair") )
+        {
+            pair_opt=true;
+        }
         else if ( !strcmp(argv[i],"-suffix") && i < (argc-1) )
         {
             suffix_opt=argv[i + 1]; i++;
@@ -249,9 +309,22 @@ int main(int argc, char *argv[])
         {
             outfmt_opt=atoi(argv[i + 1]); i++;
         }
-        else if ( !strcmp(argv[i],"-c") )
+        else if ( !strcmp(argv[i],"-TMcut") && i < (argc-1) )
         {
-            byresi_opt=2;
+            TMcut=atof(argv[i + 1]); i++;
+        }
+        else if ((!strcmp(argv[i],"-byresi") || !strcmp(argv[i],"-tmscore") ||
+                  !strcmp(argv[i],"-TMscore")) && i < (argc-1) )
+        {
+            byresi_opt=atoi(argv[i + 1]); i++;
+        }
+        else if ( !strcmp(argv[i],"-seq") )
+        {
+            byresi_opt=5;
+        }
+        else if ( !strcmp(argv[i],"-cp") )
+        {
+            cp_opt=1;
         }
         else if ( !strcmp(argv[i],"-mirror") && i < (argc-1) )
         {
@@ -307,14 +380,30 @@ int main(int argc, char *argv[])
         PrintErrorAndQuit("Wrong value for option -d!  It should be >0");
     if (outfmt_opt>=2 && (a_opt || u_opt || d_opt))
         PrintErrorAndQuit("-outfmt 2 cannot be used with -a, -u, -L, -d");
-    if (byresi_opt>=2 && ter_opt>=2)
-        PrintErrorAndQuit("-byresi >=2 should be used with -ter <=1");
+    if (byresi_opt!=0)
+    {
+        if (i_opt)
+            PrintErrorAndQuit("-byresi >=1 cannot be used with -i or -I");
+        if (byresi_opt<0 || byresi_opt>5)
+            PrintErrorAndQuit("-byresi can only be 0, 1, 2, 3, 4, or 5");
+        if (byresi_opt>=2 && byresi_opt<=3 && ter_opt>=2)
+            PrintErrorAndQuit("-byresi 2 and -byresi 3 should be used with -ter <=1");
+    }
     if (split_opt==1 && ter_opt!=0)
         PrintErrorAndQuit("-split 1 should be used with -ter 0");
     else if (split_opt==2 && ter_opt!=0 && ter_opt!=1)
         PrintErrorAndQuit("-split 2 should be used with -ter 0 or 1");
     if (split_opt<0 || split_opt>2)
         PrintErrorAndQuit("-split can only be 0, 1 or 2");
+    if (cp_opt!=0 && cp_opt!=1)
+        PrintErrorAndQuit("-cp can only be 0 or 1");
+    if (cp_opt && i_opt)
+        PrintErrorAndQuit("-cp cannot be used with -i or -I");
+
+    /* read initial alignment file from 'align.txt' */
+    if (i_opt) read_user_alignment(sequence, fname_lign, i_opt);
+
+    if (byresi_opt) i_opt=3;
 
     if (m_opt && fname_matrix == "") // Output rotation matrix: matrix.txt
         PrintErrorAndQuit("ERROR! Please provide a file name for option -m!");
@@ -346,12 +435,15 @@ int main(int argc, char *argv[])
     int    xlen, ylen;         // chain length
     int    xchainnum,ychainnum;// number of chains in a PDB file
     char   *seqx, *seqy;       // for the protein sequence 
+    char   *secx, *secy;       // for the secondary structure 
     double **xa, **ya;         // for input vectors xa[0...xlen-1][0..2] and
                                // ya[0...ylen-1][0..2], in general,
                                // ya is regarded as native structure 
                                // --> superpose xa onto ya
     vector<string> resi_vec1;  // residue index for chain1
     vector<string> resi_vec2;  // residue index for chain2
+    int read_resi=byresi_opt;  // whether to read residue index
+    if (byresi_opt==0 && o_opt) read_resi=2;
 
     /* loop over file names */
     for (i=0;i<chain1_list.size();i++)
@@ -384,12 +476,16 @@ int main(int argc, char *argv[])
             }
             NewArray(&xa, xlen, 3);
             seqx = new char[xlen + 1];
+            secx = new char[xlen + 1];
             xlen = read_PDB(PDB_lines1[chain_i], xa, seqx, 
-                resi_vec1, byresi_opt);
+                resi_vec1, read_resi);
             if (mirror_opt) for (r=0;r<xlen;r++) xa[r][2]=-xa[r][2];
+            if (mol_vec1[chain_i]>0) make_sec(seqx,xa, xlen, secx,atom_opt);
+            else make_sec(xa, xlen, secx); // secondary structure assignment
 
             for (j=(dir_opt.size()>0)*(i+1);j<chain2_list.size();j++)
             {
+                if (pair_opt && j!=i) continue;
                 /* parse chain 2 */
                 if (PDB_lines2.size()==0)
                 {
@@ -422,8 +518,12 @@ int main(int argc, char *argv[])
                     }
                     NewArray(&ya, ylen, 3);
                     seqy = new char[ylen + 1];
+                    secy = new char[ylen + 1];
                     ylen = read_PDB(PDB_lines2[chain_j], ya, seqy,
-                        resi_vec2, byresi_opt);
+                        resi_vec2, read_resi);
+                    if (mol_vec2[chain_j]>0)
+                         make_sec(seqy, ya, ylen, secy, atom_opt);
+                    else make_sec(ya, ylen, secy);
 
                     if (byresi_opt) extract_aln_from_resi(sequence,
                         seqx,seqy,resi_vec1,resi_vec2,byresi_opt);
@@ -443,42 +543,44 @@ int main(int argc, char *argv[])
                     int n_ali=0;
                     int n_ali8=0;
 
-                    double rmsd_d0_out=0;
-                    int L_lt_d=0;
-                    double GDT_list[5]={0,0,0,0,0}; // 0.5, 1, 2, 4, 8
-                    double maxsub=0;
-
                     /* entry function for structure alignment */
-                    TMscore_main(
-                        xa, ya, seqx, seqy,
+                    if (cp_opt) CPalign_main(
+                        xa, ya, seqx, seqy, secx, secy,
                         t0, u0, TM1, TM2, TM3, TM4, TM5,
                         d0_0, TM_0, d0A, d0B, d0u, d0a, d0_out,
                         seqM, seqxA, seqyA,
                         rmsd0, L_ali, Liden, TM_ali, rmsd_ali, n_ali, n_ali8,
                         xlen, ylen, sequence, Lnorm_ass, d0_scale,
-                        a_opt, u_opt, d_opt, fast_opt,
-                        mol_vec1[chain_i]+mol_vec2[chain_j],
-                        GDT_list,maxsub,TMcut);
+                        i_opt, a_opt, u_opt, d_opt, fast_opt,
+                        mol_vec1[chain_i]+mol_vec2[chain_j],TMcut);
+                    else TMalign_main(
+                        xa, ya, seqx, seqy, secx, secy,
+                        t0, u0, TM1, TM2, TM3, TM4, TM5,
+                        d0_0, TM_0, d0A, d0B, d0u, d0a, d0_out,
+                        seqM, seqxA, seqyA,
+                        rmsd0, L_ali, Liden, TM_ali, rmsd_ali, n_ali, n_ali8,
+                        xlen, ylen, sequence, Lnorm_ass, d0_scale,
+                        i_opt, a_opt, u_opt, d_opt, fast_opt,
+                        mol_vec1[chain_i]+mol_vec2[chain_j],TMcut);
 
                     /* print result */
                     if (outfmt_opt==0) print_version();
-                    output_TMscore_results(
+                    output_results(
                         xname.substr(dir1_opt.size()+dir_opt.size()),
                         yname.substr(dir2_opt.size()+dir_opt.size()),
-                        chainID_list1[chain_i],
-                        chainID_list2[chain_j],
+                        chainID_list1[chain_i].c_str(),
+                        chainID_list2[chain_j].c_str(),
                         xlen, ylen, t0, u0, TM1, TM2, 
                         TM3, TM4, TM5, rmsd0, d0_out,
                         seqM.c_str(), seqxA.c_str(), seqyA.c_str(), Liden,
                         n_ali8, L_ali, TM_ali, rmsd_ali,
                         TM_0, d0_0, d0A, d0B,
                         Lnorm_ass, d0_scale, d0a, d0u, 
-                        (m_opt?fname_matrix+chainID_list1[chain_i]:"").c_str(),
-                        outfmt_opt, ter_opt, 
-                        (o_opt?fname_super+chainID_list1[chain_i]:"").c_str(),
-                        a_opt, u_opt, d_opt, mirror_opt,
-                        L_lt_d, rmsd_d0_out, GDT_list, maxsub,
-                        split_opt, resi_vec1, resi_vec2);
+                        (m_opt?fname_matrix:"").c_str(),
+                        outfmt_opt, ter_opt, 0, split_opt, o_opt,
+                        (o_opt?fname_super:"").c_str(),
+                        i_opt, a_opt, u_opt, d_opt,mirror_opt,
+                        resi_vec1, resi_vec2 );
 
                     /* Done! Free memory */
                     seqM.clear();
@@ -486,6 +588,7 @@ int main(int argc, char *argv[])
                     seqyA.clear();
                     DeleteArray(&ya, ylen);
                     delete [] seqy;
+                    delete [] secy;
                     resi_vec2.clear();
                 } // chain_j
                 if (chain2_list.size()>1)
@@ -501,6 +604,7 @@ int main(int argc, char *argv[])
             PDB_lines1[chain_i].clear();
             DeleteArray(&xa, xlen);
             delete [] seqx;
+            delete [] secx;
             resi_vec1.clear();
         } // chain_i
         xname.clear();
@@ -521,5 +625,9 @@ int main(int argc, char *argv[])
     chain1_list.clear();
     chain2_list.clear();
     sequence.clear();
+
+    t2 = clock();
+    float diff = ((float)t2 - (float)t1)/CLOCKS_PER_SEC;
+    printf("#Total CPU time is %5.2f seconds\n", diff);
     return 0;
 }

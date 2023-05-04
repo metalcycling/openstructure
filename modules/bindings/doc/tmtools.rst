@@ -18,13 +18,14 @@ Citation:
   Y. Zhang and J. Skolnick, Nucl. Acids Res. 2005 33, 2302-9
 
 Besides using the standalone TM-align program, ost also provides a wrapper 
-around TM-align as published in:
+around USalign as published in:
 
-  Sha Gong, Chengxin Zhang, Yang Zhang, Bioinformatics 2019 
+  Chengxin Zhang, Morgan Shine, Anna Marie Pyle, Yang Zhang
+  (2022) Nat Methods
 
 The advantage is that no intermediate files must be generated, a wrapper on the
-c++ layer is used instead. However, only the basic TM-align superposition
-functionality is available.
+c++ layer is used instead. However, only the basic TM-align superposition between
+single chains is available.
 
 
 
@@ -122,9 +123,12 @@ generated in order to call the executable.
   The positions and sequences are directly extracted from the chain
   residues for every residue that fulfills:
   
-    * peptide linking
+    * peptide linking and valid CA atom OR nucleotide linking and valid C3'
+      atom
     * valid one letter code(no '?')
-    * valid CA atom
+
+  The function automatically identifies whether the chains consist of peptide
+  or RNA residues. An error is raised if the two types are mixed.
 
   :param chain1:        Chain from which position and sequence are extracted
                         to run TMalign.
@@ -137,20 +141,22 @@ generated in order to call the executable.
   :rtype:               :class:`ost.bindings.TMAlignResult`
 
 
-.. method:: WrappedTMAlign(pos1, pos2, seq1, seq2 [fast=False])
+.. method:: WrappedTMAlign(pos1, pos2, seq1, seq2 [fast=False, rna=False])
 
   Similar as described above, but directly feeding in raw data.
 
-  :param pos1:          CA positions of the first chain
-  :param pos2:          CA positions of the second chain, this is the reference.
+  :param pos1:          CA/C3' positions of the first chain
+  :param pos2:          CA/C3' positions of the second chain, this is the reference.
   :param seq1:          Sequence of first chain
   :param seq2:          Sequence of second chain
   :param fast:          Whether to apply the *fast* flag to TMAlign
+  :param rna:           Whether to treat as RNA
   :type pos1:           :class:`ost.geom.Vec3List`
   :type pos2:           :class:`ost.geom.Vec3List`
   :type seq1:           :class:`ost.seq.SequenceHandle`
   :type seq2:           :class:`ost.seq.SequenceHandle`
   :type fast:           :class:`bool`
+  :type rna:            :class:`bool`
   :rtype:               :class:`ost.bindings.TMAlignResult`
   :raises:              :class:`ost.Error` if pos1 and seq1, pos2 and seq2 
                         respectively are not consistent in size.
