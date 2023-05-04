@@ -5,18 +5,15 @@ From: registry.scicore.unibas.ch/schwede/openstructure:2.4.0-jammy
 # POST
 ##############################################################################
 
-
 # CHANGE DASH TO BASH
 rm /bin/sh
 ln -sf /bin/bash /bin/sh
 
-
 # INSTALL SYSTEM DEPS
 #####################
-apt-get update -y && apt-get install -y python3-pip
+apt-get update -y && apt-get install -y ipython3 jupyter python3-pip
+pip3 install ipywidgets==7.6.0
 pip3 install nglview \
-             ipython \
-             jupyter \
              six
 
 # SET LOCALE
@@ -28,23 +25,9 @@ locale-gen en_US.UTF-8
 
 # SETUP IPYTHON / JUPYTER
 #########################
-# As the Singularity mounts $HOME by default Jupyter and Ipython config files
-# are moved to separate directories. Proper environmental variables are also 
-# set
-export IPYTHONDIR="/usr/local/share/ipython"
-export JUPYTER_CONFIG_DIR="/usr/local/etc/jupyter"
 export JUPYTER_PATH="/usr/local/share/jupyter"
-export JUPYTER_RUNTIME_DIR="/tmp/jupyter_runtime"
-
-mkdir -p /usr/local/share/ipython
 mkdir -p $JUPYTER_PATH
-mkdir -p $JUPYTER_RUNTIME_DIR
-mkdir -p $JUPYTER_CONFIG_DIR
 mkdir -p $JUPYTER_PATH/kernels/ost-kernel
-chmod a+rw -R /usr/local/share/ipython
-chmod a+rw -R $JUPYTER_PATH
-chmod a+rw -R $JUPYTER_CONFIG_DIR
-chmod a+rw -R $JUPYTER_RUNTIME_DIR
 cat > $JUPYTER_PATH/kernels/ost-kernel/kernel.json <<EOF
 {
   "display_name": "OST",
@@ -54,7 +37,7 @@ cat > $JUPYTER_PATH/kernels/ost-kernel/kernel.json <<EOF
     "-m", "ipykernel",
         "-f", "{connection_file}",
     "--InteractiveShellApp.exec_PYTHONSTARTUP=False",
-    "--InteractiveShellApp.exec_files=['/usr/local/lib64/python3.8/site-packages/ost/ost_startup.py']"
+    "--InteractiveShellApp.exec_files=/usr/local/lib64/python3.10/site-packages/ost/ost_startup.py"
   ],
   "env": {
   }
@@ -71,10 +54,7 @@ export TEMP="/tmp"
 export TEMPDIR="/tmp"
 export TMPDIR="/tmp"
 export TMP="/tmp"
-export IPYTHONDIR="/usr/local/share/ipython"
-export JUPYTER_CONFIG_DIR="/usr/local/etc/jupyter"
 export JUPYTER_PATH="/usr/local/share/jupyter"
-export JUPYTER_RUNTIME_DIR="$TMPDIR/jupyter_runtime"
 
 %apprun ChemdictTool
 ##############################################################################
@@ -173,15 +153,15 @@ goes to CWD. Thus this sould work as expected out of the box.
 
 %appenv IPython
 ##############################################################################
-# NOTEBOOK ENV
+# IPYTHON ENV
 ##############################################################################
 export DNG_ROOT=$OST_ROOT
-export DNG_INITDIR=${DNG_ROOT}/lib64/python3.8/site-packages/ost
+export DNG_INITDIR=${DNG_ROOT}/lib64/python3.10/site-packages/ost
 
 
 %apprun IPython
 ##############################################################################
-# OST IPYTON APP
+# OST IPYTHON APP
 ##############################################################################
 ipython3 -i $DNG_INITDIR/ost_startup.py "$@"
 
@@ -234,9 +214,6 @@ Copy the URL to the browser and launch the notebook with OST kernel. This will
 load all necessary OST components just like in the OST shell. We also enabled
 the nglview widget to interactively view molecular structures and trajectories.
 For more details on how to use nglview see http://nglviewer.org/nglview/latest/.
-
-As the Singularity mounts $HOME by default Jupyter and Ipython config files
-are moved to separate directories. Proper environmental variables are also set.
 
 To list of all available options:
 
