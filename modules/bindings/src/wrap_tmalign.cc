@@ -72,8 +72,13 @@ TMAlignResult WrappedTMAlign(const geom::Vec3List& pos_one,
     seqy[i] = seq2[i];
   }
 
-  make_sec(xa, xlen, secx);
-  make_sec(ya, ylen, secy);
+  if(rna) {
+    make_sec(seqx, xa, xlen, secx, " C3'");
+    make_sec(seqy, ya, ylen, secy, " C3'");
+  } else {
+    make_sec(xa, xlen, secx);
+    make_sec(ya, ylen, secy);
+  }
 
   // these variables are chosen such that running TMalign_main is the same as 
   // you would call the executable without any additional parameters
@@ -154,7 +159,7 @@ void ExtractChainInfo(const ost::mol::ChainView& chain, geom::Vec3List& pos,
       if(rna_mode) {
         std::stringstream ss;
         ss << "Error in WrappedTMAlign: Chains cannot have peptide and RNA ";
-        ss << "residues. Problematic chain: "<<chain.GetName();
+        ss << "residues in same chain. Problematic chain: "<<chain.GetName();
         throw ost::Error(ss.str());
       }
       olcs.push_back(olc);
@@ -168,7 +173,7 @@ void ExtractChainInfo(const ost::mol::ChainView& chain, geom::Vec3List& pos,
       if(rna_mode==false && !pos.empty()) {
         std::stringstream ss;
         ss << "Error in WrappedTMAlign: Chains cannot have peptide and RNA ";
-        ss << "residues. Problematic chain: "<<chain.GetName();
+        ss << "residues in same chain. Problematic chain: "<<chain.GetName();
         throw ost::Error(ss.str());
       }
       rna_mode = true;
