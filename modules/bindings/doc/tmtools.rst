@@ -208,9 +208,9 @@ comparing full biounits:
   :param ent1:          Entity from which position and sequence are extracted
                         to run MMalign.
   :param ent2:          Entity from which position and sequence are extracted
-                        to run TMalign, this is the reference.
+                        to run MMalign, this is the reference.
   :param fast:          Whether to apply the *fast* flag to MMAlign
-  :type chain1:         :class:`ost.mol.EntityView`
-  :type chain2:         :class:`ost.mol.EntityView`
+  :type ent1:           :class:`ost.mol.EntityView`
+  :type ent2:           :class:`ost.mol.EntityView`
   :type fast:           :class:`bool`
   :rtype:               :class:`ost.bindings.MMAlignResult`
