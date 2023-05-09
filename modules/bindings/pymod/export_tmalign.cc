@@ -46,10 +46,11 @@ ost::bindings::MMAlignResult WrapMMAlignView(const ost::mol::EntityView& ent1,
 }
 
 void export_TMAlign() {
-  class_<ost::bindings::TMAlignResult>("TMAlignResult", init<Real, Real, int, const geom::Mat4&, 
+  class_<ost::bindings::TMAlignResult>("TMAlignResult", init<Real, Real, Real, int, const geom::Mat4&, 
                                                              const ost::seq::AlignmentHandle&>())
     .add_property("rmsd", make_function(&ost::bindings::TMAlignResult::GetRMSD))
     .add_property("tm_score", make_function(&ost::bindings::TMAlignResult::GetTMScore))
+    .add_property("tm_score_swapped", make_function(&ost::bindings::TMAlignResult::GetTMScoreSwapped))
     .add_property("aligned_length", make_function(&ost::bindings::TMAlignResult::GetAlignedLength))
     .add_property("transform", make_function(&ost::bindings::TMAlignResult::GetTransform,
                                return_value_policy<reference_existing_object>()))
@@ -57,12 +58,13 @@ void export_TMAlign() {
                                return_value_policy<reference_existing_object>()))
   ;
 
-  class_<ost::bindings::MMAlignResult>("MMAlignResult", init<Real, Real, const geom::Mat4&, int,
+  class_<ost::bindings::MMAlignResult>("MMAlignResult", init<Real, Real, Real, int, const geom::Mat4&,
                                                              const ost::seq::AlignmentList&,
                                                              const std::vector<String>&,
                                                              const std::vector<String>&>())
     .add_property("rmsd", make_function(&ost::bindings::MMAlignResult::GetRMSD))
     .add_property("tm_score", make_function(&ost::bindings::MMAlignResult::GetTMScore))
+    .add_property("tm_score_swapped", make_function(&ost::bindings::MMAlignResult::GetTMScoreSwapped))
     .add_property("transform", make_function(&ost::bindings::MMAlignResult::GetTransform,
                                return_value_policy<reference_existing_object>()))
     .add_property("aligned_length", make_function(&ost::bindings::MMAlignResult::GetAlignedLength))

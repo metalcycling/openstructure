@@ -31,9 +31,10 @@ struct TMAlignResult {
 
   TMAlignResult() { }
 
-  TMAlignResult(Real rm, Real tm, int aln_l, const geom::Mat4& t, 
+  TMAlignResult(Real rm, Real tm, Real tm_swp, int aln_l, const geom::Mat4& t, 
                 const ost::seq::AlignmentHandle& aln): rmsd(rm),
                                                        tm_score(tm),
+                                                       tm_score_swapped(tm_swp),
                                                        aligned_length(aln_l),
                                                        transform(t),
                                                        alignment(aln) { } 
@@ -41,11 +42,13 @@ struct TMAlignResult {
 
   Real rmsd;
   Real tm_score;
+  Real tm_score_swapped;
   int aligned_length;
   geom::Mat4 transform;
   ost::seq::AlignmentHandle alignment;
 
   Real GetTMScore() { return tm_score; }
+  Real GetTMScoreSwapped() { return tm_score_swapped; }
   Real GetRMSD() { return rmsd; }
   int GetAlignedLength() { return aligned_length; }
   const geom::Mat4& GetTransform() { return transform; }
@@ -56,13 +59,14 @@ struct MMAlignResult {
 
   MMAlignResult() { }
 
-  MMAlignResult(Real rm, Real tm, const geom::Mat4& t,
-                int al, const ost::seq::AlignmentList& alns,
+  MMAlignResult(Real rm, Real tm, Real tm_swp, int al, const geom::Mat4& t,
+                const ost::seq::AlignmentList& alns,
                 const std::vector<String>& e1c,
                 const std::vector<String>& e2c): rmsd(rm),
                                                  tm_score(tm),
-                                                 transform(t),
+                                                 tm_score_swapped(tm_swp),
                                                  aligned_length(al),
+                                                 transform(t),
                                                  alignments(alns),
                                                  ent1_mapped_chains(e1c),
                                                  ent2_mapped_chains(e2c) { } 
@@ -70,13 +74,15 @@ struct MMAlignResult {
 
   Real rmsd;
   Real tm_score;
-  geom::Mat4 transform;
+  Real tm_score_swapped;
   int aligned_length;
+  geom::Mat4 transform;
   ost::seq::AlignmentList alignments;
   std::vector<String> ent1_mapped_chains;
   std::vector<String> ent2_mapped_chains;
 
   Real GetTMScore() { return tm_score; }
+  Real GetTMScoreSwapped() { return tm_score_swapped; }
   Real GetRMSD() { return rmsd; }
   int GetAlignedLength() { return aligned_length; }
   const geom::Mat4& GetTransform() { return transform; }

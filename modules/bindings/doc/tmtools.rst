@@ -105,6 +105,7 @@ generated in order to call the executable.
 
   :param rmsd:          RMSD of the superposed residues
   :param tm_score:      TMScore of the superposed residues
+  :param tm_score_swapped: TMScore when reference is swapped
   :param aligned_length: Number of superposed residues
   :param transform:     Transformation matrix to superpose first chain onto 
                         reference
@@ -175,6 +176,7 @@ comparing full biounits:
 
   :param rmsd:          RMSD of the superposed residues
   :param tm_score:      TMScore of the superposed residues
+  :param tm_score_swapped: TMScore when reference is swapped
   :param aligned_length: Number of superposed residues
   :param transform:     Transformation matrix to superpose mdl onto reference 
   :param alignments:    Alignments of all mapped chains, with first sequence

@@ -160,6 +160,8 @@ MMAlignResult MMalign_final_hacked(
     MMAlignResult res;
     res.rmsd = rmsd0;
     res.tm_score = TM1;
+    res.tm_score_swapped = TM2;
+    res.aligned_length = n_ali8;
     res.transform = geom::Mat4(u0[0][0], u0[0][1], u0[0][2], t0[0],
                                u0[1][0], u0[1][1], u0[1][2], t0[1],
                                u0[2][0], u0[2][1], u0[2][2], t0[2],
@@ -405,6 +407,7 @@ TMAlignResult WrappedTMAlign(const geom::Vec3List& pos_one,
   // collect results and return
   TMAlignResult res;
   res.tm_score = TM1;
+  res.tm_score_swapped = TM2;
   res.rmsd = rmsd0;
   res.aligned_length = n_ali8;
   res.transform = geom::Mat4(u0[0][0], u0[0][1], u0[0][2], t0[0],
@@ -460,7 +463,9 @@ MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
     ent1_mapped_chains.push_back(seq1[0].GetName());
     ent2_mapped_chains.push_back(seq2[0].GetName());
     return MMAlignResult(tm_result.rmsd, tm_result.tm_score,
-                         tm_result.transform, tm_result.aligned_length,
+                         tm_result.tm_score_swapped,
+                         tm_result.aligned_length,
+                         tm_result.transform,
                          alns, ent1_mapped_chains,
                          ent2_mapped_chains);
   }

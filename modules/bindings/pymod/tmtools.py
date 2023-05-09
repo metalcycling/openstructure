@@ -55,7 +55,8 @@ def _CleanupFiles(dir_name):
 def _ParseTmAlign(lines,lines_matrix):
   info_line=lines[12].split(',')
   aln_length=int(info_line[0].split('=')[1].strip())
-  rmsd=float(info_line[1].split('=')[1].strip())  
+  rmsd=float(info_line[1].split('=')[1].strip())
+  tm_score_swapped=float(lines[13].split('=')[1].split('(')[0].strip())
   tm_score=float(lines[14].split('=')[1].split('(')[0].strip())
   tf1=[float(i.strip()) for i in lines_matrix[2].split()]
   tf2=[float(i.strip()) for i in lines_matrix[3].split()]
@@ -69,7 +70,8 @@ def _ParseTmAlign(lines,lines_matrix):
   alignment = seq.CreateAlignment()
   alignment.AddSequence(seq2)
   alignment.AddSequence(seq1)
-  return ost.bindings.TMAlignResult(rmsd, tm_score, aln_length, tf, alignment)
+  return ost.bindings.TMAlignResult(rmsd, tm_score, tm_score_swapped,
+                                    aln_length, tf, alignment)
 
 def _RunTmAlign(tmalign, tmp_dir):
   model1_filename=os.path.join(tmp_dir, 'model01.pdb')
