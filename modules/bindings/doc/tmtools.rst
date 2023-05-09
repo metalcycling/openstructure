@@ -5,7 +5,7 @@
   :synopsis: Sequence dependent and independent structure superposition
 
 The :mod:`~ost.bindings.tmtools` module provides access to the structural 
-superposition programs TMscore, Tmalign and MMalign developed by Y. Zhang 
+superposition programs TMscore and Tmalign developed by Y. Zhang 
 and J. Skolnick. These programs superpose a model onto a reference structure, 
 using the positions of the Calpha atoms only. While at their core, these 
 programs essentially use the same algorithm, they differ on how the Calphas are 
@@ -17,14 +17,15 @@ Citation:
   Yang Zhang and Jeffrey Skolnick, Proteins 2004 57: 702-710
   Y. Zhang and J. Skolnick, Nucl. Acids Res. 2005 33, 2302-9
 
-Besides using the standalone TM-align program, ost also provides a wrapper 
+Besides using the standalone TM-align program, ost also provides wrappers 
 around USalign as published in:
 
   Chengxin Zhang, Morgan Shine, Anna Marie Pyle, Yang Zhang
   (2022) Nat Methods
 
-The advantage is that no intermediate files must be generated, a wrapper on the
-c++ layer is used instead. 
+USalign can be used as external standalone tool. Alternatively, ost allows to
+directly inject structural data in the USAlign c++ layer. The advantage of that
+is that no intermediate files must be generated. 
 
 
 Distance measures used by TMscore
@@ -77,15 +78,27 @@ Usage of TMscore
 
 .. autoclass:: ost.bindings.tmtools.TMScoreResult
 
+Usage of USalign
+--------------------------------------------------------------------------------
 
-TMalign C++ wrapper
+For higher order complexes, ost provides access to USalign. This corresponds to
+calling USalign with the preferred way of comparing full biounits:
+
+.. code-block:: bash
+
+  USalign mdl.pdb ref.pdb -mm 1 -ter 0
+
+.. autofunction:: ost.bindings.tmtools.USAlign
+
+
+C++ wrappers
 --------------------------------------------------------------------------------
 
 .. currentmodule:: ost.bindings
 
-Instead of calling the TMalign executable, ost also provides a wrapper around
-its C++ implementation. The advantage is that no intermediate files need to be 
-generated in order to call the executable.
+Instead of calling the external executables, ost also provides a wrapper around
+the USalign c++ implementation which is shipped with the ost source code.
+The advantage is that no intermediate files need to be  generated.
 
 .. code-block:: python
 
@@ -118,8 +131,8 @@ generated in order to call the executable.
 
 .. method:: WrappedTMAlign(chain1, chain2, [fast=False])
 
-  Takes two chain views and runs TMalign with *chain2* as reference.
-  The positions and sequences are directly extracted from the chain
+  Takes two chain views and runs TMalign from USAlign with *chain2* as
+  reference. The positions and sequences are directly extracted from the chain
   residues for every residue that fulfills:
   
     * peptide linking and valid CA atom OR nucleotide linking and valid C3'
@@ -161,13 +174,7 @@ generated in order to call the executable.
                         respectively are not consistent in size.
 
 For higher order complexes, ost provides access to the MMalign functionality
-from USalign. This corresponds to calling USalign with the preferred way of
-comparing full biounits:
-
-.. code-block:: bash
-
-  USalign mdl.pdb ref.pdb -mm 1 -ter 0
-
+from USalign. 
 
 .. class:: MMAlignResult(rmsd, tm_score, transform, aligned_length, alignments,\
                          ent1_mapped_chains, ent2_mapped_chains)
