@@ -24,9 +24,7 @@ around USalign as published in:
   (2022) Nat Methods
 
 The advantage is that no intermediate files must be generated, a wrapper on the
-c++ layer is used instead. However, only the basic TM-align superposition between
-single chains is available.
-
+c++ layer is used instead. 
 
 
 Distance measures used by TMscore
@@ -161,3 +159,56 @@ generated in order to call the executable.
   :raises:              :class:`ost.Error` if pos1 and seq1, pos2 and seq2 
                         respectively are not consistent in size.
 
+For higher order complexes, ost provides access to the MMalign functionality
+from USalign. This corresponds to calling USalign with the preferred way of
+comparing full biounits:
+
+.. code-block:: bash
+
+  USalign mdl.pdb ref.pdb -mm 1 -ter 0
+
+
+.. class:: MMAlignResult(rmsd, tm_score, transform, aligned_length, alignments,\
+                         ent1_mapped_chains, ent2_mapped_chains)
+
+  All parameters of the constructor are available as attributes of the class
+
+  :param rmsd:          RMSD of the superposed residues
+  :param tm_score:      TMScore of the superposed residues
+  :param aligned_length: Number of superposed residues
+  :param transform:     Transformation matrix to superpose mdl onto reference 
+  :param alignments:    Alignments of all mapped chains, with first sequence
+                        being from ent1 and second sequence from ent2
+  :param ent1_mapped_chains: All mapped chains from ent1
+  :param ent2_mapped_chains: The respective mapped chains from ent2
+  :type rmsd:           :class:`float`
+  :type tm_score:       :class:`float`
+  :type aligned_length: :class:`int`
+  :type transform:      :class:`geom.Mat4`
+  :type alignments:     :class:`ost.seq.AlignmentList`
+  :type ent1_mapped_chains: :class:`ost.StringList` 
+  :type ent2_mapped_chains: :class:`ost.StringList`
+
+.. method:: WrappedMMAlign(ent1, ent2, [fast=False])
+
+  Takes two entity views and runs MMalign with *ent2* as reference.
+  The positions and sequences are directly extracted from the chain
+  residues for every residue that fulfills:
+  
+    * peptide linking and valid CA atom OR nucleotide linking and valid C3'
+      atom
+    * valid one letter code(no '?')
+
+  The function automatically identifies whether the chains consist of peptide
+  or RNA residues. An error is raised if the two types are mixed in the same
+  chain.
+
+  :param ent1:          Entity from which position and sequence are extracted
+                        to run MMalign.
+  :param ent2:          Entity from which position and sequence are extracted
+                        to run TMalign, this is the reference.
+  :param fast:          Whether to apply the *fast* flag to MMAlign
+  :type chain1:         :class:`ost.mol.EntityView`
+  :type chain2:         :class:`ost.mol.EntityView`
+  :type fast:           :class:`bool`
+  :rtype:               :class:`ost.bindings.MMAlignResult`

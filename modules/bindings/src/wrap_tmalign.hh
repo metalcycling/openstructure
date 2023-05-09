@@ -52,6 +52,39 @@ struct TMAlignResult {
   const ost::seq::AlignmentHandle& GetAlignment() { return alignment; }
 };
 
+struct MMAlignResult {
+
+  MMAlignResult() { }
+
+  MMAlignResult(Real rm, Real tm, const geom::Mat4& t,
+                int al, const ost::seq::AlignmentList& alns,
+                const std::vector<String>& e1c,
+                const std::vector<String>& e2c): rmsd(rm),
+                                                 tm_score(tm),
+                                                 transform(t),
+                                                 aligned_length(al),
+                                                 alignments(alns),
+                                                 ent1_mapped_chains(e1c),
+                                                 ent2_mapped_chains(e2c) { } 
+
+
+  Real rmsd;
+  Real tm_score;
+  geom::Mat4 transform;
+  int aligned_length;
+  ost::seq::AlignmentList alignments;
+  std::vector<String> ent1_mapped_chains;
+  std::vector<String> ent2_mapped_chains;
+
+  Real GetTMScore() { return tm_score; }
+  Real GetRMSD() { return rmsd; }
+  int GetAlignedLength() { return aligned_length; }
+  const geom::Mat4& GetTransform() { return transform; }
+  const ost::seq::AlignmentList& GetAlignments() { return alignments; }
+  const std::vector<String>& GetEnt1MappedChains() {return ent1_mapped_chains; }
+  const std::vector<String>& GetEnt2MappedChains() {return ent2_mapped_chains; }
+};
+
 TMAlignResult WrappedTMAlign(const geom::Vec3List& pos_one, 
                              const geom::Vec3List& pos_two, 
                              const ost::seq::SequenceHandle& seq1,
@@ -59,8 +92,20 @@ TMAlignResult WrappedTMAlign(const geom::Vec3List& pos_one,
                              bool fast = false,
                              bool rna = false);
 
+MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
+                             const std::vector<geom::Vec3List>& pos_two,
+                             const ost::seq::SequenceList& seq1,
+                             const ost::seq::SequenceList& seq2,
+                             const std::vector<bool>& rna1,
+                             const std::vector<bool>& rna2,
+                             bool fast = false);
+
 TMAlignResult WrappedTMAlign(const ost::mol::ChainView& ent1,
                              const ost::mol::ChainView& ent2,
+                             bool fast = false);
+
+MMAlignResult WrappedMMAlign(const ost::mol::EntityView& ent1,
+                             const ost::mol::EntityView& ent2,
                              bool fast = false);
 }} //ns
 

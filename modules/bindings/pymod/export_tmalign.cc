@@ -38,6 +38,13 @@ ost::bindings::TMAlignResult WrapTMAlignView(const ost::mol::ChainView& chain1,
   return ost::bindings::WrappedTMAlign(chain1, chain2, fast);
 }
 
+ost::bindings::MMAlignResult WrapMMAlignView(const ost::mol::EntityView& ent1,
+                                             const ost::mol::EntityView& ent2, 
+                                             bool fast) {
+
+  return ost::bindings::WrappedMMAlign(ent1, ent2, fast);
+}
+
 void export_TMAlign() {
   class_<ost::bindings::TMAlignResult>("TMAlignResult", init<Real, Real, int, const geom::Mat4&, 
                                                              const ost::seq::AlignmentHandle&>())
@@ -50,9 +57,30 @@ void export_TMAlign() {
                                return_value_policy<reference_existing_object>()))
   ;
 
+  class_<ost::bindings::MMAlignResult>("MMAlignResult", init<Real, Real, const geom::Mat4&, int,
+                                                             const ost::seq::AlignmentList&,
+                                                             const std::vector<String>&,
+                                                             const std::vector<String>&>())
+    .add_property("rmsd", make_function(&ost::bindings::MMAlignResult::GetRMSD))
+    .add_property("tm_score", make_function(&ost::bindings::MMAlignResult::GetTMScore))
+    .add_property("transform", make_function(&ost::bindings::MMAlignResult::GetTransform,
+                               return_value_policy<reference_existing_object>()))
+    .add_property("aligned_length", make_function(&ost::bindings::MMAlignResult::GetAlignedLength))
+    .add_property("alignments", make_function(&ost::bindings::MMAlignResult::GetAlignments,
+                               return_value_policy<reference_existing_object>()))
+    .add_property("ent1_mapped_chains", make_function(&ost::bindings::MMAlignResult::GetEnt1MappedChains,
+                               return_value_policy<reference_existing_object>()))
+    .add_property("ent2_mapped_chains", make_function(&ost::bindings::MMAlignResult::GetEnt2MappedChains,
+                               return_value_policy<reference_existing_object>()))
+  ;
+
+
   def("WrappedTMAlign", &WrapTMAlignPos, (arg("pos1"), arg("pos2"), arg("seq1"), arg("seq2"),
                                           arg("fast")=false, arg("rna")=false));
 
   def("WrappedTMAlign", &WrapTMAlignView, (arg("chain1"), arg("chain2"),
+                                           arg("fast")=false));
+
+  def("WrappedMMAlign", &WrapMMAlignView, (arg("ent1"), arg("ent2"),
                                            arg("fast")=false));
 }
