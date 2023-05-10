@@ -235,7 +235,7 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
   if(!curr_residue_.IsValid()) {
       mol::ResNum rnum(++residue_count_);
       curr_residue_=editor.AppendResidue(curr_chain_, curr_res_key_, rnum);
-      LOG_DEBUG("new residue " << rkey << "(" << rnum << ")");
+      LOG_DEBUG("new residue " << curr_res_key_ << "(" << rnum << ")");
   }
 
   LOG_DEBUG("adding atom " << aname << " (" << s_ele << ") @" << apos);
