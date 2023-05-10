@@ -125,6 +125,8 @@ void SDFReader::NextMolecule()
   atom_count_=0;
   bond_count_=0;
   line_num=0;
+  curr_residue_ = ost::mol::ResidueHandle();
+  curr_chain_ = ost::mol::ChainHandle();
 }
 
 void SDFReader::ParseAndAddHeader(const String& line, int line_num,
@@ -145,13 +147,10 @@ void SDFReader::ParseAndAddHeader(const String& line, int line_num,
         String msg="Bad molecule name line %d: Line is empty";
         throw IOException(str(format(msg) % line_num));
       }
-      curr_chain_=editor.InsertChain(s_chain);
-      LOG_DEBUG("new chain " << s_chain);
-
-      mol::ResidueKey rkey=boost::trim_copy(s_title);
-      mol::ResNum rnum(++residue_count_);
-      curr_residue_=editor.AppendResidue(curr_chain_, rkey, rnum);
-      LOG_DEBUG("new residue " << rkey << "(" << rnum << ")");
+      // prepeare required variables to add new chain and residue
+      // once we parse the first atom
+      curr_chain_name_ = s_chain;
+      curr_res_key_ = boost::trim_copy(s_title);
       break;
     }
     case 2:  // user information line
@@ -226,6 +225,17 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
     String msg="Bad atom line %d: Can't convert charge"
                " '%s' to integral constant.";
     throw IOException(str(format(msg) % line_num % s_charge));
+  }
+
+  if(!curr_chain_.IsValid()) {
+      curr_chain_=editor.InsertChain(curr_chain_name_);
+      LOG_DEBUG("new chain " << curr_chain_name_);
+  }
+
+  if(!curr_residue_.IsValid()) {
+      mol::ResNum rnum(++residue_count_);
+      curr_residue_=editor.AppendResidue(curr_chain_, curr_res_key_, rnum);
+      LOG_DEBUG("new residue " << rkey << "(" << rnum << ")");
   }
 
   LOG_DEBUG("adding atom " << aname << " (" << s_ele << ") @" << apos);
