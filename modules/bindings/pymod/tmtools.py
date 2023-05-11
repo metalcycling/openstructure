@@ -148,9 +148,9 @@ def _ParseUSAlign(lines,lines_matrix):
   tf1=[float(i.strip()) for i in lines_matrix[2].split()[1:]]
   tf2=[float(i.strip()) for i in lines_matrix[3].split()[1:]]
   tf3=[float(i.strip()) for i in lines_matrix[4].split()[1:]]
-  mat = geom.Mat4(tf1[0], tf1[1], tf1[2], tf1[3],
-                  tf2[0], tf2[1], tf2[2], tf2[3],
-                  tf3[0], tf3[1], tf3[2], tf3[3],
+  mat = geom.Mat4(tf1[1], tf1[2], tf1[3], tf1[0],
+                  tf2[1], tf2[2], tf2[3], tf2[0],
+                  tf3[1], tf3[2], tf3[3], tf3[0],
                   0.0,    0.0,    0.0,    1.0)
 
   return ost.bindings.MMAlignResult(rmsd, tm_score, tm_score_swapped,
