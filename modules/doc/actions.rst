@@ -250,6 +250,12 @@ Details on the usage (output of ``ost compare-structures --help``):
                           Residues are represented as string in form
                           <num><inscode>. The respective scores are available as
                           keys "patch_qs" and "patch_dockq"
+    --tm-score            Computes TM-score with the USalign tool. Also computes
+                          a chain mapping in case of complexes that is stored
+                          in the same format as the default mapping. TM-score
+                          and the mapping are available as keys "tm_score" and
+                          "usalign_mapping"
+
 
 
 .. _ost compare ligand structures:

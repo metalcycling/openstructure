@@ -278,6 +278,13 @@ def _ParseArgs():
               "if not set."))
 
     parser.add_argument(
+        "--usalign-exec",
+        dest="usalign_exec",
+        default=None,
+        help=("Path to USalign executable to compute TM-score. If not given, "
+              "an OpenStructure internal copy of USalign code is used."))
+
+    parser.add_argument(
         "--qs-score",
         dest="qs_score",
         default=False,
@@ -345,6 +352,16 @@ def _ParseArgs():
               "key \"reference_interface_residues\". Residues are represented "
               "as string in form <num><inscode>. The respective scores are "
               "available as keys \"patch_qs\" and \"patch_dockq\""))
+
+    parser.add_argument(
+        "--tm-score",
+        dest="tm_score",
+        default=False,
+        action="store_true",
+        help=("Computes TM-score with the USalign tool. Also computes a "
+              "chain mapping in case of complexes that is stored in the "
+              "same format as the default mapping. TM-score and the mapping "
+              "are available as keys \"tm_score\" and \"usalign_mapping\""))
 
     return parser.parse_args()
 
@@ -483,7 +500,8 @@ def _Process(model, reference, args):
     scorer = scoring.Scorer(model, reference,
                             resnum_alignments = args.residue_number_alignment,
                             cad_score_exec = args.cad_exec,
-                            custom_mapping = mapping)
+                            custom_mapping = mapping,
+                            usalign_exec = args.usalign_exec)
 
     ir = _GetInconsistentResidues(scorer.aln)
     if len(ir) > 0 and args.enforce_consistency:
@@ -558,6 +576,10 @@ def _Process(model, reference, args):
         _InterfaceResiduesToJSONDict(scorer.target_interface_residues)
         out["patch_qs"] = scorer.patch_qs
         out["patch_dockq"] = scorer.patch_dockq
+
+    if args.tm_score:
+        out["tm_score"] = scorer.tm_score
+        out["usalign_mapping"] = scorer.usalign_mapping
 
     if args.dump_structures:
         try:
