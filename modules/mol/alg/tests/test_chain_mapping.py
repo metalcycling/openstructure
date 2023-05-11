@@ -362,7 +362,7 @@ class TestChainMapper(unittest.TestCase):
 
 if __name__ == "__main__":
   from ost import testutils
-  if testutils.SetDefaultCompoundLib():
+  if testutils.DefaultCompoundLibIsSet():
     testutils.RunTests()
   else:
     print('No compound lib available. Ignoring test_chain_mapping.py tests.')

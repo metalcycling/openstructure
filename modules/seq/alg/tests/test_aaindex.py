@@ -45,5 +45,5 @@ if __name__ == "__main__":
   from ost import testutils
   # the function below indirectly enables GetSharedDataPath when
   # calling stuff from python which is the case in unit tests
-  testutils.SetDefaultCompoundLib()
+  testutils.DefaultCompoundLibIsSet()
   testutils.RunTests()
