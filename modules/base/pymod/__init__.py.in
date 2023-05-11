@@ -90,6 +90,9 @@ def _SetupCompoundsLib():
   try:
     _TrySetCompoundsLib(compound_lib_path)
   except ValueError:
+    if compound_lib_path:
+      LogWarning("Could not load $OST_COMPOUNDS_CHEMLIB as a compound library"
+                 ": '%s'. Falling back to default." % ( compound_lib_path))
     pass
   else:
     return
