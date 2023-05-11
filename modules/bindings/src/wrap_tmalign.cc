@@ -554,6 +554,9 @@ MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
   vector<string> resi_vec1;  // residue index for chain1
   vector<string> resi_vec2;  // residue index for chain2
 
+  // hardcode some variable values
+  ter_opt = 0;
+
 
   // COMMENT OUT MMALIGN STRUCTURE PARSING WHICH IS FILE BASED
   ////////////////////////////////////////////////////////////
