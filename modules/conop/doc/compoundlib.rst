@@ -21,10 +21,17 @@ build the compound library manually.
 
 .. function:: GetDefaultLib()
 
-  :return: Default compound library set by :func:`SetDefaultLib`. If you got
-           OpenStructure as a bundle or you :ref:`compiled <cmake-flags>`  it
-           with a specified ``COMPOUND_LIB`` flag, this will return a compound
-           library when executing scripts with ``ost``.
+  Get the default compound library. This is set by :func:`SetDefaultLib`.
+
+  If you obtained OpenStructure as a container or you
+  :ref:`compiled <cmake-flags>` it with a specified ``COMPOUND_LIB`` flag,
+  this function will return a compound library.
+
+  You can override the default compound library by pointing the
+  ``OST_COMPOUNDS_CHEMLIB`` environment variable to a valid compound library
+  file.
+
+  :return: Default compound library.
   :rtype:  :class:`CompoundLib` or None if no library set
 
 .. function:: SetDefaultLib(lib)
