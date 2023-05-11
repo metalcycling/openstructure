@@ -214,11 +214,14 @@ class Scorer:
 
         # lazily constructed scorer objects
         self._lddt_scorer = None
+        self._bb_lddt_scorer = None
         self._qs_scorer = None
 
         # lazily computed scores
         self._lddt = None
         self._local_lddt = None
+        self._bb_lddt = None
+        self._bb_local_lddt = None
 
         self._qs_global = None
         self._qs_best = None
@@ -464,6 +467,19 @@ class Scorer:
         return self._lddt_scorer
 
     @property
+    def bb_lddt_scorer(self):
+        """ Backbone only lDDT scorer for :attr:`~target`
+
+        No stereochecks applied for bb only lDDT which considers CA atoms
+        for peptides and C3' atoms for nucleotides.
+
+        :type: :class:`ost.mol.alg.lddt.lDDTScorer`
+        """
+        if self._bb_lddt_scorer is None:
+            self._bb_lddt_scorer = lDDTScorer(self.target, bb_only=True)
+        return self._bb_lddt_scorer
+
+    @property
     def qs_scorer(self):
         """ QS scorer constructed from :attr:`~mapping`
 
@@ -505,6 +521,36 @@ class Scorer:
         if self._local_lddt is None:
             self._compute_lddt()
         return self._local_lddt
+
+    @property
+    def bb_lddt(self):
+        """ Backbone only global lDDT score in range [0.0, 1.0]
+
+        Computed based on :attr:`~model` on backbone atoms only. This is CA for
+        peptides and C3' for nucleotides. No stereochecks are performed. In case
+        of oligomers, :attr:`~mapping` is used.
+
+        :type: :class:`float`
+        """
+        if self._bb_lddt is None:
+            self._compute_bb_lddt()
+        return self._bb_lddt
+    
+    @property
+    def bb_local_lddt(self):
+        """ Backbone only per residue lDDT scores in range [0.0, 1.0]
+
+        Computed based on :attr:`~model` on backbone atoms only. This is CA for
+        peptides and C3' for nucleotides. No stereochecks are performed. If a
+        residue is not covered by the target or is in a chain skipped by the
+        chain mapping procedure (happens for super short chains), the respective
+        score is set to None. In case of oligomers, :attr:`~mapping` is used.
+
+        :type: :class:`dict`
+        """
+        if self._bb_local_lddt is None:
+            self._compute_bb_lddt()
+        return self._bb_local_lddt
 
     @property
     def qs_global(self):
@@ -1021,6 +1067,42 @@ class Scorer:
 
         self._lddt = lddt_score
         self._local_lddt = local_lddt
+
+    def _compute_bb_lddt(self):
+
+        # make alignments accessible by mdl seq name
+        alns = dict()
+        for aln in self.aln:
+            mdl_seq = aln.GetSequence(1)
+            alns[mdl_seq.name] = aln
+
+        # lDDT requires a flat mapping with mdl_ch as key and trg_ch as value
+        flat_mapping = self.mapping.GetFlatMapping(mdl_as_key=True)
+        lddt_chain_mapping = dict()
+        for mdl_ch, trg_ch in flat_mapping.items():
+            if mdl_ch in alns:
+                lddt_chain_mapping[mdl_ch] = trg_ch
+
+        lddt_score = self.bb_lddt_scorer.lDDT(self.model,
+                                              chain_mapping = lddt_chain_mapping,
+                                              residue_mapping = alns,
+                                              check_resnames=False,
+                                              local_lddt_prop="bb_lddt")[0]
+        local_lddt = dict()
+        for r in self.model.residues:
+            cname = r.GetChain().GetName()
+            if cname not in local_lddt:
+                local_lddt[cname] = dict()
+            if r.HasProp("bb_lddt"):
+                score = round(r.GetFloatProp("bb_lddt"), 3)
+                local_lddt[cname][r.GetNumber()] = score
+            else:
+                # not covered by trg or skipped in chain mapping procedure
+                # the latter happens if its part of a super short chain
+                local_lddt[cname][r.GetNumber()] = None
+
+        self._bb_lddt = lddt_score
+        self._bb_local_lddt = local_lddt
 
     def _compute_qs(self):
         qs_score_result = self.qs_scorer.Score(self.mapping.mapping)

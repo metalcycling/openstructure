@@ -225,6 +225,28 @@ def _ParseArgs():
               "and the respective reference counterparts."))
 
     parser.add_argument(
+        "--bb-lddt",
+        dest="bb_lddt",
+        default=False,
+        action="store_true",
+        help=("Compute global lDDT score with default parameterization and "
+              "store as key \"bb_lddt\". lDDT in this case is only computed on "
+              "backbone atoms: CA for peptides and C3' for nucleotides"))
+
+    parser.add_argument(
+        "--bb-local-lddt",
+        dest="bb_local_lddt",
+        default=False,
+        action="store_true",
+        help=("Compute per-residue lDDT scores with default parameterization "
+              "and store as key \"bb_local_lddt\". lDDT in this case is only "
+              "computed on backbone atoms: CA for peptides and C3' for "
+              "nucleotides. Score for model residue with "
+              "number 42 in chain X can be extracted with: "
+              "data[\"local_lddt\"][\"X\"][\"42\"]. If there is an insertion "
+              "code, lets say A, the last key becomes \"42A\""))
+
+    parser.add_argument(
         "--cad-score",
         dest="cad_score",
         default=False,
@@ -489,6 +511,12 @@ def _Process(model, reference, args):
         out["reference_clashes"] = [x.ToJSON() for x in scorer.target_clashes]
         out["reference_bad_bonds"] = [x.ToJSON() for x in scorer.target_bad_bonds]
         out["reference_bad_angles"] = [x.ToJSON() for x in scorer.target_bad_angles]
+
+    if args.bb_lddt:
+        out["bb_lddt"] = scorer.bb_lddt
+
+    if args.bb_local_lddt:
+        out["bb_local_lddt"] = _LocalScoresToJSONDict(scorer.bb_local_lddt)
 
     if args.cad_score:
         out["cad_score"] = scorer.cad_score

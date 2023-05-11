@@ -38,7 +38,8 @@ Details on the usage (output of ``ost compare-structures --help``):
                                 [-mb MODEL_BIOUNIT] [-rb REFERENCE_BIOUNIT]
                                 [-rna] [-ec] [-d] [-ds DUMP_SUFFIX] [-ft]
                                 [-c CHAIN_MAPPING [CHAIN_MAPPING ...]] [--lddt]
-                                [--local-lddt] [--cad-score] [--local-cad-score]
+                                [--local-lddt] [--bb-lddt] [--bb-local-lddt]
+                                [--cad-score] [--local-cad-score]
                                 [--cad-exec CAD_EXEC] [--qs-score]
                                 [--rigid-scores] [--interface-scores]
                                 [--patch-scores]
@@ -48,7 +49,7 @@ Details on the usage (output of ``ost compare-structures --help``):
   Example: ost compare-structures -m model.pdb -r reference.cif
   
   Loads the structures and performs basic cleanup:
-
+  
    * Assign elements according to the PDB Chemical Component Dictionary
    * Map nonstandard residues to their parent residues as defined by the PDB
      Chemical Component Dictionary, e.g. phospho-serine => serine
@@ -57,12 +58,12 @@ Details on the usage (output of ``ost compare-structures --help``):
    * Remove unknown atoms, i.e. atoms that are not expected according to the PDB
      Chemical Component Dictionary
    * Select for peptide/nucleotide residues
-
+  
   The cleaned structures are optionally dumped using -d/--dump-structures
   
   Output is written in JSON format (default: out.json). In case of no additional
   options, this is a dictionary with 8 keys:
-  
+
    * "reference_chains": Chain names of reference
    * "model_chains": Chain names of model
    * "chem_groups": Groups of polypeptides/polynucleotides from reference that
@@ -92,17 +93,17 @@ Details on the usage (output of ``ost compare-structures --help``):
   BLOSUM62 (NUC44 for nucleotides). Many benchmarking scenarios preprocess the
   structures to ensure matching residue numbers (CASP/CAMEO). In these cases,
   enabling -rna/--residue-number-alignment is recommended.
-  
+
   Each score is opt-in and can be enabled with optional arguments.
-  
+
   Example to compute global and per-residue lDDT values as well as QS-score:
-  
+
   ost compare-structures -m model.pdb -r reference.cif --lddt --local-lddt --qs-score
-  
+
   Example to inject custom chain mapping
-  
+
   ost compare-structures -m model.pdb -r reference.cif -c A:B B:A
-  
+
   optional arguments:
     -h, --help            show this help message and exit
     -m MODEL, --model MODEL
@@ -122,13 +123,13 @@ Details on the usage (output of ``ost compare-structures --help``):
                           filepath if not given.
     -mb MODEL_BIOUNIT, --model-biounit MODEL_BIOUNIT
                           Only has an effect if model is in mmcif format. By
-                          default, the assymetric unit (AU) is used for scoring.
+                          default, the asymmetric unit (AU) is used for scoring.
                           If there are biounits defined in the mmcif file, you
                           can specify the (0-based) index of the one which
                           should be used.
     -rb REFERENCE_BIOUNIT, --reference-biounit REFERENCE_BIOUNIT
                           Only has an effect if reference is in mmcif format. By
-                          default, the assymetric unit (AU) is used for scoring.
+                          default, the asymmetric unit (AU) is used for scoring.
                           If there are biounits defined in the mmcif file, you
                           can specify the (0-based) index of the one which
                           should be used.
@@ -170,6 +171,18 @@ Details on the usage (output of ``ost compare-structures --help``):
                           lDDT are reported as keys "model_clashes",
                           "model_bad_bonds", "model_bad_angles" and the
                           respective reference counterparts.
+    --bb-lddt             Compute global lDDT score with default
+                          parameterization and store as key "bb_lddt". lDDT in
+                          this case is only computed on backbone atoms: CA for
+                          peptides and C3' for nucleotides
+    --bb-local-lddt       Compute per-residue lDDT scores with default
+                          parameterization and store as key "bb_local_lddt".
+                          lDDT in this case is only computed on backbone atoms:
+                          CA for peptides and C3' for nucleotides. Score for
+                          model residue with number 42 in chain X can be
+                          extracted with: data["local_lddt"]["X"]["42"]. If
+                          there is an insertion code, lets say A, the last key
+                          becomes "42A"
     --cad-score           Compute global CAD's atom-atom (AA) score and store as
                           key "cad_score". --residue-number-alignment must be
                           enabled to compute this score. Requires
