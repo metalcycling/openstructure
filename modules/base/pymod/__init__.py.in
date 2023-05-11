@@ -32,6 +32,14 @@ class StreamLogSink(LogSink):
     self._stream.write(message)
 
 
+def _GetPrefixFromPythonPath():
+  """Get the prefix from this file's path"""
+  prefix_path = __file__
+  for _ in range(5):
+    prefix_path = os.path.dirname(prefix_path)
+  return prefix_path
+
+
 def _SetupOstPrefix():
   """ This function attempts to set the OST prefix path if $OST_ROOT was not
   set already.
@@ -44,12 +52,11 @@ def _SetupOstPrefix():
 
   try:
     # $OST_ROOT was set
+    # Note: this doesn't mean set to a valid prefix
     GetPrefixPath()
   except RuntimeError:
     # Setup from this file's path
-    prefix_path = __file__
-    for _ in range(5):
-      prefix_path = os.path.dirname(prefix_path)
+    prefix_path = _GetPrefixFromPythonPath()
     SetPrefixPath(prefix_path)
 
 
@@ -71,6 +78,8 @@ def _SetupCompoundsLib():
   1. The $OST_COMPOUNDS_CHEMLIB environment variable
   2. The 'compounds.chemlib' file in the shared path under the folder pointed
     by the $OST_ROOT environment variable
+  3. The 'compounds.chemlib' file in the shared path under the OST prefix where
+    the ost python module is installed.
 
   If no compound library can be loaded with any of these strategies, a warning
   message is issued.
@@ -92,6 +101,24 @@ def _SetupCompoundsLib():
   except (RuntimeError, ValueError):
     pass
   else:
+    return
+
+  # If OST_ROOT was pointing to a root with no compound lib or to an invalid
+  # root, try
+  try:
+    old_prefix = GetPrefixPath()  # This is set by now and won't raise
+    prefix_path = _GetPrefixFromPythonPath()
+    SetPrefixPath(prefix_path)
+    compound_lib_path = os.path.join(GetSharedDataPath(), 'compounds.chemlib')
+    _TrySetCompoundsLib(compound_lib_path)
+  except  (RuntimeError, ValueError):
+    SetPrefixPath(old_prefix)
+  else:
+    # If we're here, OST root was set but the prefix did not contain a compound
+    # lib, but the root obtained from the python path contained one.
+    # Most likely OST_ROOT was set incorrectly
+    LogWarning("$OST_ROOT is pointing to an invalid OST prefix: '%s'" % (
+      os.getenv("OST_ROOT")))
     return
 
   LogWarning("Compound library not available. Some functionality may not " \
