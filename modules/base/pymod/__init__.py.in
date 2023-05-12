@@ -87,15 +87,14 @@ def _SetupCompoundsLib():
   """
   # Try with the $OST_COMPOUNDS_CHEMLIB environment variable
   compound_lib_path = os.getenv("OST_COMPOUNDS_CHEMLIB")
-  try:
-    _TrySetCompoundsLib(compound_lib_path)
-  except ValueError:
-    if compound_lib_path:
-      LogWarning("Could not load $OST_COMPOUNDS_CHEMLIB as a compound library"
-                 ": '%s'. Falling back to default." % ( compound_lib_path))
-    pass
-  else:
-    return
+  if compound_lib_path:
+    compound_lib = conop.CompoundLib.Load(compound_lib_path)
+    if compound_lib is None:
+      raise RuntimeError("Could not load $OST_COMPOUNDS_CHEMLIB as a compound "
+                         "library: '%s'." % compound_lib_path)
+    else:
+      conop.SetDefaultLib(compound_lib)
+      return
 
   # Try from GetSharedDataPath() - requires $OST_ROOT to be set.
   try:
