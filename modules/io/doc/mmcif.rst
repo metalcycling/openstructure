@@ -79,10 +79,11 @@ Notes:
   ("label_asym_id", "label_seq_id") and ("auth_asym_id", "auth_seq_id",
   "pdbx_PDB_ins_code").
   The following data items are available:
+
     * ``atom_site.label_asym_id``: ``residue.chain.name``
     * ``atom_site.label_seq_id``: ``residue.GetStringProp("resnum")``
       (this is the same as ``residue.number`` for residues in polymer chains.
-       However, for ligands ``residue.number`` is unset in mmCIF, but it
+      However, for ligands ``residue.number`` is unset in mmCIF, but it
       is set to 1 by openstructure.)
     * ``atom_site.label_entity_id``: ``residue.GetStringProp("entity_id")``
     * ``atom_site.auth_asym_id``: ``residue.GetStringProp("pdb_auth_chain_name")``
