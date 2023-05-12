@@ -98,6 +98,12 @@ Information from mmCIF files that goes beyond structural data, is kept in a
 special container, the :class:`MMCifInfo` class. Here is a detailed description
 of the annotation available.
 
+.. note::
+
+  Some fields of the ``MMCifInfo`` container are only populated if SEQRES
+  records are read in :func:`~ost.io.LoadMMCIF` and a compound library is
+  available (see :func:`~ost.conop.GetDefaultLib`)
+
 .. class:: MMCifInfo
 
   This is the container for all bits of non-molecular data pulled from a mmCIF
@@ -291,6 +297,8 @@ of the annotation available.
   .. method:: GetPDBMMCifChainTr(pdb_chain_id)
 
     Get the translation of a certain PDB chain name to the mmCIF chain name.
+    Only works if SEQRES records are read in :func:`~ost.io.LoadMMCIF` and a
+    compound library is available (see :func:`~ost.conop.GetDefaultLib`).
 
     :param pdb_chain_id: atom_site.auth_asym_id
     :type pdb_chain_id: :class:`str`
