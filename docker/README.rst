@@ -188,3 +188,65 @@ Eg. to run molck type:
 .. note::
 
   Note how the options to the command are specified after the image name.
+
+.. _docker_compound_lib:
+
+The Compound Library
+--------------------
+
+At build time of the container, a :class:`~ost.conop.CompoundLib` is generated.
+Compound libraries contain information on chemical compounds, such as their
+connectivity, chemical class and one-letter-code. The compound library has
+several uses, but the most important one is to provide the connectivy
+information for the rule-based processor.
+
+The compound library is generated with the components.cif dictionary provided by
+the PDB. As the PDB updates regularly, the compound library shipped with the
+container is quickly outdated. For most use cases, this is not problematic.
+However, if you rely on correct connectivity information of the latest and
+greatest compounds, you have to keep the compound library up to date manually.
+
+If you work with ligands or non standard residues, or simply if you download
+files from the PDB, it is recommended to generate your own compound library and
+mount it into the container.
+
+The simplest way to create a compound library is to use the
+:program:`chemdict_tool` available in the container. The program allows you
+to import the chemical description of the compounds from a mmCIF dictionary,
+e.g. the components.cif dictionary provided by the PDB.
+The latest dictionary can be downloaded from the
+`wwPDB site <http://www.wwpdb.org/ccd.html>`_.
+The files are rather large, it is therefore recommended to download the
+gzipped version.
+
+After downloading the file use :program:`chemdict_tool` in the container to
+convert the mmCIF  dictionary into our internal format:
+
+.. code-block:: bash
+
+  docker run --rm -v $(pwd):/home --entrypoint chemdict_tool <IMAGE_NAME> \
+  create components.cif.gz compounds.chemlib
+
+To run a script with the updated compound library, use the -v option for
+mounting/overriding, and the --env option to set the ``OST_COMPOUNDS_CHEMLIB``
+environment variable inside the container, pointing to the path of the
+mounted file:
+
+.. code-block:: bash
+
+  docker run --rm -v /home/<USER>:/home \
+  -v <COMPLIB_DIR_LOCALHOST>/compounds.chemlib:/compounds.chemlib \
+  --env OST_COMPOUNDS_CHEMLIB=/compounds.chemlib \
+  <IMAGE_NAME> script.py pdbs/struct.pdb
+
+with COMPLIB_DIR_LOCALHOST being the directory that contains the newly generated
+compound library with name compounds.chemlib.
+
+You can check whether the default lib is successfully overriden by looking at the
+output when running a Python script with following code in the container:
+
+.. code-block:: python
+
+  from ost import conop
+  lib = conop.GetDefaultLib()
+  print(lib.GetCreationDate())

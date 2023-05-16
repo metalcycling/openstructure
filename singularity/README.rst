@@ -64,3 +64,36 @@ Then (in the same terminal window) to invoke IPython app one can just type:
 
 To make the alias permanent put it into your ``.bashrc`` file or whatever file
 you use to store the aliases.
+
+
+The Compound Library
+--------------------
+
+You'll have the exact same problem with outdated compound libraries as in the
+raw Docker image. You can find more information on that matter in the Docker
+section of the documentation: :ref:`docker_compound_lib`.
+
+The same trick of mounting an up to date compound library from the local host into
+the container applies. The two relevant commands for Singularity are building
+a new library and mount it.
+
+Build a new library:
+
+.. code-block:: bash
+
+  singularity run --app ChemdictTool <IMAGE> create components.cif.gz \
+  compounds.chemlib
+
+Run some script with an updated compound library from localhost:
+
+.. code-block:: bash
+
+  singularity run \
+  -B <COMPLIB_DIR_LOCALHOST>/compounds.chemlib:/compounds.chemlib \
+  --env OST_COMPOUNDS_CHEMLIB=/compounds.chemlib \
+  --app PM <IMAGE> my_script.py
+
+<COMPLIB_DIR_LOCALHOST> is the directory that contains the compound lib with the
+name compounds.chemlib that you created before. Make sure that everything works
+as expected by executing the exact same lines of Python code as described
+in the Docker documentation: :ref:`docker_compound_lib`.
