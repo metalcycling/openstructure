@@ -1,5 +1,14 @@
 import ost
 from ost.mol.alg import qsscoring
+from ost import conop
+
+lib = conop.GetDefaultLib()
+if lib is not None:
+    print("You have a valid compound library, last updated on " +
+            lib.GetCreationDate())
+else:
+    ost.LogError("No compound library set as default!")
+    print("The compound library is not working properly!")
 
 # load two biounits to compare
 ent_full = ost.io.LoadPDB('3ia3', remote=True)
@@ -15,5 +24,7 @@ except qsscoring.QSscoreError as ex:
     # default handling: report failure and set score to 0
     ost.LogError('QSscore failed:', str(ex))
     qs_score = 0
+    print("OST is not working properly!")
+else:
+    print("OST is working!")
 
-print("OST is working!")
