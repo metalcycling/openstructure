@@ -1,5 +1,5 @@
 import ost
-from ost.mol.alg import qsscoring
+from ost.mol.alg import scoring, qsscoring
 from ost import conop
 
 lib = conop.GetDefaultLib()
@@ -13,13 +13,15 @@ else:
 # load two biounits to compare
 ent_full = ost.io.LoadPDB('3ia3', remote=True)
 ent_1 = ent_full.Select('cname=A,D')
-ent_2 = ent_full.Select('cname=B,C')
+ent_2 = ent_full.Select('cname=B')
 # get score
 ost.PushVerbosityLevel(3)
 try:
-    qs_scorer = qsscoring.QSscorer(ent_1, ent_2)
-    ost.LogScript('QSscore:', str(qs_scorer.global_score))
-    ost.LogScript('Chain mapping used:', str(qs_scorer.chain_mapping))
+    scorer = scoring.Scorer(ent_1, ent_2)
+    ost.LogScript('QSscore:', str(scorer.qs_global))
+    ost.LogScript('Chain mapping used:', str(scorer.chain_mapper))
+    print(dir(scorer.chain_mapper))
+    ost.LogScript('Chain mapping used:', str(scorer.chain_mapper))
 except qsscoring.QSscoreError as ex:
     # default handling: report failure and set score to 0
     ost.LogError('QSscore failed:', str(ex))
