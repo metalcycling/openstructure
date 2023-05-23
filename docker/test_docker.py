@@ -14,10 +14,13 @@ else:
 ent_full = ost.io.LoadPDB('3ia3', remote=True)
 ent_1 = ent_full.Select('cname=A,D')
 ent_2 = ent_full.Select('cname=B,C')
-# get score
-ost.PushVerbosityLevel(3)
+
+# get scores
+ost.PushVerbosityLevel(3)    
+
 try:
     scorer = scoring.Scorer(ent_1, ent_2)
+    ost.LogScript('lDDT:', str(scorer.lddt))
     ost.LogScript('QSscore:', str(scorer.qs_global))
     ost.LogScript('Chain mapping used:', str(scorer.mapping.GetFlatMapping()))
 except qsscoring.QSscoreError as ex:
