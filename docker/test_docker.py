@@ -23,9 +23,9 @@ try:
     ost.LogScript('lDDT:', str(scorer.lddt))
     ost.LogScript('QSscore:', str(scorer.qs_global))
     ost.LogScript('Chain mapping used:', str(scorer.mapping.GetFlatMapping()))
-except qsscoring.QSscoreError as ex:
+except Exception as ex:
     # default handling: report failure and set score to 0
-    ost.LogError('QSscore failed:', str(ex))
+    ost.LogError('Scoring failed:', str(ex))
     qs_score = 0
     print("OST is not working properly!")
 else:
