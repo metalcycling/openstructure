@@ -13,15 +13,13 @@ else:
 # load two biounits to compare
 ent_full = ost.io.LoadPDB('3ia3', remote=True)
 ent_1 = ent_full.Select('cname=A,D')
-ent_2 = ent_full.Select('cname=B')
+ent_2 = ent_full.Select('cname=B,C')
 # get score
 ost.PushVerbosityLevel(3)
 try:
     scorer = scoring.Scorer(ent_1, ent_2)
     ost.LogScript('QSscore:', str(scorer.qs_global))
-    ost.LogScript('Chain mapping used:', str(scorer.chain_mapper))
-    print(dir(scorer.chain_mapper))
-    ost.LogScript('Chain mapping used:', str(scorer.chain_mapper))
+    ost.LogScript('Chain mapping used:', str(scorer.mapping.GetFlatMapping()))
 except qsscoring.QSscoreError as ex:
     # default handling: report failure and set score to 0
     ost.LogError('QSscore failed:', str(ex))
