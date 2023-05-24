@@ -170,8 +170,8 @@ class LigandScorer:
     :type radius: :class:`float`
     :param lddt_pli_radius: lDDT inclusion radius for lDDT-PLI.
     :type lddt_pli_radius: :class:`float`
-    :param lddt_bs_radius: lDDT inclusion radius for lDDT-BS.
-    :type lddt_bs_radius: :class:`float`
+    :param lddt_lp_radius: lDDT inclusion radius for lDDT-LP.
+    :type lddt_lp_radius: :class:`float`
     :param binding_sites_topn: maximum number of target binding site
                                representations to assess, per target ligand.
     :type binding_sites_topn: :class:`int`
@@ -180,7 +180,7 @@ class LigandScorer:
                  resnum_alignments=False, check_resnames=True,
                  rename_ligand_chain=False,
                  chain_mapper=None, substructure_match=False,
-                 radius=4.0, lddt_pli_radius=6.0, lddt_bs_radius=10.0,
+                 radius=4.0, lddt_pli_radius=6.0, lddt_lp_radius=10.0,
                  binding_sites_topn=100000):
 
         if isinstance(model, mol.EntityView):
@@ -224,7 +224,7 @@ class LigandScorer:
         self.substructure_match = substructure_match
         self.radius = radius
         self.lddt_pli_radius = lddt_pli_radius
-        self.lddt_bs_radius = lddt_bs_radius
+        self.lddt_lp_radius = lddt_lp_radius
         self.binding_sites_topn = binding_sites_topn
 
         # scoring matrices
@@ -416,7 +416,7 @@ class LigandScorer:
 
             # Find the representations
             self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
-                ref_bs, self.model, inclusion_radius=self.lddt_bs_radius,
+                ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
                 topn=self.binding_sites_topn)
         return self._binding_sites[ligand.hash_code]
 
@@ -530,7 +530,7 @@ class LigandScorer:
                             rmsd_full_matrix[target_i, model_i]["rmsd"] > rmsd:
                         rmsd_full_matrix[target_i, model_i] = {
                             "rmsd": rmsd,
-                            "lddt_bs": binding_site.lDDT,
+                            "lddt_lp": binding_site.lDDT,
                             "bs_ref_res": binding_site.substructure.residues,
                             "bs_ref_res_mapped": binding_site.ref_residues,
                             "bs_mdl_res_mapped": binding_site.mdl_residues,
@@ -590,7 +590,7 @@ class LigandScorer:
                             lddt_pli_full_matrix[target_i, model_i] = {
                                 "lddt_pli": global_lddt,
                                 "rmsd": rmsd,
-                                "lddt_bs": binding_site.lDDT,
+                                "lddt_lp": binding_site.lDDT,
                                 "lddt_pli_n_contacts": lddt_tot,
                                 "bs_ref_res": binding_site.substructure.residues,
                                 "bs_ref_res_mapped": binding_site.ref_residues,
@@ -799,7 +799,7 @@ class LigandScorer:
         Each sub-dictionary contains the following information:
 
         * `rmsd`: the RMSD score value.
-        * `lddt_bs`: the lDDT-BS score of the binding site.
+        * `lddt_lp`: the lDDT score of the ligand pocket (lDDT-LP).
         * `bs_ref_res`: a list of residues (:class:`~ost.mol.ResidueHandle`)
           that define the binding site in the reference.
         * `bs_ref_res_mapped`: a list of residues
@@ -856,7 +856,7 @@ class LigandScorer:
           chain mapping and assignment. This may differ from the RMSD-based
           assignment. Note that a different isomorphism than `lddt_pli` may
           be used.
-        * `lddt_bs`: the lDDT-BS score of the binding site.
+        * `lddt_lp`: the lDDT score of the ligand pocket (lDDT-LP).
         * `lddt_pli_n_contacts`: number of total contacts used in lDDT-PLI,
           summed over all thresholds. Can be divided by 8 to obtain the number
           of atomic contacts.

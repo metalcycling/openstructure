@@ -197,10 +197,10 @@ def _ParseArgs():
         help=("lDDT inclusion radius for lDDT-PLI."))
 
     parser.add_argument(
-        "--lddt-bs-radius",
-        dest="lddt_bs_radius",
+        "--lddt-lp-radius",
+        dest="lddt_lp_radius",
         default=4.0,
-        help=("lDDT inclusion radius for lDDT-BS."))
+        help=("lDDT inclusion radius for lDDT-LP."))
 
     parser.add_argument(
         '-v',
@@ -305,7 +305,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         substructure_match=args.substructure_match,
         radius=args.radius,
         lddt_pli_radius=args.lddt_pli_radius,
-        lddt_bs_radius=args.lddt_bs_radius
+        lddt_lp_radius=args.lddt_lp_radius
     )
 
     out = dict()
