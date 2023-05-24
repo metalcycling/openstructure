@@ -105,21 +105,10 @@ Here is an example run of the compare-structures action:
 
   docker run --rm -v $(pwd):/home <IMAGE NAME> compare-structures \
       --model model.pdb \
-      --reference reference.pdb \
-      --output output.json \
-      --qs-score \
-      --residue-number-alignment \
+      --reference reference.cif \
+      --output scores.json \
       --lddt \
-      --structural-checks \
-      --consistency-checks \
-      --inclusion-radius 15.0 \
-      --bond-tolerance 15.0 \
-      --angle-tolerance 15.0 \
-      --molck \
-      --remove oxt hyd unk \
-      --clean-element-column \
-      --map-nonstandard-residues
-
+      --local-lddt
 
 In order to see all available options for this action run:
 
