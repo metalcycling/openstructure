@@ -363,6 +363,13 @@ def _ParseArgs():
               "same format as the default mapping. TM-score and the mapping "
               "are available as keys \"tm_score\" and \"usalign_mapping\""))
 
+    parser.add_argument(
+        "--lddt-no-stereochecks",
+        dest="lddt_no_stereochecks",
+        default=False,
+        action="store_true",
+        help=("Disable stereochecks for lDDT computation"))
+
     return parser.parse_args()
 
 def _Rename(ent):
@@ -501,7 +508,8 @@ def _Process(model, reference, args):
                             resnum_alignments = args.residue_number_alignment,
                             cad_score_exec = args.cad_exec,
                             custom_mapping = mapping,
-                            usalign_exec = args.usalign_exec)
+                            usalign_exec = args.usalign_exec,
+                            lddt_no_stereochecks = args.lddt_no_stereochecks)
 
     ir = _GetInconsistentResidues(scorer.aln)
     if len(ir) > 0 and args.enforce_consistency:

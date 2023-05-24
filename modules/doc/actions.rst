@@ -255,6 +255,8 @@ Details on the usage (output of ``ost compare-structures --help``):
                           in the same format as the default mapping. TM-score
                           and the mapping are available as keys "tm_score" and
                           "usalign_mapping"
+    --lddt-no-stereochecks
+                          Disable stereochecks for lDDT computation
 
 
 
