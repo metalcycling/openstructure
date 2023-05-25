@@ -36,12 +36,12 @@ options, this is a dictionary with three keys:
 
  * "model_ligands": A list of ligands in the model. If ligands were provided
    explicitly with --model-ligands, elements of the list will be the paths to
-   the ligand SDF file(s). Otherwise, they will be the chain name and residue
-   number of the ligand, separated by a dot.
+   the ligand SDF file(s). Otherwise, they will be the chain name, residue
+   number and insertion code of the ligand, separated by a dot.
  * "reference_ligands": A list of ligands in the reference. If ligands were
    provided explicitly with --reference-ligands, elements of the list will be
-   the paths to the ligand SDF file(s). Otherwise, they will be the chain name
-   and residue number of the ligand, separated by a dot.
+   the paths to the ligand SDF file(s). Otherwise, they will be the chain name,
+   residue number and insertion code of the ligand, separated by a dot.
  * "status": SUCCESS if everything ran through. In case of failure, the only
    content of the JSON output will be \"status\" set to FAILURE and an
    additional key: "traceback".
@@ -300,6 +300,12 @@ def _Validate(structure, ligands, legend, fault_tolerant=False):
                     raise ValueError(msg)
 
 
+def _QualifiedResidueNotation(r):
+    """Return a parsable string of the residue in the format:
+    ChainName.ResidueNumber.InsertionCode."""
+    return f"{r.chain.name}.{r.number.num}.{r.number.ins_code}"
+
+
 def _Process(model, model_ligands, reference, reference_ligands, args):
 
     scorer = ligand_scoring.LigandScorer(
@@ -314,7 +320,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         global_chain_mapping=args.global_chain_mapping,
         radius=args.radius,
         lddt_pli_radius=args.lddt_pli_radius,
-        lddt_lp_radius=args.lddt_lp_radius
+        lddt_lp_radius=args.lddt_lp_radius,
     )
 
     out = dict()
@@ -327,7 +333,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                                                   args.model_ligands)}
         out["model_ligands"] = args.model_ligands
     else:
-        model_ligands_map = {l: "%s.%s" % (l.chain.name, l.number)
+        model_ligands_map = {l: _QualifiedResidueNotation(l)
                              for l in scorer.model_ligands}
         out["model_ligands"] = list(model_ligands_map.values())
 
@@ -339,7 +345,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                                                   args.reference_ligands)}
         out["reference_ligands"] = args.reference_ligands
     else:
-        reference_ligands_map = {l: "%s.%s" % (l.chain.name, l.number)
+        reference_ligands_map = {l: _QualifiedResidueNotation(l)
                              for l in scorer.target_ligands}
         out["reference_ligands"] = list(reference_ligands_map.values())
 
@@ -355,14 +361,14 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 lddt_pli["transform"] = [transform_data[i:i + 4]
                                          for i in range(0, len(transform_data),
                                                         4)]
-                lddt_pli["bs_ref_res"] = [r.qualified_name for r in
+                lddt_pli["bs_ref_res"] = [_QualifiedResidueNotation(r) for r in
                                           lddt_pli["bs_ref_res"]]
-                lddt_pli["bs_ref_res_mapped"] = [r.qualified_name for r in
+                lddt_pli["bs_ref_res_mapped"] = [_QualifiedResidueNotation(r) for r in
                                                  lddt_pli["bs_ref_res_mapped"]]
-                lddt_pli["bs_mdl_res_mapped"] = [r.qualified_name for r in
+                lddt_pli["bs_mdl_res_mapped"] = [_QualifiedResidueNotation(r) for r in
                                                  lddt_pli["bs_mdl_res_mapped"]]
                 lddt_pli["inconsistent_residues"] = ["%s-%s" %(
-                    x.qualified_name, y.qualified_name) for x,y in lddt_pli[
+                    _QualifiedResidueNotation(x), _QualifiedResidueNotation(y)) for x,y in lddt_pli[
                     "inconsistent_residues"]]
                 out["lddt_pli"][model_key] = lddt_pli
 
@@ -377,14 +383,14 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 transform_data = rmsd["transform"].data
                 rmsd["transform"] = [transform_data[i:i + 4]
                                      for i in range(0, len(transform_data), 4)]
-                rmsd["bs_ref_res"] = [r.qualified_name for r in
+                rmsd["bs_ref_res"] = [_QualifiedResidueNotation(r) for r in
                                       rmsd["bs_ref_res"]]
-                rmsd["bs_ref_res_mapped"] = [r.qualified_name for r in
+                rmsd["bs_ref_res_mapped"] = [_QualifiedResidueNotation(r) for r in
                                              rmsd["bs_ref_res_mapped"]]
-                rmsd["bs_mdl_res_mapped"] = [r.qualified_name for r in
+                rmsd["bs_mdl_res_mapped"] = [_QualifiedResidueNotation(r) for r in
                                              rmsd["bs_mdl_res_mapped"]]
                 rmsd["inconsistent_residues"] = ["%s-%s" %(
-                    x.qualified_name, y.qualified_name) for x,y in rmsd[
+                    _QualifiedResidueNotation(x), _QualifiedResidueNotation(y)) for x,y in rmsd[
                     "inconsistent_residues"]]
                 out["rmsd"][model_key] = rmsd
 
