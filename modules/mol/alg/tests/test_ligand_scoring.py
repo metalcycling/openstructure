@@ -338,6 +338,26 @@ class TestLigandScoring(unittest.TestCase):
         self.assertEqual(sc.lddt_pli_details["F"][mol.ResNum(1)]["target_ligand"].qualified_name, 'K.G3D1')
         self.assertEqual(sc.lddt_pli_details["F"][mol.ResNum(1)]["model_ligand"].qualified_name, 'F.G3D1')
 
+    def test_global_chain_mapping(self):
+        """Test that the global and local chain mappings works.
+
+        For RMSD, A: A results in a better chain mapping. However, C: A is a
+        better global chain mapping from an lDDT perspective (and lDDT-PLI).
+        """
+        trg, trg_seqres = io.LoadMMCIF(os.path.join('testfiles', "1r8q.cif.gz"), seqres=True)
+        mdl, mdl_seqres = io.LoadMMCIF(os.path.join('testfiles', "P84080_model_02.cif.gz"), seqres=True)
+        mdl_lig = io.LoadEntity(os.path.join('testfiles', "P84080_model_02_ligand_0.sdf"))
+
+        # Local by default
+        sc = LigandScorer(mdl, trg, [mdl_lig], None)
+        assert sc.rmsd_details["00001_L_2"][1]["chain_mapping"] == {'A': 'A'}
+        assert sc.lddt_pli_details["00001_L_2"][1]["chain_mapping"] == {'C': 'A'}
+
+        # Global
+        sc = LigandScorer(mdl, trg, [mdl_lig], None, global_chain_mapping=True)
+        assert sc.rmsd_details["00001_L_2"][1]["chain_mapping"] == {'C': 'A'}
+        assert sc.lddt_pli_details["00001_L_2"][1]["chain_mapping"] == {'C': 'A'}
+
 
 if __name__ == "__main__":
     from ost import testutils

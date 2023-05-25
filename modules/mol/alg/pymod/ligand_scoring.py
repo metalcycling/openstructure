@@ -174,14 +174,21 @@ class LigandScorer:
     :type lddt_lp_radius: :class:`float`
     :param binding_sites_topn: maximum number of target binding site
                                representations to assess, per target ligand.
+                               Ignored if `global_chain_mapping` is True.
     :type binding_sites_topn: :class:`int`
+    :param global_chain_mapping: set to True to use a global chain mapping for
+                                 the polymer (protein, nucleotide) chains.
+                                 Defaults to False, in which case only local
+                                 chain mappings are allowed (where different
+                                 ligand may be scored against different chain
+                                 mappings).
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
                  resnum_alignments=False, check_resnames=True,
                  rename_ligand_chain=False,
                  chain_mapper=None, substructure_match=False,
                  radius=4.0, lddt_pli_radius=6.0, lddt_lp_radius=10.0,
-                 binding_sites_topn=100000):
+                 binding_sites_topn=100000, global_chain_mapping=False):
 
         if isinstance(model, mol.EntityView):
             self.model = mol.CreateEntityFromView(model, False)
@@ -226,6 +233,7 @@ class LigandScorer:
         self.lddt_pli_radius = lddt_pli_radius
         self.lddt_lp_radius = lddt_lp_radius
         self.binding_sites_topn = binding_sites_topn
+        self.global_chain_mapping = global_chain_mapping
 
         # scoring matrices
         self._rmsd_matrix = None
@@ -415,9 +423,15 @@ class LigandScorer:
                         ref_bs.AddResidue(r, mol.ViewAddFlag.INCLUDE_ALL)
 
             # Find the representations
-            self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
-                ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
-                topn=self.binding_sites_topn)
+            if self.global_chain_mapping:
+                mapping_res = self.chain_mapper.GetMapping(self.model)
+                self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
+                    ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
+                    global_mapping = mapping_res)
+            else:
+                self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
+                    ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
+                    topn=self.binding_sites_topn)
         return self._binding_sites[ligand.hash_code]
 
     @staticmethod
