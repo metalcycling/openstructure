@@ -633,6 +633,18 @@ def _Main():
                                bu_idx=args.model_biounit,
                                fault_tolerant = args.fault_tolerant)
         out = _Process(model, reference, args)
+
+        # append input arguments
+        out["model"] = args.model
+        out["reference"] = args.reference
+        out["fault_tolerant"] = args.fault_tolerant
+        out["model_biounit"] = args.model_biounit
+        out["reference_biounit"] = args.reference_biounit
+        out["residue_number_alignment"] = args.residue_number_alignment
+        out["enforce_consistency"] = args.enforce_consistency
+        out["cad_exec"] = args.cad_exec
+        out["usalign_exec"] = args.usalign_exec
+        out["lddt_no_stereochecks"] = args.lddt_no_stereochecks
         out["status"] = "SUCCESS"
         with open(args.output, 'w') as fh:
             json.dump(out, fh, indent=4, sort_keys=False)
