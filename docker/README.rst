@@ -116,6 +116,15 @@ In order to see all available options for this action run:
 
   docker run --rm <IMAGE NAME> compare-structures -h
 
+CASP15 used lDDT for RNA scoring. lDDT runs stereochemistry checks by default,
+removing sidechains if they have problematic stereochemistry. This gives lower
+lDDT scores. The full residue is removed if the backbone has problematic
+stereochemistry resulting in an lDDT score of 0.0 for that particular residue.
+Stereochemistry checks for RNA were not yet available in CASP15. To reproduce
+these results, use the ``--lddt-no-stereochecks`` flag. This disables
+stereochemistry checks for lDDT computation but stereochemical irregularities
+are still reported in the output.
+
 Scripts
 #######
 
