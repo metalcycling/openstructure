@@ -409,7 +409,9 @@ int ChainImpl::GetIndexForResNumInSequence(const ResNum& number) const
   if (pos<0 || pos>=static_cast<int>(residue_list_.size())) {
     return -1;
   }
-  assert(residue_list_[pos]->GetNumber()==number);
+
+  if(residue_list_[pos]->GetNumber()!=number) return -1;
+
   return pos;
 }
 
