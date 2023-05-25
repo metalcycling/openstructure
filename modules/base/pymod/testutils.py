@@ -1,5 +1,13 @@
+import inspect
+import sys
+import unittest
+
+from ost import xmlrunner
+from ost.conop import GetDefaultLib
+
+
 def RunTests():
-  '''
+  """
   This function behaves as a custom TestLoader for python unittests.
 
   With no system arguments, the default unittest TestRunner is used.
@@ -31,20 +39,15 @@ def RunTests():
       from ost import testutils
       testutils.RunTests()
 
-  '''
-  import unittest
-  import sys
+  """
   try:
-    if len(sys.argv)>1 and sys.argv[1]=='xml':
-      import inspect
-      import types
+    if len(sys.argv) > 1 and sys.argv[1] == 'xml':
       import __main__
-      from ost import xmlrunner
       for name, obj in inspect.getmembers(__main__):
         if (isinstance(obj, type) and
                             issubclass(obj, unittest.TestCase)):
           suite = unittest.TestLoader().loadTestsFromTestCase(obj)
-          stream = open('PYTEST-%s.xml'%name, 'w')
+          stream = open('PYTEST-%s.xml' % name, 'w')
           xmlrunner.XMLTestRunner(stream).run(suite)
           stream.close()
 
@@ -55,13 +58,12 @@ def RunTests():
 
 
 def DefaultCompoundLibIsSet():
-  '''
+  """
   This function checks if a default compound library is set.
 
   :return: True, if a compound library was found and set to be accessed with
            :func:`ost.conop.GetDefaultLib`. False otherwise.
-  '''
-  from ost. conop import GetDefaultLib
+  """
   # check if already there
   if GetDefaultLib():
     return True
