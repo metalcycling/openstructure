@@ -272,6 +272,9 @@ public:
   /// 
   /// Useful for templated code and duck-typing in Python
   EntityHandle GetHandle() const;
+
+  unsigned long GetHashCode() const;
+  
   bool operator==(const EntityHandle& ref) const;
   bool operator!=(const EntityHandle& ref) const;
 };
