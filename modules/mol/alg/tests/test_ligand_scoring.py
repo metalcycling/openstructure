@@ -377,6 +377,25 @@ class TestLigandScoring(unittest.TestCase):
         assert sc.rmsd_details["L_2"][1]["chain_mapping"] == {'C': 'A'}
         assert sc.lddt_pli_details["L_2"][1]["chain_mapping"] == {'C': 'A'}
 
+    def test_rmsd_assignment(self):
+        """Test that the RMSD-based assignment works.
+
+        For RMSD, A: A results in a better chain mapping. However, C: A is a
+        better global chain mapping from an lDDT perspective (and lDDT-PLI).
+        """
+        trg = _LoadMMCIF("1r8q.cif.gz")
+        mdl = _LoadMMCIF("P84080_model_02.cif.gz")
+
+        # By default, assignment differs between RMSD and lDDT-PLI in this
+        # specific test case, so we can first ensure it does.
+        # For now we skip as this is slow
+        # sc = LigandScorer(mdl, trg, None, None)
+        # assert sc.rmsd_details["L_2"][1]["target_ligand"] != sc.lddt_pli_details["L_2"][1]["target_ligand"]
+
+        # RMSD assignment forces the same assignment
+        sc = LigandScorer(mdl, trg, None, None, rmsd_assignment=True)
+        assert sc.rmsd_details["L_2"][1]["target_ligand"] == sc.lddt_pli_details["L_2"][1]["target_ligand"]
+
 
 if __name__ == "__main__":
     from ost import testutils
