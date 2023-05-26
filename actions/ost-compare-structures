@@ -654,6 +654,11 @@ def _Main():
 
     args = _ParseArgs()
     try:
+        compute_cad = args.cad_score or args.local_cad_score
+        if compute_cad and not args.residue_number_alignment:
+            raise RuntimeError("Only support CAD score when residue numbers in "
+                               "model and reference match. Use -rna flag if "
+                               "this is the case.")
         reference = _LoadStructure(args.reference,
                                    sformat=args.reference_format,
                                    bu_idx=args.reference_biounit,
