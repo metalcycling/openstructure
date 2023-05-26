@@ -9,6 +9,18 @@ from ost import geom
 from ost import mol
 
 
+def _AtomToQualifiedName(a):
+    """ Returns string to uniquely identify atom
+
+    format: <chain_name>.<resnum>.<resnum_inscode>.<atom_name>
+    """
+    r = a.GetResidue()
+    ch = r.GetChain()
+    num = r.number.num
+    ins_code = r.number.ins_code.strip("\u0000")
+    return f"{ch.name}.{r.number.num}.{ins_code}.{a.name}"
+
+
 def _PotentialDisulfid(a_one, a_two):
     """ Returns whether two atoms can potentially build a disulfid bond
 
@@ -355,9 +367,12 @@ class ClashInfo:
 
     def ToJSON(self):
         """ Return JSON serializable dict
+
+        Atoms are represented by a string in format:
+        <chain_name>.<resnum>.<resnum_inscode>.<atom_name>
         """
-        return {"a1": self.a1.GetQualifiedName(),
-                "a2": self.a2.GetQualifiedName(),
+        return {"a1": _AtomToQualifiedName(self.a1),
+                "a2": _AtomToQualifiedName(self.a2),
                 "dist": self.dist,
                 "tolerated_dist": self.tolerated_dist}
 
@@ -382,9 +397,12 @@ class BondViolationInfo:
 
     def ToJSON(self):
         """ Return JSON serializable dict
+
+        Atoms are represented by a string in format:
+        <chain_name>.<resnum>.<resnum_inscode>.<atom_name>
         """
-        return {"a1": self.a1.GetQualifiedName(),
-                "a2": self.a2.GetQualifiedName(),
+        return {"a1": _AtomToQualifiedName(self.a1),
+                "a2": _AtomToQualifiedName(self.a2),
                 "length": self.length,
                 "exp_length": self.exp_length,
                 "std": self.std}
@@ -412,10 +430,13 @@ class AngleViolationInfo:
 
     def ToJSON(self):
         """ Return JSON serializable dict
+
+        Atoms are represented by a string in format:
+        <chain_name>.<resnum>.<resnum_inscode>.<atom_name>
         """
-        return {"a1": self.a1.GetQualifiedName(),
-                "a2": self.a2.GetQualifiedName(),
-                "a3": self.a3.GetQualifiedName(),
+        return {"a1": _AtomToQualifiedName(self.a1),
+                "a2": _AtomToQualifiedName(self.a2),
+                "a3": _AtomToQualifiedName(self.a3),
                 "angle": self.angle,
                 "exp_angle": self.exp_angle,
                 "std": self.std}
