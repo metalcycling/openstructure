@@ -177,6 +177,14 @@ def _ParseArgs():
         help=("Use a global chain mapping."))
 
     parser.add_argument(
+        "-ra",
+        "--rmsd-assignment",
+        dest="rmsd_assignment",
+        default=False,
+        action="store_true",
+        help=("Use RMSD for ligand assignment."))
+
+    parser.add_argument(
         "--lddt-pli",
         dest="lddt_pli",
         default=False,
@@ -318,6 +326,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         rename_ligand_chain=True,
         substructure_match=args.substructure_match,
         global_chain_mapping=args.global_chain_mapping,
+        rmsd_assignment=args.rmsd_assignment,
         radius=args.radius,
         lddt_pli_radius=args.lddt_pli_radius,
         lddt_lp_radius=args.lddt_lp_radius,
