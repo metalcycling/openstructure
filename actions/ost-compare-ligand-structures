@@ -250,8 +250,7 @@ def _LoadStructure(structure_path, format="auto", fault_tolerant=False):
 
     # Load the structure
     if format in ["mmcif", "cif"]:
-        entity, seqres = io.LoadMMCIF(structure_path, seqres=True,
-                                      fault_tolerant=fault_tolerant)
+        entity = io.LoadMMCIF(structure_path, fault_tolerant=fault_tolerant)
         if len(entity.residues) == 0:
             raise Exception(f"No residues found in file: {structure_path}")
     elif format == "pdb":

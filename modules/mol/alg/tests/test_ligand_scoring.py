@@ -22,7 +22,7 @@ def _GetTestfilePath(filename):
 @lru_cache(maxsize=None)
 def _LoadMMCIF(filename):
     path = _GetTestfilePath(filename)
-    ent, seqres = io.LoadMMCIF(path, seqres=True)
+    ent = io.LoadMMCIF(path)
     return ent
 
 

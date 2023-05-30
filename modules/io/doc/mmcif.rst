@@ -64,9 +64,8 @@ Notes:
   It is added as string property named "pdb_auth_chain_name" to the
   :class:`~ost.mol.ChainHandle`. The mapping is also stored in
   :class:`MMCifInfo` as :meth:`~MMCifInfo.GetMMCifPDBChainTr` and
-  :meth:`~MMCifInfo.GetPDBMMCifChainTr` if SEQRES records are read in
-  :func:`~ost.io.LoadMMCIF` and a non-empty SEQRES record exists for that chain
-  (this should exclude ligands and water).
+  :meth:`~MMCifInfo.GetPDBMMCifChainTr` if a non-empty SEQRES record exists for
+  that chain (this should exclude ligands and water).
 * Molecular entities in mmCIF are identified by an ``entity.id``, which is
   extracted from ``atom_site.label_entity_id`` for the first atom of the chain.
   It is added as string property named "entity_id" to the
@@ -98,12 +97,6 @@ Info Classes
 Information from mmCIF files that goes beyond structural data, is kept in a
 special container, the :class:`MMCifInfo` class. Here is a detailed description
 of the annotation available.
-
-.. note::
-
-  Some fields of the ``MMCifInfo`` container are only populated if SEQRES
-  records are read in :func:`~ost.io.LoadMMCIF` and a compound library is
-  available (see :func:`~ost.conop.GetDefaultLib`)
 
 .. class:: MMCifInfo
 
@@ -278,9 +271,7 @@ of the annotation available.
   .. method:: GetMMCifPDBChainTr(cif_chain_id)
 
     Get the translation of a certain mmCIF chain name to the traditional PDB
-    chain name. Only works if SEQRES records are read in
-    :func:`~ost.io.LoadMMCIF` and a compound library is available (see
-    :func:`~ost.conop.GetDefaultLib`).
+    chain name.
 
     :param cif_chain_id: atom_site.label_asym_id
     :type cif_chain_id: :class:`str`
@@ -298,8 +289,6 @@ of the annotation available.
   .. method:: GetPDBMMCifChainTr(pdb_chain_id)
 
     Get the translation of a certain PDB chain name to the mmCIF chain name.
-    Only works if SEQRES records are read in :func:`~ost.io.LoadMMCIF` and a
-    compound library is available (see :func:`~ost.conop.GetDefaultLib`).
 
     :param pdb_chain_id: atom_site.auth_asym_id
     :type pdb_chain_id: :class:`str`

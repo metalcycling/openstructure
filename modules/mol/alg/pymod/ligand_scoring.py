@@ -111,7 +111,7 @@ class LigandScorer:
         # Ligand model as SDF file
         model_ligand = io.LoadEntity("path_to_ligand.sdf", format="sdf")
         # Target loaded from mmCIF, containing the ligand
-        target, _ = io.LoadMMCIF("path_to_target.cif", seqres=True)
+        target = io.LoadMMCIF("path_to_target.cif")
 
         # Cleanup a copy of the structures
         cleaned_model = model.Copy()

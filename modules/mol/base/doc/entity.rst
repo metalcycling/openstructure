@@ -741,11 +741,6 @@ The Handle Classes
   
   .. attribute:: is_ligand
 
-    .. warning::
-      This property is meaningless on mmCIF files loaded with
-      :func:`ost.io.LoadMMCIF` with `seqres=False` (the default), or if no
-      default compound library is set.
-
     Whether the residue is a ligand. When loading PDB structures, this property
     is set based on the HET records. This also means, that this property will
     most likely not be set properly for all except PDB files coming from
