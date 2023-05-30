@@ -330,10 +330,8 @@ TMAlignResult WrappedTMAlign(const geom::Vec3List& pos_one,
   // squeeze input into right format
   char* seqx = new char[xlen+1];
   char* seqy = new char[ylen+1];
-  seqx[xlen] = '\0';
-  seqy[ylen] = '\0';
-  char* secx = new char[xlen];
-  char* secy = new char[ylen];
+  char* secx = new char[xlen+1];
+  char* secy = new char[ylen+1];
 
   // use TMalign functionality to generate position arrays
   double** xa;
