@@ -9,6 +9,8 @@ Changes in Release 2.5.0
    ligand scoring (both with the action and module).
  * Additional chain and residue properties are read from mmCIF allowing basic
    mapping between label and author chain and residue numbers.
+ * USalign support - as binding that calls external USalign executable or
+   direct injection of macromolecules on the C++ level.
  * Several bug fixes and improvements.
 
 Changes in Release 2.4.0
