@@ -414,6 +414,7 @@ BOOST_AUTO_TEST_CASE(mmcif_entity_poly_tests)
   BOOST_TEST_MESSAGE("          testing type recognition...");
   {
     TestMMCifReaderProtected tmmcif_p("testfiles/mmcif/atom_site.mmcif", eh);
+    tmmcif_p.SetReadSeqRes(false);
     std::vector<StringRef> columns;
 
     // create corresponding entity entry

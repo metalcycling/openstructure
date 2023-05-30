@@ -24,8 +24,13 @@
 #include <ost/dyn_cast.hh>
 #include <ost/mol/xcs_editor.hh>
 #include <ost/conop/conop.hh>
+#include <ost/conop/minimal_compound_lib.hh>
 
 #include <ost/io/mol/mmcif_reader.hh>
+
+
+
+#include <iostream>
 
 namespace ost { namespace io {
 
@@ -65,7 +70,7 @@ void MMCifReader::Init()
   curr_chain_           = mol::ChainHandle();
   curr_residue_         = mol::ResidueHandle();
   seqres_               = seq::CreateSequenceList();
-  read_seqres_          = false;
+  read_seqres_          = true;
   warned_rule_based_    = false;
   info_                 = MMCifInfo();
 }
@@ -742,15 +747,16 @@ void MMCifReader::ParseEntityPoly(const std::vector<StringRef>& columns)
     } else if (indices_[PDBX_SEQ_ONE_LETTER_CODE] != -1) {
       seqres=columns[indices_[PDBX_SEQ_ONE_LETTER_CODE]];
 
-      conop::CompoundLibPtr comp_lib=conop::Conopology::Instance()
-                                            .GetDefaultLib();
+      conop::CompoundLibBasePtr comp_lib=conop::Conopology::Instance()
+                                                .GetDefaultLib();
       if (!comp_lib) {
         if (!warned_rule_based_) {
-          LOG_WARNING("SEQRES import requires a compound library. "
-                       "Ignoring SEQRES records");      
+          LOG_WARNING("SEQRES import requires a valid compound library to "
+                       "handle non standard compounds. Their One letter "
+                       "codes will be set to X.");      
         }
         warned_rule_based_=true;
-        return;
+        comp_lib = conop::CompoundLibBasePtr(new ost::conop::MinimalCompoundLib);
       }
       edm_it->second.seqres = this->ConvertSEQRES(seqres.str_no_whitespace(),
                                                   comp_lib);
@@ -763,7 +769,7 @@ void MMCifReader::ParseEntityPoly(const std::vector<StringRef>& columns)
 }
 
 String MMCifReader::ConvertSEQRES(const String& seqres, 
-                                  conop::CompoundLibPtr comp_lib)
+                                  conop::CompoundLibBasePtr comp_lib)
 {
   String can_seqres;
   for (String::const_iterator i=seqres.begin(), e=seqres.end(); i!=e; ++i) {

@@ -393,14 +393,15 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
                  interpreted as the pdb id.
   :type remote: :class:`bool`
 
-  :param seqres: Whether to read SEQRES records. If True, a
+  :param seqres: Whether to return SEQRES records. If True, a
                  :class:`~ost.seq.SequenceList` object is returned as the second
                  item. The sequences in the list are named according to the
                  mmCIF chain name.
                  This feature requires a default
                  :class:`compound library <ost.conop.CompoundLib>`
                  to be defined and accessible via
-                 :func:`~ost.conop.GetDefaultLib` or an empty list is returned.
+                 :func:`~ost.conop.GetDefaultLib`. One letter codes of non
+                 standard compounds are set to X otherwise.
   :type seqres: :class:`bool`
 
   :param info: Whether to return an info container with the other output.
@@ -434,7 +435,6 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
   try:
     ent = mol.CreateEntity()
     reader = MMCifReader(filename, ent, prof)
-    reader.read_seqres = seqres
     
     # NOTE: to speed up things, we could introduce a restrict_chains parameter
     #       similar to the one in LoadPDB. Here, it would have to be a list/set

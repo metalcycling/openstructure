@@ -240,7 +240,7 @@ protected:
   /// not possible, however, since the PDB assigns multiple one letter codes 
   /// to some of the residues. To be consistent, we have to do the conversion
   /// on our own.
-  String ConvertSEQRES(const String& seqres, conop::CompoundLibPtr compound_lib);
+  String ConvertSEQRES(const String& seqres, conop::CompoundLibBasePtr compound_lib);
   /// \brief Fetch mmCIF citation_author information
   ///
   /// \param columns data row
