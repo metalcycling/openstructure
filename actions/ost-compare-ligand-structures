@@ -311,7 +311,12 @@ def _Validate(structure, ligands, legend, fault_tolerant=False):
 def _QualifiedResidueNotation(r):
     """Return a parsable string of the residue in the format:
     ChainName.ResidueNumber.InsertionCode."""
-    return f"{r.chain.name}.{r.number.num}.{r.number.ins_code}"
+    resnum = r.number
+    return "{cname}.{rnum}.{ins_code}".format(
+        cname=r.chain.name,
+        rnum=resnum.num,
+        ins_code=resnum.ins_code.strip("\u0000"),
+    )
 
 
 def _Process(model, model_ligands, reference, reference_ligands, args):
