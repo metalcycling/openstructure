@@ -28,10 +28,6 @@
 
 #include <ost/io/mol/mmcif_reader.hh>
 
-
-
-#include <iostream>
-
 namespace ost { namespace io {
 
 
