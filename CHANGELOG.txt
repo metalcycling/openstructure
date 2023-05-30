@@ -1,3 +1,16 @@
+Changes in Release 2.5.0
+--------------------------------------------------------------------------------
+
+ * A default compound library is set and the rule-base processor is set as the
+   default processor when the ost module is imported. As a result, OpenStructure
+   will behave more like a script run with the `ost` command in python scripts,
+   Jupyter notebooks, ipython sessions, etc.
+ * Global chain mapping and assignment based on RMSD only are available for
+   ligand scoring (both with the action and module).
+ * Additional chain and residue properties are read from mmCIF allowing basic
+   mapping between label and author chain and residue numbers.
+ * Several bug fixes and improvements.
+
 Changes in Release 2.4.0
 --------------------------------------------------------------------------------
 
