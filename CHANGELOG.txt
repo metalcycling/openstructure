@@ -11,6 +11,10 @@ Changes in Release 2.5.0
    mapping between label and author chain and residue numbers.
  * USalign support - as binding that calls external USalign executable or
    direct injection of macromolecules on the C++ level.
+ * Added functionality in compare-structures action: backbone only lDDT,
+   flag to disable stereochemistry checks for lDDT, TMscore (including
+   associated chain mapping) computed by USalign, make residues/atoms uniquely
+   identifiable (also considering residue number insertion codes).
  * Several bug fixes and improvements.
 
 Changes in Release 2.4.0
