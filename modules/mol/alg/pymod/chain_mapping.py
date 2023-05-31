@@ -1228,18 +1228,18 @@ class ChainMapper:
         return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
                              final_mapping, alns)
 
-    def GetMapping(self, model):
+    def GetMapping(self, model, n_max_naive = 12):
         """ Convenience function to get mapping with currently preferred method
 
-        If number of chains in model and target are <= 12, a naive QS-score
-        mapping is performed. For anything else, a QS-score mapping with the
-        greedy_block strategy is performed (steep_opt_rate = 3,
+        If number of chains in model and target are <= *n_max_naive*, a naive
+        QS-score mapping is performed. For anything else, a QS-score mapping
+        with the greedy_block strategy is performed (steep_opt_rate = 3,
         block_seed_size = 5, block_blocks_per_chem_group = 6).
         """
         n_trg_chains = len(self.target.chains)
         res = self.GetChemMapping(model)
         n_mdl_chains = len(res[2].chains)
-        if n_trg_chains <= 12 and n_mdl_chains <= 12:
+        if n_trg_chains <= n_max_naive and n_mdl_chains <= n_max_naive:
             return self.GetQSScoreMapping(model, strategy="naive",
                                           chem_mapping_result=res)
         else:
