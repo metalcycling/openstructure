@@ -177,6 +177,16 @@ def _ParseArgs():
         help=("Use a global chain mapping."))
 
     parser.add_argument(
+        "-c",
+        "--chain-mapping",
+        nargs="+",
+        dest="chain_mapping",
+        help=("Custom mapping of chains between the reference and the model. "
+              "Each separate mapping consist of key:value pairs where key "
+              "is the chain name in reference and value is the chain name in "
+              "model. Only has an effect if global-chain-mapping flag is set."))
+
+    parser.add_argument(
         "-ra",
         "--rmsd-assignment",
         dest="rmsd_assignment",
@@ -330,6 +340,10 @@ def _QualifiedResidueNotation(r):
 
 def _Process(model, model_ligands, reference, reference_ligands, args):
 
+    mapping = None
+    if args.chain_mapping is not None:
+        mapping = {x.split(':')[0]: x.split(':')[1] for x in args.chain_mapping}
+
     scorer = ligand_scoring.LigandScorer(
         model=model,
         target=reference,
@@ -344,7 +358,8 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         radius=args.radius,
         lddt_pli_radius=args.lddt_pli_radius,
         lddt_lp_radius=args.lddt_lp_radius,
-        n_max_naive=args.n_max_naive
+        n_max_naive=args.n_max_naive,
+        custom_mapping=mapping
     )
 
     out = dict()
