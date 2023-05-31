@@ -278,6 +278,7 @@ class LigandScorer:
 
         # lazily precomputed variables
         self._binding_sites = {}
+        self.__model_mapping = None
 
     @property
     def chain_mapper(self):
@@ -290,6 +291,13 @@ class LigandScorer:
                                                            n_max_naive=1e9,
                                                            resnum_alignments=self.resnum_alignments)
         return self._chain_mapper
+
+    @property
+    def _model_mapping(self):
+        """Get the global chain mapping for the model."""
+        if self.__model_mapping is None:
+            self.__model_mapping = self.chain_mapper.GetMapping(self.model)
+        return self.__model_mapping
 
     @staticmethod
     def _extract_ligands(entity):
@@ -453,10 +461,9 @@ class LigandScorer:
 
             # Find the representations
             if self.global_chain_mapping:
-                mapping_res = self.chain_mapper.GetMapping(self.model)
                 self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
                     ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
-                    global_mapping = mapping_res)
+                    global_mapping = self._model_mapping)
             else:
                 self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
                     ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
