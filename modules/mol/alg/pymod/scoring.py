@@ -128,11 +128,16 @@ class Scorer:
     :param lddt_no_stereochecks: Whether to compute lDDT without stereochemistry
                                 checks
     :type lddt_no_stereochecks: :class:`bool`
+    :param n_max_naive: Parameter for chain mapping. If *model* and *target*
+                        have less or equal that number of chains, the full
+                        mapping solution space is enumerated to find the
+                        the optimum. A heuristic is used otherwise.
+    :type n_max_naive: :class:`int`
     """
     def __init__(self, model, target, resnum_alignments=False,
                  molck_settings = None, cad_score_exec = None,
                  custom_mapping=None, usalign_exec = None,
-                 lddt_no_stereochecks=False):
+                 lddt_no_stereochecks=False, n_max_naive=12):
 
         if isinstance(model, mol.EntityView):
             model = mol.CreateEntityFromView(model, False)
@@ -200,6 +205,7 @@ class Scorer:
         self.cad_score_exec = cad_score_exec
         self.usalign_exec = usalign_exec
         self.lddt_no_stereochecks = lddt_no_stereochecks
+        self.n_max_naive = n_max_naive
 
         # lazily evaluated attributes
         self._stereochecked_model = None
@@ -419,7 +425,9 @@ class Scorer:
         :type: :class:`ost.mol.alg.chain_mapping.MappingResult` 
         """
         if self._mapping is None:
-            self._mapping = self.chain_mapper.GetMapping(self.model)
+            self._mapping = \
+            self.chain_mapper.GetMapping(self.model,
+                                         n_max_naive = self.n_max_naive)
         return self._mapping
 
     @property

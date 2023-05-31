@@ -209,6 +209,12 @@ class LigandScorer:
                             (False) is to use a combination of lDDT-PLI and
                             RMSD for the assignment.
     :type rmsd_assignment: :class:`bool`
+    :param n_max_naive: Parameter for global chain mapping. If *model* and
+                        *target* have less or equal that number of chains,
+                        the full
+                        mapping solution space is enumerated to find the
+                        the optimum. A heuristic is used otherwise.
+    :type n_max_naive: :class:`int`
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
                  resnum_alignments=False, check_resnames=True,
@@ -216,7 +222,7 @@ class LigandScorer:
                  chain_mapper=None, substructure_match=False,
                  radius=4.0, lddt_pli_radius=6.0, lddt_lp_radius=10.0,
                  binding_sites_topn=100000, global_chain_mapping=False,
-                 rmsd_assignment=False):
+                 rmsd_assignment=False, n_max_naive=12):
 
         if isinstance(model, mol.EntityView):
             self.model = mol.CreateEntityFromView(model, False)
@@ -263,6 +269,7 @@ class LigandScorer:
         self.binding_sites_topn = binding_sites_topn
         self.global_chain_mapping = global_chain_mapping
         self.rmsd_assignment = rmsd_assignment
+        self.n_max_naive = n_max_naive
 
         # scoring matrices
         self._rmsd_matrix = None
@@ -296,7 +303,8 @@ class LigandScorer:
     def _model_mapping(self):
         """Get the global chain mapping for the model."""
         if self.__model_mapping is None:
-            self.__model_mapping = self.chain_mapper.GetMapping(self.model)
+            self.__model_mapping = self.chain_mapper.GetMapping(self.model,
+                                                                n_max_naive=self.n_max_naive)
         return self.__model_mapping
 
     @staticmethod

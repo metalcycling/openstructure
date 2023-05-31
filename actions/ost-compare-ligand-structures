@@ -226,6 +226,16 @@ def _ParseArgs():
         default=3,
         help="Set verbosity level. Defaults to 3 (INFO).")
 
+    parser.add_argument(
+        "--n-max-naive",
+        dest="n_max_naive",
+        required=False,
+        default=12,
+        type=int,
+        help=("If number of chains in model and reference are below or equal "
+              "that number, the global chain mapping will naively enumerate "
+              "all possible mappings. A heuristic is used otherwise."))
+
     return parser.parse_args()
 
 
@@ -334,6 +344,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         radius=args.radius,
         lddt_pli_radius=args.lddt_pli_radius,
         lddt_lp_radius=args.lddt_lp_radius,
+        n_max_naive=args.n_max_naive
     )
 
     out = dict()
