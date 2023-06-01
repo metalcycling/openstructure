@@ -377,6 +377,17 @@ class TestLigandScoring(unittest.TestCase):
         assert sc.rmsd_details["L_2"][1]["chain_mapping"] == {'C': 'A'}
         assert sc.lddt_pli_details["L_2"][1]["chain_mapping"] == {'C': 'A'}
 
+        # Custom
+        sc = LigandScorer(mdl, trg, None, None, global_chain_mapping=True, custom_mapping={'A': 'A'})
+        assert sc.rmsd_details["L_2"][1]["chain_mapping"] == {'A': 'A'}
+        assert sc.lddt_pli_details["L_2"][1]["chain_mapping"] == {'A': 'A'}
+
+        # Custom only active with global chain mapping
+        sc = LigandScorer(mdl, trg, None, None, global_chain_mapping=False, custom_mapping={'A': 'A'})
+        assert sc.rmsd_details["L_2"][1]["chain_mapping"] == {'A': 'A'}
+        assert sc.lddt_pli_details["L_2"][1]["chain_mapping"] == {'C': 'A'}
+
+
     def test_rmsd_assignment(self):
         """Test that the RMSD-based assignment works.
 
