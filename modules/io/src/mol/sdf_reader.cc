@@ -188,9 +188,15 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
   LOG_TRACE( "line: [" << line << "]" );
 
   if(line.length()<48 || line.length()>69) {
-    String msg="Bad atom line %d: Not correct number of characters on the"
-               " line: %i (should be between 48 and 69)";
-    throw IOException(str(format(msg) % line_num % line.length()));
+    // Handle the case where we have trailing space characters
+    if (line.length()>69 && boost::trim_copy(line.substr(69)) == "") {
+      LOG_DEBUG( "Ignoring trailing space" );
+    }
+    else {
+      String msg="Bad atom line %d: Not correct number of characters on the"
+                 " line: %i (should be between 48 and 69)";
+      throw IOException(str(format(msg) % line_num % line.length()));
+    }
   }
   int anum = line_num-4;  // start at 1 on fifth line since first four lines are header
   String s_posx=line.substr(0,10);
@@ -255,7 +261,7 @@ void SDFReader::ParseAndAddBond(const String& line, int line_num,
   if(line.length()<9 || line.length()>21) {
     // Handle the case where we have trailing space characters
     if (line.length()>21 && boost::trim_copy(line.substr(21)) == "") {
-      LOG_ERROR( "Ignoring trailing space" );
+      LOG_DEBUG( "Ignoring trailing space" );
     }
     else {
       String msg="Bad bond line %d: Not correct number of characters on the"
