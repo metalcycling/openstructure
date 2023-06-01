@@ -253,9 +253,15 @@ void SDFReader::ParseAndAddBond(const String& line, int line_num,
   LOG_TRACE( "line: [" << line << "]" );
 
   if(line.length()<9 || line.length()>21) {
-    String msg="Bad bond line %d: Not correct number of characters on the"
-               " line: %i (should be between 9 and 21)";
-    throw IOException(str(format(msg) % line_num % line.length()));
+    // Handle the case where we have trailing space characters
+    if (line.length()>21 && boost::trim_copy(line.substr(21)) == "") {
+      LOG_ERROR( "Ignoring trailing space" );
+    }
+    else {
+      String msg="Bad bond line %d: Not correct number of characters on the"
+                 " line: %i (should be between 9 and 21)";
+      throw IOException(str(format(msg) % line_num % line.length()));
+    }
   }
 
   String s_first_name=line.substr(0,3);
