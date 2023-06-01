@@ -159,6 +159,11 @@ void SDFReader::ParseAndAddHeader(const String& line, int line_num,
       break;
     case 4:  // counts line
     {
+      String version_str=line.substr(34, 5);
+      if (version_str != "V2000") {
+        String msg="Unsupported SDF version: %s.";
+        throw IOException(str(format(msg) % version_str));
+      }
       String s_anum=line.substr(0,3);
       try {
         atom_count_=boost::lexical_cast<int>(boost::trim_copy(s_anum));
