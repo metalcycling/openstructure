@@ -1702,6 +1702,7 @@ class Scorer:
 
         self._mapping = chain_mapping.MappingResult(chain_mapper.target, mdl,
                                                     chain_mapper.chem_groups,
+                                                    chem_mapping,
                                                     final_mapping, alns)
 
     def _compute_tmscore(self):
