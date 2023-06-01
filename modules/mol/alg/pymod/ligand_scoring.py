@@ -1154,6 +1154,7 @@ class LigandScorer:
 
         self.__model_mapping = chain_mapping.MappingResult(chain_mapper.target, mdl,
                                                            chain_mapper.chem_groups,
+                                                           chem_mapping,
                                                            final_mapping, alns)
 
 def _ResidueToGraph(residue, by_atom_index=False):
