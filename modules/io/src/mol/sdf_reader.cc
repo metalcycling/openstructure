@@ -71,11 +71,11 @@ void SDFReader::Import(mol::EntityHandle& ent)
     }
 
     if (line_num<=4) {
-      ParseAndAddHeader(line, line_num, ent, editor);
+      ParseHeader(line, line_num, ent, editor);
     } else if (line_num<=atom_count_+4) {
-      ParseAndAddAtom(line, line_num, ent, true, editor);
+      AddAtom(ParseAtom(line, line_num), line_num, ent, true, editor);
     } else if (line_num<=bond_count_+atom_count_+4) {
-      ParseAndAddBond(line, line_num, ent, editor);
+      AddBond(ParseBond(line, line_num), line_num, ent, editor);
     } else if (boost::iequals(line.substr(0,2), "> ")) {
       // parse data items
       int data_header_start = line.find('<');
@@ -129,7 +129,7 @@ void SDFReader::NextMolecule()
   curr_chain_ = ost::mol::ChainHandle();
 }
 
-void SDFReader::ParseAndAddHeader(const String& line, int line_num,
+void SDFReader::ParseHeader(const String& line, int line_num,
                                   mol::EntityHandle& ent, mol::XCSEditor& editor)
 {
   LOG_TRACE( "line: [" << line << "]" );
@@ -190,9 +190,7 @@ void SDFReader::ParseAndAddHeader(const String& line, int line_num,
   }
 }
 
-void SDFReader::ParseAndAddAtom(const String& line, int line_num,
-                                mol::EntityHandle& ent, bool hetatm,
-                                mol::XCSEditor& editor)
+SDFReader::atom_data SDFReader::ParseAtom(const String& line, int line_num)
 {
 
   LOG_TRACE( "line: [" << line << "]" );
@@ -214,6 +212,16 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
   String s_posz=line.substr(20,10);
   String s_ele=line.substr(31,3);
   String s_charge=line.substr(36,3);
+
+  return std::make_tuple(anum, s_posx, s_posy, s_posz, s_ele, s_charge);
+}
+
+void SDFReader::AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHandle& ent,
+               bool hetatm, mol::XCSEditor& editor)
+{
+  int anum;
+  String s_posx, s_posy, s_posz, s_ele, s_charge;
+  tie(anum, s_posx, s_posy, s_posz, s_ele, s_charge) = atom_tuple;
 
   geom::Vec3 apos;
   try {
@@ -262,8 +270,7 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
 }
 
 
-void SDFReader::ParseAndAddBond(const String& line, int line_num,
-                                mol::EntityHandle& ent, mol::XCSEditor& editor)
+SDFReader::bond_data SDFReader::ParseBond(const String& line, int line_num)
 {
 
   LOG_TRACE( "line: [" << line << "]" );
@@ -283,10 +290,20 @@ void SDFReader::ParseAndAddBond(const String& line, int line_num,
   String s_first_name=line.substr(0,3);
   String s_second_name=line.substr(3,3);
   String s_type=line.substr(6,3);
-  String first_name, second_name;
+
+  return std::make_tuple(s_first_name, s_second_name, s_type);
+}
+
+void SDFReader::AddBond(const bond_data& bond_tuple, int line_num, mol::EntityHandle& ent,
+               mol::XCSEditor& editor)
+{
+  String s_first_name, s_second_name, s_type;
+  tie(s_first_name, s_second_name, s_type) = bond_tuple;
+
   unsigned char type;
   mol::BondHandle bond;
 
+  String first_name, second_name;
   first_name=boost::trim_copy(s_first_name);
   second_name=boost::trim_copy(s_second_name);
 

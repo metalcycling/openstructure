@@ -22,6 +22,7 @@
 #ifndef OST_IO_SDF_READER_HH
 #define OST_IO_SDF_READER_HH
 
+#include <tuple>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <ost/mol/chain_handle.hh>
@@ -29,6 +30,9 @@
 #include <ost/io/module_config.hh>
 
 namespace ost { namespace io {
+
+
+
 
 class DLLEXPORT_OST_IO SDFReader {
 public:
@@ -41,17 +45,22 @@ public:
   void Import(mol::EntityHandle& ent);
 
 private:
+  typedef std::tuple<int, String, String, String, String, String> atom_data;
+  typedef std::tuple<String, String, String> bond_data;
+
   void ClearState(const boost::filesystem::path& loc);
   void NextMolecule();
 
-  void ParseAndAddHeader(const String& line, int line_num, mol::EntityHandle& ent,
+  void ParseHeader(const String& line, int line_num, mol::EntityHandle& ent,
                          mol::XCSEditor& editor);
 
-  void ParseAndAddAtom(const String& line, int line_num, mol::EntityHandle& ent,
-                       bool hetatm, mol::XCSEditor& editor);
+  void AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHandle& ent,
+               bool hetatm, mol::XCSEditor& editor);
+  atom_data ParseAtom(const String& line, int line_num);
 
-  void ParseAndAddBond(const String& line, int line_num, mol::EntityHandle& ent,
+  void AddBond(const bond_data& bond_tuple, int line_num, mol::EntityHandle& ent,
                        mol::XCSEditor& editor);
+  bond_data ParseBond(const String& line, int line_num);
 
   String curr_chain_name_;
   mol::ResidueKey curr_res_key_;
