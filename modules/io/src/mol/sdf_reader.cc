@@ -72,9 +72,9 @@ void SDFReader::Import(mol::EntityHandle& ent)
 
     if (line_num<=4) {
       ParseHeader(line, line_num, ent, editor);
-    } else if (line_num<=atom_count_+4) {
+    } else if (version_ == "V2000" && line_num<=atom_count_+4) {
       AddAtom(ParseAtom(line, line_num), line_num, ent, true, editor);
-    } else if (line_num<=bond_count_+atom_count_+4) {
+    } else if (version_ == "V2000" && line_num<=bond_count_+atom_count_+4) {
       AddBond(ParseBond(line, line_num), line_num, ent, editor);
     } else if (boost::iequals(line.substr(0,2), "> ")) {
       // parse data items
@@ -96,6 +96,8 @@ void SDFReader::Import(mol::EntityHandle& ent)
     } else if (boost::iequals(line, "$$$$")) {
       LOG_VERBOSE("MOLECULE " << curr_chain_.GetName() << " (" << chain_count_ << ") added.")
       NextMolecule();
+    } else if (version_ == "V3000") {
+      ProcessV3000Line(line, ent, editor);
     }
   }
 
@@ -117,6 +119,9 @@ void SDFReader::ClearState(const boost::filesystem::path& loc)
   atom_count_=0;
   bond_count_=0;
   line_num=0;
+  version_="";
+  v3000_bond_block_=false;
+  v3000_atom_block_=false;
 }
 
 void SDFReader::NextMolecule()
@@ -125,12 +130,15 @@ void SDFReader::NextMolecule()
   atom_count_=0;
   bond_count_=0;
   line_num=0;
+  version_="";
+  v3000_bond_block_=false;
+  v3000_atom_block_=false;
   curr_residue_ = ost::mol::ResidueHandle();
   curr_chain_ = ost::mol::ChainHandle();
 }
 
 void SDFReader::ParseHeader(const String& line, int line_num,
-                                  mol::EntityHandle& ent, mol::XCSEditor& editor)
+                            mol::EntityHandle& ent, mol::XCSEditor& editor)
 {
   LOG_TRACE( "line: [" << line << "]" );
   format chain_fmter("%05i_%s");
@@ -165,28 +173,37 @@ void SDFReader::ParseHeader(const String& line, int line_num,
         throw IOException(str(format(msg) % line_num % line.length()));
       }
       String version_str=line.substr(34, 5);
-      if (version_str != "V2000") {
+      if (version_str == "V2000" || version_str == "V3000") {
+        version_=version_str;
+      }
+      else {
         String msg="Unsupported SDF version: %s.";
         throw IOException(str(format(msg) % version_str));
       }
+      // Counts will be overridden in V3000
       String s_anum=line.substr(0,3);
-      try {
-        atom_count_=boost::lexical_cast<int>(boost::trim_copy(s_anum));
-      } catch(boost::bad_lexical_cast&) {
-        String msg="Bad counts line %d: Can't convert number of atoms"
-                   " '%s' to integral constant.";
-        throw IOException(str(format(msg) % line_num % s_anum));
-      }
       String s_bnum=line.substr(3,3);
-      try {
-        bond_count_=boost::lexical_cast<int>(boost::trim_copy(s_bnum));
-      } catch(boost::bad_lexical_cast&) {
-        String msg="Bad counts line %d: Can't convert number of bonds"
-                   " '%s' to integral constant.";
-        throw IOException(str(format(msg) % line_num % s_bnum));
-      }
+      SetCounts(s_anum, s_bnum, line_num);
       break;
     }
+  }
+}
+
+void SDFReader::SetCounts(const String& anum, const String bnum, int line_num)
+{
+  try {
+    atom_count_=boost::lexical_cast<int>(boost::trim_copy(anum));
+  } catch(boost::bad_lexical_cast&) {
+    String msg="Bad counts line %d: Can't convert number of atoms"
+               " '%s' to integral constant.";
+    throw IOException(str(format(msg) % line_num % anum));
+  }
+  try {
+    bond_count_=boost::lexical_cast<int>(boost::trim_copy(bnum));
+  } catch(boost::bad_lexical_cast&) {
+    String msg="Bad counts line %d: Can't convert number of bonds"
+               " '%s' to integral constant.";
+    throw IOException(str(format(msg) % line_num % bnum));
   }
 }
 
@@ -217,7 +234,7 @@ SDFReader::atom_data SDFReader::ParseAtom(const String& line, int line_num)
 }
 
 void SDFReader::AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHandle& ent,
-               bool hetatm, mol::XCSEditor& editor)
+                        bool hetatm, mol::XCSEditor& editor)
 {
   int anum;
   String s_posx, s_posy, s_posz, s_ele, s_charge;
@@ -295,7 +312,7 @@ SDFReader::bond_data SDFReader::ParseBond(const String& line, int line_num)
 }
 
 void SDFReader::AddBond(const bond_data& bond_tuple, int line_num, mol::EntityHandle& ent,
-               mol::XCSEditor& editor)
+                        mol::XCSEditor& editor)
 {
   String s_first_name, s_second_name, s_type;
   tie(s_first_name, s_second_name, s_type) = bond_tuple;
@@ -338,6 +355,221 @@ void SDFReader::AddBond(const bond_data& bond_tuple, int line_num, mol::EntityHa
 
   LOG_DEBUG("adding bond " << s_first_name << " " << s_second_name << " (" 
             << s_type << ") ");
+}
+
+SDFReader::v3000_line_tokens SDFReader::TokenizeV3000Line(const String& line,
+                                                          int line_num,
+                                                          int num_posval)
+// Read whitespace-separated tokens from a V3000 line.
+// Tokens can be separated by any amount of whitespace.
+// The function is guaranteed to return exactly num_posval positional elements,
+// or throws an error. It returns any number of keyword elements with only
+// syntax checks (ie no checks if the keywords are correct, only well-formed).
+{
+  std::istringstream v30_stream(line);
+  std::vector<String> positional;
+  std::map<String, String> keywords;
+  String token;
+  bool keywords_reached = false;
+  size_t kw_equal_pos;
+  positional.reserve(num_posval);
+
+  while (v30_stream.tellg() != -1) {
+    std::getline(v30_stream, token, ' ');
+    if (token.empty()) {
+      continue;
+    }
+    kw_equal_pos = token.find('=');
+    if (kw_equal_pos != String::npos) {
+      keywords_reached = true;
+    }
+    if (keywords_reached) {
+      // Token can contain a list in round brackets
+      // We don't use them in OST so no fancy parsing, just capture them
+      // as a string keyword
+      if (token.find('(') == kw_equal_pos + 1) {
+        // Search for the closing bracket
+        while (token.find(')') == String::npos) {
+          String next_token;
+          std::getline(v30_stream, next_token, ' ');
+          token = token + " " + next_token;
+        }
+      }
+
+      // Check if keyword is well formed
+      if (token.size() < 3 // too short
+          || kw_equal_pos == String::npos // no =
+          || kw_equal_pos == 0 // no key (starts with =)
+          || kw_equal_pos == token.size() - 1 // no value (ends with =)
+          ) {
+        String msg="Bad V3000 keyword on line %d: '%s'.";
+        throw IOException(str(format(msg) % line_num % token));
+      }
+      String key = token.substr(0, kw_equal_pos);
+      String value = token.substr(kw_equal_pos + 1);
+      keywords.insert({key, value});
+    }
+    else {
+      positional.push_back(token);
+    }
+  }
+
+  int obtained_posval = positional.size();
+  if (obtained_posval != num_posval) {
+    String msg="Bad V3000 line %d: expected %d positional values, got %d.";
+    throw IOException(str(format(msg) % line_num % num_posval %
+                          obtained_posval));
+  }
+
+  return std::make_tuple(positional, keywords);
+}
+
+String SDFReader::CleanupV3000Line(const String& line)
+// String cleanup and aggregation for V3000
+// Return a string with no "M  V30 " and not ending with -
+{
+  String v30_line = line;
+  if (v30_line.substr(0, 7) != "M  V30 ") {
+    String msg="Bad V3000 line %d: starts with '%s'.";
+    throw IOException(str(format(msg) % line_num % line.substr(0, 6)));
+  }
+
+  // Handle line continuation character -
+  while (v30_line.find("-") == v30_line.length()-1) {
+    // Read and append the next line
+    String next_line;
+    std::getline(in_,next_line);
+    ++line_num;
+    // std::getline removes EOL character but may leave a DOS CR (\r) in Unix
+    size_t cr_pos = next_line.find("\r");
+    if (cr_pos != String::npos) {
+        LOG_TRACE( "Remove CR@" << cr_pos);
+        next_line.erase(cr_pos);
+    }
+    // Ensure we have a valid line
+    if (next_line.substr(0, 7) != "M  V30 ") {
+      String msg="Bad V3000 line %d: starts with '%s'.";
+      throw IOException(str(format(msg) % line_num % next_line.substr(0, 6)));
+    }
+    // All clear, add data
+    v30_line = v30_line.erase(v30_line.find("-")) + next_line.substr(7);
+    LOG_TRACE( "V3000 line: [" << v30_line << "]" );
+  }
+
+  // Cleanup the line
+  return v30_line.substr(7); // We previously ensured it starts with M  V30
+}
+
+SDFReader::atom_data SDFReader::ParseV3000Atom(const String& line, int line_num)
+{
+  v3000_line_tokens tokens = TokenizeV3000Line(line, line_num, 6);
+  std::vector<String> posval;
+  std::map<String, String> keywords;
+  tie(posval, keywords) = tokens;
+
+  String s_anum = posval[0];
+  String atype = posval[1];
+  String posx = posval[2];
+  String posy = posval[3];
+  String posz = posval[4];
+
+  String chg;
+  try {
+    chg = keywords.at("CHG");
+  } catch(std::out_of_range&) {
+    chg = "0";
+  }
+
+  int anum;
+  try {
+    anum=boost::lexical_cast<int>(boost::trim_copy(s_anum));
+  } catch(boost::bad_lexical_cast&) {
+    String msg="Bad atom index '%s' on line %d.";
+    throw IOException(str(format(msg) % s_anum % line_num));
+  }
+
+  return std::make_tuple(anum, posx, posy, posz, atype, chg);
+}
+
+SDFReader::bond_data SDFReader::ParseV3000Bond(const String& line, int line_num)
+{
+  v3000_line_tokens tokens = TokenizeV3000Line(line, line_num, 4);
+  std::vector<String> posval;
+  tie(posval, std::ignore) = tokens;
+
+  String btype = posval[1];
+  String s_first_name = posval[2];
+  String s_second_name = posval[3];
+
+  return std::make_tuple(s_first_name, s_second_name, btype);
+}
+
+std::tuple<String, String> SDFReader::ParseV3000Counts(const String& line, int line_num)
+{
+  v3000_line_tokens tokens = TokenizeV3000Line(line, line_num, 5);
+  std::vector<String> posval;
+  tie(posval, std::ignore) = tokens;
+
+  String anum = posval[0];
+  String bnum = posval[1];
+
+  return std::make_tuple(anum, bnum);
+}
+
+void SDFReader::VerifyV3000Counts()
+{
+  int actual_atom_count = curr_residue_.GetAtomCount();
+  int actual_bond_count = curr_residue_.GetBondCount();
+  if (actual_atom_count != atom_count_) {
+      String msg="Bad counts for molecule ending on line %d: "
+                 "expected %d atoms, got %d.";
+      throw IOException(str(format(msg) % line_num % atom_count_ %
+                        actual_atom_count));
+    }
+  if (actual_bond_count != bond_count_) {
+      String msg="Bad counts for molecule ending on line %d: "
+                 "expected %d bonds, got %d.";
+      throw IOException(str(format(msg) % line_num % bond_count_ %
+                        actual_bond_count));
+    }
+}
+
+void SDFReader::ProcessV3000Line(const String& line,
+                                 mol::EntityHandle& ent,
+                                 mol::XCSEditor& editor)
+{
+  if (line.substr(0, 6) == "M  END") {
+    VerifyV3000Counts();
+    return;
+  }
+  String v30_line = CleanupV3000Line(line);
+
+  if (v30_line.substr(0, 6) == "COUNTS") {
+    String anum, bnum;
+    std::tie(anum, bnum) = ParseV3000Counts(v30_line.substr(7), line_num);
+    SetCounts(anum, bnum, line_num);
+  }
+  else if (v30_line.substr(0, 10) == "BEGIN ATOM") {
+    v3000_atom_block_=true;
+  }
+  else if (v30_line.substr(0, 8) == "END ATOM") {
+    v3000_atom_block_=false;
+  }
+  else if (v30_line.substr(0, 10) == "BEGIN BOND") {
+    v3000_bond_block_=true;
+  }
+  else if (v30_line.substr(0, 8) == "END BOND") {
+    v3000_bond_block_=false;
+  }
+  else if (v3000_atom_block_) {
+    AddAtom(ParseV3000Atom(v30_line, line_num), line_num, ent, true, editor);
+  }
+  else if (v3000_bond_block_) {
+    AddBond(ParseV3000Bond(v30_line, line_num), line_num, ent, editor);
+  }
+  else {
+    LOG_TRACE( "ignoring line: [" << v30_line << "]" );
+  }
 }
 
 }}
