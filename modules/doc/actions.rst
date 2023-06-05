@@ -23,7 +23,6 @@ You can compare two structures from the command line with the
 interface to :class:`ost.mol.alg.scoring.Scorer`
 
 .. warning::
-
   ``compare-structures`` underwent a complete rewrite in OpenStructure
   release 2.4.0. The old version is still available as
   ``compare-structures-legacy`` with documentation available
