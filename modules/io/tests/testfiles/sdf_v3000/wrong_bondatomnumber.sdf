@@ -1,0 +1,26 @@
+Simple Ligand
+ OpenBabel06022310462D
+Teststructure
+  0  0  0     0  0            999 V3000
+M  V30 BEGIN CTAB
+M  V30 COUNTS 6 6 0 0 1
+M  V30 BEGIN ATOM
+M  V30 1 N 0 0 0 0 CHG=-
+M  V30 1
+M  V30 2 C 1 0 0 0
+M  V30 3 O 0 1 0 0
+M  V30 4 S 1 1 0 0
+M  V30 5 C   2  2 0 0
+M  V30 6 Cl -1 -1 0 0
+M  V30 END ATOM
+M  V30 BEGIN BOND
+M  V30 1 2 1  2
+M  V30 2 1  1 3
+M  V30 3  1 1 8
+M  V30  4 1 2 4
+M  V30 5 1 3 4
+M  V30 6 3 4 5
+M  V30 END BOND
+M  V30 END CTAB
+M  END
+$$$$
