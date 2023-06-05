@@ -55,20 +55,28 @@ SDFReader::SDFReader(std::istream& instream)
   this->ClearState(boost::filesystem::path(""));
 }
 
+boost::iostreams::filtering_stream<boost::iostreams::input>& SDFReader::GetLine(
+  boost::iostreams::filtering_stream<boost::iostreams::input>& in,
+  String& line)
+  // Read next line from in and place it in line.
+  // Remove trailing \r characters.
+{
+  std::getline(in, line);
+  size_t cr_pos = line.find("\r");
+  if (cr_pos != String::npos) {
+      LOG_TRACE( "Remove CR@" << cr_pos);
+      line.erase(cr_pos);
+  }
+  return in;
+}
+
 // import data from provided stream
 void SDFReader::Import(mol::EntityHandle& ent)
 {
   String line;
   mol::XCSEditor editor=ent.EditXCS(mol::BUFFERED_EDIT);
-  while (std::getline(in_,line)) {
+  while (GetLine(in_,line)) {
     ++line_num;
-
-    // std::getline removes EOL character but may leave a DOS CR (\r) in Unix
-    size_t cr_pos = line.find("\r");
-    if (cr_pos != String::npos) {
-        LOG_TRACE( "Remove CR@" << cr_pos);
-        line.erase(cr_pos);
-    }
 
     if (line_num<=4) {
       ParseHeader(line, line_num, ent, editor);
@@ -89,7 +97,7 @@ void SDFReader::Import(mol::EntityHandle& ent)
         throw IOException(str(format(msg) % line_num));
       }
       String data_value="";
-      while(std::getline(in_,line) && !boost::iequals(line, "")) {
+      while(GetLine(in_,line) && !boost::iequals(line, "")) {
         data_value.append(line);
       }
       curr_chain_.SetStringProp(data_header, data_value);
@@ -438,15 +446,10 @@ String SDFReader::CleanupV3000Line(const String& line)
   while (v30_line.find("-") == v30_line.length()-1) {
     // Read and append the next line
     String next_line;
-    std::getline(in_,next_line);
-    ++line_num;
-    // std::getline removes EOL character but may leave a DOS CR (\r) in Unix
-    size_t cr_pos = next_line.find("\r");
-    if (cr_pos != String::npos) {
-        LOG_TRACE( "Remove CR@" << cr_pos);
-        next_line.erase(cr_pos);
-    }
-    // Ensure we have a valid line
+    GetLine(in_,next_line);
+    ++line_num; // Update class member
+
+    // Ensure we have a valid next_line
     if (next_line.substr(0, 7) != "M  V30 ") {
       String msg="Bad V3000 line %d: starts with '%s'.";
       throw IOException(str(format(msg) % line_num % next_line.substr(0, 6)));

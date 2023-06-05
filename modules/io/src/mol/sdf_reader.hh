@@ -49,6 +49,10 @@ private:
   typedef std::tuple<String, String, String> bond_data;
   typedef std::tuple<std::vector<String>, std::map<String, String>> v3000_line_tokens;
 
+  boost::iostreams::filtering_stream<boost::iostreams::input>& GetLine(
+  boost::iostreams::filtering_stream<boost::iostreams::input>& in,
+    String& line);
+
   void ClearState(const boost::filesystem::path& loc);
   void NextMolecule();
 
