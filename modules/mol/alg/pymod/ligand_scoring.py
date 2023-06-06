@@ -476,6 +476,9 @@ class LigandScorer:
                 for r in ch.residues:
                     if r.handle.GetHashCode() in ref_residues_hashes:
                         ref_bs.AddResidue(r, mol.ViewAddFlag.INCLUDE_ALL)
+            if len(ref_bs.residues) == 0:
+                LogWarning("No residue in proximity of target ligand "
+                           "%s" % str(ligand))
 
             # Find the representations
             if self.global_chain_mapping:
@@ -552,10 +555,6 @@ class LigandScorer:
             LogVerbose("Analyzing target ligand %s" % target_ligand)
 
             for binding_site in self._get_binding_sites(target_ligand):
-                if len(binding_site.substructure.residues) == 0:
-                    LogWarning("No residue in proximity of target ligand "
-                               "%s" % str(target_ligand))
-                    continue  # next binding site
                 LogVerbose("Found binding site with chain mapping %s" % (binding_site.GetFlatChainMapping()))
 
                 ref_bs_ent = self._build_binding_site_entity(
