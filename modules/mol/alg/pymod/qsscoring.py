@@ -2,6 +2,11 @@
 Scoring of quaternary structures (QS). The QS scoring is according to the paper
 by `Bertoni et al. <https://dx.doi.org/10.1038/s41598-017-09654-8>`_.
 
+.. warning::
+
+  The `qsscoring` module is deprecated. Consider using the newer implementation
+  in :mod:`~ost.mol.alg.qsscore` instead.
+
 .. note ::
 
   Requirements for use:

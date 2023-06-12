@@ -7,14 +7,14 @@
 Local Distance Test scores (lDDT, DRMSD)
 --------------------------------------------------------------------------------
 
-.. warning::
+.. note::
 
-  The code that comes with
+  This is a new implementation of lDDT, introduced in OpenStructure 2.4 with
+  focus on supporting quaternary structure and compounds beyond the 20
+  standard proteinogenic amino acids.
+  The :doc:`previous lDDT code <lddt_deprecated>` that comes with
   `Mariani et al. <https://dx.doi.org/10.1093/bioinformatics/btt473>`_ is
-  considered deprecated. lDDT has been re-implemented with a focus on
-  supporting quaternary structure and compounds beyond the 20 standard
-  proteinogenic amino acids. The old code is still available and documented
-  :doc:`here <lddt_deprecated>`.
+  considered deprecated.
 
 .. note::
 
@@ -135,16 +135,16 @@ Local Distance Test scores (lDDT, DRMSD)
 .. currentmodule:: ost.mol.alg
 
 
-:mod:`qsscoring <ost.mol.alg.qsscore>` -- QS score implementation
+:mod:`qsscore <ost.mol.alg.qsscore>` -- New QS score implementation
 --------------------------------------------------------------------------------
 
-.. warning::
+.. note::
 
-  The code that comes with
+  This is a new implementation of QS Score, introduced in OpenStructure 2.4 and
+  tightly integrated with the chain mapping algorithms.
+  The :doc:`previous qsscoring code <qsscoring_deprecated>` that comes with
   `Bertoni et al. <https://www.nature.com/articles/s41598-017-09654-8>`_ is
-  considered deprecated. QS score has been re-implemented to be tightly
-  integrated with the chain mapping algorithms. The old code is still available
-  and documented :doc:`here <qsscoring_deprecated>`.
+  considered deprecated.
 
 .. automodule:: ost.mol.alg.qsscore
    :members:
