@@ -47,6 +47,7 @@ public:
 private:
   typedef std::tuple<int, String, String, String, String, String> atom_data;
   typedef std::tuple<String, String, String> bond_data;
+  typedef std::tuple<String, String> charge_data;
   typedef std::tuple<std::vector<String>, std::map<String, String>> v3000_line_tokens;
 
   boost::iostreams::filtering_stream<boost::iostreams::input>& GetLine(
@@ -67,6 +68,11 @@ private:
   bond_data ParseBond(const String& line, int line_num);
   void AddBond(const bond_data& bond_tuple, int line_num, mol::EntityHandle& ent,
                        mol::XCSEditor& editor);
+
+  charge_data ParseMCharge(const String& line, int line_num);
+  void AddCharge(const charge_data& charge_tuple, int line_num, mol::EntityHandle& ent,
+                       mol::XCSEditor& editor);
+  void ResetCharges();
 
   // V3000 methods
   v3000_line_tokens TokenizeV3000Line(const String& line, int line_num,
@@ -94,6 +100,7 @@ private:
   String version_;
   bool v3000_atom_block_;
   bool v3000_bond_block_;
+  bool charges_reset_;
 };
 
 }}

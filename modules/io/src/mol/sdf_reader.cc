@@ -84,6 +84,8 @@ void SDFReader::Import(mol::EntityHandle& ent)
       AddAtom(ParseAtom(line, line_num), line_num, ent, true, editor);
     } else if (version_ == "V2000" && line_num<=bond_count_+atom_count_+4) {
       AddBond(ParseBond(line, line_num), line_num, ent, editor);
+    } else if (version_ == "V2000" &&  boost::iequals(line.substr(0,6), "M  CHG")) {
+      AddCharge(ParseMCharge(line, line_num), line_num, ent, editor);
     } else if (boost::iequals(line.substr(0,2), "> ")) {
       // parse data items
       int data_header_start = line.find('<');
@@ -130,6 +132,7 @@ void SDFReader::ClearState(const boost::filesystem::path& loc)
   version_="";
   v3000_bond_block_=false;
   v3000_atom_block_=false;
+  charges_reset_=false;
 }
 
 void SDFReader::NextMolecule()
@@ -141,6 +144,7 @@ void SDFReader::NextMolecule()
   version_="";
   v3000_bond_block_=false;
   v3000_atom_block_=false;
+  charges_reset_=false;
   curr_residue_ = ost::mol::ResidueHandle();
   curr_chain_ = ost::mol::ChainHandle();
 }
@@ -363,6 +367,87 @@ void SDFReader::AddBond(const bond_data& bond_tuple, int line_num, mol::EntityHa
 
   LOG_DEBUG("adding bond " << s_first_name << " " << s_second_name << " (" 
             << s_type << ") ");
+}
+
+
+void SDFReader::ResetCharges()
+// from doc of V2000 Atom Block:
+// > Retained for compatibility with older Ctabs, M CHG and M RAD lines take
+// > precedence.
+// Therefore we must reset all charges of the residue if we encounter an
+// M  CHG line.
+{
+  LOG_DEBUG("Resetting all charges to 0.");
+  for (mol::AtomHandle & atom : curr_residue_.GetAtomList()) {
+    atom.SetCharge(0.0);
+  }
+  charges_reset_=true;
+}
+
+
+SDFReader::charge_data SDFReader::ParseMCharge(const String& line, int line_num)
+{
+
+  LOG_TRACE( "line: [" << line << "]" );
+
+  if (!charges_reset_) {
+    ResetCharges();
+  }
+
+  if(line.length()<15 || line.length()>17) {
+    // Handle the case where we have trailing space characters
+    if (line.length()>17 && boost::trim_copy(line.substr(17)) == "") {
+      LOG_DEBUG( "Ignoring trailing space" );
+    }
+    else {
+      String msg="Bad Charge line %d: Not correct number of characters on the"
+                 " line: %i (should be between 15 and 17)";
+      throw IOException(str(format(msg) % line_num % line.length()));
+    }
+  }
+
+  String atom_index=line.substr(10,3);
+  String charge=line.substr(14,3);
+
+  return std::make_tuple(atom_index, charge);
+}
+
+  void SDFReader::AddCharge(const charge_data& charge_tuple, int line_num, mol::EntityHandle& ent,
+                        mol::XCSEditor& editor)
+{
+  String s_atom_index, s_charge;
+  tie(s_atom_index, s_charge) = charge_tuple;
+
+  int atom_index;
+  Real charge;
+
+  try {
+    atom_index=boost::lexical_cast<int>(boost::trim_copy(s_atom_index));
+    if (atom_index > atom_count_) {
+      String msg="Bad charge line %d: Atom index"
+                      " '%d' greater than number of atoms in the molecule (%d).";
+      throw IOException(str(format(msg) % line_num % atom_index % atom_count_));
+    } else if (atom_index < 1) {
+      String msg="Bad charge line %d: Atom index %d < 1.";
+      throw IOException(str(format(msg) % line_num % atom_index));
+    }
+  } catch(boost::bad_lexical_cast&) {
+    String msg="Bad charge line %d: Can't convert atom index"
+                " '%s' to integral constant.";
+    throw IOException(str(format(msg) % line_num % s_atom_index));
+  }
+
+  try {
+    charge=boost::lexical_cast<Real>(boost::trim_copy(s_charge));
+  } catch(boost::bad_lexical_cast&) {
+    String msg="Bad charge line %d: Can't convert charge"
+                " '%s' to real number.";
+    throw IOException(str(format(msg) % line_num % s_charge));
+  }
+
+  curr_residue_.GetAtomList()[atom_index - 1].SetCharge(charge);
+
+  LOG_DEBUG("Setting charge of atom " << atom_index - 1 << " to " << charge);
 }
 
 SDFReader::v3000_line_tokens SDFReader::TokenizeV3000Line(const String& line,
