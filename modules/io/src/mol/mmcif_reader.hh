@@ -359,7 +359,7 @@ protected:
 private:
   /// \enum magic numbers of this class
   typedef enum {
-    MAX_ITEMS_IN_ROW=18 ///< count for possible items in a loop row
+    MAX_ITEMS_IN_ROW=19 ///< count for possible items in a loop row
   } MMCifMagicNos;
 
   /// \enum items of the atom_site category
@@ -381,7 +381,8 @@ private:
     B_ISO_OR_EQUIV,
     PDBX_PDB_INS_CODE,
     GROUP_PDB,         ///< record name
-    PDBX_PDB_MODEL_NUM ///< model no. (especially NMR structures)
+    PDBX_PDB_MODEL_NUM,///< model no. (especially NMR structures)
+    FORMAL_CHARGE
   } AtomSiteItems;
 
   /// \enum items of the entity category
