@@ -697,8 +697,11 @@ void PDBReader::ParseAndAddAtom(const StringRef& line, int line_num,
                             atom_name, alt_loc, record_type, serial)) {
     return;                            
   }
-  std::pair<bool, Real> charge, radius;
-  std::pair<bool, Real> occ, temp;
+
+  std::pair<bool, Real> charge = std::make_pair(false, 0.0);
+  std::pair<bool, Real> radius = std::make_pair(false, 0.0);
+  std::pair<bool, Real> occ = std::make_pair(false, 0.0);
+  std::pair<bool, Real> temp = std::make_pair(false, 0.0);
   geom::Vec3 apos;
 
   for (int i=0;i<3; ++i) {
@@ -727,6 +730,20 @@ void PDBReader::ParseAndAddAtom(const StringRef& line, int line_num,
     }
     if (line.length()>=66) {
       temp=line.substr(60, 6).ltrim().to_float();      
+    }
+    if (line.length()>=80) {
+      // example charge formatting: 1+, 2- etc.
+      charge = line.substr(78,1).trim().to_float();
+      if(charge.first) {
+        if(line[79] != '-' && line[79] != '+') {
+          std::stringstream ss;
+          ss << "error on line " << line_num << ": "
+             << "expect charge in format 1+, 2-, etc. got: "
+             << line.substr(78, 2);
+          throw IOException(ss.str());      
+        }
+        if(line[79] == '-') charge.second *= (-1);
+      }
     }
   }
   LOG_TRACE( "line: [" << line << "]" );
@@ -838,6 +855,7 @@ void PDBReader::ParseAndAddAtom(const StringRef& line, int line_num,
   }
   Real b=temp.first ? temp.second : 0.0;
   Real o=occ.first ? occ.second : 1.0;
+
   if (!profile_.quack_mode && alt_loc!=' ') {
     // Check if there is already a atom with the same name.
     mol::AtomHandle me=curr_residue_.FindAtom(aname);
@@ -869,16 +887,16 @@ void PDBReader::ParseAndAddAtom(const StringRef& line, int line_num,
     ah=editor.InsertAtom(curr_residue_, aname, apos, s_ele);
     ++atom_count_;
   }
-  if(is_pqr_) {
-    if (radius.first) {
-      ah.SetRadius(radius.second);
-    }
+
+  if (radius.first) {
+    ah.SetRadius(radius.second);
   }
-  ah.SetBFactor(b);
-  ah.SetOccupancy(o);
   if (charge.first) {
     ah.SetCharge(charge.second);
   }
+  ah.SetBFactor(b);
+  ah.SetOccupancy(o);
+
   ah.SetHetAtom(record_type[0]=='H');
   if(profile_.read_conect && serial != -1) {
     this->amap_[serial] = ah;

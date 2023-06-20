@@ -50,7 +50,12 @@ namespace {
               << format("%10.4f") % atom.GetPos()[1]
               << format("%10.4f ") % atom.GetPos()[2]
               << format("%-3s") % SDFAtomWriter::FormatEle(atom.GetElement())
-              << " 0  0  0  0  0  0"
+              << " 0" // Mass difference
+              << format("%-3s") % SDFAtomWriter::FormatCharge(atom.GetCharge()) // Charge
+              << "  0" // Atom stereo parity
+              << "  0" // Hydrogen count + 1
+              << "  0" // Stereo care box
+              << "  0" // Valence
               << std::endl;
         return true;
       }
@@ -65,6 +70,24 @@ namespace {
           return_ele[i] = tolower(return_ele[i]);
         }
         return return_ele;
+      }
+
+      static String FormatCharge(const Real& chg) {
+        // Format charge according to https://doi.org/10.1021/ci00007a012
+        // 0 = uncharged or value other than these, 1 = +3, 2 = +2, 3 = +1,
+        // 4 doublet (A), 5 = -1, 6 = -2, 7 = -3
+        // Doublet means radical. This function would never return 4.
+        if (chg == 0) {
+          return "  0";
+        }
+        else if (abs(chg) > 3) {
+          String msg = "SDF format only supports charges from -3 to +3, not %g";
+          throw IOException(str(format(msg) % chg));
+        }
+        else {
+          Real chg_sdf = 4 - chg;
+          return str(format("%3.0f") % chg_sdf);
+        }
       }
     private:
       std::ostream&      ostr_;

@@ -1616,5 +1616,22 @@ BOOST_AUTO_TEST_CASE(mmcif_atom_site_B_iso_or_equiv_tests)
   BOOST_TEST_MESSAGE("  done.");
 }
 
+BOOST_AUTO_TEST_CASE(mmcif_formal_charge)
+{
+  mol::EntityHandle eh = mol::CreateEntity();
+  std::ifstream s("testfiles/mmcif/4C79_charged.cif");
+  IOProfile profile;
+  MMCifReader mmcif_p(s, eh, profile);
+  mmcif_p.Parse();
+
+  BOOST_CHECK_EQUAL(eh.FindAtom("A", 49, "OE2").GetCharge(), -1);
+  BOOST_CHECK_EQUAL(eh.FindAtom("A", 49, "OE1").GetCharge(), 0); // '?'
+  BOOST_CHECK_EQUAL(eh.FindAtom("A", 49, "CA").GetCharge(), 0);  // Explicit 0
+  BOOST_CHECK_EQUAL(eh.FindAtom("A", 49, "CB").GetCharge(), 0);  // '.'
+  BOOST_CHECK_EQUAL(eh.FindAtom("C", 1, "ZN").GetCharge(), 2);
+  BOOST_CHECK_EQUAL(eh.FindAtom("D", 1, "NA").GetCharge(), 1);
+
+}
+
 
 BOOST_AUTO_TEST_SUITE_END();

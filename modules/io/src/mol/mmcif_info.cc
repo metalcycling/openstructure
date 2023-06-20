@@ -207,6 +207,12 @@ void MMCifInfo::AddEntityBranchLink(String chain_name,
                                     mol::AtomHandle atom2,
                                     unsigned char bond_order)
 {
+  if (!atom1.IsValid() || !atom2.IsValid()) {
+    /* Would love to give details about the atoms... but atom names are not
+       available at this point. */
+    LOG_WARNING("Invalid branch link found in chain '"+chain_name+"'.");
+    return;
+  }
   // check if element already exists
   MMCifInfoEntityBranchLinkMap::iterator blm_it =
                                                entity_branches_.find(chain_name);

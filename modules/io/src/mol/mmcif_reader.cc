@@ -141,6 +141,7 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
     indices_[AUTH_SEQ_ID]        = header.GetIndex("auth_seq_id");
     indices_[PDBX_PDB_INS_CODE]  = header.GetIndex("pdbx_PDB_ins_code");
     indices_[PDBX_PDB_MODEL_NUM] = header.GetIndex("pdbx_PDB_model_num");
+    indices_[FORMAL_CHARGE]     = header.GetIndex("pdbx_formal_charge");
 
     // post processing
     if (category_counts_[category_] > 0) {
@@ -482,6 +483,7 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
     return;                            
   }
   Real occ = 1.00f, temp = 0;
+  int charge = 0;
   geom::Vec3 apos;
   
   for (int i = CARTN_X; i <= CARTN_Z; ++i) {
@@ -503,6 +505,13 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
     if (!is_undef(columns[indices_[B_ISO_OR_EQUIV]])) {
       temp = this->TryGetReal(columns[indices_[B_ISO_OR_EQUIV]],
                               "atom_site.B_iso_or_equiv");
+    }
+  }
+  if (indices_[FORMAL_CHARGE] != -1) { // unit test
+    String charge_s = columns[indices_[FORMAL_CHARGE]].str();
+    if (charge_s != "?" && charge_s != ".") {
+      charge = this->TryGetInt(columns[indices_[FORMAL_CHARGE]],
+                               "atom_site.pdbx_formal_charge");
     }
   }
 
@@ -664,6 +673,8 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
   ah.SetBFactor(temp);
 
   ah.SetOccupancy(occ);
+
+  ah.SetCharge(charge);
 
   // record type
   ah.SetHetAtom(indices_[GROUP_PDB] == -1 ? false :  

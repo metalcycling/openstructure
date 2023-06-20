@@ -57,7 +57,6 @@ import os
 import traceback
 
 import ost
-from ost import conop
 from ost import io
 from ost.mol.alg import ligand_scoring
 
@@ -366,11 +365,24 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
 
     if model_ligands is not None:
         # Replace model ligand by path
-        assert len(model_ligands) == len(scorer.model_ligands)
-        # Map ligand => path
-        model_ligands_map = {k: v for k, v in zip(scorer.model_ligands,
-                                                  args.model_ligands)}
-        out["model_ligands"] = args.model_ligands
+        if len(model_ligands) == len(scorer.model_ligands):
+            # Map ligand => path
+            model_ligands_map = {k: v for k, v in zip(scorer.model_ligands,
+                                                      args.model_ligands)}
+            out["model_ligands"] = args.model_ligands
+        elif len(model_ligands) < len(scorer.model_ligands):
+            # Multi-ligand SDF files were given
+            # Map ligand => path:idx
+            out["model_ligands"] = []
+            for ligand, filename in zip(model_ligands, args.model_ligands):
+                assert isinstance(ligand, ost.mol.EntityHandle)
+                for i, residue in enumerate(ligand.residues):
+                    out["model_ligands"].append(f"{filename}:{i}")
+        else:
+            # This should never happen and would be a bug
+            raise RuntimeError("Fewer ligands in the model scorer "
+                               "(%d) than given (%d)" % (
+                len(scorer.model_ligands), len(model_ligands)))
     else:
         model_ligands_map = {l: _QualifiedResidueNotation(l)
                              for l in scorer.model_ligands}
@@ -378,11 +390,25 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
 
     if reference_ligands is not None:
         # Replace reference ligand by path
-        assert len(reference_ligands) == len(scorer.target_ligands)
-        # Map ligand => path
-        reference_ligands_map = {k: v for k, v in zip(scorer.target_ligands,
-                                                  args.reference_ligands)}
-        out["reference_ligands"] = args.reference_ligands
+        if len(reference_ligands) == len(scorer.target_ligands):
+            # Map ligand => path
+            reference_ligands_map = {k: v for k, v in zip(scorer.target_ligands,
+                                                      args.reference_ligands)}
+            out["reference_ligands"] = args.reference_ligands
+        elif len(reference_ligands) < len(scorer.target_ligands):
+            # Multi-ligand SDF files were given
+            # Map ligand => path:idx
+            out["reference_ligands"] = []
+            for ligand, filename in zip(reference_ligands, args.reference_ligands):
+                assert isinstance(ligand, ost.mol.EntityHandle)
+                for i, residue in enumerate(ligand.residues):
+                    out["reference_ligands"].append(f"{filename}:{i}")
+        else:
+            # This should never happen and would be a bug
+            raise RuntimeError("Fewer ligands in the reference scorer "
+                               "(%d) than given (%d)" % (
+                len(scorer.target_ligands), len(reference_ligands)))
+
     else:
         reference_ligands_map = {l: _QualifiedResidueNotation(l)
                              for l in scorer.target_ligands}
