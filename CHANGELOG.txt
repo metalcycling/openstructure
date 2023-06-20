@@ -15,6 +15,7 @@ Changes in Release 2.5.0
    flag to disable stereochemistry checks for lDDT, TMscore (including
    associated chain mapping) computed by USalign, make residues/atoms uniquely
    identifiable (also considering residue number insertion codes).
+ * Read atom charges if present from PDB/mmCIF/SDF files
  * Several bug fixes and improvements.
 
 Changes in Release 2.4.0
