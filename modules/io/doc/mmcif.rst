@@ -64,11 +64,32 @@ Notes:
   It is added as string property named "pdb_auth_chain_name" to the
   :class:`~ost.mol.ChainHandle`. The mapping is also stored in
   :class:`MMCifInfo` as :meth:`~MMCifInfo.GetMMCifPDBChainTr` and
-  :meth:`~MMCifInfo.GetPDBMMCifChainTr` if SEQRES records are read in
-  :func:`~ost.io.LoadMMCIF` and a non-empty SEQRES record exists for that chain
-  (this should exclude ligands and water).
-* Molecular entities in mmCIF are identified by an ``entity.id``. Each chain is
-  mapped to an ID in :class:`MMCifInfo` as :meth:`~MMCifInfo.GetMMCifEntityIdTr`.
+  :meth:`~MMCifInfo.GetPDBMMCifChainTr` if a non-empty SEQRES record exists for
+  that chain (this should exclude ligands and water).
+* Molecular entities in mmCIF are identified by an ``entity.id``, which is
+  extracted from ``atom_site.label_entity_id`` for the first atom of the chain.
+  It is added as string property named "entity_id" to the
+  :class:`~ost.mol.ChainHandle`. Each chain is mapped to an ID in
+  :class:`MMCifInfo` as :meth:`~MMCifInfo.GetMMCifEntityIdTr`.
+* For more complex mappings, such as ligands which may be in a same "old" chain
+  as the protein chain but are represented in a separate "new" chain in mmCIF,
+  we also store string properties on a per-residue level.
+  For mmCIF files from the PDB, there is a unique mapping between
+  ("label_asym_id", "label_seq_id") and ("auth_asym_id", "auth_seq_id",
+  "pdbx_PDB_ins_code").
+  The following data items are available:
+
+    * ``atom_site.label_asym_id``: ``residue.chain.name``
+    * ``atom_site.label_seq_id``: ``residue.GetStringProp("resnum")``
+      (this is the same as ``residue.number`` for residues in polymer chains.
+      However, for ligands ``residue.number`` is unset in mmCIF, but it
+      is set to 1 by openstructure.)
+    * ``atom_site.label_entity_id``: ``residue.GetStringProp("entity_id")``
+    * ``atom_site.auth_asym_id``: ``residue.GetStringProp("pdb_auth_chain_name")``
+    * ``atom_site.auth_seq_id``: ``residue.GetStringProp("pdb_auth_resnum")``
+    * ``atom_site.pdbx_PDB_ins_code``: ``residue.GetStringProp("pdb_auth_ins_code")``
+* Missing values in the aforementioned data items will be denoted as ``.`` or
+  ``?``.
 
 Info Classes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -250,9 +271,7 @@ of the annotation available.
   .. method:: GetMMCifPDBChainTr(cif_chain_id)
 
     Get the translation of a certain mmCIF chain name to the traditional PDB
-    chain name. Only works if SEQRES records are read in
-    :func:`~ost.io.LoadMMCIF` and a compound library is available (see
-    :func:`~ost.conop.GetDefaultLib`).
+    chain name.
 
     :param cif_chain_id: atom_site.label_asym_id
     :type cif_chain_id: :class:`str`

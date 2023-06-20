@@ -341,16 +341,23 @@ BOOST_AUTO_TEST_CASE(mmcif_info)
   mol::ResidueHandle res11 = editor.AppendResidue(ch1, "NAG");
   mol::ResidueHandle res12 = editor.AppendResidue(ch1, "NAG");
   // create AtomHandles for testing
-  mol::AtomHandle atom11 = editor.InsertAtom(res12, "C1",geom::Vec3());
-  mol::AtomHandle atom12 = editor.InsertAtom(res11, "O4",geom::Vec3());
+  mol::AtomHandle atom11 = editor.InsertAtom(res12, "C1", geom::Vec3());
+  mol::AtomHandle atom12 = editor.InsertAtom(res11, "O4", geom::Vec3());
   mol::ChainHandle ch2 = editor.InsertChain("B");
   mol::ResidueHandle res21 = editor.AppendResidue(ch2, "BMA");
   mol::ResidueHandle res22 = editor.AppendResidue(ch2, "MAN");
   // create AtomHandles for testing
-  mol::AtomHandle atom21 = editor.InsertAtom(res22, "C1",geom::Vec3());
-  mol::AtomHandle atom22 = editor.InsertAtom(res21, "O3",geom::Vec3());
+  mol::AtomHandle atom21 = editor.InsertAtom(res22, "C1", geom::Vec3());
+  mol::AtomHandle atom22 = editor.InsertAtom(res21, "O3", geom::Vec3());
+  // create invalid AtomHandle pairs for testing
+  mol::AtomHandle atom_invalid;
   info.AddEntityBranchLink(ch1.GetName(), atom11, atom12, 1);
   info.AddEntityBranchLink(ch2.GetName(), atom21, atom22, 1);
+  /* Sometimes branched PDB entries link two atoms which are available in the
+     compound's definition but not resolved (missing) in the coordinates, e.g.
+     RCSB entry 7zim. Check that in case of invalid atom, no link is created. */
+  info.AddEntityBranchLink(ch2.GetName(), atom11, atom_invalid, 1);
+  info.AddEntityBranchLink(ch2.GetName(), atom_invalid, atom12, 1);
   std::vector<MMCifInfoEntityBranchLink> blinks = info.GetEntityBranchLinks();
 
   BOOST_CHECK(blinks.size() == 2);

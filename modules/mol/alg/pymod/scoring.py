@@ -13,7 +13,9 @@ from ost.mol.alg import dockq
 from ost.mol.alg.lddt import lDDTScorer
 from ost.mol.alg.qsscore import QSScorer
 from ost.mol.alg import Molck, MolckSettings
+from ost import bindings
 from ost.bindings import cadscore
+from ost.bindings import tmtools
 import numpy as np
 
 class lDDTBSScorer:
@@ -109,12 +111,6 @@ class Scorer:
                            colored to True in
                            :class:`ost.mol.alg.MolckSettings` constructor.
     :type molck_settings: :class:`ost.mol.alg.MolckSettings`
-    :param naive_chain_mapping_thresh: Chain mappings for targets/models up to
-                                       that number of chains will be fully
-                                       enumerated to optimize for QS-score.
-                                       Everything above is treated with a
-                                       heuristic.
-    :type naive_chain_mapping_thresh: :class:`int` 
     :param cad_score_exec: Explicit path to voronota-cadscore executable from
                            voronota installation from 
                            https://github.com/kliment-olechnovic/voronota. If
@@ -125,10 +121,23 @@ class Scorer:
                            *target*. Dictionary with target chain names as key
                            and model chain names as value.
     :type custom_mapping: :class:`dict`
+    :param usalign_exec: Explicit path to USalign executable used to compute
+                         TM-score. If not given, TM-score will be computed
+                         with OpenStructure internal copy of USalign code.
+    :type usalign_exec: :class:`str`
+    :param lddt_no_stereochecks: Whether to compute lDDT without stereochemistry
+                                checks
+    :type lddt_no_stereochecks: :class:`bool`
+    :param n_max_naive: Parameter for chain mapping. If *model* and *target*
+                        have less or equal that number of chains, the full
+                        mapping solution space is enumerated to find the
+                        the optimum. A heuristic is used otherwise.
+    :type n_max_naive: :class:`int`
     """
     def __init__(self, model, target, resnum_alignments=False,
-                 molck_settings = None, naive_chain_mapping_thresh=12,
-                 cad_score_exec = None, custom_mapping=None):
+                 molck_settings = None, cad_score_exec = None,
+                 custom_mapping=None, usalign_exec = None,
+                 lddt_no_stereochecks=False, n_max_naive=12):
 
         if isinstance(model, mol.EntityView):
             model = mol.CreateEntityFromView(model, False)
@@ -193,8 +202,10 @@ class Scorer:
                                        "resnum_alignments are enabled")
 
         self.resnum_alignments = resnum_alignments
-        self.naive_chain_mapping_thresh = naive_chain_mapping_thresh
         self.cad_score_exec = cad_score_exec
+        self.usalign_exec = usalign_exec
+        self.lddt_no_stereochecks = lddt_no_stereochecks
+        self.n_max_naive = n_max_naive
 
         # lazily evaluated attributes
         self._stereochecked_model = None
@@ -214,11 +225,14 @@ class Scorer:
 
         # lazily constructed scorer objects
         self._lddt_scorer = None
+        self._bb_lddt_scorer = None
         self._qs_scorer = None
 
         # lazily computed scores
         self._lddt = None
         self._local_lddt = None
+        self._bb_lddt = None
+        self._bb_local_lddt = None
 
         self._qs_global = None
         self._qs_best = None
@@ -254,6 +268,9 @@ class Scorer:
 
         self._patch_qs = None
         self._patch_dockq = None
+
+        self._tm_score = None
+        self._usalign_mapping = None
 
         if custom_mapping is not None:
             self._set_custom_mapping(custom_mapping)
@@ -408,22 +425,9 @@ class Scorer:
         :type: :class:`ost.mol.alg.chain_mapping.MappingResult` 
         """
         if self._mapping is None:
-            n_trg_chains = len(self.chain_mapper.target.chains)
-            res = self.chain_mapper.GetChemMapping(self.model)
-            n_mdl_chains = len(res[2].chains)
-            thresh = self.naive_chain_mapping_thresh
-            if n_trg_chains <= thresh and n_mdl_chains <= thresh:
-                m = self.chain_mapper.GetQSScoreMapping(self.model,
-                                                        strategy="naive",
-                                                        chem_mapping_result=res)
-            else:
-                m = self.chain_mapper.GetQSScoreMapping(self.model,
-                                                        strategy="greedy_block",
-                                                        steep_opt_rate=3,
-                                                        block_seed_size=5,
-                                                        block_blocks_per_chem_group=6,
-                                                        chem_mapping_result=res)
-            self._mapping = m
+            self._mapping = \
+            self.chain_mapper.GetMapping(self.model,
+                                         n_max_naive = self.n_max_naive)
         return self._mapping
 
     @property
@@ -460,8 +464,24 @@ class Scorer:
         :type: :class:`ost.mol.alg.lddt.lDDTScorer`
         """
         if self._lddt_scorer is None:
-            self._lddt_scorer = lDDTScorer(self.stereochecked_target)
+            if self.lddt_no_stereochecks:
+                self._lddt_scorer = lDDTScorer(self.target)
+            else:
+                self._lddt_scorer = lDDTScorer(self.stereochecked_target)
         return self._lddt_scorer
+
+    @property
+    def bb_lddt_scorer(self):
+        """ Backbone only lDDT scorer for :attr:`~target`
+
+        No stereochecks applied for bb only lDDT which considers CA atoms
+        for peptides and C3' atoms for nucleotides.
+
+        :type: :class:`ost.mol.alg.lddt.lDDTScorer`
+        """
+        if self._bb_lddt_scorer is None:
+            self._bb_lddt_scorer = lDDTScorer(self.target, bb_only=True)
+        return self._bb_lddt_scorer
 
     @property
     def qs_scorer(self):
@@ -505,6 +525,36 @@ class Scorer:
         if self._local_lddt is None:
             self._compute_lddt()
         return self._local_lddt
+
+    @property
+    def bb_lddt(self):
+        """ Backbone only global lDDT score in range [0.0, 1.0]
+
+        Computed based on :attr:`~model` on backbone atoms only. This is CA for
+        peptides and C3' for nucleotides. No stereochecks are performed. In case
+        of oligomers, :attr:`~mapping` is used.
+
+        :type: :class:`float`
+        """
+        if self._bb_lddt is None:
+            self._compute_bb_lddt()
+        return self._bb_lddt
+    
+    @property
+    def bb_local_lddt(self):
+        """ Backbone only per residue lDDT scores in range [0.0, 1.0]
+
+        Computed based on :attr:`~model` on backbone atoms only. This is CA for
+        peptides and C3' for nucleotides. No stereochecks are performed. If a
+        residue is not covered by the target or is in a chain skipped by the
+        chain mapping procedure (happens for super short chains), the respective
+        score is set to None. In case of oligomers, :attr:`~mapping` is used.
+
+        :type: :class:`dict`
+        """
+        if self._bb_local_lddt is None:
+            self._compute_bb_lddt()
+        return self._bb_local_lddt
 
     @property
     def qs_global(self):
@@ -915,6 +965,35 @@ class Scorer:
             self._compute_patchdockq_scores()
         return self._patch_dockq
 
+    @property
+    def tm_score(self):
+        """ TM-score computed with USalign
+
+        USalign executable can be specified with usalign_exec kwarg at Scorer
+        construction, an OpenStructure internal copy of the USalign code is
+        used otherwise.
+
+        :type: :class:`float`
+        """
+        if self._tm_score is None:
+            self._compute_tmscore()
+        return self._tm_score
+
+    @property
+    def usalign_mapping(self):
+        """ Mapping computed with USalign
+
+        Dictionary with target chain names as key and model chain names as
+        values. No guarantee that all chains are mapped. USalign executable
+        can be specified with usalign_exec kwarg at Scorer construction, an
+        OpenStructure internal copy of the USalign code is used otherwise.
+
+        :type: :class:`dict`
+        """
+        if self._usalign_mapping is None:
+            self._compute_tmscore()
+        return self._usalign_mapping
+
     def _aln_helper(self, target, model):
         # perform required alignments - cannot take the alignments from the
         # mapping results as we potentially remove stuff there as compared
@@ -976,51 +1055,113 @@ class Scorer:
             mdl_seq = aln.GetSequence(1)
             alns[mdl_seq.name] = aln
 
+        # score variables to be set
+        lddt_score = None
+        local_lddt = None
+
+        if self.lddt_no_stereochecks:
+            lddt_chain_mapping = dict()
+            for mdl_ch, trg_ch in flat_mapping.items():
+                if mdl_ch in alns:
+                    lddt_chain_mapping[mdl_ch] = trg_ch
+            lddt_score = self.lddt_scorer.lDDT(self.model,
+                                               chain_mapping = lddt_chain_mapping,
+                                               residue_mapping = alns,
+                                               check_resnames=False,
+                                               local_lddt_prop="lddt")[0]
+            local_lddt = dict()
+            for r in self.model.residues:
+                cname = r.GetChain().GetName()
+                if cname not in local_lddt:
+                    local_lddt[cname] = dict()
+                if r.HasProp("lddt"):
+                    score = round(r.GetFloatProp("lddt"), 3)
+                    local_lddt[cname][r.GetNumber()] = score
+                else:
+                    # not covered by trg or skipped in chain mapping procedure
+                    # the latter happens if its part of a super short chain
+                    local_lddt[cname][r.GetNumber()] = None
+
+        else:
+            lddt_chain_mapping = dict()
+            for mdl_ch, trg_ch in flat_mapping.items():
+                if mdl_ch in stereochecked_alns:
+                    lddt_chain_mapping[mdl_ch] = trg_ch
+            lddt_score = self.lddt_scorer.lDDT(self.stereochecked_model,
+                                               chain_mapping = lddt_chain_mapping,
+                                               residue_mapping = stereochecked_alns,
+                                               check_resnames=False,
+                                               local_lddt_prop="lddt")[0]
+            local_lddt = dict()
+            for r in self.model.residues:
+                cname = r.GetChain().GetName()
+                if cname not in local_lddt:
+                    local_lddt[cname] = dict()
+                if r.HasProp("lddt"):
+                    score = round(r.GetFloatProp("lddt"), 3)
+                    local_lddt[cname][r.GetNumber()] = score
+                else:
+                    # rsc => residue stereo checked...
+                    mdl_res = self.stereochecked_model.FindResidue(cname, r.GetNumber())
+                    if mdl_res.IsValid():
+                        # not covered by trg or skipped in chain mapping procedure
+                        # the latter happens if its part of a super short chain
+                        local_lddt[cname][r.GetNumber()] = None
+                    else:
+                        # opt 1: removed by stereochecks => assign 0.0
+                        # opt 2: removed by stereochecks AND not covered by ref
+                        #        => assign None
+                        # fetch trg residue from non-stereochecked aln
+                        trg_r = None
+                        if cname in flat_mapping:
+                            for col in alns[cname]:
+                                if col[0] != '-' and col[1] != '-':
+                                    if col.GetResidue(1).number == r.number:
+                                        trg_r = col.GetResidue(0)
+                                        break
+                        if trg_r is None:
+                            local_lddt[cname][r.GetNumber()] = None
+                        else:
+                            local_lddt[cname][r.GetNumber()] = 0.0
+
+        self._lddt = lddt_score
+        self._local_lddt = local_lddt
+
+    def _compute_bb_lddt(self):
+
+        # make alignments accessible by mdl seq name
+        alns = dict()
+        for aln in self.aln:
+            mdl_seq = aln.GetSequence(1)
+            alns[mdl_seq.name] = aln
+
+        # lDDT requires a flat mapping with mdl_ch as key and trg_ch as value
+        flat_mapping = self.mapping.GetFlatMapping(mdl_as_key=True)
         lddt_chain_mapping = dict()
         for mdl_ch, trg_ch in flat_mapping.items():
-            if mdl_ch in stereochecked_alns:
+            if mdl_ch in alns:
                 lddt_chain_mapping[mdl_ch] = trg_ch
 
-        lddt_score = self.lddt_scorer.lDDT(self.stereochecked_model,
-                                           chain_mapping = lddt_chain_mapping,
-                                           residue_mapping = stereochecked_alns,
-                                           check_resnames=False,
-                                           local_lddt_prop="lddt")[0]
+        lddt_score = self.bb_lddt_scorer.lDDT(self.model,
+                                              chain_mapping = lddt_chain_mapping,
+                                              residue_mapping = alns,
+                                              check_resnames=False,
+                                              local_lddt_prop="bb_lddt")[0]
         local_lddt = dict()
         for r in self.model.residues:
             cname = r.GetChain().GetName()
             if cname not in local_lddt:
                 local_lddt[cname] = dict()
-            if r.HasProp("lddt"):
-                score = round(r.GetFloatProp("lddt"), 3)
+            if r.HasProp("bb_lddt"):
+                score = round(r.GetFloatProp("bb_lddt"), 3)
                 local_lddt[cname][r.GetNumber()] = score
             else:
-                # rsc => residue stereo checked...
-                mdl_res = self.stereochecked_model.FindResidue(cname, r.GetNumber())
-                if mdl_res.IsValid():
-                    # not covered by trg or skipped in chain mapping procedure
-                    # the latter happens if its part of a super short chain
-                    local_lddt[cname][r.GetNumber()] = None
-                else:
-                    # opt 1: removed by stereochecks => assign 0.0
-                    # opt 2: removed by stereochecks AND not covered by ref
-                    #        => assign None
+                # not covered by trg or skipped in chain mapping procedure
+                # the latter happens if its part of a super short chain
+                local_lddt[cname][r.GetNumber()] = None
 
-                    # fetch trg residue from non-stereochecked aln
-                    trg_r = None
-                    if cname in flat_mapping:
-                        for col in alns[cname]:
-                            if col[0] != '-' and col[1] != '-':
-                                if col.GetResidue(1).number == r.number:
-                                    trg_r = col.GetResidue(0)
-                                    break
-                    if trg_r is None:
-                        local_lddt[cname][r.GetNumber()] = None
-                    else:
-                        local_lddt[cname][r.GetNumber()] = 0.0
-
-        self._lddt = lddt_score
-        self._local_lddt = local_lddt
+        self._bb_lddt = lddt_score
+        self._bb_local_lddt = local_lddt
 
     def _compute_qs(self):
         qs_score_result = self.qs_scorer.Score(self.mapping.mapping)
@@ -1561,4 +1702,24 @@ class Scorer:
 
         self._mapping = chain_mapping.MappingResult(chain_mapper.target, mdl,
                                                     chain_mapper.chem_groups,
+                                                    chem_mapping,
                                                     final_mapping, alns)
+
+    def _compute_tmscore(self):
+        res = None
+        if self.usalign_exec is not None:
+            if not os.path.exists(self.usalign_exec):
+                raise RuntimeError(f"USalign exec ({self.usalign_exec}) "
+                                   f"not found")
+            if not os.access(self.usalign_exec, os.X_OK):
+                raise RuntimeError(f"USalign exec ({self.usalign_exec}) "
+                                   f"is not executable")
+            res = tmtools.USAlign(self.model, self.target,
+                                  usalign = self.usalign_exec)
+        else:
+            res = bindings.WrappedMMAlign(self.model, self.target)
+
+        self._tm_score = res.tm_score
+        self._usalign_mapping = dict()
+        for a,b in zip(res.ent1_mapped_chains, res.ent2_mapped_chains):
+            self._usalign_mapping[b] = a

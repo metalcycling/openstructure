@@ -1,15 +1,11 @@
 ==============================================================================
-   TM-align: protein and RNA structure alignment by TM-score superposition.
-
-   This program was written by (in reverse chronological order)
-   Chengxin Zhang, Sha Gong, Jianjie Wu, and Jianyi Yang
-   at Yang Zhang lab, Department of Computational Medicine and Bioinformatics,
-   University of Michigan, 100 Washtenaw Ave, Ann Arbor, MI 48109-2218.
-   Please report issues to yangzhanglab@umich.edu
+   US-align: universal structure alignment of monomeric and complex proteins
+   and nucleic acids
 
    References to cite:
-   S Gong, C Zhang, Y Zhang. Bioinformatics, btz282 (2019)
-   Y Zhang, J Skolnick. Nucl Acids Res 33, 2302-9 (2005)
+   (1) Chengxin Zhang, Morgan Shine, Anna Marie Pyle, Yang Zhang
+       (2022) Nat Methods
+   (2) Chengxin Zhang, Anna Marie Pyle (2022) iScience
 
    DISCLAIMER:
      Permission to use, copy, modify, and distribute this program for 
@@ -61,38 +57,53 @@
    2021/01/07: Fixed bug in TMscore -c
    2021/05/29: Remove unnecessary depedency on malloc.h, which prevent
                compilation on Mac OS
+   2021/08/17: Complete implementation of MMalign
+   2021/10/03: Support Windows
+   2022/02/27: Add -seq (-byresi 4 & 5) for TM-score superimposition guided by
+               sequence alignment.
+   2022/04/12: Support AlphaFold CIF
+   2022/05/11: Update -mm 4 output format
+   2022/05/24: Limited support for sequence order independent alignment
+   2022/05/30: Correct atom pair output for -mm 5
+   2022/06/07: Sequence order semi-independent alignment
+   2022/06/20: Sequentiality within SSE in sequence order semi-independent
+               alignment
+   2022/06/22: Fix infinite loop for mal-formatted PDB
+   2022/06/23: Fix -m for Windows. Add pymol plugin.
+   2022/06/26: Add -full option for -mm 2 and 4
+   2022/09/24: Support -TMscore for complex when the chain order is different
 ===============================================================================
 
 =========================
- How to install TM-align
+ How to install US-align
 =========================
 To compile the program in your Linux computer, simply enter
 
- make
+    make
 
 or
 
- g++ -static -O3 -ffast-math -lm -o TMalign TMalign.cpp
+    g++ -static -O3 -ffast-math -lm -o USalign USalign.cpp
 
 The '-static' flag should be removed on Mac OS, which does not support
 building static executables.
 
+USalign compiled on Linux, Mac OS and Linux Subsystem for Windows (WSL2) on
+Windows 10 onwards can read both uncompressed files and gz compressed
+files, provided that the "gunzip" command is available. On the other hand, due
+to the lack of POSIX support on Windows, US-align natively compiled on Windows
+without WSL2 cannot parse gz compressed files.
+
+US-align is known to be compilable by g++ version 4.8.5 or later, clang++
+version 12.0.5 or later and mingw-w64 version 9.3 or later.
+
 =====================
- How to use TM-align
+ How to use US-align
 =====================
 You can run the program without arguments to obtain a brief instruction
 
- ./TMalign structure1.pdb structure2.pdb
+    ./USalign structure1.pdb structure2.pdb
 
-===================
- Fortran version
-===================
-You can download the fortran version of TM-align from
-https://zhanglab.ccmb.med.umich.edu/TM-align/
+A full list of available options can be explored by:
 
-This C++ version of TM-align implemented several features not available in the
-fortran version, including RNA alignment and batch alignment of multiple 
-structures. A full list of available options can be explored by:
-  ./TMalign -h
-
-2021/05/20
+    ./USalign -h

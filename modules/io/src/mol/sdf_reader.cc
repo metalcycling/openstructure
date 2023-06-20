@@ -125,6 +125,8 @@ void SDFReader::NextMolecule()
   atom_count_=0;
   bond_count_=0;
   line_num=0;
+  curr_residue_ = ost::mol::ResidueHandle();
+  curr_chain_ = ost::mol::ChainHandle();
 }
 
 void SDFReader::ParseAndAddHeader(const String& line, int line_num,
@@ -145,13 +147,10 @@ void SDFReader::ParseAndAddHeader(const String& line, int line_num,
         String msg="Bad molecule name line %d: Line is empty";
         throw IOException(str(format(msg) % line_num));
       }
-      curr_chain_=editor.InsertChain(s_chain);
-      LOG_DEBUG("new chain " << s_chain);
-
-      mol::ResidueKey rkey=boost::trim_copy(s_title);
-      mol::ResNum rnum(++residue_count_);
-      curr_residue_=editor.AppendResidue(curr_chain_, rkey, rnum);
-      LOG_DEBUG("new residue " << rkey << "(" << rnum << ")");
+      // prepeare required variables to add new chain and residue
+      // once we parse the first atom
+      curr_chain_name_ = s_chain;
+      curr_res_key_ = boost::trim_copy(s_title);
       break;
     }
     case 2:  // user information line
@@ -160,6 +159,11 @@ void SDFReader::ParseAndAddHeader(const String& line, int line_num,
       break;
     case 4:  // counts line
     {
+      String version_str=line.substr(34, 5);
+      if (version_str != "V2000") {
+        String msg="Unsupported SDF version: %s.";
+        throw IOException(str(format(msg) % version_str));
+      }
       String s_anum=line.substr(0,3);
       try {
         atom_count_=boost::lexical_cast<int>(boost::trim_copy(s_anum));
@@ -189,9 +193,15 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
   LOG_TRACE( "line: [" << line << "]" );
 
   if(line.length()<48 || line.length()>69) {
-    String msg="Bad atom line %d: Not correct number of characters on the"
-               " line: %i (should be between 48 and 69)";
-    throw IOException(str(format(msg) % line_num % line.length()));
+    // Handle the case where we have trailing space characters
+    if (line.length()>69 && boost::trim_copy(line.substr(69)) == "") {
+      LOG_DEBUG( "Ignoring trailing space" );
+    }
+    else {
+      String msg="Bad atom line %d: Not correct number of characters on the"
+                 " line: %i (should be between 48 and 69)";
+      throw IOException(str(format(msg) % line_num % line.length()));
+    }
   }
   int anum = line_num-4;  // start at 1 on fifth line since first four lines are header
   String s_posx=line.substr(0,10);
@@ -228,6 +238,17 @@ void SDFReader::ParseAndAddAtom(const String& line, int line_num,
     throw IOException(str(format(msg) % line_num % s_charge));
   }
 
+  if(!curr_chain_.IsValid()) {
+      curr_chain_=editor.InsertChain(curr_chain_name_);
+      LOG_DEBUG("new chain " << curr_chain_name_);
+  }
+
+  if(!curr_residue_.IsValid()) {
+      mol::ResNum rnum(++residue_count_);
+      curr_residue_=editor.AppendResidue(curr_chain_, curr_res_key_, rnum);
+      LOG_DEBUG("new residue " << curr_res_key_ << "(" << rnum << ")");
+  }
+
   LOG_DEBUG("adding atom " << aname << " (" << s_ele << ") @" << apos);
 
   mol::AtomHandle atom=editor.InsertAtom(curr_residue_, aname, apos, upper_ele);
@@ -243,9 +264,15 @@ void SDFReader::ParseAndAddBond(const String& line, int line_num,
   LOG_TRACE( "line: [" << line << "]" );
 
   if(line.length()<9 || line.length()>21) {
-    String msg="Bad bond line %d: Not correct number of characters on the"
-               " line: %i (should be between 9 and 21)";
-    throw IOException(str(format(msg) % line_num % line.length()));
+    // Handle the case where we have trailing space characters
+    if (line.length()>21 && boost::trim_copy(line.substr(21)) == "") {
+      LOG_DEBUG( "Ignoring trailing space" );
+    }
+    else {
+      String msg="Bad bond line %d: Not correct number of characters on the"
+                 " line: %i (should be between 9 and 21)";
+      throw IOException(str(format(msg) % line_num % line.length()));
+    }
   }
 
   String s_first_name=line.substr(0,3);

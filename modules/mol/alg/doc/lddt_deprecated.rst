@@ -3,6 +3,11 @@
 lDDT (deprecated)
 ================================================================================
 
+.. warning::
+
+  These functions in `ost.mol.alg` are deprecated. Consider using the newer
+  implementation in :class:`ost.mol.alg.lDDTScorer` instead.
+
 .. function:: LocalDistDiffTest(model, distance_list, tolerance_list, \
                                 sequence_separation=0, \
                                 local_lddt_property_string="")

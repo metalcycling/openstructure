@@ -23,7 +23,7 @@ class LigandScorer:
     * lDDT-PLI, that looks at the conservation of protein-ligand contacts
       with :class:`lDDT <ost.mol.alg.lddt.lDDTScorer>`.
     * Binding-site superposed, symmetry-corrected RMSD that assesses the
-      accuracy of the ligand pose.
+      accuracy of the ligand pose (BiSyRMSD, hereinafter referred to as RMSD).
 
     Both scores involve local chain mapping of the reference binding site
     onto the model, symmetry-correction, and finally assignment (mapping)
@@ -31,11 +31,33 @@ class LigandScorer:
 
     Results are available as matrices (`(lddt_pli|rmsd)_matrix`), where every
     target-model score is reported in a matrix; as `(lddt_pli|rmsd)` where
-    a model-target assignment has been determined, starting from the "best"
-    possible mapping and using each target and model ligand in a single
-    assignment, and the results are reported in a dictionary; and as
-    (`(lddt_pli|rmsd)_details`) methods, which report additional details
-    about different aspects of the scoring such as chain mapping.
+    a model-target assignment has been determined (see below) and reported in
+    a dictionary; and as (`(lddt_pli|rmsd)_details`) methods, which report
+    additional details about different aspects of the scoring such as chain
+    mapping.
+
+    The behavior of chain mapping and ligand assignment can be controlled
+    with the `global_chain_mapping` and `rmsd_assignment` arguments.
+
+    By default, chain mapping is performed locally, ie. only within the
+    binding site. As a result, different ligand scores can correspond to
+    different chain mappings. This tends to produce more favorable scores,
+    especially in large, partially regular oligomeric complexes.
+    Setting `global_chain_mapping=True` enforces a single global chain mapping,
+    as per :meth:`ost.mol.alg.chain_mapping.ChainMapper.GetMapping`.
+    Note that this global chain mapping currently ignores non polymer entities
+    such as small ligands, and may result in overly pessimistic scores.
+
+    By defaults, target-model ligand assignments are computed independently
+    for the RMSD and lDDT-PLI scores. For RMSD, each model ligand is uniquely
+    assigned to a target ligand, starting from the "best" possible mapping
+    (lowest RMSD) and using each target and model ligand in a single
+    assignment. Ties are resolved by best (highest) lDDT-PLI. Similarly,
+    for lDDT-PLI, the assignment is based on the highest lDDT-PLI, and ties
+    broken by lowest RMSD. Setting `rmsd_assignment=True` forces a single
+    ligand assignment, based on RMSD only. Ties are broken arbitrarily.
+
+    Assumptions:
 
     The class generally assumes that the
     :attr:`~ost.mol.ResidueHandle.is_ligand` property is properly set on all
@@ -89,7 +111,7 @@ class LigandScorer:
         # Ligand model as SDF file
         model_ligand = io.LoadEntity("path_to_ligand.sdf", format="sdf")
         # Target loaded from mmCIF, containing the ligand
-        target, _ = io.LoadMMCIF("path_to_target.cif", seqres=True)
+        target = io.LoadMMCIF("path_to_target.cif")
 
         # Cleanup a copy of the structures
         cleaned_model = model.Copy()
@@ -170,18 +192,44 @@ class LigandScorer:
     :type radius: :class:`float`
     :param lddt_pli_radius: lDDT inclusion radius for lDDT-PLI.
     :type lddt_pli_radius: :class:`float`
-    :param lddt_bs_radius: lDDT inclusion radius for lDDT-BS.
-    :type lddt_bs_radius: :class:`float`
+    :param lddt_lp_radius: lDDT inclusion radius for lDDT-LP.
+    :type lddt_lp_radius: :class:`float`
     :param binding_sites_topn: maximum number of target binding site
                                representations to assess, per target ligand.
+                               Ignored if `global_chain_mapping` is True.
     :type binding_sites_topn: :class:`int`
+    :param global_chain_mapping: set to True to use a global chain mapping for
+                                 the polymer (protein, nucleotide) chains.
+                                 Defaults to False, in which case only local
+                                 chain mappings are allowed (where different
+                                 ligand may be scored against different chain
+                                 mappings).
+    :type global_chain_mapping: :class:`bool`
+    :param custom_mapping: Provide custom chain mapping between *model* and
+                           *target* that is used as global chain mapping.
+                           Dictionary with target chain names as key and model
+                           chain names as value. Only has an effect if
+                           *global_chain_mapping* is True.
+    :type custom_mapping: :class:`dict`
+    :param rmsd_assignment: assign ligands based on RMSD only. The default
+                            (False) is to use a combination of lDDT-PLI and
+                            RMSD for the assignment.
+    :type rmsd_assignment: :class:`bool`
+    :param n_max_naive: Parameter for global chain mapping. If *model* and
+                        *target* have less or equal that number of chains,
+                        the full
+                        mapping solution space is enumerated to find the
+                        the optimum. A heuristic is used otherwise.
+    :type n_max_naive: :class:`int`
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
                  resnum_alignments=False, check_resnames=True,
                  rename_ligand_chain=False,
                  chain_mapper=None, substructure_match=False,
-                 radius=4.0, lddt_pli_radius=6.0, lddt_bs_radius=10.0,
-                 binding_sites_topn=100000):
+                 radius=4.0, lddt_pli_radius=6.0, lddt_lp_radius=10.0,
+                 binding_sites_topn=100000, global_chain_mapping=False,
+                 rmsd_assignment=False, n_max_naive=12,
+                 custom_mapping=None):
 
         if isinstance(model, mol.EntityView):
             self.model = mol.CreateEntityFromView(model, False)
@@ -224,8 +272,11 @@ class LigandScorer:
         self.substructure_match = substructure_match
         self.radius = radius
         self.lddt_pli_radius = lddt_pli_radius
-        self.lddt_bs_radius = lddt_bs_radius
+        self.lddt_lp_radius = lddt_lp_radius
         self.binding_sites_topn = binding_sites_topn
+        self.global_chain_mapping = global_chain_mapping
+        self.rmsd_assignment = rmsd_assignment
+        self.n_max_naive = n_max_naive
 
         # scoring matrices
         self._rmsd_matrix = None
@@ -241,6 +292,10 @@ class LigandScorer:
 
         # lazily precomputed variables
         self._binding_sites = {}
+        self.__model_mapping = None
+
+        if custom_mapping is not None:
+            self._set_custom_mapping(custom_mapping)
 
     @property
     def chain_mapper(self):
@@ -253,6 +308,14 @@ class LigandScorer:
                                                            n_max_naive=1e9,
                                                            resnum_alignments=self.resnum_alignments)
         return self._chain_mapper
+
+    @property
+    def _model_mapping(self):
+        """Get the global chain mapping for the model."""
+        if self.__model_mapping is None:
+            self.__model_mapping = self.chain_mapper.GetMapping(self.model,
+                                                                n_max_naive=self.n_max_naive)
+        return self.__model_mapping
 
     @staticmethod
     def _extract_ligands(entity):
@@ -415,9 +478,14 @@ class LigandScorer:
                         ref_bs.AddResidue(r, mol.ViewAddFlag.INCLUDE_ALL)
 
             # Find the representations
-            self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
-                ref_bs, self.model, inclusion_radius=self.lddt_bs_radius,
-                topn=self.binding_sites_topn)
+            if self.global_chain_mapping:
+                self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
+                    ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
+                    global_mapping = self._model_mapping)
+            else:
+                self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
+                    ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
+                    topn=self.binding_sites_topn)
         return self._binding_sites[ligand.hash_code]
 
     @staticmethod
@@ -530,7 +598,7 @@ class LigandScorer:
                             rmsd_full_matrix[target_i, model_i]["rmsd"] > rmsd:
                         rmsd_full_matrix[target_i, model_i] = {
                             "rmsd": rmsd,
-                            "lddt_bs": binding_site.lDDT,
+                            "lddt_lp": binding_site.lDDT,
                             "bs_ref_res": binding_site.substructure.residues,
                             "bs_ref_res_mapped": binding_site.ref_residues,
                             "bs_mdl_res_mapped": binding_site.mdl_residues,
@@ -590,7 +658,7 @@ class LigandScorer:
                             lddt_pli_full_matrix[target_i, model_i] = {
                                 "lddt_pli": global_lddt,
                                 "rmsd": rmsd,
-                                "lddt_bs": binding_site.lDDT,
+                                "lddt_lp": binding_site.lDDT,
                                 "lddt_pli_n_contacts": lddt_tot,
                                 "bs_ref_res": binding_site.substructure.residues,
                                 "bs_ref_res_mapped": binding_site.ref_residues,
@@ -609,15 +677,21 @@ class LigandScorer:
         self._lddt_pli_full_matrix = lddt_pli_full_matrix
 
     @staticmethod
-    def _find_ligand_assignment(mat1, mat2):
-        """ Find the ligand assignment based on mat1
+    def _find_ligand_assignment(mat1, mat2=None):
+        """ Find the ligand assignment based on mat1. If mat2 is provided, it
+        will be used to break ties in mat1. If mat2 is not provided, ties will
+        be resolved by taking the first match arbitrarily.
 
         Both mat1 and mat2 should "look" like RMSD - ie be between inf (bad)
         and 0 (good).
         """
         # We will modify mat1 and mat2, so make copies of it first
         mat1 = np.copy(mat1)
-        mat2 = np.copy(mat2)
+        if mat2 is None:
+            mat2 = np.copy(mat1)
+            mat2[~np.isnan(mat2)] = np.inf
+        else:
+            mat2 = np.copy(mat1)
         assignments = []
         min_mat1 = LigandScorer._nanmin_nowarn(mat1)
         while not np.isnan(min_mat1):
@@ -627,6 +701,7 @@ class LigandScorer:
                 # Get the values of mat2 at these positions
                 best_mat2_match = [mat2[tuple(x)] for x in best_mat1]
                 # Find the index of the best mat2
+                # Note: argmin returns the first value which is min.
                 best_mat2_idx = np.array(best_mat2_match).argmin()
                 # Now get the original indices
                 max_i_trg, max_i_mdl = best_mat1[best_mat2_idx]
@@ -667,7 +742,7 @@ class LigandScorer:
     def _assign_ligands_rmsd(self):
         """Assign (map) ligands between model and target.
 
-        Sets self._rmsd, self._rmsd_assignment and self._rmsd_details.
+        Sets self._rmsd and self._rmsd_details.
         """
         mat2 = self._reverse_lddt(self.lddt_pli_matrix)
 
@@ -722,8 +797,73 @@ class LigandScorer:
                 trg_idx, mdl_idx]
         return out_main, out_details
 
+    def _assign_matrix(self, mat, data1, main_key1, data2, main_key2):
+        """
+        Perform the ligand assignment, ie find the mapping between model and
+        target ligands, based on a single matrix
+
+        The algorithm starts by assigning the "best" mapping, and then discards
+        the target and model ligands (row, column) so that every model ligand
+        can be assigned to a single target ligand, and every target ligand
+        is only assigned to a single model ligand. Repeat until there is
+        nothing left to assign.
+
+        This algorithm doesn't guarantee a globally optimal assignment.
+
+        `mat` should contain values between 0 and infinity,
+        with lower values representing better scores. Use the
+        :meth:`_reverse_lddt` method to convert lDDT values to such a score.
+
+        :param mat: the ligand assignment criteria (RMSD or lDDT-PLI)
+        :param data1: the first data (either self._rmsd_full_matrix or self._lddt_pli_matrix)
+        :param main_key1: the first key of data (dictionnaries within `data`) to
+               assign into out_main.
+        :param data2: the second data (either self._rmsd_full_matrix or self._lddt_pli_matrix)
+        :param main_key2: the second key of data (dictionnaries within `data`) to
+               assign into out_main.
+        :return: a tuple with 4 dictionaries of matrices containing the main
+                 data1, details1, main data2 and details2, respectively.
+        """
+        assignments = self._find_ligand_assignment(mat)
+        out_main1 = {}
+        out_details1 = {}
+        out_main2 = {}
+        out_details2 = {}
+        for assignment in assignments:
+            trg_idx, mdl_idx = assignment
+            mdl_lig = self.model_ligands[mdl_idx]
+            mdl_cname = mdl_lig.chain.name
+            mdl_resnum = mdl_lig.number
+            # Data 1
+            if mdl_cname not in out_main1:
+                out_main1[mdl_cname] = {}
+                out_details1[mdl_cname] = {}
+            out_main1[mdl_cname][mdl_resnum] = data1[
+                trg_idx, mdl_idx][main_key1]
+            out_details1[mdl_cname][mdl_resnum] = data1[
+                trg_idx, mdl_idx]
+            out_main1[mdl_cname][mdl_resnum] = data2[
+                trg_idx, mdl_idx][main_key2]
+            out_details1[mdl_cname][mdl_resnum] = data2[
+                trg_idx, mdl_idx]
+            # Data2
+            if mdl_cname not in out_main2:
+                out_main2[mdl_cname] = {}
+                out_details2[mdl_cname] = {}
+            out_main2[mdl_cname][mdl_resnum] = data1[
+                trg_idx, mdl_idx][main_key1]
+            out_details2[mdl_cname][mdl_resnum] = data1[
+                trg_idx, mdl_idx]
+            out_main2[mdl_cname][mdl_resnum] = data2[
+                trg_idx, mdl_idx][main_key2]
+            out_details2[mdl_cname][mdl_resnum] = data2[
+                trg_idx, mdl_idx]
+        return out_main1, out_details1, out_main2, out_details2
+
     def _assign_ligands_lddt_pli(self):
         """ Assign ligands based on lDDT-PLI.
+
+        Sets self._lddt_pli and self._lddt_pli_details.
         """
         mat1 = self._reverse_lddt(self.lddt_pli_matrix)
 
@@ -733,6 +873,22 @@ class LigandScorer:
                                           "lddt_pli")
         self._lddt_pli = mat_tuple[0]
         self._lddt_pli_details = mat_tuple[1]
+
+    def _assign_ligands_rmsd_only(self):
+        """Assign (map) ligands between model and target based on RMSD only.
+
+        Sets self._rmsd, self._rmsd_details, self._lddt_pli and
+        self._lddt_pli_details.
+        """
+        mat_tuple = self._assign_matrix(self.rmsd_matrix,
+                                        self._rmsd_full_matrix,
+                                        "rmsd",
+                                        self._lddt_pli_full_matrix,
+                                        "lddt_pli")
+        self._rmsd = mat_tuple[0]
+        self._rmsd_details = mat_tuple[1]
+        self._lddt_pli = mat_tuple[2]
+        self._lddt_pli_details = mat_tuple[3]
 
     @property
     def rmsd_matrix(self):
@@ -788,7 +944,10 @@ class LigandScorer:
         :rtype: :class:`dict`
         """
         if self._rmsd is None:
-            self._assign_ligands_rmsd()
+            if self.rmsd_assignment:
+                self._assign_ligands_rmsd_only()
+            else:
+                self._assign_ligands_rmsd()
         return self._rmsd
 
     @property
@@ -799,7 +958,7 @@ class LigandScorer:
         Each sub-dictionary contains the following information:
 
         * `rmsd`: the RMSD score value.
-        * `lddt_bs`: the lDDT-BS score of the binding site.
+        * `lddt_lp`: the lDDT score of the ligand pocket (lDDT-LP).
         * `bs_ref_res`: a list of residues (:class:`~ost.mol.ResidueHandle`)
           that define the binding site in the reference.
         * `bs_ref_res_mapped`: a list of residues
@@ -830,7 +989,10 @@ class LigandScorer:
         :rtype: :class:`dict`
         """
         if self._rmsd_details is None:
-            self._assign_ligands_rmsd()
+            if self.rmsd_assignment:
+                self._assign_ligands_rmsd_only()
+            else:
+                self._assign_ligands_rmsd()
         return self._rmsd_details
 
     @property
@@ -841,7 +1003,10 @@ class LigandScorer:
         :rtype: :class:`dict`
         """
         if self._lddt_pli is None:
-            self._assign_ligands_lddt_pli()
+            if self.rmsd_assignment:
+                self._assign_ligands_rmsd_only()
+            else:
+                self._assign_ligands_lddt_pli()
         return self._lddt_pli
 
     @property
@@ -856,7 +1021,7 @@ class LigandScorer:
           chain mapping and assignment. This may differ from the RMSD-based
           assignment. Note that a different isomorphism than `lddt_pli` may
           be used.
-        * `lddt_bs`: the lDDT-BS score of the binding site.
+        * `lddt_lp`: the lDDT score of the ligand pocket (lDDT-LP).
         * `lddt_pli_n_contacts`: number of total contacts used in lDDT-PLI,
           summed over all thresholds. Can be divided by 8 to obtain the number
           of atomic contacts.
@@ -892,9 +1057,105 @@ class LigandScorer:
         :rtype: :class:`dict`
         """
         if self._lddt_pli_details is None:
-            self._assign_ligands_lddt_pli()
+            if self.rmsd_assignment:
+                self._assign_ligands_rmsd_only()
+            else:
+                self._assign_ligands_lddt_pli()
         return self._lddt_pli_details
 
+
+    def _set_custom_mapping(self, mapping):
+        """ sets self.__model_mapping with a full blown MappingResult object
+
+        :param mapping: mapping with trg chains as key and mdl ch as values
+        :type mapping: :class:`dict`
+        """
+        chain_mapper = self.chain_mapper
+        chem_mapping, chem_group_alns, mdl = \
+        chain_mapper.GetChemMapping(self.model)
+
+        # now that we have a chem mapping, lets do consistency checks
+        # - check whether chain names are unique and available in structures
+        # - check whether the mapped chains actually map to the same chem groups
+        if len(mapping) != len(set(mapping.keys())):
+            raise RuntimeError(f"Expect unique trg chain names in mapping. Got "
+                               f"{mapping.keys()}")
+        if len(mapping) != len(set(mapping.values())):
+            raise RuntimeError(f"Expect unique mdl chain names in mapping. Got "
+                               f"{mapping.values()}")
+
+        trg_chains = set([ch.GetName() for ch in chain_mapper.target.chains])
+        mdl_chains = set([ch.GetName() for ch in mdl.chains])
+        for k,v in mapping.items():
+            if k not in trg_chains:
+                raise RuntimeError(f"Target chain \"{k}\" is not available "
+                                   f"in target processed for chain mapping "
+                                   f"({trg_chains})")
+            if v not in mdl_chains:
+                raise RuntimeError(f"Model chain \"{v}\" is not available "
+                                   f"in model processed for chain mapping "
+                                   f"({mdl_chains})")
+
+        for trg_ch, mdl_ch in mapping.items():
+            trg_group_idx = None
+            mdl_group_idx = None
+            for idx, group in enumerate(chain_mapper.chem_groups):
+                if trg_ch in group:
+                    trg_group_idx = idx
+                    break
+            for idx, group in enumerate(chem_mapping):
+                if mdl_ch in group:
+                    mdl_group_idx = idx
+                    break
+            if trg_group_idx is None or mdl_group_idx is None:
+                raise RuntimeError("Could not establish a valid chem grouping "
+                                   "of chain names provided in custom mapping.")
+            
+            if trg_group_idx != mdl_group_idx:
+                raise RuntimeError(f"Chem group mismatch in custom mapping: "
+                                   f"target chain \"{trg_ch}\" groups with the "
+                                   f"following chemically equivalent target "
+                                   f"chains: "
+                                   f"{chain_mapper.chem_groups[trg_group_idx]} "
+                                   f"but model chain \"{mdl_ch}\" maps to the "
+                                   f"following target chains: "
+                                   f"{chain_mapper.chem_groups[mdl_group_idx]}")
+
+        pairs = set([(trg_ch, mdl_ch) for trg_ch, mdl_ch in mapping.items()])
+        ref_mdl_alns =  \
+        chain_mapping._GetRefMdlAlns(chain_mapper.chem_groups,
+                                     chain_mapper.chem_group_alignments,
+                                     chem_mapping,
+                                     chem_group_alns,
+                                     pairs = pairs)
+
+        # translate mapping format
+        final_mapping = list()
+        for ref_chains in chain_mapper.chem_groups:
+            mapped_mdl_chains = list()
+            for ref_ch in ref_chains:
+                if ref_ch in mapping:
+                    mapped_mdl_chains.append(mapping[ref_ch])
+                else:
+                    mapped_mdl_chains.append(None)
+            final_mapping.append(mapped_mdl_chains)
+
+        alns = dict()
+        for ref_group, mdl_group in zip(chain_mapper.chem_groups,
+                                        final_mapping):
+            for ref_ch, mdl_ch in zip(ref_group, mdl_group):
+                if ref_ch is not None and mdl_ch is not None:
+                    aln = ref_mdl_alns[(ref_ch, mdl_ch)]
+                    trg_view = chain_mapper.target.Select(f"cname={ref_ch}")
+                    mdl_view = mdl.Select(f"cname={mdl_ch}")
+                    aln.AttachView(0, trg_view)
+                    aln.AttachView(1, mdl_view)
+                    alns[(ref_ch, mdl_ch)] = aln
+
+        self.__model_mapping = chain_mapping.MappingResult(chain_mapper.target, mdl,
+                                                           chain_mapper.chem_groups,
+                                                           chem_mapping,
+                                                           final_mapping, alns)
 
 def _ResidueToGraph(residue, by_atom_index=False):
     """Return a NetworkX graph representation of the residue.

@@ -137,6 +137,17 @@ void split(const string &line, vector<string> &line_vec,
     }
 }
 
+/* strip white space at the begining or end of string */
+string Trim(const string &inputString)
+{
+    string result = inputString;
+    int idxBegin = inputString.find_first_not_of(" \n\r\t");
+    int idxEnd = inputString.find_last_not_of(" \n\r\t");
+    if (idxBegin >= 0 && idxEnd >= 0)
+        result = inputString.substr(idxBegin, idxEnd + 1 - idxBegin);
+    return result;
+}
+
 size_t get_PDB_lines(const string filename,
     vector<vector<string> >&PDB_lines, vector<string> &chainID_list,
     vector<int> &mol_vec, const int ter_opt, const int infmt_opt,
@@ -152,11 +163,14 @@ size_t get_PDB_lines(const string filename,
     
     int compress_type=0; // uncompressed file
     ifstream fin;
+#ifndef REDI_PSTREAM_H_SEEN
+    ifstream fin_gz;
+#else
     redi::ipstream fin_gz; // if file is compressed
     if (filename.size()>=3 && 
         filename.substr(filename.size()-3,3)==".gz")
     {
-        fin_gz.open("zcat '"+filename+"'");
+        fin_gz.open("gunzip -c '"+filename+"'");
         compress_type=1;
     }
     else if (filename.size()>=4 && 
@@ -165,14 +179,20 @@ size_t get_PDB_lines(const string filename,
         fin_gz.open("bzcat '"+filename+"'");
         compress_type=2;
     }
-    else fin.open(filename.c_str());
+    else
+#endif
+    {
+        if (filename=="-") compress_type=-1;
+        else fin.open(filename.c_str());
+    }
 
     if (infmt_opt==0||infmt_opt==-1) // PDB format
     {
-        while (compress_type?fin_gz.good():fin.good())
+        while ((compress_type==-1)?cin.good():(compress_type?fin_gz.good():fin.good()))
         {
-            if (compress_type) getline(fin_gz, line);
-            else               getline(fin, line);
+            if  (compress_type==-1) getline(cin, line);
+            else if (compress_type) getline(fin_gz, line);
+            else                    getline(fin, line);
             if (infmt_opt==-1 && line.compare(0,5,"loop_")==0) // PDBx/mmCIF
                 return get_PDB_lines(filename,PDB_lines,chainID_list,
                     mol_vec, ter_opt, 3, atom_opt, split_opt,het_opt);
@@ -192,6 +212,13 @@ size_t get_PDB_lines(const string filename,
                 {
                     if (line[17]==' ' && (line[18]=='D'||line[18]==' '))
                          select_atom=(line.compare(12,4," C3'")==0);
+                    else select_atom=(line.compare(12,4," CA ")==0);
+                }
+                else if (atom_opt=="PC4'")
+                {
+                    if (line[17]==' ' && (line[18]=='D'||line[18]==' '))
+                         select_atom=(line.compare(12,4," P  ")==0
+                                  )||(line.compare(12,4," C4'")==0);
                     else select_atom=(line.compare(12,4," CA ")==0);
                 }
                 else     select_atom=(line.compare(12,4,atom_opt)==0);
@@ -246,7 +273,7 @@ size_t get_PDB_lines(const string filename,
                         mol_vec.push_back(0);
                     }
 
-                    if (resi==line.substr(22,5))
+                    if (resi==line.substr(22,5) && atom_opt!="PC4'")
                         cerr<<"Warning! Duplicated residue "<<resi<<endl;
                     resi=line.substr(22,5); // including insertion code
 
@@ -263,13 +290,26 @@ size_t get_PDB_lines(const string filename,
         size_t L=0;
         float x,y,z;
         stringstream i8_stream;
-        while (compress_type?fin_gz.good():fin.good())
+        while ((compress_type==-1)?cin.good():(compress_type?fin_gz.good():fin.good()))
         {
-            if (compress_type) fin_gz>>L>>x>>y>>z;
-            else               fin   >>L>>x>>y>>z;
-            if (compress_type) getline(fin_gz, line);
-            else               getline(fin, line);
-            if (!(compress_type?fin_gz.good():fin.good())) break;
+            if  (compress_type==-1)
+            {
+                cin>>L>>x>>y>>z;
+                getline(cin, line);
+                if (!cin.good()) break;
+            }
+            else if (compress_type)
+            {
+                fin_gz>>L>>x>>y>>z;
+                getline(fin_gz, line);
+                if (!fin_gz.good()) break;
+            }
+            else
+            {
+                fin   >>L>>x>>y>>z;
+                getline(fin, line);
+                if (!fin.good()) break;
+            }
             model_idx++;
             stringstream i8_stream;
             i8_stream << ':' << model_idx;
@@ -278,8 +318,9 @@ size_t get_PDB_lines(const string filename,
             mol_vec.push_back(0);
             for (i=0;i<L;i++)
             {
-                if (compress_type) fin_gz>>x>>y>>z;
-                else               fin   >>x>>y>>z;
+                if  (compress_type==-1) cin>>x>>y>>z;
+                else if (compress_type) fin_gz>>x>>y>>z;
+                else                    fin   >>x>>y>>z;
                 i8_stream<<"ATOM   "<<setw(4)<<i+1<<"  CA  UNK  "<<setw(4)
                     <<i+1<<"    "<<setiosflags(ios::fixed)<<setprecision(3)
                     <<setw(8)<<x<<setw(8)<<y<<setw(8)<<z;
@@ -287,31 +328,35 @@ size_t get_PDB_lines(const string filename,
                 i8_stream.str(string());
                 PDB_lines.back().push_back(line);
             }
-            if (compress_type) getline(fin_gz, line);
-            else               getline(fin, line);
+            if  (compress_type==-1) getline(cin, line);
+            else if (compress_type) getline(fin_gz, line);
+            else                    getline(fin, line);
         }
     }
     else if (infmt_opt==2) // xyz format
     {
         size_t L=0;
         stringstream i8_stream;
-        while (compress_type?fin_gz.good():fin.good())
+        while ((compress_type==-1)?cin.good():(compress_type?fin_gz.good():fin.good()))
         {
-            if (compress_type) getline(fin_gz, line);
-            else               getline(fin, line);
+            if (compress_type==-1)  getline(cin, line);
+            else if (compress_type) getline(fin_gz, line);
+            else                    getline(fin, line);
             L=atoi(line.c_str());
-            if (compress_type) getline(fin_gz, line);
-            else               getline(fin, line);
+            if (compress_type==-1)  getline(cin, line);
+            else if (compress_type) getline(fin_gz, line);
+            else                    getline(fin, line);
             for (i=0;i<line.size();i++)
                 if (line[i]==' '||line[i]=='\t') break;
-            if (!(compress_type?fin_gz.good():fin.good())) break;
+            if (!((compress_type==-1)?cin.good():(compress_type?fin_gz.good():fin.good()))) break;
             chainID_list.push_back(':'+line.substr(0,i));
             PDB_lines.push_back(tmp_str_vec);
             mol_vec.push_back(0);
             for (i=0;i<L;i++)
             {
-                if (compress_type) getline(fin_gz, line);
-                else               getline(fin, line);
+                if (compress_type==-1)  getline(cin, line);
+                else if (compress_type) getline(fin_gz, line);
+                else                    getline(fin, line);
                 i8_stream<<"ATOM   "<<setw(4)<<i+1<<"  CA  "
                     <<AAmap(line[0])<<"  "<<setw(4)<<i+1<<"    "
                     <<line.substr(2,8)<<line.substr(11,8)<<line.substr(20,8);
@@ -339,18 +384,24 @@ size_t get_PDB_lines(const string filename,
         string prev_resi="";
         string model_index=""; // the same as model_idx but type is string
         stringstream i8_stream;
-        while (compress_type?fin_gz.good():fin.good())
+        while ((compress_type==-1)?cin.good():(compress_type?fin_gz.good():fin.good()))
         {
-            if (compress_type) getline(fin_gz, line);
-            else               getline(fin, line);
+            if (compress_type==-1)  getline(cin, line);
+            else if (compress_type) getline(fin_gz, line);
+            else                    getline(fin, line);
             if (line.size()==0) continue;
-            if (loop_) loop_ = line.compare(0,2,"# ");
+            if (loop_) loop_ = (line.size()>=2)?(line.compare(0,2,"# ")):(line.compare(0,1,"#"));
             if (!loop_)
             {
                 if (line.compare(0,5,"loop_")) continue;
                 while(1)
                 {
-                    if (compress_type)
+                    if (compress_type==-1)
+                    {
+                        if (cin.good()) getline(cin, line);
+                        else PrintErrorAndQuit("ERROR! Unexpected end of -");
+                    }
+                    else if (compress_type)
                     {
                         if (fin_gz.good()) getline(fin_gz, line);
                         else PrintErrorAndQuit("ERROR! Unexpected end of "+filename);
@@ -367,15 +418,16 @@ size_t get_PDB_lines(const string filename,
                 loop_=true;
                 _atom_site.clear();
                 atom_site_pos=0;
-                _atom_site[line.substr(11,line.size()-12)]=atom_site_pos;
+                _atom_site[Trim(line.substr(11))]=atom_site_pos;
 
                 while(1)
                 {
-                    if (compress_type) getline(fin_gz, line);
-                    else               getline(fin, line);
+                    if  (compress_type==-1) getline(cin, line);
+                    else if (compress_type) getline(fin_gz, line);
+                    else                    getline(fin, line);
                     if (line.size()==0) continue;
                     if (line.compare(0,11,"_atom_site.")) break;
-                    _atom_site[line.substr(11,line.size()-12)]=++atom_site_pos;
+                    _atom_site[Trim(line.substr(11))]=++atom_site_pos;
                 }
 
 
@@ -430,6 +482,13 @@ size_t get_PDB_lines(const string filename,
                 if (AA[0]==' ' && (AA[1]=='D'||AA[1]==' ')) // DNA || RNA
                      select_atom=(atom==" C3'");
                 else select_atom=(atom==" CA ");
+            }
+            else if (atom_opt=="PC4'")
+            {
+                if (line[17]==' ' && (line[18]=='D'||line[18]==' '))
+                     select_atom=(line.compare(12,4," P  ")==0
+                              )||(line.compare(12,4," C4'")==0);
+                else select_atom=(line.compare(12,4," CA ")==0);
             }
             else     select_atom=(atom==atom_opt);
 
@@ -493,7 +552,7 @@ size_t get_PDB_lines(const string filename,
                 resi+=line_vec[_atom_site["pdbx_PDB_ins_code"]][0];
             else resi+=" ";
 
-            if (prev_resi==resi)
+            if (prev_resi==resi && atom_opt!="PC4'")
                 cerr<<"Warning! Duplicated residue "<<resi<<endl;
             prev_resi=resi;
 
@@ -514,8 +573,8 @@ size_t get_PDB_lines(const string filename,
         AA.clear();
     }
 
-    if (compress_type) fin_gz.close();
-    else               fin.close();
+    if      (compress_type>=1) fin_gz.close();
+    else if (compress_type==0) fin.close();
     line.clear();
     if (!split_opt) chainID_list.push_back("");
     return PDB_lines.size();
@@ -537,11 +596,14 @@ size_t get_FASTA_lines(const string filename,
     
     int compress_type=0; // uncompressed file
     ifstream fin;
+#ifndef REDI_PSTREAM_H_SEEN
+    ifstream fin_gz;
+#else
     redi::ipstream fin_gz; // if file is compressed
     if (filename.size()>=3 && 
         filename.substr(filename.size()-3,3)==".gz")
     {
-        fin_gz.open("zcat '"+filename+"'");
+        fin_gz.open("gunzip -c '"+filename+"'");
         compress_type=1;
     }
     else if (filename.size()>=4 && 
@@ -550,12 +612,19 @@ size_t get_FASTA_lines(const string filename,
         fin_gz.open("bzcat '"+filename+"'");
         compress_type=2;
     }
-    else fin.open(filename.c_str());
-
-    while (compress_type?fin_gz.good():fin.good())
+    else 
+#endif
     {
-        if (compress_type) getline(fin_gz, line);
-        else               getline(fin, line);
+        if (filename=="-") compress_type=-1;
+        else fin.open(filename.c_str());
+    }
+
+    while ((compress_type==-1)?cin.good():(compress_type?fin_gz.good():fin.good()))
+    {
+        if  (compress_type==-1) getline(cin, line);
+        else if (compress_type) getline(fin_gz, line);
+        else                    getline(fin, line);
+
         if (line.size()==0 || line[0]=='#') continue;
 
         if (line[0]=='>')
@@ -584,130 +653,9 @@ size_t get_FASTA_lines(const string filename,
     }
 
     line.clear();
-    if (compress_type) fin_gz.close();
-    else               fin.close();
+    if      (compress_type>=1) fin_gz.close();
+    else if (compress_type==0) fin.close();
     return FASTA_lines.size();
-}
-
-
-/* extract pairwise sequence alignment from residue index vectors,
- * assuming that "sequence" contains two empty strings.
- * return length of alignment, including gap. */
-int extract_aln_from_resi(vector<string> &sequence, char *seqx, char *seqy,
-    const vector<string> resi_vec1, const vector<string> resi_vec2,
-    const int byresi_opt)
-{
-    sequence.clear();
-    sequence.push_back("");
-    sequence.push_back("");
-
-    int i1=0; // positions in resi_vec1
-    int i2=0; // positions in resi_vec2
-    int xlen=resi_vec1.size();
-    int ylen=resi_vec2.size();
-    map<string,string> chainID_map1;
-    map<string,string> chainID_map2;
-    if (byresi_opt==3)
-    {
-        vector<string> chainID_vec;
-        string chainID;
-        stringstream ss;
-        int i;
-        for (i=0;i<xlen;i++)
-        {
-            chainID=resi_vec1[i].substr(5);
-            if (!chainID_vec.size()|| chainID_vec.back()!=chainID)
-            {
-                chainID_vec.push_back(chainID);
-                ss<<chainID_vec.size();
-                chainID_map1[chainID]=ss.str();
-                ss.str("");
-            }
-        }
-        chainID_vec.clear();
-        for (i=0;i<ylen;i++)
-        {
-            chainID=resi_vec2[i].substr(5);
-            if (!chainID_vec.size()|| chainID_vec.back()!=chainID)
-            {
-                chainID_vec.push_back(chainID);
-                ss<<chainID_vec.size();
-                chainID_map2[chainID]=ss.str();
-                ss.str("");
-            }
-        }
-        vector<string>().swap(chainID_vec);
-    }
-    string chainID1="";
-    string chainID2="";
-    string chainID1_prev="";
-    string chainID2_prev="";
-    while(i1<xlen && i2<ylen)
-    {
-        if (byresi_opt==2)
-        {
-            chainID1=resi_vec1[i1].substr(5);
-            chainID2=resi_vec2[i2].substr(5);
-        }
-        else if (byresi_opt==3)
-        {
-            chainID1=chainID_map1[resi_vec1[i1].substr(5)];
-            chainID2=chainID_map2[resi_vec2[i2].substr(5)];
-        }
-
-        if (chainID1==chainID2)
-        {
-            if (atoi(resi_vec1[i1].substr(0,4).c_str())<
-                atoi(resi_vec2[i2].substr(0,4).c_str()))
-            {
-                sequence[0]+=seqx[i1++];
-                sequence[1]+='-';
-            }
-            else if (atoi(resi_vec1[i1].substr(0,4).c_str())>
-                     atoi(resi_vec2[i2].substr(0,4).c_str()))
-            {
-                sequence[0]+='-';
-                sequence[1]+=seqy[i2++];
-            }
-            else
-            {
-                sequence[0]+=seqx[i1++];
-                sequence[1]+=seqy[i2++];
-            }
-            chainID1_prev=chainID1;
-            chainID2_prev=chainID2;
-        }
-        else
-        {
-            if (chainID1_prev==chainID1 && chainID2_prev!=chainID2)
-            {
-                sequence[0]+=seqx[i1++];
-                sequence[1]+='-';
-                chainID1_prev=chainID1;
-            }
-            else if (chainID1_prev!=chainID1 && chainID2_prev==chainID2)
-            {
-                sequence[0]+='-';
-                sequence[1]+=seqy[i2++];
-                chainID2_prev=chainID2;
-            }
-            else
-            {
-                sequence[0]+=seqx[i1++];
-                sequence[1]+=seqy[i2++];
-                chainID1_prev=chainID1;
-                chainID2_prev=chainID2;
-            }
-        }
-        
-    }
-    map<string,string>().swap(chainID_map1);
-    map<string,string>().swap(chainID_map2);
-    chainID1.clear();
-    chainID2.clear();
-    chainID1_prev.clear();
-    chainID2_prev.clear();
-    return sequence[0].size();
 }
 
 int read_PDB(const vector<string> &PDB_lines, double **a, char *seq,
@@ -756,17 +704,6 @@ void do_rotation(double **x, double **x1, int len, double t[3], double u[3][3])
     {
         transform(t, u, &x[i][0], &x1[i][0]);
     }    
-}
-
-/* strip white space at the begining or end of string */
-string Trim(const string &inputString)
-{
-    string result = inputString;
-    int idxBegin = inputString.find_first_not_of(" \n\r\t");
-    int idxEnd = inputString.find_last_not_of(" \n\r\t");
-    if (idxBegin >= 0 && idxEnd >= 0)
-        result = inputString.substr(idxBegin, idxEnd + 1 - idxBegin);
-    return result;
 }
 
 /* read user specified pairwise alignment from 'fname_lign' to 'sequence'.

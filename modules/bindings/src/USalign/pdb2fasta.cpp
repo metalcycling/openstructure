@@ -20,16 +20,21 @@ void print_help()
 "             Default is \" C3'\" for RNA/DNA and \" CA \" for proteins\n"
 "             (note the spaces before and after CA).\n"
 "\n"
+"    -mol     Type of molecule(s) to align.\n"
+"             auto: (default) align both protein and nucleic acids.\n"
+"             prot: only align proteins in a structure.\n"
+"             RNA : only align RNA and DNA in a structure.\n"
+"\n"
 "    -ter     Strings to mark the end of a chain\n"
-"             3: (default) TER, ENDMDL, END or different chain ID\n"
+"             3: TER, ENDMDL, END or different chain ID\n"
 "             2: ENDMDL, END, or different chain ID\n"
-"             1: ENDMDL or END\n"
+"             1: (default) ENDMDL or END\n"
 "             0: end of file\n"
 "\n"
 "    -split   Whether to split PDB file into multiple chains\n"
-"             0: (default) treat the whole structure as one single chain\n"
+"             0: treat the whole structure as one single chain\n"
 "             1: treat each MODEL as a separate chain (-ter should be 0)\n"
-"             2: treat each chain as a seperate chain (-ter should be <=1)\n"
+"             2: (default) treat each chain as a seperate chain (-ter should be <=1)\n"
 "\n"
 "    -het     Whether to read residues marked as 'HETATM' in addition to 'ATOM  '\n"
 "             0: (default) only align 'ATOM  ' residues\n"
@@ -53,11 +58,12 @@ int main(int argc, char *argv[])
     /*    get argument    */
     /**********************/
     string xname     = "";
-    int    ter_opt   =3;     // TER, END, or different chainID
+    int    ter_opt   =1;     // TER, END, or different chainID
     int    infmt_opt =-1;    // PDB or PDBx/mmCIF format
-    int    split_opt =0;     // do not split chain
+    int    split_opt =2;     // do not split chain
     int    het_opt=0;        // do not read HETATM residues
     string atom_opt  ="auto";// use C alpha atom for protein and C3' for RNA
+    string mol_opt   ="auto";// auto-detect the molecule type as protein/RNA
     string suffix_opt="";    // set -suffix to empty
     string dir_opt   ="";    // set -dir to empty
     vector<string> chain_list; // only when -dir1 is set
@@ -76,6 +82,12 @@ int main(int argc, char *argv[])
         else if ( !strcmp(argv[i],"-atom") && i < (argc-1) )
         {
             atom_opt=argv[i + 1]; i++;
+        }
+        else if ( !strcmp(argv[i],"-mol") )
+        {
+            if (i>=(argc-1)) 
+                PrintErrorAndQuit("ERROR! Missing value for -mol");
+            mol_opt=argv[i + 1]; i++;
         }
         else if ( !strcmp(argv[i],"-dir") && i < (argc-1) )
         {
@@ -108,6 +120,16 @@ int main(int argc, char *argv[])
         PrintErrorAndQuit("-split 2 should be used with -ter 0 or 1");
     if (split_opt<0 || split_opt>2)
         PrintErrorAndQuit("-split can only be 0, 1 or 2");
+    if (mol_opt=="prot") mol_opt="protein";
+    else if (mol_opt=="DNA") mol_opt="RNA";
+    if (mol_opt!="auto" && mol_opt!="protein" && mol_opt!="RNA")
+        PrintErrorAndQuit("ERROR! Molecule type must be one of the"
+            "following:\nauto, prot (the same as 'protein'), and "
+            "RNA (the same as 'DNA').");
+    if (mol_opt=="protein" && atom_opt=="auto")
+        atom_opt=" CA ";
+    else if (mol_opt=="RNA" && atom_opt=="auto")
+        atom_opt=" C3'";
 
     /* parse file list */
     if (dir_opt.size()==0)

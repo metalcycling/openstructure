@@ -1,9 +1,12 @@
 /* Functions for the core TMalign algorithm, including the entry function
  * TMalign_main */
+#ifndef TMalign_h
+#define TMalign_h 1
 
 #include "param_set.h"
 #include "NW.h"
 #include "Kabsch.h"
+#include "NWalign.h"
 
 //     1, collect those residues with dis<d;
 //     2, calculate TMscore
@@ -540,6 +543,10 @@ double get_score_fast( double **r1, double **r2, double **xtm, double **ytm,
    
    //second iteration 
     double d002t=d002;
+    vector<double> dis_vec(dis, dis+n_ali);
+    sort(dis_vec.begin(), dis_vec.end());
+    if (d002t<dis_vec[2]) d002t=dis_vec[2];
+    dis_vec.clear();
     while(1)
     {
         j=0;
@@ -577,7 +584,10 @@ double get_score_fast( double **r1, double **r2, double **xtm, double **ytm,
         
         //third iteration
         d002t=d002+1;
-       
+        vector<double> dis_vec(dis, dis+n_ali);
+        sort(dis_vec.begin(), dis_vec.end());
+        if (d002t<dis_vec[2]) d002t=dis_vec[2];
+        dis_vec.clear();
         while(1)
         {
             j=0;
@@ -852,6 +862,11 @@ void make_sec(char *seq, double **x, int len, char *sec,const string atom_opt)
             if (i>0 && j+1<len && bp[i-1][j+1]) continue;
             if (!bp[i+1][j-1]) continue;
             sec_str(len,seq, bp, i,j,ii,jj);
+            if (jj<i || j<ii)
+            {
+                ii=i;
+                jj=j;
+            }
             A0.push_back(i);
             B0.push_back(j);
             C0.push_back(ii);
@@ -1467,11 +1482,14 @@ void output_pymol(const string xname, const string yname,
 {
     int compress_type=0; // uncompressed file
     ifstream fin;
+#ifndef REDI_PSTREAM_H_SEEN
+    ifstream fin_gz;
+#else
     redi::ipstream fin_gz; // if file is compressed
     if (xname.size()>=3 && 
         xname.substr(xname.size()-3,3)==".gz")
     {
-        fin_gz.open("zcat "+xname);
+        fin_gz.open("gunzip -c "+xname);
         compress_type=1;
     }
     else if (xname.size()>=4 && 
@@ -1480,7 +1498,9 @@ void output_pymol(const string xname, const string yname,
         fin_gz.open("bzcat "+xname);
         compress_type=2;
     }
-    else fin.open(xname.c_str());
+    else
+#endif
+        fin.open(xname.c_str());
 
     stringstream buf;
     stringstream buf_pymol;
@@ -1534,7 +1554,7 @@ void output_pymol(const string xname, const string yname,
             if (line.compare(0,11,"_atom_site.")) continue;
             _atom_site.clear();
             atom_site_pos=0;
-            _atom_site[line.substr(11,line.size()-12)]=atom_site_pos;
+            _atom_site[Trim(line.substr(11))]=atom_site_pos;
             while(1)
             {
                 while(1)
@@ -1552,7 +1572,7 @@ void output_pymol(const string xname, const string yname,
                     if (line.size()) break;
                 }
                 if (line.compare(0,11,"_atom_site.")) break;
-                _atom_site[line.substr(11,line.size()-12)]=++atom_site_pos;
+                _atom_site[Trim(line.substr(11))]=++atom_site_pos;
                 buf<<line<<'\n';
             }
 
@@ -2438,30 +2458,37 @@ void output_rasmol(const string xname, const string yname,
 void output_rotation_matrix(const char* fname_matrix,
     const double t[3], const double u[3][3])
 {
-    fstream fout;
-    fout.open(fname_matrix, ios::out | ios::trunc);
-    if (fout)// succeed
+    stringstream ss;
+    ss << "------ The rotation matrix to rotate Structure_1 to Structure_2 ------\n";
+    char dest[1000];
+    sprintf(dest, "m %18s %14s %14s %14s\n", "t[m]", "u[m][0]", "u[m][1]", "u[m][2]");
+    ss << string(dest);
+    for (int k = 0; k < 3; k++)
     {
-        fout << "------ The rotation matrix to rotate Structure_1 to Structure_2 ------\n";
-        char dest[1000];
-        sprintf(dest, "m %18s %14s %14s %14s\n", "t[m]", "u[m][0]", "u[m][1]", "u[m][2]");
-        fout << string(dest);
-        for (int k = 0; k < 3; k++)
-        {
-            sprintf(dest, "%d %18.10f %14.10f %14.10f %14.10f\n", k, t[k], u[k][0], u[k][1], u[k][2]);
-            fout << string(dest);
-        }
-        fout << "\nCode for rotating Structure 1 from (x,y,z) to (X,Y,Z):\n"
-                "for(i=0; i<L; i++)\n"
-                "{\n"
-                "   X[i] = t[0] + u[0][0]*x[i] + u[0][1]*y[i] + u[0][2]*z[i];\n"
-                "   Y[i] = t[1] + u[1][0]*x[i] + u[1][1]*y[i] + u[1][2]*z[i];\n"
-                "   Z[i] = t[2] + u[2][0]*x[i] + u[2][1]*y[i] + u[2][2]*z[i];\n"
-                "}\n";
-        fout.close();
+        sprintf(dest, "%d %18.10f %14.10f %14.10f %14.10f\n", k, t[k], u[k][0], u[k][1], u[k][2]);
+        ss << string(dest);
     }
+    ss << "\nCode for rotating Structure 1 from (x,y,z) to (X,Y,Z):\n"
+            "for(i=0; i<L; i++)\n"
+            "{\n"
+            "   X[i] = t[0] + u[0][0]*x[i] + u[0][1]*y[i] + u[0][2]*z[i];\n"
+            "   Y[i] = t[1] + u[1][0]*x[i] + u[1][1]*y[i] + u[1][2]*z[i];\n"
+            "   Z[i] = t[2] + u[2][0]*x[i] + u[2][1]*y[i] + u[2][2]*z[i];\n"
+            "}\n";
+    if (strcmp(fname_matrix,(char *)("-"))==0)
+       cout<<ss.str();
     else
-        cout << "Open file to output rotation matrix fail.\n";
+    {
+        fstream fout;
+        fout.open(fname_matrix, ios::out | ios::trunc);
+        if (fout)
+        {
+            fout<<ss.str();
+            fout.close();
+        }
+        else cout << "Open file to output rotation matrix fail.\n";
+    }
+    ss.str(string());
 }
 
 //output the final results
@@ -2532,6 +2559,82 @@ void output_results(const string xname, const string yname,
 
         if(u_opt)
             printf("# TM-score=%.5f (normalized by user-specified L=%.2f\td0=%.2f)\n", TM4, Lnorm_ass, d0u);
+
+        if(d_opt)
+            printf("# TM-score=%.5f (scaled by user-specified d0=%.2f\tL=%d)\n", TM5, d0_scale, ylen);
+
+        printf("$$$$\n");
+    }
+    else if (outfmt_opt==2)
+    {
+        printf("%s%s\t%s%s\t%.4f\t%.4f\t%.2f\t%4.3f\t%4.3f\t%4.3f\t%d\t%d\t%d",
+            xname.c_str(), chainID1.c_str(), yname.c_str(), chainID2.c_str(),
+            TM2, TM1, rmsd, Liden/xlen, Liden/ylen, (n_ali8>0)?Liden/n_ali8:0,
+            xlen, ylen, n_ali8);
+    }
+    cout << endl;
+
+    if (strlen(fname_matrix)) output_rotation_matrix(fname_matrix, t, u);
+
+    if (o_opt==1)
+        output_pymol(xname, yname, fname_super, t, u, ter_opt,
+            mm_opt, split_opt, mirror_opt, seqM, seqxA, seqyA,
+            resi_vec1, resi_vec2, chainID1, chainID2);
+    else if (o_opt==2)
+        output_rasmol(xname, yname, fname_super, t, u, ter_opt,
+            mm_opt, split_opt, mirror_opt, seqM, seqxA, seqyA,
+            resi_vec1, resi_vec2, chainID1, chainID2,
+            xlen, ylen, d0A, n_ali8, rmsd, TM1, Liden);
+}
+
+void output_mTMalign_results(const string xname, const string yname,
+    const string chainID1, const string chainID2,
+    const int xlen, const int ylen, double t[3], double u[3][3],
+    const double TM1, const double TM2,
+    const double TM3, const double TM4, const double TM5,
+    const double rmsd, const double d0_out, const char *seqM,
+    const char *seqxA, const char *seqyA, const double Liden,
+    const int n_ali8, const int L_ali, const double TM_ali,
+    const double rmsd_ali, const double TM_0, const double d0_0,
+    const double d0A, const double d0B, const double Lnorm_ass,
+    const double d0_scale, const double d0a, const double d0u,
+    const char* fname_matrix, const int outfmt_opt, const int ter_opt,
+    const int mm_opt, const int split_opt, const int o_opt,
+    const string fname_super, const int i_opt, const int a_opt,
+    const bool u_opt, const bool d_opt, const int mirror_opt,
+    const vector<string>&resi_vec1, const vector<string>&resi_vec2)
+{
+    if (outfmt_opt<=0)
+    {
+        printf("Average aligned length= %d, RMSD= %6.2f, Seq_ID=n_identical/n_aligned= %4.3f\n", n_ali8, rmsd, (n_ali8>0)?Liden/n_ali8:0);
+        printf("Average TM-score= %6.5f (normalized by length of shorter structure: L=%d, d0=%.2f)\n", TM2, xlen, d0B);
+        printf("Average TM-score= %6.5f (normalized by length of longer structure: L=%d, d0=%.2f)\n", TM1, ylen, d0A);
+
+        if (a_opt==1)
+            printf("Average TM-score= %6.5f (if normalized by average length of two structures: L=%.1f, d0=%.2f)\n", TM3, (xlen+ylen)*0.5, d0a);
+        if (u_opt)
+            printf("Average TM-score= %6.5f (normalized by average L=%.2f and d0=%.2f)\n", TM4, Lnorm_ass, d0u);
+        if (d_opt)
+            printf("Average TM-score= %6.5f (scaled by user-specified d0=%.2f, and L=%d)\n", TM5, d0_scale, ylen);
+    
+        //output alignment
+        printf("In the following, seqID=n_identical/L.\n\n%s\n", seqM);
+    }
+    else if (outfmt_opt==1)
+    {
+        printf("%s\n", seqM);
+
+        printf("# Lali=%d\tRMSD=%.2f\tseqID_ali=%.3f\n",
+            n_ali8, rmsd, (n_ali8>0)?Liden/n_ali8:0);
+
+        if (i_opt)
+            printf("# User-specified initial alignment: TM=%.5lf\tLali=%4d\trmsd=%.3lf\n", TM_ali, L_ali, rmsd_ali);
+
+        if(a_opt)
+            printf("# TM-score=%.5f (normalized by average length of two structures: L=%.1f\td0=%.2f)\n", TM3, (xlen+ylen)*0.5, d0a);
+
+        if(u_opt)
+            printf("# TM-score=%.5f (normalized by average L=%.2f\td0=%.2f)\n", TM4, Lnorm_ass, d0u);
 
         if(d_opt)
             printf("# TM-score=%.5f (scaled by user-specified d0=%.2f\tL=%d)\n", TM5, d0_scale, ylen);
@@ -2757,7 +2860,6 @@ int TMalign_main(double **xa, double **ya,
     //    get initial alignment from user's input:    //
     //    Stick to the initial alignment              //
     //************************************************//
-    bool bAlignStick = false;
     if (i_opt==3)// if input has set parameter for "-I"
     {
         // In the original code, this loop starts from 1, which is
@@ -2798,13 +2900,12 @@ int TMalign_main(double **xa, double **ya,
             TMmax = TM;
             for (i = 0; i<ylen; i++) invmap0[i] = invmap[i];
         }
-        bAlignStick = true;
     }
 
     /******************************************************/
     /*    get initial alignment with gapless threading    */
     /******************************************************/
-    if (!bAlignStick)
+    if (i_opt<=1)
     {
         get_initial(r1, r2, xtm, ytm, xa, ya, xlen, ylen, invmap0, d0,
             d0_search, fast_opt, t, u);
@@ -3007,60 +3108,60 @@ int TMalign_main(double **xa, double **ya,
                 return 6;
             }
         }
+    }
 
-        //************************************************//
-        //    get initial alignment from user's input:    //
-        //************************************************//
-        if (i_opt==1)// if input has set parameter for "-i"
+    //************************************************//
+    //    get initial alignment from user's input:    //
+    //************************************************//
+    if (i_opt>=1 && i_opt<=2)// if input has set parameter for "-i"
+    {
+        for (int j = 0; j < ylen; j++)// Set aligned position to be "-1"
+            invmap[j] = -1;
+
+        int i1 = -1;// in C version, index starts from zero, not from one
+        int i2 = -1;
+        int L1 = sequence[0].size();
+        int L2 = sequence[1].size();
+        int L = min(L1, L2);// Get positions for aligned residues
+        for (int kk1 = 0; kk1 < L; kk1++)
         {
-            for (int j = 0; j < ylen; j++)// Set aligned position to be "-1"
-                invmap[j] = -1;
-
-            int i1 = -1;// in C version, index starts from zero, not from one
-            int i2 = -1;
-            int L1 = sequence[0].size();
-            int L2 = sequence[1].size();
-            int L = min(L1, L2);// Get positions for aligned residues
-            for (int kk1 = 0; kk1 < L; kk1++)
+            if (sequence[0][kk1] != '-')
+                i1++;
+            if (sequence[1][kk1] != '-')
             {
-                if (sequence[0][kk1] != '-')
-                    i1++;
-                if (sequence[1][kk1] != '-')
-                {
-                    i2++;
-                    if (i2 >= ylen || i1 >= xlen) kk1 = L;
-                    else if (sequence[0][kk1] != '-') invmap[i2] = i1;
-                }
+                i2++;
+                if (i2 >= ylen || i1 >= xlen) kk1 = L;
+                else if (sequence[0][kk1] != '-') invmap[i2] = i1;
             }
+        }
 
-            //--------------- 2. Align proteins from original alignment
-            double prevD0_MIN = D0_MIN;// stored for later use
-            int prevLnorm = Lnorm;
-            double prevd0 = d0;
-            TM_ali = standard_TMscore(r1, r2, xtm, ytm, xt, xa, ya,
-                xlen, ylen, invmap, L_ali, rmsd_ali, D0_MIN, Lnorm, d0,
-                d0_search, score_d8, t, u, mol_type);
-            D0_MIN = prevD0_MIN;
-            Lnorm = prevLnorm;
-            d0 = prevd0;
+        //--------------- 2. Align proteins from original alignment
+        double prevD0_MIN = D0_MIN;// stored for later use
+        int prevLnorm = Lnorm;
+        double prevd0 = d0;
+        TM_ali = standard_TMscore(r1, r2, xtm, ytm, xt, xa, ya,
+            xlen, ylen, invmap, L_ali, rmsd_ali, D0_MIN, Lnorm, d0,
+            d0_search, score_d8, t, u, mol_type);
+        D0_MIN = prevD0_MIN;
+        Lnorm = prevLnorm;
+        d0 = prevd0;
 
-            TM = detailed_search_standard(r1, r2, xtm, ytm, xt, xa, ya,
-                xlen, ylen, invmap, t, u, 40, 8, local_d0_search, true, Lnorm,
-                score_d8, d0);
-            if (TM > TMmax)
-            {
-                TMmax = TM;
-                for (i = 0; i<ylen; i++) invmap0[i] = invmap[i];
-            }
-            // Different from get_initial, get_initial_ss and get_initial_ssplus
-            TM = DP_iter(r1, r2, xtm, ytm, xt, path, val, xa, ya,
-                xlen, ylen, t, u, invmap, 0, 2, (fast_opt)?2:30,
-                local_d0_search, D0_MIN, Lnorm, d0, score_d8);
-            if (TM>TMmax)
-            {
-                TMmax = TM;
-                for (i = 0; i<ylen; i++) invmap0[i] = invmap[i];
-            }
+        TM = detailed_search_standard(r1, r2, xtm, ytm, xt, xa, ya,
+            xlen, ylen, invmap, t, u, 40, 8, local_d0_search, true, Lnorm,
+            score_d8, d0);
+        if (TM > TMmax)
+        {
+            TMmax = TM;
+            for (i = 0; i<ylen; i++) invmap0[i] = invmap[i];
+        }
+        // Different from get_initial, get_initial_ss and get_initial_ssplus
+        TM = DP_iter(r1, r2, xtm, ytm, xt, path, val, xa, ya,
+            xlen, ylen, t, u, invmap, 0, 2, (fast_opt)?2:30,
+            local_d0_search, D0_MIN, Lnorm, d0, score_d8);
+        if (TM>TMmax)
+        {
+            TMmax = TM;
+            for (i = 0; i<ylen; i++) invmap0[i] = invmap[i];
         }
     }
 
@@ -3081,7 +3182,7 @@ int TMalign_main(double **xa, double **ya,
     }
     if(!flag)
     {
-        cout << "There is no alignment between the two proteins! "
+        cout << "There is no alignment between the two structures! "
              << "Program stop with no result!" << endl;
         TM1=TM2=TM3=TM4=TM5=0;
         return 1;
@@ -3240,6 +3341,8 @@ int TMalign_main(double **xa, double **ya,
 
     int kk=0, i_old=0, j_old=0;
     d=0;
+    Liden=0;
+    //double SO=0;
     for(int k=0; k<n_ali8; k++)
     {
         for(int i=i_old; i<m1[k]; i++)
@@ -3266,10 +3369,16 @@ int TMalign_main(double **xa, double **ya,
         d=sqrt(dist(&xt[m1[k]][0], &ya[m2[k]][0]));
         if(d<d0_out) seqM[kk]=':';
         else         seqM[kk]='.';
+        //SO+=(d<3.5);
         kk++;  
         i_old=m1[k]+1;
         j_old=m2[k]+1;
     }
+    //SO/=getmin(xlen,ylen);
+    //cout<<n_ali8<<'\t'
+        //<<rmsd0<<'\t'
+        //<<100.*SO<<endl;
+
 
     //tail
     for(int i=i_old; i<xlen; i++)
@@ -3342,13 +3451,14 @@ int CPalign_main(double **xa, double **ya,
     secx_cp[2*xlen]=0;
     
     /* fTM-align alignment */
-    double TM1_cp,TM2_cp;
+    double TM1_cp,TM2_cp,TM4_cp;
+    const double Lnorm_tmp=getmin(xlen,ylen);
     TMalign_main(xa_cp, ya, seqx_cp, seqy, secx_cp, secy,
-        t0, u0, TM1_cp, TM2_cp, TM3, TM4, TM5,
+        t0, u0, TM1_cp, TM2_cp, TM3, TM4_cp, TM5,
         d0_0, TM_0, d0A, d0B, d0u, d0a, d0_out, seqM, seqxA_cp, seqyA_cp,
         rmsd0, L_ali, Liden, TM_ali, rmsd_ali, n_ali, n_ali8,
-        xlen*2, ylen, sequence, Lnorm_ass, d0_scale,
-        0, false, false, false, true, mol_type, -1);
+        xlen*2, ylen, sequence, Lnorm_tmp, d0_scale,
+        0, false, true, false, true, mol_type, -1);
 
     /* delete gap in seqxA_cp */
     r=0;
@@ -3392,12 +3502,14 @@ int CPalign_main(double **xa, double **ya,
         t0, u0, TM1, TM2, TM3, TM4, TM5,
         d0_0, TM_0, d0A, d0B, d0u, d0a, d0_out, seqM, seqxA, seqyA,
         rmsd0, L_ali, Liden, TM_ali, rmsd_ali, n_ali, n_ali8,
-        xlen, ylen, sequence, Lnorm_ass, d0_scale,
-        0, false, false, false, true, mol_type, -1);
+        xlen, ylen, sequence, Lnorm_tmp, d0_scale,
+        0, false, true, false, true, mol_type, -1);
 
-    /* do not use cricular permutation of number of aligned residues is not
+    /* do not use circular permutation of number of aligned residues is not
      * larger than sequence-order dependent alignment */
-    if (n_ali8>cp_aln_best) cp_point=0;
+    //cout<<"cp: aln="<<cp_aln_best<<"\tTM="<<TM4_cp<<endl;
+    //cout<<"TM: aln="<<n_ali8<<"\tTM="<<TM4<<endl;
+    if (n_ali8>=cp_aln_best || TM4>=TM4_cp) cp_point=0;
 
     /* prepare structure for final alignment */
     seqM.clear();
@@ -3417,6 +3529,31 @@ int CPalign_main(double **xa, double **ya,
     }
     seqx_cp[xlen]=0;
     secx_cp[xlen]=0;
+
+    /* test another round of alignment as concatenated alignment can
+     * inflate the number of aligned residues and TM-score. e.g. 1yadA 2duaA */
+    if (cp_point!=0)
+    {
+        TMalign_main(xa_cp, ya, seqx_cp, seqy, secx_cp, secy,
+            t0, u0, TM1_cp, TM2_cp, TM3, TM4_cp, TM5,
+            d0_0, TM_0, d0A, d0B, d0u, d0a, d0_out, seqM, seqxA_cp, seqyA_cp,
+            rmsd0, L_ali, Liden, TM_ali, rmsd_ali, n_ali, cp_aln_best,
+            xlen, ylen, sequence, Lnorm_tmp, d0_scale,
+            0, false, true, false, true, mol_type, -1);
+        //cout<<"cp: aln="<<cp_aln_best<<"\tTM="<<TM4_cp<<endl;
+        if (n_ali8>=cp_aln_best || TM4>=TM4_cp)
+        {
+            cp_point=0;
+            for (r=0;r<xlen;r++)
+            {
+                xa_cp[r][0]=xa[r][0];
+                xa_cp[r][1]=xa[r][1];
+                xa_cp[r][2]=xa[r][2];
+                seqx_cp[r]=seqx[r];
+                secx_cp[r]=secx[r];
+            }
+        }
+    }
 
     /* full TM-align */
     TMalign_main(xa_cp, ya, seqx_cp, seqy, secx_cp, secy,
@@ -3459,3 +3596,46 @@ int CPalign_main(double **xa, double **ya,
     seqyA_cp.clear();
     return cp_point;
 }
+
+bool output_cp(const string&xname, const string&yname,
+    const string &seqxA, const string &seqyA, const int outfmt_opt,
+    int &left_num, int &right_num, int &left_aln_num, int &right_aln_num)
+{
+    int r;
+    bool after_cp=false;
+    for (r=0;r<seqxA.size();r++)
+    {
+        if (seqxA[r]=='*') after_cp=true;
+        else 
+        {
+            if (after_cp)
+            {
+                right_aln_num++;
+                right_num+=(seqxA[r]!='-');
+            }
+            else
+            {
+                left_aln_num++;
+                left_num+=(seqxA[r]!='-');
+            }
+        }
+    }
+    if (after_cp==false)
+    {
+        if (outfmt_opt<=0) cout<<"No CP"<<endl;
+        else if (outfmt_opt==1) cout<<"#No CP"<<endl;
+        else if (outfmt_opt==2) cout<<"@"<<xname<<'\t'<<yname<<'\t'<<"No CP"<<endl;
+    }
+    else
+    {
+        if (outfmt_opt<=0) cout<<"CP point in structure_1 alignment: "<<left_aln_num<<'/'<<right_aln_num<<'\n'
+            <<"CP point in structure_1: "<<left_num<<'/'<<right_num<<endl;
+        else if (outfmt_opt==1) 
+            cout<<"#CP_in_aln="<<left_aln_num<<'/'<<right_aln_num
+               <<"\tCP_in_seq="<<left_num<<'/'<<right_num<<endl;
+        else if (outfmt_opt==2) cout<<"@"<<xname<<'\t'<<yname<<'\t'<<left_aln_num
+            <<'/'<<right_aln_num<<'\t'<<left_num<<'/'<<right_num<<endl;
+    }
+    return after_cp;
+}
+#endif

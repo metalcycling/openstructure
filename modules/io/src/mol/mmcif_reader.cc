@@ -24,6 +24,7 @@
 #include <ost/dyn_cast.hh>
 #include <ost/mol/xcs_editor.hh>
 #include <ost/conop/conop.hh>
+#include <ost/conop/minimal_compound_lib.hh>
 
 #include <ost/io/mol/mmcif_reader.hh>
 
@@ -65,7 +66,7 @@ void MMCifReader::Init()
   curr_chain_           = mol::ChainHandle();
   curr_residue_         = mol::ResidueHandle();
   seqres_               = seq::CreateSequenceList();
-  read_seqres_          = false;
+  read_seqres_          = true;
   warned_rule_based_    = false;
   info_                 = MMCifInfo();
 }
@@ -140,6 +141,7 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
     indices_[AUTH_SEQ_ID]        = header.GetIndex("auth_seq_id");
     indices_[PDBX_PDB_INS_CODE]  = header.GetIndex("pdbx_PDB_ins_code");
     indices_[PDBX_PDB_MODEL_NUM] = header.GetIndex("pdbx_PDB_model_num");
+    indices_[FORMAL_CHARGE]     = header.GetIndex("pdbx_formal_charge");
 
     // post processing
     if (category_counts_[category_] > 0) {
@@ -481,6 +483,7 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
     return;                            
   }
   Real occ = 1.00f, temp = 0;
+  int charge = 0;
   geom::Vec3 apos;
   
   for (int i = CARTN_X; i <= CARTN_Z; ++i) {
@@ -502,6 +505,13 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
     if (!is_undef(columns[indices_[B_ISO_OR_EQUIV]])) {
       temp = this->TryGetReal(columns[indices_[B_ISO_OR_EQUIV]],
                               "atom_site.B_iso_or_equiv");
+    }
+  }
+  if (indices_[FORMAL_CHARGE] != -1) { // unit test
+    String charge_s = columns[indices_[FORMAL_CHARGE]].str();
+    if (charge_s != "?" && charge_s != ".") {
+      charge = this->TryGetInt(columns[indices_[FORMAL_CHARGE]],
+                               "atom_site.pdbx_formal_charge");
     }
   }
 
@@ -559,6 +569,7 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
       ++chain_count_;
       // store entity id
       String ent_id = columns[indices_[LABEL_ENTITY_ID]].str();
+      curr_chain_.SetStringProp("entity_id", ent_id);
       chain_id_pairs_.push_back(std::pair<mol::ChainHandle,String>(curr_chain_,
                                                                    ent_id));
       info_.AddMMCifEntityIdTr(cif_chain_name, ent_id);
@@ -585,9 +596,15 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
         curr_residue_ = editor.AppendResidue(curr_chain_,
                                              res_name.str(),
                                              res_num);
+
       } else {
         curr_residue_ = editor.AppendResidue(curr_chain_, res_name.str());
       }
+      curr_residue_.SetStringProp("pdb_auth_chain_name", auth_chain_name);
+      curr_residue_.SetStringProp("pdb_auth_resnum", columns[indices_[AUTH_SEQ_ID]].str());
+      curr_residue_.SetStringProp("pdb_auth_ins_code", columns[indices_[PDBX_PDB_INS_CODE]].str());
+      curr_residue_.SetStringProp("entity_id", columns[indices_[LABEL_ENTITY_ID]].str());
+      curr_residue_.SetStringProp("resnum", columns[indices_[LABEL_SEQ_ID]].str());
       warned_name_mismatch_=false;
       ++residue_count_; 
     }
@@ -656,6 +673,8 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
   ah.SetBFactor(temp);
 
   ah.SetOccupancy(occ);
+
+  ah.SetCharge(charge);
 
   // record type
   ah.SetHetAtom(indices_[GROUP_PDB] == -1 ? false :  
@@ -735,15 +754,16 @@ void MMCifReader::ParseEntityPoly(const std::vector<StringRef>& columns)
     } else if (indices_[PDBX_SEQ_ONE_LETTER_CODE] != -1) {
       seqres=columns[indices_[PDBX_SEQ_ONE_LETTER_CODE]];
 
-      conop::CompoundLibPtr comp_lib=conop::Conopology::Instance()
-                                            .GetDefaultLib();
+      conop::CompoundLibBasePtr comp_lib=conop::Conopology::Instance()
+                                                .GetDefaultLib();
       if (!comp_lib) {
         if (!warned_rule_based_) {
-          LOG_WARNING("SEQRES import requires a compound library. "
-                       "Ignoring SEQRES records");      
+          LOG_WARNING("SEQRES import requires a valid compound library to "
+                       "handle non standard compounds. Their One letter "
+                       "codes will be set to X.");      
         }
         warned_rule_based_=true;
-        return;
+        comp_lib = conop::CompoundLibBasePtr(new ost::conop::MinimalCompoundLib);
       }
       edm_it->second.seqres = this->ConvertSEQRES(seqres.str_no_whitespace(),
                                                   comp_lib);
@@ -756,7 +776,7 @@ void MMCifReader::ParseEntityPoly(const std::vector<StringRef>& columns)
 }
 
 String MMCifReader::ConvertSEQRES(const String& seqres, 
-                                  conop::CompoundLibPtr comp_lib)
+                                  conop::CompoundLibBasePtr comp_lib)
 {
   String can_seqres;
   for (String::const_iterator i=seqres.begin(), e=seqres.end(); i!=e; ++i) {

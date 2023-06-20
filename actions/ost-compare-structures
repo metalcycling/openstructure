@@ -17,7 +17,7 @@ Loads the structures and performs basic cleanup:
 The cleaned structures are optionally dumped using -d/--dump-structures
 
 Output is written in JSON format (default: out.json). In case of no additional
-options, this is a dictionary with 8 keys:
+options, this is a dictionary with 8 keys describing model/reference comparison:
 
  * "reference_chains": Chain names of reference
  * "model_chains": Chain names of model
@@ -36,13 +36,27 @@ options, this is a dictionary with 8 keys:
    format.
  * "inconsistent_residues": List of strings that represent name mismatches of
    aligned residues in form
-   <trg_cname>.<trg_rname><trg_rnum>-<mdl_cname>.<mdl_rname><mdl_rnum>.
+   <trg_cname>.<trg_rnum>.<trg_ins_code>-<mdl_cname>.<mdl_rnum>.<mdl_ins_code>.
    Inconsistencies may lead to corrupt results but do not abort the program.
    Program abortion in these cases can be enforced with
    -ec/--enforce-consistency.
  * "status": SUCCESS if everything ran through. In case of failure, the only
    content of the JSON output will be \"status\" set to FAILURE and an
    additional key: "traceback".
+
+The following additional keys store relevant input parameters to reproduce
+results:
+
+ * "model"
+ * "reference"
+ * "fault_tolerant"
+ * "model_biounit"
+ * "reference_biounit"
+ * "residue_number_alignment"
+ * "enforce_consistency"
+ * "cad_exec"
+ * "usalign_exec"
+ * "lddt_no_stereochecks"
 
 The pairwise sequence alignments are computed with Needleman-Wunsch using
 BLOSUM62 (NUC44 for nucleotides). Many benchmarking scenarios preprocess the
@@ -216,13 +230,36 @@ def _ParseArgs():
         default=False,
         action="store_true",
         help=("Compute per-residue lDDT scores with default parameterization "
-              "and store as key \"local_lddt\". Score for model residue with "
-              "number 42 in chain X can be extracted with: "
-              "data[\"local_lddt\"][\"X\"][\"42\"]. If there is an insertion "
-              "code, lets say A, the last key becomes \"42A\" Stereochemical "
-              "irregularities affecting lDDT are reported as keys "
-              "\"model_clashes\", \"model_bad_bonds\", \"model_bad_angles\" "
-              "and the respective reference counterparts."))
+              "and store as key \"local_lddt\". Score for each residue is "
+              "accessible by key <chain_name>.<resnum>.<resnum_inscode>. "
+              "Residue with number 42 in chain X can be extracted with: "
+              "data[\"local_lddt\"][\"X.42.\"]. If there is an insertion "
+              "code, lets say A, the residue key becomes \"X.42.A\". "
+              "Stereochemical irregularities affecting lDDT are reported as "
+              "keys \"model_clashes\", \"model_bad_bonds\", "
+              "\"model_bad_angles\" and the respective reference "
+              "counterparts. Atoms specified in there follow the following "
+              "format: <chain_name>.<resnum>.<resnum_inscode>.<atom_name>"))
+
+    parser.add_argument(
+        "--bb-lddt",
+        dest="bb_lddt",
+        default=False,
+        action="store_true",
+        help=("Compute global lDDT score with default parameterization and "
+              "store as key \"bb_lddt\". lDDT in this case is only computed on "
+              "backbone atoms: CA for peptides and C3' for nucleotides"))
+
+    parser.add_argument(
+        "--bb-local-lddt",
+        dest="bb_local_lddt",
+        default=False,
+        action="store_true",
+        help=("Compute per-residue lDDT scores with default parameterization "
+              "and store as key \"bb_local_lddt\". lDDT in this case is only "
+              "computed on backbone atoms: CA for peptides and C3' for "
+              "nucleotides. Per-residue scores are accessible as described for "
+              "local_lddt."))
 
     parser.add_argument(
         "--cad-score",
@@ -240,12 +277,10 @@ def _ParseArgs():
         default=False,
         action="store_true",
         help=("Compute local CAD's atom-atom (AA) scores and store as key "
-              "\"local_cad_score\". Score for model residue with number 42 in "
-              "chain X can be extracted with: "
-              "data[\"local_cad_score\"][\"X\"][\"42\"]. "
-              "--residue-number-alignments must be enabled to compute this "
-              "score. Requires voronota_cadscore executable in PATH. "
-              "Alternatively you can set cad-exec."))
+              "\"local_cad_score\". Per-residue scores are accessible as "
+              "described for local_lddt. --residue-number-alignments must be "
+              "enabled to compute this score. Requires voronota_cadscore "
+              "executable in PATH. Alternatively you can set cad-exec."))
 
     parser.add_argument(
         "--cad-exec",
@@ -254,6 +289,13 @@ def _ParseArgs():
         help=("Path to voronota-cadscore executable (installed from "
               "https://github.com/kliment-olechnovic/voronota). Searches PATH "
               "if not set."))
+
+    parser.add_argument(
+        "--usalign-exec",
+        dest="usalign_exec",
+        default=None,
+        help=("Path to USalign executable to compute TM-score. If not given, "
+              "an OpenStructure internal copy of USalign code is used."))
 
     parser.add_argument(
         "--qs-score",
@@ -321,8 +363,36 @@ def _ParseArgs():
               "None. Model interface residues are available as key "
               "\"model_interface_residues\", reference interface residues as "
               "key \"reference_interface_residues\". Residues are represented "
-              "as string in form <num><inscode>. The respective scores are "
-              "available as keys \"patch_qs\" and \"patch_dockq\""))
+              "as string in form <chain_name>.<resnum>.<resnum_inscode>. "
+              "The respective scores are available as keys \"patch_qs\" and "
+              "\"patch_dockq\""))
+
+    parser.add_argument(
+        "--tm-score",
+        dest="tm_score",
+        default=False,
+        action="store_true",
+        help=("Computes TM-score with the USalign tool. Also computes a "
+              "chain mapping in case of complexes that is stored in the "
+              "same format as the default mapping. TM-score and the mapping "
+              "are available as keys \"tm_score\" and \"usalign_mapping\""))
+
+    parser.add_argument(
+        "--lddt-no-stereochecks",
+        dest="lddt_no_stereochecks",
+        default=False,
+        action="store_true",
+        help=("Disable stereochecks for lDDT computation"))
+
+    parser.add_argument(
+        "--n-max-naive",
+        dest="n_max_naive",
+        required=False,
+        default=12,
+        type=int,
+        help=("If number of chains in model and reference are below or equal "
+              "that number, the chain mapping will naively enumerate all "
+              "possible mappings. A heuristic is used otherwise."))
 
     return parser.parse_args()
 
@@ -428,29 +498,47 @@ def _GetInconsistentResidues(alns):
             r1 = col.GetResidue(0)
             r2 = col.GetResidue(1)
             if r1.IsValid() and r2.IsValid() and r1.GetName() != r2.GetName():
-                lst.append((r1, r2))
-    lst = [f"{x[0].GetQualifiedName()}-{x[1].GetQualifiedName()}" for x in lst]
+                ch_1 = r1.GetChain().name
+                num_1 = r1.number.num
+                ins_code_1 = r1.number.ins_code.strip("\u0000")
+                id_1 = f"{ch_1}.{num_1}.{ins_code_1}"
+                ch_2 = r2.GetChain().name
+                num_2 = r2.number.num
+                ins_code_2 = r2.number.ins_code.strip("\u0000")
+                id_2 = f"{ch_2}.{num_2}.{ins_code_2}"
+                lst.append(f"{id_1}-{id_2}")
     return lst
 
 def _LocalScoresToJSONDict(score_dict):
-    """ Score for model residue with number rnum in chain X can be extracted
-    with: data["local_cad_score"]["X"][rnum]. Convert ResNum object to str for
-    JSON serialization
+    """ Convert ResNums to str for JSON serialization
     """
     json_dict = dict()
     for ch, ch_scores in score_dict.items():
-        json_dict[ch] = {str(rnum): s for rnum, s in ch_scores.items()}
+        for num, s in ch_scores.items():
+            ins_code = num.ins_code.strip("\u0000")
+            json_dict[f"{ch}.{num.num}.{ins_code}"] = s
     return json_dict
 
-def _InterfaceResiduesToJSONDict(interface_dict):
-    """ Interface residues are stored as
-    data["model_interface_residues"]["A"][rnum1, rnum2,...]. Convert ResNum
-    object to str for JSON serialization.
+def _InterfaceResiduesToJSONList(interface_dict):
+    """ Convert ResNums to str for JSON serialization.
+
+    Changes in this function will affect _PatchScoresToJSONList
     """
-    json_dict = dict()
+    json_list = list()
     for ch, ch_nums in interface_dict.items():
-        json_dict[ch] = [str(rnum) for rnum in ch_nums]
-    return json_dict
+        for num in ch_nums:
+            ins_code = num.ins_code.strip("\u0000")
+            json_list.append(f"{ch}.{num.num}.{ins_code}")
+    return json_list
+
+def _PatchScoresToJSONList(interface_dict, score_dict):
+    """ Creates List of patch scores that are consistent with interface residue
+    lists
+    """
+    json_list = list()
+    for ch, ch_nums in interface_dict.items():
+        json_list += score_dict[ch]
+    return json_list
 
 def _Process(model, reference, args):
 
@@ -461,7 +549,10 @@ def _Process(model, reference, args):
     scorer = scoring.Scorer(model, reference,
                             resnum_alignments = args.residue_number_alignment,
                             cad_score_exec = args.cad_exec,
-                            custom_mapping = mapping)
+                            custom_mapping = mapping,
+                            usalign_exec = args.usalign_exec,
+                            lddt_no_stereochecks = args.lddt_no_stereochecks,
+                            n_max_naive = args.n_max_naive)
 
     ir = _GetInconsistentResidues(scorer.aln)
     if len(ir) > 0 and args.enforce_consistency:
@@ -489,6 +580,12 @@ def _Process(model, reference, args):
         out["reference_clashes"] = [x.ToJSON() for x in scorer.target_clashes]
         out["reference_bad_bonds"] = [x.ToJSON() for x in scorer.target_bad_bonds]
         out["reference_bad_angles"] = [x.ToJSON() for x in scorer.target_bad_angles]
+
+    if args.bb_lddt:
+        out["bb_lddt"] = scorer.bb_lddt
+
+    if args.bb_local_lddt:
+        out["bb_local_lddt"] = _LocalScoresToJSONDict(scorer.bb_local_lddt)
 
     if args.cad_score:
         out["cad_score"] = scorer.cad_score
@@ -525,11 +622,17 @@ def _Process(model, reference, args):
 
     if args.patch_scores:
         out["model_interface_residues"] = \
-        _InterfaceResiduesToJSONDict(scorer.model_interface_residues)
+        _InterfaceResiduesToJSONList(scorer.model_interface_residues)
         out["reference_interface_residues"] = \
-        _InterfaceResiduesToJSONDict(scorer.target_interface_residues)
-        out["patch_qs"] = scorer.patch_qs
-        out["patch_dockq"] = scorer.patch_dockq
+        _InterfaceResiduesToJSONList(scorer.target_interface_residues)
+        out["patch_qs"] = _PatchScoresToJSONList(scorer.model_interface_residues,
+                                                 scorer.patch_qs)
+        out["patch_dockq"] = _PatchScoresToJSONList(scorer.model_interface_residues,
+                                                    scorer.patch_dockq)
+
+    if args.tm_score:
+        out["tm_score"] = scorer.tm_score
+        out["usalign_mapping"] = scorer.usalign_mapping
 
     if args.dump_structures:
         try:
@@ -556,16 +659,17 @@ def _Process(model, reference, args):
                                    "fails in this case.")
             else:
                 raise
-
-
-
-
     return out
 
 def _Main():
 
     args = _ParseArgs()
     try:
+        compute_cad = args.cad_score or args.local_cad_score
+        if compute_cad and not args.residue_number_alignment:
+            raise RuntimeError("Only support CAD score when residue numbers in "
+                               "model and reference match. Use -rna flag if "
+                               "this is the case.")
         reference = _LoadStructure(args.reference,
                                    sformat=args.reference_format,
                                    bu_idx=args.reference_biounit,
@@ -575,6 +679,18 @@ def _Main():
                                bu_idx=args.model_biounit,
                                fault_tolerant = args.fault_tolerant)
         out = _Process(model, reference, args)
+
+        # append input arguments
+        out["model"] = args.model
+        out["reference"] = args.reference
+        out["fault_tolerant"] = args.fault_tolerant
+        out["model_biounit"] = args.model_biounit
+        out["reference_biounit"] = args.reference_biounit
+        out["residue_number_alignment"] = args.residue_number_alignment
+        out["enforce_consistency"] = args.enforce_consistency
+        out["cad_exec"] = args.cad_exec
+        out["usalign_exec"] = args.usalign_exec
+        out["lddt_no_stereochecks"] = args.lddt_no_stereochecks
         out["status"] = "SUCCESS"
         with open(args.output, 'w') as fh:
             json.dump(out, fh, indent=4, sort_keys=False)

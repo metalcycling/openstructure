@@ -64,3 +64,77 @@ Then (in the same terminal window) to invoke IPython app one can just type:
 
 To make the alias permanent put it into your ``.bashrc`` file or whatever file
 you use to store the aliases.
+
+Actions
+-------
+
+To see the list of available actions do:
+
+  .. code-block::
+
+    singularity run --app OST ost.img -h
+
+To run chosen action do:
+
+  .. code-block::
+
+    singularity run --app OST ost.img <ACTION NAME>
+
+ 
+Here is an example run of the compare-structures action:
+
+.. code-block::
+
+  singularity run --app OST ost.img compare-structures \
+      --model model.pdb \
+      --reference reference.cif \
+      --output scores.json \
+      --lddt \
+      --local-lddt
+
+In order to see all available options for this action run:
+
+.. code-block::
+
+  singularity run --app OST ost.img compare-structures -h
+
+CASP15 used lDDT for RNA scoring. lDDT runs stereochemistry checks by default,
+removing sidechains if they have problematic stereochemistry. This gives lower
+lDDT scores. The full residue is removed if the backbone has problematic
+stereochemistry resulting in an lDDT score of 0.0 for that particular residue.
+Stereochemistry checks for RNA were not yet available in CASP15. To reproduce
+these results, use the ``--lddt-no-stereochecks`` flag. This disables
+stereochemistry checks for lDDT computation but stereochemical irregularities
+are still reported in the output.
+
+The Compound Library
+--------------------
+
+You'll have the exact same problem with outdated compound libraries as in the
+raw Docker image. You can find more information on that matter in the Docker
+section of the documentation: :ref:`docker_compound_lib`.
+
+The same trick of mounting an up to date compound library from the local host into
+the container applies. The two relevant commands for Singularity are building
+a new library and mount it.
+
+Build a new library:
+
+.. code-block:: bash
+
+  singularity run --app ChemdictTool <IMAGE> create components.cif.gz \
+  compounds.chemlib
+
+Run some script with an updated compound library from localhost:
+
+.. code-block:: bash
+
+  singularity run \
+  -B <COMPLIB_DIR_LOCALHOST>/compounds.chemlib:/compounds.chemlib \
+  --env OST_COMPOUNDS_CHEMLIB=/compounds.chemlib \
+  --app PM <IMAGE> my_script.py
+
+<COMPLIB_DIR_LOCALHOST> is the directory that contains the compound lib with the
+name compounds.chemlib that you created before. Make sure that everything works
+as expected by executing the exact same lines of Python code as described
+in the Docker documentation: :ref:`docker_compound_lib`.

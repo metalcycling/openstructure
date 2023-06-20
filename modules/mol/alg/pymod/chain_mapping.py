@@ -1228,10 +1228,30 @@ class ChainMapper:
         return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
                              final_mapping, alns)
 
+    def GetMapping(self, model, n_max_naive = 12):
+        """ Convenience function to get mapping with currently preferred method
+
+        If number of chains in model and target are <= *n_max_naive*, a naive
+        QS-score mapping is performed. For anything else, a QS-score mapping
+        with the greedy_block strategy is performed (steep_opt_rate = 3,
+        block_seed_size = 5, block_blocks_per_chem_group = 6).
+        """
+        n_trg_chains = len(self.target.chains)
+        res = self.GetChemMapping(model)
+        n_mdl_chains = len(res[2].chains)
+        if n_trg_chains <= n_max_naive and n_mdl_chains <= n_max_naive:
+            return self.GetQSScoreMapping(model, strategy="naive",
+                                          chem_mapping_result=res)
+        else:
+            return self.GetQSScoreMapping(model, strategy="greedy_block",
+                                          steep_opt_rate=3, block_seed_size=5,
+                                          block_blocks_per_chem_group=6,
+                                          chem_mapping_result=res)
 
     def GetRepr(self, substructure, model, topn=1, inclusion_radius=15.0,
                 thresholds=[0.5, 1.0, 2.0, 4.0], bb_only=False,
-                only_interchain=False, chem_mapping_result = None):
+                only_interchain=False, chem_mapping_result = None,
+                global_mapping = None):
         """ Identify *topn* representations of *substructure* in *model*
 
         *substructure* defines a subset of :attr:`~target` for which one
@@ -1267,11 +1287,31 @@ class ChainMapper:
                                     *model*. If set, *model* parameter is not
                                     used.
         :type chem_mapping_result: :class:`tuple`
+        :param global_mapping: Pro param. Specify a global mapping result. This
+                               fully defines the desired representation in the
+                               model but extracts it and enriches it with all
+                               the nice attributes of :class:`ReprResult`.
+                               The target attribute in *global_mapping* must be
+                               of the same entity as self.target and the model
+                               attribute of *global_mapping* must be of the same
+                               entity as *model*.
+        :type global_mapping: :class:`MappingResult`
         :returns: :class:`list` of :class:`ReprResult`
         """
 
         if topn < 1:
             raise RuntimeError("topn must be >= 1")
+
+        if global_mapping is not None:
+            # ensure that this mapping is derived from the same structures
+            if global_mapping.target.handle.GetHashCode() != \
+               self.target.handle.GetHashCode():
+               raise RuntimeError("global_mapping.target must be the same "
+                                  "entity as self.target")
+            if global_mapping.model.handle.GetHashCode() != \
+               model.handle.GetHashCode():
+               raise RuntimeError("global_mapping.model must be the same "
+                                  "entity as model param")
 
         # check whether substructure really is a subset of self.target
         for r in substructure.residues:
@@ -1377,9 +1417,31 @@ class ChainMapper:
                                       inclusion_radius = inclusion_radius,
                                       bb_only = bb_only)
         scored_mappings = list()
-        for mapping in _ChainMappings(substructure_chem_groups,
-                                      substructure_chem_mapping,
-                                      self.n_max_naive):
+
+        if global_mapping:
+            # construct mapping of substructure from global mapping
+            flat_mapping = global_mapping.GetFlatMapping()
+            mapping = list()
+            for chem_group, chem_mapping in zip(substructure_chem_groups,
+                                                substructure_chem_mapping):
+                chem_group_mapping = list()
+                for ch in chem_group:
+                    if ch in flat_mapping:
+                        mdl_ch = flat_mapping[ch]
+                        if mdl_ch in chem_mapping:
+                            chem_group_mapping.append(mdl_ch)
+                        else:
+                            chem_group_mapping.append(None)
+                    else:
+                        chem_group_mapping.append(None)
+                mapping.append(chem_group_mapping)
+            mappings = [mapping]
+        else:
+            mappings = list(_ChainMappings(substructure_chem_groups,
+                                           substructure_chem_mapping,
+                                           self.n_max_naive))
+
+        for mapping in mappings:
             # chain_mapping and alns as input for lDDT computation
             lddt_chain_mapping = dict()
             lddt_alns = dict()

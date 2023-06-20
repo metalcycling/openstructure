@@ -55,7 +55,8 @@ def _CleanupFiles(dir_name):
 def _ParseTmAlign(lines,lines_matrix):
   info_line=lines[12].split(',')
   aln_length=int(info_line[0].split('=')[1].strip())
-  rmsd=float(info_line[1].split('=')[1].strip())  
+  rmsd=float(info_line[1].split('=')[1].strip())
+  tm_score_swapped=float(lines[13].split('=')[1].split('(')[0].strip())
   tm_score=float(lines[14].split('=')[1].split('(')[0].strip())
   tf1=[float(i.strip()) for i in lines_matrix[2].split()]
   tf2=[float(i.strip()) for i in lines_matrix[3].split()]
@@ -69,7 +70,92 @@ def _ParseTmAlign(lines,lines_matrix):
   alignment = seq.CreateAlignment()
   alignment.AddSequence(seq2)
   alignment.AddSequence(seq1)
-  return ost.bindings.TMAlignResult(rmsd, tm_score, aln_length, tf, alignment)
+  return ost.bindings.TMAlignResult(rmsd, tm_score, tm_score_swapped,
+                                    aln_length, tf, alignment)
+
+def _ParseUSAlign(lines,lines_matrix):
+
+  # stuff that is immediately parsed
+  rmsd = None
+  tm_score = None
+  tm_score_swapped = None
+  aligned_length = None
+
+  # first goes into intermediate data structures
+  aln_data = list()
+  mapping_data1 = list()
+  mapping_data2 = list()
+  in_aln = False
+
+  for line in lines:
+    if in_aln:
+      if len(line.strip()) == 0:
+        in_aln = False
+      else:
+        aln_data.append(line.strip('*'))
+    elif line.startswith("Name of Structure_1:"):
+      tmp = [item.strip() for item in line.split()[3].split(':')[1:]]
+      for item in tmp:
+        if len(item) > 0:
+          mapping_data1.append(item.split(',')[1])
+        else:
+          mapping_data1.append("")
+    elif line.startswith("Name of Structure_2:"):
+      tmp = [item.strip() for item in line.split()[3].split(':')[1:]]
+      for item in tmp:
+        if len(item) > 0:
+          mapping_data2.append(item.split(',')[1])
+        else:
+          mapping_data2.append("")
+    elif line.startswith("Aligned length="):
+      data = [item.strip() for item in line.split(',')]
+      for item in data:
+        if item.startswith("Aligned length="):
+          aligned_length = int(item.split("=")[1])
+        elif item.startswith("RMSD="):
+          rmsd = float(item.split("=")[1])
+    elif line.startswith("TM-score="):
+      if "(normalized by length of Structure_1" in line:
+        tm_score_swapped = float(line.split('(')[0].split('=')[1].strip())
+      elif "(normalized by length of Structure_2" in line:
+        tm_score = float(line.split('(')[0].split('=')[1].strip())
+    elif line.startswith("(\":\" denotes residue pairs of"):
+      in_aln = True
+
+  assert(len(aln_data)==3)
+  aln_sequences1 = aln_data[0].split('*')
+  aln_sequences2 = aln_data[2].split('*')
+
+  # do mapping/aln data
+  alns = ost.seq.AlignmentList()
+  ent1_mapped_chains = ost.StringList()
+  ent2_mapped_chains = ost.StringList()
+  assert(len(mapping_data1) == len(mapping_data2))
+  assert(len(aln_sequences1) == len(aln_sequences2))
+  assert(len(mapping_data1) == len(aln_sequences1))
+  for a, b, c, d in zip(mapping_data1, mapping_data2,
+                        aln_sequences1, aln_sequences2):
+    if len(a) > 0 and len(b) > 0:
+      ent1_mapped_chains.append(a)
+      ent2_mapped_chains.append(b)
+      assert(len(c) == len(d))
+      aln = seq.CreateAlignment()
+      aln.AddSequence(seq.CreateSequence(a, c))
+      aln.AddSequence(seq.CreateSequence(b, d))
+      alns.append(aln)
+
+  # parse transformation matrix
+  tf1=[float(i.strip()) for i in lines_matrix[2].split()[1:]]
+  tf2=[float(i.strip()) for i in lines_matrix[3].split()[1:]]
+  tf3=[float(i.strip()) for i in lines_matrix[4].split()[1:]]
+  mat = geom.Mat4(tf1[1], tf1[2], tf1[3], tf1[0],
+                  tf2[1], tf2[2], tf2[3], tf2[0],
+                  tf3[1], tf3[2], tf3[3], tf3[0],
+                  0.0,    0.0,    0.0,    1.0)
+
+  return ost.bindings.MMAlignResult(rmsd, tm_score, tm_score_swapped,
+                                    aligned_length, mat, alns,
+                                    ent1_mapped_chains, ent2_mapped_chains)
 
 def _RunTmAlign(tmalign, tmp_dir):
   model1_filename=os.path.join(tmp_dir, 'model01.pdb')
@@ -91,6 +177,21 @@ def _RunTmAlign(tmalign, tmp_dir):
   matrix_file.close() 
   return _ParseTmAlign(lines,lines_matrix)
 
+def _RunUSAlign(usalign, tmp_dir):
+  model1_filename=os.path.join(tmp_dir, 'model01.pdb')
+  model2_filename=os.path.join(tmp_dir, 'model02.pdb')
+  mat_filename = os.path.join(tmp_dir, "mat.txt")
+  usalign_path=settings.Locate('USalign', explicit_file_name=usalign)  
+  command = f"{usalign_path} {model1_filename} {model2_filename}  -mm 1 -ter 0 -m {mat_filename}"
+  ps=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+  stdout,_=ps.communicate()
+  lines=stdout.decode().splitlines()
+  if (len(lines))<22:
+    _CleanupFiles(tmp_dir)
+    raise RuntimeError("USalign superposition failed")
+  with open(mat_filename) as fh:
+    lines_matrix = fh.readlines()
+  return _ParseUSAlign(lines,lines_matrix)
 
 class TMScoreResult:
   """
@@ -214,5 +315,33 @@ def TMScore(model1, model2, tmscore=None):
   tmp_dir_name=_SetupFiles((model1, model2))
   result=_RunTmScore(tmscore, tmp_dir_name)
   model1.handle.EditXCS().ApplyTransform(result.transform)  
+  _CleanupFiles(tmp_dir_name)
+  return result
+
+
+def USAlign(model1, model2, usalign=None):
+  """
+  Performs a sequence independent superposition of model1 onto model2, the 
+  reference. Can deal with multimeric complexes and RNA.
+
+  Creates temporary model files on disk and runs USalign with:
+  ``USalign model1.pdb model2.pdb -mm 1 -ter 0 -m rotmat.txt``
+  
+  :param model1: The model structure. If the superposition is successful, will 
+                 be superposed onto the reference structure
+  :type model1: :class:`~ost.mol.EntityView` or :class:`~ost.mol.EntityHandle`
+  :param model2: The reference structure
+  :type model2: :class:`~ost.mol.EntityView` or :class:`~ost.mol.EntityHandle`
+  :param usalign: If not None, the path to the USalign executable. Searches
+                  for executable with name ``USalign`` in PATH if not given.
+  :returns: The result of the superposition
+  :rtype: :class:`ost.bindings.MMAlignResult`
+  
+  :raises: :class:`~ost.settings.FileNotFound` if executable could not be located.
+  :raises: :class:`RuntimeError` if the superposition failed
+  """
+  tmp_dir_name=_SetupFiles((model1, model2))
+  result=_RunUSAlign(usalign, tmp_dir_name)
+  model1.handle.EditXCS().ApplyTransform(result.transform)
   _CleanupFiles(tmp_dir_name)
   return result

@@ -706,7 +706,7 @@ if __name__ == "__main__":
     print("Could not find ClustalW. Ignoring test_qsscoring.py tests.")
     sys.exit(0)
   from ost import testutils
-  if testutils.SetDefaultCompoundLib():
+  if testutils.DefaultCompoundLibIsSet():
     testutils.RunTests()
   else:
     print('No compound library available. Ignoring test_qsscoring.py tests.')

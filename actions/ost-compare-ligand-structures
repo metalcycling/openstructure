@@ -36,12 +36,12 @@ options, this is a dictionary with three keys:
 
  * "model_ligands": A list of ligands in the model. If ligands were provided
    explicitly with --model-ligands, elements of the list will be the paths to
-   the ligand SDF file(s). Otherwise, they will be the chain name and residue
-   number of the ligand, separated by a dot.
+   the ligand SDF file(s). Otherwise, they will be the chain name, residue
+   number and insertion code of the ligand, separated by a dot.
  * "reference_ligands": A list of ligands in the reference. If ligands were
    provided explicitly with --reference-ligands, elements of the list will be
-   the paths to the ligand SDF file(s). Otherwise, they will be the chain name
-   and residue number of the ligand, separated by a dot.
+   the paths to the ligand SDF file(s). Otherwise, they will be the chain name,
+   residue number and insertion code of the ligand, separated by a dot.
  * "status": SUCCESS if everything ran through. In case of failure, the only
    content of the JSON output will be \"status\" set to FAILURE and an
    additional key: "traceback".
@@ -57,11 +57,8 @@ import os
 import traceback
 
 import ost
-from ost import conop
 from ost import io
 from ost.mol.alg import ligand_scoring
-from ost.mol.alg import Molck, MolckSettings
-
 
 
 def _ParseArgs():
@@ -171,6 +168,32 @@ def _ParseArgs():
         help=("Allow incomplete target ligands."))
 
     parser.add_argument(
+        "-gcm",
+        "--global-chain-mapping",
+        dest="global_chain_mapping",
+        default=False,
+        action="store_true",
+        help=("Use a global chain mapping."))
+
+    parser.add_argument(
+        "-c",
+        "--chain-mapping",
+        nargs="+",
+        dest="chain_mapping",
+        help=("Custom mapping of chains between the reference and the model. "
+              "Each separate mapping consist of key:value pairs where key "
+              "is the chain name in reference and value is the chain name in "
+              "model. Only has an effect if global-chain-mapping flag is set."))
+
+    parser.add_argument(
+        "-ra",
+        "--rmsd-assignment",
+        dest="rmsd_assignment",
+        default=False,
+        action="store_true",
+        help=("Use RMSD for ligand assignment."))
+
+    parser.add_argument(
         "--lddt-pli",
         dest="lddt_pli",
         default=False,
@@ -199,10 +222,10 @@ def _ParseArgs():
         help=("lDDT inclusion radius for lDDT-PLI."))
 
     parser.add_argument(
-        "--lddt-bs-radius",
-        dest="lddt_bs_radius",
+        "--lddt-lp-radius",
+        dest="lddt_lp_radius",
         default=4.0,
-        help=("lDDT inclusion radius for lDDT-BS."))
+        help=("lDDT inclusion radius for lDDT-LP."))
 
     parser.add_argument(
         '-v',
@@ -211,6 +234,16 @@ def _ParseArgs():
         type=int,
         default=3,
         help="Set verbosity level. Defaults to 3 (INFO).")
+
+    parser.add_argument(
+        "--n-max-naive",
+        dest="n_max_naive",
+        required=False,
+        default=12,
+        type=int,
+        help=("If number of chains in model and reference are below or equal "
+              "that number, the global chain mapping will naively enumerate "
+              "all possible mappings. A heuristic is used otherwise."))
 
     return parser.parse_args()
 
@@ -234,12 +267,9 @@ def _LoadStructure(structure_path, format="auto", fault_tolerant=False):
                             f"{structure_path}.")
         format = ext[-1].lower()
 
-    # increase loglevel, as we would pollute the info log with weird stuff
-    ost.PushVerbosityLevel(ost.LogLevel.Error)
     # Load the structure
     if format in ["mmcif", "cif"]:
-        entity, seqres = io.LoadMMCIF(structure_path, seqres=True,
-                                      fault_tolerant=fault_tolerant)
+        entity = io.LoadMMCIF(structure_path, fault_tolerant=fault_tolerant)
         if len(entity.residues) == 0:
             raise Exception(f"No residues found in file: {structure_path}")
     elif format == "pdb":
@@ -250,22 +280,11 @@ def _LoadStructure(structure_path, format="auto", fault_tolerant=False):
         raise Exception(f"Unknown/ unsupported file extension found for "
                         f"file {structure_path}.")
 
-    # Molck it
-    molck_settings = MolckSettings(rm_unk_atoms=True,
-                                   rm_non_std=False,
-                                   rm_hyd_atoms=True,
-                                   rm_oxt_atoms=False,
-                                   rm_zero_occ_atoms=False,
-                                   colored=False,
-                                   map_nonstd_res=False,
-                                   assign_elem=True)
-    # Cleanup a copy of the structures
-    Molck(entity, conop.GetDefaultLib(), molck_settings)
-    
-    # restore old loglevel and return
-    ost.PopVerbosityLevel()
-    entity.SetName(structure_path)
-    return entity
+    # Remove hydrogens
+    cleaned_entity = ost.mol.CreateEntityFromView(entity.Select("ele != H"),
+                                                  include_exlusive_atoms=False)
+    cleaned_entity.SetName(structure_path)
+    return cleaned_entity
 
 
 def _LoadLigands(ligands):
@@ -307,7 +326,22 @@ def _Validate(structure, ligands, legend, fault_tolerant=False):
                     raise ValueError(msg)
 
 
+def _QualifiedResidueNotation(r):
+    """Return a parsable string of the residue in the format:
+    ChainName.ResidueNumber.InsertionCode."""
+    resnum = r.number
+    return "{cname}.{rnum}.{ins_code}".format(
+        cname=r.chain.name,
+        rnum=resnum.num,
+        ins_code=resnum.ins_code.strip("\u0000"),
+    )
+
+
 def _Process(model, model_ligands, reference, reference_ligands, args):
+
+    mapping = None
+    if args.chain_mapping is not None:
+        mapping = {x.split(':')[0]: x.split(':')[1] for x in args.chain_mapping}
 
     scorer = ligand_scoring.LigandScorer(
         model=model,
@@ -318,34 +352,65 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         check_resnames=args.enforce_consistency,
         rename_ligand_chain=True,
         substructure_match=args.substructure_match,
+        global_chain_mapping=args.global_chain_mapping,
+        rmsd_assignment=args.rmsd_assignment,
         radius=args.radius,
         lddt_pli_radius=args.lddt_pli_radius,
-        lddt_bs_radius=args.lddt_bs_radius
+        lddt_lp_radius=args.lddt_lp_radius,
+        n_max_naive=args.n_max_naive,
+        custom_mapping=mapping
     )
 
     out = dict()
 
     if model_ligands is not None:
         # Replace model ligand by path
-        assert len(model_ligands) == len(scorer.model_ligands)
-        # Map ligand => path
-        model_ligands_map = {k: v for k, v in zip(scorer.model_ligands,
-                                                  args.model_ligands)}
-        out["model_ligands"] = args.model_ligands
+        if len(model_ligands) == len(scorer.model_ligands):
+            # Map ligand => path
+            model_ligands_map = {k: v for k, v in zip(scorer.model_ligands,
+                                                      args.model_ligands)}
+            out["model_ligands"] = args.model_ligands
+        elif len(model_ligands) < len(scorer.model_ligands):
+            # Multi-ligand SDF files were given
+            # Map ligand => path:idx
+            out["model_ligands"] = []
+            for ligand, filename in zip(model_ligands, args.model_ligands):
+                assert isinstance(ligand, ost.mol.EntityHandle)
+                for i, residue in enumerate(ligand.residues):
+                    out["model_ligands"].append(f"{filename}:{i}")
+        else:
+            # This should never happen and would be a bug
+            raise RuntimeError("Fewer ligands in the model scorer "
+                               "(%d) than given (%d)" % (
+                len(scorer.model_ligands), len(model_ligands)))
     else:
-        model_ligands_map = {l: "%s.%s" % (l.chain.name, l.number)
+        model_ligands_map = {l: _QualifiedResidueNotation(l)
                              for l in scorer.model_ligands}
         out["model_ligands"] = list(model_ligands_map.values())
 
     if reference_ligands is not None:
         # Replace reference ligand by path
-        assert len(reference_ligands) == len(scorer.target_ligands)
-        # Map ligand => path
-        reference_ligands_map = {k: v for k, v in zip(scorer.target_ligands,
-                                                  args.reference_ligands)}
-        out["reference_ligands"] = args.reference_ligands
+        if len(reference_ligands) == len(scorer.target_ligands):
+            # Map ligand => path
+            reference_ligands_map = {k: v for k, v in zip(scorer.target_ligands,
+                                                      args.reference_ligands)}
+            out["reference_ligands"] = args.reference_ligands
+        elif len(reference_ligands) < len(scorer.target_ligands):
+            # Multi-ligand SDF files were given
+            # Map ligand => path:idx
+            out["reference_ligands"] = []
+            for ligand, filename in zip(reference_ligands, args.reference_ligands):
+                assert isinstance(ligand, ost.mol.EntityHandle)
+                for i, residue in enumerate(ligand.residues):
+                    out["reference_ligands"].append(f"{filename}:{i}")
+        else:
+            # This should never happen and would be a bug
+            raise RuntimeError("Fewer ligands in the reference scorer "
+                               "(%d) than given (%d)" % (
+                len(scorer.target_ligands), len(reference_ligands)))
+
     else:
-        reference_ligands_map = {l: "%s.%s" % (l.chain.name, l.number)
+        reference_ligands_map = {l: _QualifiedResidueNotation(l)
                              for l in scorer.target_ligands}
         out["reference_ligands"] = list(reference_ligands_map.values())
 
@@ -361,14 +426,14 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 lddt_pli["transform"] = [transform_data[i:i + 4]
                                          for i in range(0, len(transform_data),
                                                         4)]
-                lddt_pli["bs_ref_res"] = [r.qualified_name for r in
+                lddt_pli["bs_ref_res"] = [_QualifiedResidueNotation(r) for r in
                                           lddt_pli["bs_ref_res"]]
-                lddt_pli["bs_ref_res_mapped"] = [r.qualified_name for r in
+                lddt_pli["bs_ref_res_mapped"] = [_QualifiedResidueNotation(r) for r in
                                                  lddt_pli["bs_ref_res_mapped"]]
-                lddt_pli["bs_mdl_res_mapped"] = [r.qualified_name for r in
+                lddt_pli["bs_mdl_res_mapped"] = [_QualifiedResidueNotation(r) for r in
                                                  lddt_pli["bs_mdl_res_mapped"]]
                 lddt_pli["inconsistent_residues"] = ["%s-%s" %(
-                    x.qualified_name, y.qualified_name) for x,y in lddt_pli[
+                    _QualifiedResidueNotation(x), _QualifiedResidueNotation(y)) for x,y in lddt_pli[
                     "inconsistent_residues"]]
                 out["lddt_pli"][model_key] = lddt_pli
 
@@ -383,14 +448,14 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 transform_data = rmsd["transform"].data
                 rmsd["transform"] = [transform_data[i:i + 4]
                                      for i in range(0, len(transform_data), 4)]
-                rmsd["bs_ref_res"] = [r.qualified_name for r in
+                rmsd["bs_ref_res"] = [_QualifiedResidueNotation(r) for r in
                                       rmsd["bs_ref_res"]]
-                rmsd["bs_ref_res_mapped"] = [r.qualified_name for r in
+                rmsd["bs_ref_res_mapped"] = [_QualifiedResidueNotation(r) for r in
                                              rmsd["bs_ref_res_mapped"]]
-                rmsd["bs_mdl_res_mapped"] = [r.qualified_name for r in
+                rmsd["bs_mdl_res_mapped"] = [_QualifiedResidueNotation(r) for r in
                                              rmsd["bs_mdl_res_mapped"]]
                 rmsd["inconsistent_residues"] = ["%s-%s" %(
-                    x.qualified_name, y.qualified_name) for x,y in rmsd[
+                    _QualifiedResidueNotation(x), _QualifiedResidueNotation(y)) for x,y in rmsd[
                     "inconsistent_residues"]]
                 out["rmsd"][model_key] = rmsd
 

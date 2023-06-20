@@ -20,6 +20,7 @@ import os, tempfile, ftplib, http.client
 
 from ._ost_io import *
 from ost import mol, geom, conop, seq
+from ost import LogWarning
 
 class IOProfiles:
   def __init__(self):
@@ -356,7 +357,10 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
   customize the exact behaviour of the mmCIF import. For more information on
   these options, see :doc:`profile`.
   
-  Residues are flagged as ligand if they are mentioned in a HET record.
+  Residues are flagged as ligand if they are not waters nor covered by an
+  ``entity_poly`` record (ie. they are non-polymer entities in
+  ``pdbx_entity_nonpoly``). Note that all residues except waters will be
+  flagged as ligands if ``seqres=False`` (the default).
 
   :param filename: File to be loaded
   :type filename: :class:`str`
@@ -389,14 +393,15 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
                  interpreted as the pdb id.
   :type remote: :class:`bool`
 
-  :param seqres: Whether to read SEQRES records. If True, a
+  :param seqres: Whether to return SEQRES records. If True, a
                  :class:`~ost.seq.SequenceList` object is returned as the second
                  item. The sequences in the list are named according to the
                  mmCIF chain name.
                  This feature requires a default
                  :class:`compound library <ost.conop.CompoundLib>`
                  to be defined and accessible via
-                 :func:`~ost.conop.GetDefaultLib` or an empty list is returned.
+                 :func:`~ost.conop.GetDefaultLib`. One letter codes of non
+                 standard compounds are set to X otherwise.
   :type seqres: :class:`bool`
 
   :param info: Whether to return an info container with the other output.
@@ -430,7 +435,6 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
   try:
     ent = mol.CreateEntity()
     reader = MMCifReader(filename, ent, prof)
-    reader.read_seqres = seqres
     
     # NOTE: to speed up things, we could introduce a restrict_chains parameter
     #       similar to the one in LoadPDB. Here, it would have to be a list/set
@@ -443,6 +447,11 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
       reader.info.ConnectBranchLinks()
     #else:
     #  raise IOError("File doesn't contain any entities")
+
+    # Warn about info dependency on seqres
+    if info and not reader.seqres:
+      LogWarning("MMCifInfo is incomplete when seqres=False")
+
     if seqres and info:
       return ent, reader.seqres, reader.info
     if seqres:

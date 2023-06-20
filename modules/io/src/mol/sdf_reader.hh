@@ -53,6 +53,8 @@ private:
   void ParseAndAddBond(const String& line, int line_num, mol::EntityHandle& ent,
                        mol::XCSEditor& editor);
 
+  String curr_chain_name_;
+  mol::ResidueKey curr_res_key_;
   mol::ChainHandle curr_chain_;
   mol::ResidueHandle curr_residue_;
   int chain_count_;

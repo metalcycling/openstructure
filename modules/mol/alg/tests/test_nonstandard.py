@@ -163,7 +163,7 @@ class TestNonStandard(unittest.TestCase):
 
 if __name__ == "__main__":
   from ost import testutils
-  if testutils.SetDefaultCompoundLib():
+  if testutils.DefaultCompoundLibIsSet():
     testutils.RunTests()
   else:
     print('No compound library available. Ignoring test_nonstandard.py tests.')

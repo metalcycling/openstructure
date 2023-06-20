@@ -420,6 +420,22 @@ or, to start the command-line interpreter:
 If you repeatedly use OpenStructure, it is recommended to add
 /path/to/ost/stage/bin to your path.
 
+You can also import OpenStructure directly into your existing python scripts,
+jupyter notebooks etc. Simply make sure to point the following environment
+variables to the right folders:
+
+.. code-block:: bash
+
+  export OST_ROOT=/path/to/ost/stage
+  export PYTHONPATH=$OST_ROOT/lib64/python3.10/site-packages/:$PYTHONPATH
+  python
+
+And then you can simply import ost as a module:
+
+.. code-block:: python
+
+  import ost
+
 Getting the newest changes
 --------------------------------------------------------------------------------
 

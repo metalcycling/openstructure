@@ -6,4 +6,4 @@
 
 .. autofunction:: ost.testutils.RunTests
 
-.. autofunction:: ost.testutils.SetDefaultCompoundLib
+.. autofunction:: ost.testutils.DefaultCompoundLibIsSet

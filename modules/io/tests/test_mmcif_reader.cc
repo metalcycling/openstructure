@@ -414,6 +414,7 @@ BOOST_AUTO_TEST_CASE(mmcif_entity_poly_tests)
   BOOST_TEST_MESSAGE("          testing type recognition...");
   {
     TestMMCifReaderProtected tmmcif_p("testfiles/mmcif/atom_site.mmcif", eh);
+    tmmcif_p.SetReadSeqRes(false);
     std::vector<StringRef> columns;
 
     // create corresponding entity entry
@@ -1225,6 +1226,17 @@ BOOST_AUTO_TEST_CASE(mmcif_testreader)
   BOOST_CHECK(ch.IsValid());
   BOOST_TEST_MESSAGE("          done.");
 
+  BOOST_TEST_MESSAGE("          testing chain/residue mapping properties...");
+  BOOST_CHECK_EQUAL(ch.GetStringProp("pdb_auth_chain_name"), "A");
+  BOOST_CHECK_EQUAL(ch.GetStringProp("entity_id"), "1");
+  mol::ResidueHandle res = ch.FindResidue(12);
+  BOOST_CHECK(res.IsValid());
+  BOOST_CHECK_EQUAL(res.GetStringProp("pdb_auth_chain_name"), "A");
+  BOOST_CHECK_EQUAL(res.GetStringProp("pdb_auth_resnum"), "12");
+  BOOST_CHECK_EQUAL(res.GetStringProp("pdb_auth_ins_code"), "?");
+  BOOST_CHECK_EQUAL(res.GetStringProp("entity_id"), "1");
+  BOOST_TEST_MESSAGE("          done.");
+
   BOOST_TEST_MESSAGE("          testing numbering water...");
   ch = eh.FindChain("O");
   BOOST_CHECK(ch.IsValid());
@@ -1602,6 +1614,23 @@ BOOST_AUTO_TEST_CASE(mmcif_atom_site_B_iso_or_equiv_tests)
   }
   BOOST_TEST_MESSAGE("          done.");
   BOOST_TEST_MESSAGE("  done.");
+}
+
+BOOST_AUTO_TEST_CASE(mmcif_formal_charge)
+{
+  mol::EntityHandle eh = mol::CreateEntity();
+  std::ifstream s("testfiles/mmcif/4C79_charged.cif");
+  IOProfile profile;
+  MMCifReader mmcif_p(s, eh, profile);
+  mmcif_p.Parse();
+
+  BOOST_CHECK_EQUAL(eh.FindAtom("A", 49, "OE2").GetCharge(), -1);
+  BOOST_CHECK_EQUAL(eh.FindAtom("A", 49, "OE1").GetCharge(), 0); // '?'
+  BOOST_CHECK_EQUAL(eh.FindAtom("A", 49, "CA").GetCharge(), 0);  // Explicit 0
+  BOOST_CHECK_EQUAL(eh.FindAtom("A", 49, "CB").GetCharge(), 0);  // '.'
+  BOOST_CHECK_EQUAL(eh.FindAtom("C", 1, "ZN").GetCharge(), 2);
+  BOOST_CHECK_EQUAL(eh.FindAtom("D", 1, "NA").GetCharge(), 1);
+
 }
 
 

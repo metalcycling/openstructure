@@ -388,4 +388,11 @@ EntityHandle EntityHandle::GetHandle() const
 {
   return *this;
 }
+
+unsigned long EntityHandle::GetHashCode() const
+{
+  this->CheckValidity();
+  return reinterpret_cast<unsigned long>(Impl().get());
+}
+
 }} // ns

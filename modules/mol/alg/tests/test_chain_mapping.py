@@ -352,17 +352,66 @@ class TestChainMapper(unittest.TestCase):
       self.assertEqual(ref_aln.GetSequence(1).GetString(),
                        aln.GetSequence(1).GetString())
 
+  def test_get_repr(self):
+
+      ref, ref_seqres = io.LoadMMCIF(os.path.join("testfiles", "1r8q.cif.gz"),
+                                     seqres=True)
+      mdl, mdl_seqres = io.LoadMMCIF(os.path.join("testfiles", "4c0a.cif.gz"),
+                                     seqres=True)
+
+      pep_ref = ref.Select("peptide=true")
+      lig_ref = ref.Select("cname=K")
+
+      # create view of reference binding site
+      ref_residues_hashes = set() # helper to keep track of added residues
+      for ligand_at in lig_ref.atoms:
+          close_atoms = pep_ref.FindWithin(ligand_at.GetPos(), 10.0)
+          for close_at in close_atoms:
+              ref_res = close_at.GetResidue()
+              h = ref_res.handle.GetHashCode()
+              if h not in ref_residues_hashes:
+                  ref_residues_hashes.add(h)
+
+      ref_bs = ref.CreateEmptyView()
+      for ch in ref.chains:
+          for r in ch.residues:
+              if r.handle.GetHashCode() in ref_residues_hashes:
+                  ref_bs.AddResidue(r, mol.ViewAddFlag.INCLUDE_ALL)
+
+      chain_mapper = ChainMapper(ref)
+      global_mapping = chain_mapper.GetQSScoreMapping(mdl)
+      flat_mapping = global_mapping.GetFlatMapping()
+
+      # find optimal representation of binding site
+      optimal_repr_result = chain_mapper.GetRepr(ref_bs, mdl)[0]
+      self.assertTrue(optimal_repr_result.lDDT > 0.6) # exp result: 0.6047
+      # mapping should be different than overall mapping
+      repr_mapping = optimal_repr_result.GetFlatChainMapping()
+      for ref_ch, mdl_ch in repr_mapping.items():
+          self.assertNotEqual(mdl_ch, flat_mapping[ref_ch])
+
+      # enforce usage of global mapping, which gives a different pocket
+      # with slightly lower lDDT 
+      global_repr_result = \
+      chain_mapper.GetRepr(ref_bs, mdl, global_mapping=global_mapping)[0]
+      self.assertTrue(global_repr_result.lDDT < 0.6) # exp result: 0.5914
+
+      # ensure that mapping from global_repr_result corresponds to global
+      # mapping
+      repr_mapping = global_repr_result.GetFlatChainMapping()
+      for ref_ch, mdl_ch in repr_mapping.items():
+          self.assertEqual(mdl_ch, flat_mapping[ref_ch])
 
   def test_misc(self):
 
-    # check for triggered error when no chain fulfills length threshold
-    ref = _LoadFile("3l1p.1.pdb").Select("cname=A and rnum<8")
-    self.assertRaises(Exception, ChainMapper, ref)
+      # check for triggered error when no chain fulfills length threshold
+      ref = _LoadFile("3l1p.1.pdb").Select("cname=A and rnum<8")
+      self.assertRaises(Exception, ChainMapper, ref)
 
 
 if __name__ == "__main__":
   from ost import testutils
-  if testutils.SetDefaultCompoundLib():
+  if testutils.DefaultCompoundLibIsSet():
     testutils.RunTests()
   else:
     print('No compound lib available. Ignoring test_chain_mapping.py tests.')
