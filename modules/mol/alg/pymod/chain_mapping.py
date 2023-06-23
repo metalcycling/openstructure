@@ -820,9 +820,8 @@ class ChainMapper:
 
         * **greedy_block**: try multiple seeds for greedy extension, i.e. try
           all ref/mdl chain combinations within the respective chem groups and
-          compute single chain lDDTs. The *block_blocks_per_chem_group* best
-          scoring ones are extend by *block_seed_size* chains and the best
-          scoring one is exhaustively extended.
+          extend them to *block_seed_size*. *block_blocks_per_chem_group*
+          for each chem group are selected for exhaustive extension.
 
         Sets :attr:`MappingResult.opt_score` in case of no trivial one-to-one
         mapping. 
@@ -961,9 +960,8 @@ class ChainMapper:
 
         * **greedy_block**: try multiple seeds for greedy extension, i.e. try
           all ref/mdl chain combinations within the respective chem groups and
-          compute single chain lDDTs. The *block_blocks_per_chem_group* best
-          scoring ones are extend by *block_seed_size* chains and the block with
-          with best QS score is exhaustively extended.
+          extend them to *block_seed_size*. *block_blocks_per_chem_group*
+          for each chem group are selected for exhaustive extension.
 
         Sets :attr:`MappingResult.opt_score` in case of no trivial one-to-one
         mapping.
@@ -1034,7 +1032,6 @@ class ChainMapper:
             # cached => QSScore computation is fast here
             opt_qsscore = the_greed.Score(mapping, check=False)
               
-
         alns = dict()
         for ref_group, mdl_group in zip(self.chem_groups, mapping):
             for ref_ch, mdl_ch in zip(ref_group, mdl_group):
@@ -2540,30 +2537,32 @@ def _lDDTGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
         for ref_chains, mdl_chains in zip(ref_chem_groups, mdl_chem_groups):
             if len(mdl_chains) == 0:
                 continue # nothing to map
-
-            # Identify starting seeds for *blocks_per_chem_group* blocks
-            seeds = list()
-            for ref_ch in ref_chains:
-                seeds += [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
-            counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
-            tmp = [(a,b) for a,b in zip(counts, seeds)]
-            tmp.sort(reverse=True)
-            seeds = [item[1] for item in tmp[:blocks_per_chem_group]]
-
-            # extend starting seeds to *seed_size* and retain best scoring block
-            # for further extension
-            best_lddt = 0.0
-            best_mapping = None
-            for s in seeds:
-                seed = dict(mapping)
-                seed.update({s[0]: s[1]})  
-                seed = the_greed.ExtendMapping(seed, max_ext = max_ext)
-                seed_lddt = the_greed.lDDTFromFlatMap(seed)
-                if seed_lddt > best_lddt:
-                    best_lddt = seed_lddt
-                    best_mapping = seed
-            if best_mapping != None:
-                starting_blocks.append(best_mapping)
+            ref_chains_copy = list(ref_chains)
+            for i in range(blocks_per_chem_group):
+                if len(ref_chains_copy) == 0:
+                    break
+                seeds = list()
+                for ref_ch in ref_chains_copy:
+                    seeds += [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
+                # extend starting seeds to *seed_size* and retain best scoring
+                # block for further extension
+                best_score = -1.0
+                best_mapping = None
+                best_seed = None
+                for s in seeds:
+                    seed = dict(mapping)
+                    seed.update({s[0]: s[1]})  
+                    seed = the_greed.ExtendMapping(seed, max_ext = max_ext)
+                    seed_lddt = the_greed.lDDTFromFlatMap(seed)
+                    if seed_lddt > best_score:
+                        best_score = seed_lddt
+                        best_mapping = seed
+                        best_seed = s
+                if best_mapping != None:
+                    starting_blocks.append(best_mapping)
+                    if best_seed[0] in ref_chains_copy:
+                        # remove that ref chain to enforce diversity
+                        ref_chains_copy.remove(best_seed[0])
 
         # fully expand initial starting blocks
         best_lddt = 0.0
@@ -2963,31 +2962,32 @@ def _QSScoreGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
         for ref_chains, mdl_chains in zip(ref_chem_groups, mdl_chem_groups):
             if len(mdl_chains) == 0:
                 continue # nothing to map
-
-            # Identify starting seeds for *blocks_per_chem_group* blocks
-            # thats done with lDDT
-            seeds = list()
-            for ref_ch in ref_chains:
-                seeds += [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
-            counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
-            tmp = [(a,b) for a,b in zip(counts, seeds)]
-            tmp.sort(reverse=True)
-            seeds = [item[1] for item in tmp[:blocks_per_chem_group]]
-
-            # extend starting seeds to *seed_size* and retain best scoring block
-            # for further extension
-            best_score = -1.0
-            best_mapping = None
-            for s in seeds:
-                seed = dict(mapping)
-                seed.update({s[0]: s[1]})  
-                seed = the_greed.ExtendMapping(seed, max_ext = max_ext)
-                score_result = the_greed.FromFlatMapping(seed)
-                if score_result.QS_global > best_score:
-                    best_score = score_result.QS_global
-                    best_mapping = seed
-            if best_mapping != None:
-                starting_blocks.append(best_mapping)
+            ref_chains_copy = list(ref_chains)
+            for i in range(blocks_per_chem_group):
+                if len(ref_chains_copy) == 0:
+                    break
+                seeds = list()
+                for ref_ch in ref_chains_copy:
+                    seeds += [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
+                # extend starting seeds to *seed_size* and retain best scoring block
+                # for further extension
+                best_score = -1.0
+                best_mapping = None
+                best_seed = None
+                for s in seeds:
+                    seed = dict(mapping)
+                    seed.update({s[0]: s[1]})  
+                    seed = the_greed.ExtendMapping(seed, max_ext = max_ext)
+                    score_result = the_greed.FromFlatMapping(seed)
+                    if score_result.QS_global > best_score:
+                        best_score = score_result.QS_global
+                        best_mapping = seed
+                        best_seed = s
+                if best_mapping != None:
+                    starting_blocks.append(best_mapping)
+                    if best_seed[0] in ref_chains_copy:
+                        # remove selected ref chain to enforce diversity
+                        ref_chains_copy.remove(best_seed[0])
 
         # fully expand initial starting blocks
         best_score = -1.0
