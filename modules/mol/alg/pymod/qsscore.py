@@ -29,6 +29,10 @@ class QSEntity:
         self._sequence = dict()
         self._pos = dict()
         self._pair_dist = dict()
+        # min and max xyz for elements in pos used for fast collision
+        # detection
+        self._min_pos = dict()
+        self._max_pos = dict()
 
     @property
     def view(self):
@@ -69,11 +73,12 @@ class QSEntity:
 
         :type: :class:`list` of :class:`tuples`
         """
-        if self._interacting_chains is None:
+        if self._interacting_chains is None:            
             self._interacting_chains = list()
             for x in itertools.combinations(self.chain_names, 2):
-                if np.count_nonzero(self.PairDist(x[0], x[1]) < self.contact_d):
-                    self._interacting_chains.append(x)
+                if self.PotentialInteraction(x[0], x[1]):
+                    if np.count_nonzero(self.PairDist(x[0], x[1]) < self.contact_d):
+                        self._interacting_chains.append(x)
         return self._interacting_chains
     
     def GetChain(self, chain_name):
@@ -133,6 +138,52 @@ class QSEntity:
                                                   self.GetPos(key[1]),
                                                   'euclidean')
         return self._pair_dist[key]
+
+    def GetMinPos(self, chain_name):
+        """ Get min x,y,z cooridnates for given chain
+
+        Based on positions that are extracted with GetPos
+
+        :param chain_name: Chain in :attr:`~view`
+        :type chain_name: :class:`str`
+        """
+        if chain_name not in self._min_pos:
+            self._min_pos[chain_name] = self.GetPos(chain_name).min(0)
+        return self._min_pos[chain_name]
+
+    def GetMaxPos(self, chain_name):
+        """ Get max x,y,z cooridnates for given chain
+
+        Based on positions that are extracted with GetPos
+
+        :param chain_name: Chain in :attr:`~view`
+        :type chain_name: :class:`str`
+        """
+        if chain_name not in self._max_pos:
+            self._max_pos[chain_name] = self.GetPos(chain_name).max(0)
+        return self._max_pos[chain_name]
+
+    def PotentialInteraction(self, chain_name_one, chain_name_two):
+        """ Returns True if chains potentially interact
+
+        Based on crude collision detection. There is no guarantee
+        that they actually interact if True is returned. However,
+        if False is returned, they don't interact for sure.
+
+        :param chain_name_one: Chain in :attr:`~view`
+        :type chain_name_one: class:`str`
+        :param chain_name_two: Chain in :attr:`~view`
+        :type chain_name_two: class:`str`
+        """
+        min_one = self.GetMinPos(chain_name_one)
+        max_one = self.GetMaxPos(chain_name_one)
+        min_two = self.GetMinPos(chain_name_two)
+        max_two = self.GetMaxPos(chain_name_two)
+        if np.max(min_one - max_two) > self.contact_d:
+            return False
+        if np.max(min_two - max_one) > self.contact_d:
+            return False
+        return True
 
 class QSScorerResult:
     """
