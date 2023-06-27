@@ -39,9 +39,29 @@ typedef boost::shared_ptr<OMF> OMFPtr;
 typedef boost::shared_ptr<ChainData> ChainDataPtr;
 typedef boost::shared_ptr<BioUnitData> BioUnitDataPtr;
 
+struct SidechainAtomRule {
+  int sidechain_atom_idx;
+  int anchor_idx[3];
+  Real bond_length;
+  Real angle;
+  // 0: chi1, 1: chi2, 2: chi3, 3: chi4, 4: 0.0
+  int dihedral_idx;
+  // the value of the dihedral above will be added to base_dihedral to get
+  // the final diheral angle. If you want to have the effect of chi3 + M_PI
+  // you define dihedral_idx as 2 and base_dihedral = M_PI.
+  Real base_dihedral;
+};
+
+struct ChiDefinition{
+  int idx_one;
+  int idx_two;
+  int idx_three;
+  int idx_four;
+};
+
 struct ResidueDefinition {
 
-  ResidueDefinition() { };
+  ResidueDefinition(): rotamer_setup(false) { };
 
   ResidueDefinition(const ost::mol::ResidueHandle& res);
 
@@ -65,6 +85,28 @@ struct ResidueDefinition {
 
   void FromStream(std::istream& stream);
 
+  int GetIdx(const String& aname) const;
+
+  const std::set<int>& GetRotamericAtoms() const;
+
+  const std::vector<ChiDefinition>& GetChiDefinitions() const;
+
+  const std::vector<SidechainAtomRule>& GetSidechainAtomRules() const;
+
+  int GetNChiAngles() const;
+
+  void _InitIdxMapper() const;
+
+  void _InitRotamer() const;
+
+  void _AddChiDefinition(int idx_one, int idx_two, int idx_three,
+                         int idx_four) const;
+
+  void _AddAtomRule(int a_idx, int anch_one_idx,
+                    int anch_two_idx, int anch_three_idx, 
+                    Real bond_length, Real angle, int dihedral_idx, 
+                    Real base_dihedral) const;
+
   String name;
   char olc;
   char chem_type;
@@ -74,6 +116,11 @@ struct ResidueDefinition {
   std::vector<bool> is_hetatm;
   std::vector<int> bonds;
   std::vector<int> bond_orders;
+  mutable bool rotamer_setup;
+  mutable std::map<String, int> idx_mapper;
+  mutable std::set<int> rotameric_atoms;
+  mutable std::vector<ChiDefinition> chi_definitions;
+  mutable std::vector<SidechainAtomRule> sidechain_atom_rules;
 };
 
 
@@ -108,12 +155,12 @@ struct ChainData {
   void ToStream(std::ostream& stream,
                 const std::vector<ResidueDefinition>& res_def,
                 bool lossy, bool avg_bfactors, bool round_bfactors,
-                bool skip_ss) const;
+                bool skip_ss, bool infer_aa_pos) const;
 
   void FromStream(std::istream& stream,
                   const std::vector<ResidueDefinition>& res_def,
                   int version, bool lossy, bool avg_bfactors,
-                  bool round_bfactors, bool skip_ss);
+                  bool round_bfactors, bool skip_ss, bool infer_aa_pos);
 
   // chain features
   String ch_name;
@@ -151,13 +198,13 @@ private:
   DefaultPepLib& operator=(DefaultPepLib const& copy);
 };
 
-
 class OMF {
 
 public:
 
   enum OMFOption {DEFAULT_PEPLIB = 1, LOSSY = 2, AVG_BFACTORS = 4,
-                  ROUND_BFACTORS = 8, SKIP_SS = 16, INFER_PEP_BONDS = 32};
+                  ROUND_BFACTORS = 8, SKIP_SS = 16, INFER_PEP_BONDS = 32,
+                  INFER_AA_POS = 64};
 
   bool OptionSet(OMFOption opt) const {
     return (opt & options_) == opt;
