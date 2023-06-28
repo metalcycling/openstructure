@@ -372,8 +372,8 @@ class LigandScorer:
         next_chain_num = 1
         new_editor = None
 
-        def _copy_residue(handle, rename_chain):
-            """ Copy the residue handle into the new chain.
+        def _copy_residue(residue, rename_chain):
+            """ Copy the residue into the new chain.
             Return the new residue handle."""
             nonlocal next_chain_num, new_editor
 
@@ -381,17 +381,17 @@ class LigandScorer:
             if new_editor is None:
                 new_editor = new_entity.EditXCS()
 
-            new_chain = new_entity.FindChain(handle.chain.name)
+            new_chain = new_entity.FindChain(residue.chain.name)
             if not new_chain.IsValid():
-                new_chain = new_editor.InsertChain(handle.chain.name)
+                new_chain = new_editor.InsertChain(residue.chain.name)
             else:
                 # Does a residue with the same name already exist?
-                already_exists = new_chain.FindResidue(handle.number).IsValid()
+                already_exists = new_chain.FindResidue(residue.number).IsValid()
                 if already_exists:
                     if rename_chain:
                         chain_ext = 2  # Extend the chain name by this
                         while True:
-                            new_chain_name = handle.chain.name + "_" + str(chain_ext)
+                            new_chain_name = residue.chain.name + "_" + str(chain_ext)
                             new_chain = new_entity.FindChain(new_chain_name)
                             if new_chain.IsValid():
                                 chain_ext += 1
@@ -400,15 +400,21 @@ class LigandScorer:
                                 new_chain = new_editor.InsertChain(new_chain_name)
                                 break
                         LogScript("Moved ligand residue %s to new chain %s" % (
-                            handle.qualified_name, new_chain.name))
+                            residue.qualified_name, new_chain.name))
                     else:
                         msg = "A residue number %s already exists in chain %s" % (
-                            handle.number, handle.chain.name)
+                            residue.number, residue.chain.name)
                         raise RuntimeError(msg)
 
             # Add the residue with its original residue number
-            new_res = new_editor.AppendResidue(new_chain, handle, deep=True)
-            for old_atom in handle.atoms:
+            new_res = new_editor.AppendResidue(new_chain, residue.name, residue.number)
+            # Add atoms
+            for old_atom in residue.atoms:
+                new_editor.InsertAtom(new_res, old_atom.name, old_atom.pos, 
+                    element=old_atom.element, occupancy=old_atom.occupancy,
+                    b_factor=old_atom.b_factor, is_hetatm=old_atom.is_hetatom)
+            # Add bonds
+            for old_atom in residue.atoms:
                 for old_bond in old_atom.bonds:
                     new_first = new_res.FindAtom(old_bond.first.name)
                     new_second = new_res.FindAtom(old_bond.second.name)
@@ -427,7 +433,7 @@ class LigandScorer:
                 LogVerbose("Ligand residue %s already in entity" % res.handle.qualified_name)
             else:
                 # Residue is not part of the entity, need to copy it first
-                new_res = _copy_residue(res.handle, rename_chain)
+                new_res = _copy_residue(res, rename_chain)
                 LogVerbose("Copied ligand residue %s" % res.handle.qualified_name)
             new_res.SetIsLigand(True)
             return new_res
