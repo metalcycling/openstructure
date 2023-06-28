@@ -417,9 +417,13 @@ class LigandScorer:
 
         def _process_ligand_residue(res, rename_chain):
             """Copy or fetch the residue. Return the residue handle."""
+            new_res = None
             if res.entity.handle == old_entity.handle:
-                # Residue is already in copied entity. We only need to grab it
+                # Residue is part of the old_entity handle.
+                # However it may not be in the copied one, for instance it may have been a view
+                # We try to grab it grab it first, othewise we copyp it
                 new_res = new_entity.FindResidue(res.chain.name, res.number)
+            if new_res and new_res.valid:
                 LogVerbose("Ligand residue %s already in entity" % res.handle.qualified_name)
             else:
                 # Residue is not part of the entity, need to copy it first
