@@ -2683,7 +2683,14 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
         for ref_ch in mapping.keys():
             map_targets.discard(ref_ch)
 
-        if len(map_targets) == 0:
+        # same for model
+        mdl_map_targets = set()
+        for mdl_ch in mapping.values():
+            mdl_map_targets.update(self.mdl_neighbors[mdl_ch])
+        for mdl_ch in mapping.values():
+            mdl_map_targets.discard(mdl_ch)
+
+        if len(map_targets) == 0 or len(mdl_map_targets) == 0:
             return mapping # nothing to extend
 
         # keep track of what model chains are not yet mapped for each chem group
@@ -2707,47 +2714,19 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
             if max_ext is not None and len(newly_mapped_ref_chains) >= max_ext:
                 break
 
-            score_result = self.FromFlatMapping(mapping)
-            old_score = score_result.QS_global
-            nominator = score_result.weighted_scores
-            denominator = score_result.weight_sum + score_result.weight_extra_all
-
-            max_diff = 0.0
             max_mapping = None
+            best_score = self.FromFlatMapping(mapping).QS_global
             for ref_ch in map_targets:
                 chem_group_idx = self.ref_ch_group_mapper[ref_ch]
                 for mdl_ch in free_mdl_chains[chem_group_idx]:
-                    nominator_diff = 0.0
-                    denominator_diff = 0.0
-                    for neighbor in self.neighbors[ref_ch]:
-                        if neighbor in mapping and mapping[neighbor] in \
-                        self.mdl_neighbors[mdl_ch]:
-                            # it's a newly added interface if (ref_ch, mdl_ch)
-                            # are added to mapping
-                            int1 = (ref_ch, neighbor)
-                            int2 = (mdl_ch, mapping[neighbor])
-                            a, b, c, d = self._MappedInterfaceScores(int1, int2)
-                            nominator_diff += a # weighted_scores
-                            denominator_diff += b # weight_sum
-                            denominator_diff += d # weight_extra_all
-                            # the respective interface penalties are subtracted
-                            # from denominator
-                            denominator_diff -= self._InterfacePenalty1(int1)
-                            denominator_diff -= self._InterfacePenalty2(int2)
-
-                    if nominator_diff > 0:
-                        # Only accept a new solution if its actually connected
-                        # i.e. nominator_diff > 0.
-                        new_nominator = nominator + nominator_diff
-                        new_denominator = denominator + denominator_diff
-                        new_score = 0.0
-                        if new_denominator != 0.0:
-                            new_score = new_nominator/new_denominator
-                        diff = new_score - old_score
-                        if diff > max_diff:
-                            max_diff = diff
+                    if mdl_ch in mdl_map_targets:
+                        new_mapping = dict(mapping)
+                        new_mapping[ref_ch] = mdl_ch
+                        new_score = self.FromFlatMapping(new_mapping).QS_global
+                        if new_score > best_score:
+                            best_score = new_score
                             max_mapping = (ref_ch, mdl_ch)
-     
+
             if max_mapping is not None:
                 something_happened = True
                 # assign new found mapping
@@ -2759,8 +2738,13 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
                     if neighbor not in mapping:
                         map_targets.add(neighbor)
 
-                # remove the ref chain from map targets
+                for neighbor in self.mdl_neighbors[max_mapping[1]]:
+                    if neighbor not in mapping.values():
+                        mdl_map_targets.add(neighbor)
+
+                # remove chains from map targets
                 map_targets.remove(max_mapping[0])
+                mdl_map_targets.remove(max_mapping[1])
 
                 # remove the mdl chain from free_mdl_chains - its taken...
                 chem_group_idx = self.ref_ch_group_mapper[max_mapping[0]]
