@@ -737,10 +737,15 @@ void PDBReader::ParseAndAddAtom(const StringRef& line, int line_num,
       if(charge.first) {
         if(line[79] != '-' && line[79] != '+') {
           std::stringstream ss;
-          ss << "error on line " << line_num << ": "
-             << "expect charge in format 1+, 2-, etc. got: "
+          ss << "invalid charge on line " << line_num << ": "
+             << "expected 1+, 2-, etc. got: "
              << line.substr(78, 2);
-          throw IOException(ss.str());      
+          if (profile_.fault_tolerant) {
+            LOG_WARNING(ss.str());
+            charge.first = 0.0;
+          } else {
+            throw IOException(ss.str());
+          }
         }
         if(line[79] == '-') charge.second *= (-1);
       }
