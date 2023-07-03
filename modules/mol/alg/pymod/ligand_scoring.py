@@ -700,7 +700,7 @@ class LigandScorer:
             mat2 = np.copy(mat1)
             mat2[~np.isnan(mat2)] = np.inf
         else:
-            mat2 = np.copy(mat1)
+            mat2 = np.copy(mat2)
         assignments = []
         min_mat1 = LigandScorer._nanmin_nowarn(mat1)
         while not np.isnan(min_mat1):
