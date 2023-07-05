@@ -31,7 +31,4 @@ class TestCompLib(unittest.TestCase):
 
 if __name__ == "__main__":
     from ost import testutils
-    if testutils.DefaultCompoundLibIsSet():
-        testutils.RunTests()
-    else:
-        print('No compound lib available. Ignoring test_complib tests.')
+    testutils.RunTests()
