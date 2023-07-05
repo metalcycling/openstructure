@@ -1154,17 +1154,19 @@ BOOST_AUTO_TEST_CASE(faulty_charges)
   PDBReader reader(fname, IOProfile());
   mol::EntityHandle ent=mol::CreateEntity();
   BOOST_CHECK_THROW(reader.Import(ent), IOException);
-//  IOProfile profile;
-//  profile.fault_tolerant=true;
-//  PDBReader reader2(fname, profile);
-//  reader2.Import(ent);
-//
-//  BOOST_CHECK(ent.FindAtom("A", 68, "N").GetCharge() == 1.0);
-//  BOOST_CHECK(ent.FindAtom("A", 68, "CA").GetCharge() == 0);
-//  BOOST_CHECK(ent.FindAtom("A", 68, "CB").GetCharge() == 0);
-//  BOOST_CHECK(ent.FindAtom("A", 68, "CG1").GetCharge() == 0);
-//  BOOST_CHECK(ent.FindAtom("A", 68, "CG2").GetCharge() == 4);
-//  BOOST_CHECK(ent.FindAtom("A", 68, "O").GetCharge() == -1);
+
+  ent=mol::CreateEntity(); // Clean entity
+  IOProfile profile;
+  profile.fault_tolerant=true;
+  PDBReader reader2(fname, profile);
+  reader2.Import(ent);
+
+  BOOST_CHECK(ent.FindAtom("A", 68, "N").GetCharge() == 1.0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CA").GetCharge() == 0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CB").GetCharge() == 0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CG1").GetCharge() == 0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CG2").GetCharge() == 4);
+  BOOST_CHECK(ent.FindAtom("A", 68, "O").GetCharge() == -1);
 }
 
 BOOST_AUTO_TEST_SUITE_END();
