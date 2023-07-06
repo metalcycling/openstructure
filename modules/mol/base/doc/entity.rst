@@ -1600,11 +1600,24 @@ The View Classes
 
   .. method:: FindResidue(residue)
     
-    Find residue view of pointing to the given handle.
-      
+    Deprecated. Use :meth:`ViewForHandle` instead.
+
     :param residue: Residue handle
     :type  residue: ResidueHandle
-    :returns: The residue view pointing the the handle, or an invalid handle if  the residue is not part of the view
+    :returns: The residue view pointing the handle, or an invalid handle if  the residue is not part of the view
+    :rtype: :class:`ResidueView`
+
+  .. method:: FindResidue(chain_name, res_num)
+    :noindex:
+
+    Find residue by chain name and residue number.
+
+    :param chain_name:  Chain identifier, e.g. "A"
+    :type  chain_name:  str
+    :param    res_num:  residue number
+    :type     res_num:  :class:`ResNum`
+    :returns: The residue if present in the view, an invalid :class:`ResidueView`
+       otherwise
     :rtype: :class:`ResidueView`
 
   .. method:: FindAtom(chain_name, res_num, atom_name)
@@ -1615,7 +1628,19 @@ The View Classes
     :type  res_num: :class:`ResNum` or :class:`int`
     :param atom_name: The name of the atom
     :type  atom_name: str
+    :returns: The atom if present in the view, an invalid :class:`AtomView`
+       otherwise
     :rtype: :class:`AtomView`
+
+  .. method:: ViewForHandle(handle)
+
+    Find chain view, residue view or atom view of pointing to the given handle.
+
+    :param handle: handle to search for
+    :type  residue: (Chain\|Residue\|Atom)Handle
+    :returns: The view pointing the handle, or an invalid handle if the handle
+         is not part of the view
+    :rtype: (Chain\|Residue\|Atom)View
 
   .. method:: Select(query, flags=0)
 
@@ -1877,6 +1902,16 @@ The View Classes
     :returns: The residue view, or an invalid residue view if no residue with 
        the given residue number is in the view.
 
+  .. method:: ViewForHandle(handle)
+
+    Find residue view or atom view of pointing to the given handle.
+
+    :param handle: handle to search for
+    :type  residue: (Residue\|Atom)Handle
+    :returns: The view pointing the handle, or an invalid handle if the handle
+         is not part of the view
+    :rtype: (Residue\|Atom)View
+
   .. method:: GetCenterOfAtoms()
 
     See :attr:`center_of_atoms`
@@ -2035,6 +2070,16 @@ The View Classes
     :param atom_view: The atom to be removed. May be an invalid handle
     :type  atom_view: :class:`AtomView`
     :rtype: None
+
+  .. method:: ViewForHandle(handle)
+
+    Find atom view of pointing to the given handle.
+
+    :param handle: handle to search for
+    :type  residue: :class:`AtomHandle`
+    :returns: The view pointing the handle, or an invalid handle if the handle
+         is not part of the view
+    :rtype: :class:`AtomView`
 
   .. method:: GetHandle()
 
