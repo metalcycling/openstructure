@@ -29,6 +29,13 @@ class LigandScorer:
     onto the model, symmetry-correction, and finally assignment (mapping)
     of model and target ligands, as described in (Manuscript in preparation).
 
+    The binding site is defined based on a radius around the target ligand
+    in the reference structure only. It only contains protein and nucleic
+    acid chains that pass the criteria for the
+    :class:`chain mapping <ost.mol.alg.chain_mapping>`. This means ignoring
+    other ligands, waters, short polymers as well as any incorrectly connected
+    chains that may be in proximity.
+
     Results are available as matrices (`(lddt_pli|rmsd)_matrix`), where every
     target-model score is reported in a matrix; as `(lddt_pli|rmsd)` where
     a model-target assignment has been determined (see below) and reported in
@@ -186,9 +193,9 @@ class LigandScorer:
     :type chain_mapper:  :class:`ost.mol.alg.chain_mapping.ChainMapper`
     :param substructure_match: Set this to True to allow partial target ligand.
     :type substructure_match: :class:`bool`
-    :param radius: Inclusion radius for the binding site. Any residue with
-                   atoms within this distance of the ligand will be included
-                   in the binding site.
+    :param radius: Inclusion radius for the binding site. Residues with
+                   atoms within this distance of the ligand will be considered
+                   for inclusion in the binding site.
     :type radius: :class:`float`
     :param lddt_pli_radius: lDDT inclusion radius for lDDT-PLI.
     :type lddt_pli_radius: :class:`float`
@@ -456,7 +463,10 @@ class LigandScorer:
     def _get_binding_sites(self, ligand):
         """Find representations of the binding site of *ligand* in the model.
 
-        Ignore other ligands and waters that may be in proximity.
+        Only consider protein and nucleic acid chains that pass the criteria
+        for the :class:`ost.mol.alg.chain_mapping`. This means ignoring other
+        ligands, waters, short polymers as well as any incorrectly connected
+        chain that may be in proximity.
 
         :param ligand: Defines the binding site to identify.
         :type ligand: :class:`~ost.mol.ResidueHandle`
@@ -465,18 +475,29 @@ class LigandScorer:
 
             # create view of reference binding site
             ref_residues_hashes = set()  # helper to keep track of added residues
+            ignored_residue_hashes = {ligand.hash_code}
             for ligand_at in ligand.atoms:
                 close_atoms = self.target.FindWithin(ligand_at.GetPos(), self.radius)
                 for close_at in close_atoms:
-                    # Skip other ligands and waters.
-                    # This assumes that .IsLigand() is properly set on the entity's
-                    # residues.
+                    # Skip any residue not in the chain mapping target
                     ref_res = close_at.GetResidue()
-                    if not (ref_res.is_ligand or
-                            ref_res.chem_type == mol.ChemType.WATERS):
-                        h = ref_res.handle.GetHashCode()
-                        if h not in ref_residues_hashes:
+                    h = ref_res.handle.GetHashCode()
+                    if h not in ref_residues_hashes and \
+                            h not in ignored_residue_hashes:
+                        if self.chain_mapper.target.ViewForHandle(ref_res).IsValid():
+                            h = ref_res.handle.GetHashCode()
                             ref_residues_hashes.add(h)
+                        elif ref_res.is_ligand:
+                            LogWarning("Ignoring ligand %s in binding site of %s" % (
+                                ref_res.qualified_name, ligand.qualified_name))
+                            ignored_residue_hashes.add(h)
+                        elif ref_res.chem_type == mol.ChemType.WATERS:
+                            pass # That's ok, no need to warn
+                        else:
+                            LogWarning("Ignoring residue %s in binding site of %s" % (
+                                ref_res.qualified_name, ligand.qualified_name))
+                            ignored_residue_hashes.add(h)
+
 
             # reason for doing that separately is to guarantee same ordering of
             # residues as in underlying entity. (Reorder by ResNum seems only

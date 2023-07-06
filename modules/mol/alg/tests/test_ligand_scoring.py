@@ -3,6 +3,7 @@ from functools import lru_cache
 
 import numpy as np
 
+import ost
 from ost import io, mol, geom
 # check if we can import: fails if numpy or scipy not available
 try:
@@ -406,6 +407,19 @@ class TestLigandScoring(unittest.TestCase):
         # RMSD assignment forces the same assignment
         sc = LigandScorer(mdl, trg, None, None, rmsd_assignment=True)
         assert sc.rmsd_details["L_2"][1]["target_ligand"] == sc.lddt_pli_details["L_2"][1]["target_ligand"]
+
+    def test_ignore_binding_site(self):
+        """Test that we ignore non polymer stuff in the binding site.
+         NOTE: we should consider changing this behavior in the future and take
+         other ligands, peptides and short oligomers into account for superposition.
+         When that's the case this test should be adapter
+         """
+        trg = _LoadMMCIF("1SSP.cif.gz")
+        sc = LigandScorer(trg, trg, None, None)
+        expected_bs_ref_res = ['C.GLY62', 'C.GLN63', 'C.ASP64', 'C.PRO65', 'C.TYR66', 'C.CYS76', 'C.PHE77', 'C.ASN123', 'C.HIS187']
+        ost.PushVerbosityLevel(ost.LogLevel.Error)
+        assert [str(r) for r in sc.rmsd_details["D"][1]["bs_ref_res"]] == expected_bs_ref_res
+        ost.PopVerbosityLevel()
 
 
 if __name__ == "__main__":
