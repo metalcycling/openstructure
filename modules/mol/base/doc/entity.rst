@@ -8,6 +8,10 @@ This document describes the :class:`EntityHandle` and the related classes.
 The Handle Classes
 --------------------------------------------------------------------------------
 
+:class:`Entity <EntityHandle>`, :class:`residue <ResidueHandle>`,
+:class:`atom <AtomHandle>` and :class:`bond <BondHandle>` handles can store
+arbitrary :doc:`generic properties <../../base/generic>`.
+
 .. function:: CreateEntity()
 
    Creates a new entity. The created entity is empty, that is, it does not
@@ -29,6 +33,10 @@ Entity Handle
   does not prevent it to be used for molecules in general: An entity also
   represent a ligand or a collection of water molecules - hence the rather
   generic name.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
 
   .. attribute:: chains
     
@@ -350,6 +358,10 @@ Chain Handle
   A chain of one or more :class:`residues <ResidueHandle>`. Chains are always 
   part of an entity.
 
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
+
   .. attribute:: atoms
 
      Get list of all atoms of this chain. To access a single atom, use
@@ -593,6 +605,10 @@ Residue Handle
   more :class:`atoms <AtomHandle>`. Residues are always part of a 
   :class:`ChainHandle`, even if they are ligands or water molecules where the 
   concept of a chain does not apply.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
   
   .. attribute:: name
   
@@ -1026,6 +1042,10 @@ Atom Handle
 
   Represents an atom in a molecular structure. Atoms are always part of a 
   residue.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
   
   .. attribute:: name
   
@@ -1269,6 +1289,10 @@ Bond Handle
 
   Represents a chemical bond between two atoms (first and second).
 
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
+
   .. attribute:: first
   .. attribute:: second
 
@@ -1367,6 +1391,10 @@ Bond Handle
 The View Classes
 --------------------------------------------------------------------------------
 
+:class:`Entity <EntityView>`, :class:`residue <ResidueView>` and
+:class:`atom <AtomView>` views can store arbitrary
+:doc:`generic properties <../../base/generic>`.
+
 Entity View
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1376,6 +1404,10 @@ Entity View
   contains :class:`ChainView`\s, :class:`ResidueView`\s, :class:`AtomView`\s and
   :class:`BondHandle`\s.
   For an introduction, see :doc:`../../intro-01`.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
 
   .. attribute:: handle
 
@@ -1795,6 +1827,10 @@ Chain View
   A view representation of a :class:`ChainHandle`. Mostly, the same
   functionality is provided as for the handle.
 
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
+
   .. attribute:: handle
 
     The chain handle this view points to. Also available as :meth:`GetHandle`.
@@ -2043,6 +2079,10 @@ Residue View
   A view representation of a :class:`ResidueHandle`. Mostly, the same
   functionality is provided as for the handle.
 
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
+
   .. attribute:: handle
 
     The residue handle this view points to. Also available as 
@@ -2228,6 +2268,10 @@ Atom View
 
   A view representation of an :class:`AtomHandle`. Mostly, the same
   functionality is provided as for the handle.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
 
   .. attribute:: handle
   

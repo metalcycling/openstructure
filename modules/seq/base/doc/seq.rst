@@ -83,6 +83,10 @@ The SequenceHandle
            ConstSequenceHandle
 
   Represents a sequence. New instances are created with :func:`CreateSequence`.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
   
   .. method:: GetPos(residue_index)
   
