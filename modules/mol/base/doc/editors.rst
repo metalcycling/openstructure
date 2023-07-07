@@ -192,6 +192,7 @@ The basic functionality of editors is implemented in the EditorBase class.
     :returns:         :class:`AtomHandle`
 
   .. method:: InsertAltAtom(residue, atom, alt_group)
+    :noindex:
 
     Insert new atom with alternative position indicator
 
@@ -336,6 +337,7 @@ The basic functionality of editors is implemented in the EditorBase class.
     :type new_numbers: :class:`ResNumList`
 
   .. method:: RenumberChain(chain, start, keep_spacing)
+    :noindex:
 
     Renumber residues of the given chain
               
@@ -409,29 +411,14 @@ Euclidian space.
      atoms positions.
      
      :param transform: The transformation to be applied
-     :type  transform: :class:`geom.Mat4`
-
-  .. method:: ApplyTransform(transform)
-  
-     Apply a transformation to the entity. The transformation is applied to all 
-     atoms positions.
-     
-     :param transform: The transformation to be applied
-     :type  transform: :class:`Transform`
+     :type  transform: :class:`geom.Mat4` or :class:`Transform`
      
   .. method:: SetTransform(transform)
   
      Set the entity transformation. See also :meth:`ApplyTransform`
      
      :param transform: The transformation to be applied
-     :type  transform: :class:`geom.Mat4`
-
-  .. method:: SetTransform(transform)
-  
-     Set the entity transformation. See also :meth:`ApplyTransform`
-     
-     :param transform: The transformation to be applied
-     :type  transform: :class:`Transform`
+     :type  transform: :class:`geom.Mat4` or :class:`Transform`
   
   .. method:: FixTransform()
   
@@ -544,6 +531,7 @@ using an :class:`ICSEditor` is undefined and vice versa.
 
 
   .. method:: SetTorsionAngle(atom1, atom2, atom3, atom4, angle, update_others=True)
+    :noindex:
     
     Set the angles of the given atoms. All connectors at the third atom (A3) will be adjusted accordingly. 
     If you only want to adjust the bond between A3 and A4, and leave 
@@ -587,6 +575,7 @@ using an :class:`ICSEditor` is undefined and vice versa.
 
 
   .. method:: RotateTorsionAngle(atom1, atom2, atom3, atom4, angle, update_others=True)
+    :noindex:
     
     Rotate torsion angle
     

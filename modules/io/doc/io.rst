@@ -549,13 +549,7 @@ Loading Density Maps
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: LoadImage(filename)
-
-  Load density map from disk with the extension being guessed by the function.
-
-  :param filename: The filename
-  :type  filename: string
-
-.. function:: LoadImage(filename, format)
+              LoadImage(filename, format)
 
   Load density map from disk. If no format is given, the function guesses the 
   filetype based on the extension of the file. If the extension is unknown or not present the
@@ -589,12 +583,8 @@ Loading Density Maps
 Saving Density Maps
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. function:: SaveImage(image,filename)
-
-  Save density map to disk with the function guessing the 
-  filetype based on the file extension.
-
-.. function:: SaveImage(image,filename, format)
+.. function:: SaveImage(image, filename)
+              SaveImage(image, filename, format)
 
   Save density map to disk. If no format is set, the function guesses the 
   filetype based on the file extension.

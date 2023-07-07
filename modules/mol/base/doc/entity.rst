@@ -2343,7 +2343,7 @@ Other Entity-Related Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: CreateViewFromAtoms(atom_list)
-.. function:: CreateViewFromAtomList(atom_list)
+              CreateViewFromAtomList(atom_list)
 
   Returns a view made up of the atoms in *atom_list*. All atoms are required to
   be atoms of the same entity. Duplicate atoms are only added to the view once.
