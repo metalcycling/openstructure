@@ -24,7 +24,7 @@ classes support generic properties:
   * :class:`~ost.mol.ResidueHandle` and :class:`~ost.mol.ResidueView`
   * :class:`~ost.mol.AtomHandle` and :class:`~ost.mol.AtomView`
   * :class:`~ost.mol.BondHandle`
-  * :class:`~ost.seq.SequenceHandle` and :class:`~ost.seq.AlignmentHandle`
+  * :class:`~ost.seq.SequenceHandle`
 
 The view variants will reflect the generic properties of the handle variants.
 
