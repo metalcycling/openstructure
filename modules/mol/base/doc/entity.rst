@@ -1696,7 +1696,7 @@ Entity View
     
     .. code-block:: python
       
-      the_copy=view.Select(')
+      the_copy = view.Select('')
     
     :rtype: :class:`EntityView`
 
