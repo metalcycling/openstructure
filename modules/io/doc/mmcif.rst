@@ -73,7 +73,8 @@ Notes:
   :class:`MMCifInfo` as :meth:`~MMCifInfo.GetMMCifEntityIdTr`.
 * For more complex mappings, such as ligands which may be in a same "old" chain
   as the protein chain but are represented in a separate "new" chain in mmCIF,
-  we also store string properties on a per-residue level.
+  we also store :class:`string properties<ost.GenericPropContainer>` on a
+  per-residue level.
   For mmCIF files from the PDB, there is a unique mapping between
   ("label_asym_id", "label_seq_id") and ("auth_asym_id", "auth_seq_id",
   "pdbx_PDB_ins_code").
