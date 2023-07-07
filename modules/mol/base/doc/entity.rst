@@ -15,7 +15,10 @@ The Handle Classes
    entity, use an :doc:`entity editor <editors>`.
    
    :returns: The newly created :class:`EntityHandle`
-   
+
+Entity Handle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: EntityHandle
 
   The entity class represents a molecular structure. Such a structure is in
@@ -338,7 +341,10 @@ The Handle Classes
   .. method:: IsValid()
   
     See :attr:`valid`
-    
+
+Chain Handle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: ChainHandle
 
   A chain of one or more :class:`residues <ResidueHandle>`. Chains are always 
@@ -576,6 +582,9 @@ The Handle Classes
   .. method:: IsValid()
   
     See :attr:`valid`
+
+Residue Handle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. class:: ResidueHandle
 
@@ -1010,6 +1019,8 @@ The Handle Classes
 
     See :attr:`next`
 
+Atom Handle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. class:: AtomHandle
 
@@ -1251,6 +1262,8 @@ The Handle Classes
   
     See :attr:`valid`
 
+Bond Handle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. class:: BondHandle
 
@@ -1354,10 +1367,15 @@ The Handle Classes
 The View Classes
 --------------------------------------------------------------------------------
 
+Entity View
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: EntityView
 
-  An entity view represents a structural subset of an :class:`EntityHandle`. For 
-  an introduction, see :doc:`../../intro-01`.
+  An entity view represents a structural subset of an :class:`EntityHandle` and
+  contains :class:`ChainView`\s, :class:`ResidueView`\s, :class:`AtomView`\s and
+  :class:`BondHandle`\s.
+  For an introduction, see :doc:`../../intro-01`.
 
   .. attribute:: handle
 
@@ -1743,6 +1761,9 @@ The View Classes
   
     See :attr:`valid`
 
+Chain View
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: ChainView
 
   A view representation of a :class:`ChainHandle`. Mostly, the same
@@ -1988,6 +2009,9 @@ The View Classes
     :type  flags: :class:`int` / :class:`QueryFlag`
     :rtype: :class:`EntityView`
 
+Residue View
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: ResidueView
 
   A view representation of a :class:`ResidueHandle`. Mostly, the same
@@ -2171,6 +2195,8 @@ The View Classes
     :type  flags: :class:`int` / :class:`QueryFlag`
     :rtype: :class:`EntityView`
 
+Atom View
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. class:: AtomView
 
