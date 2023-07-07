@@ -1294,7 +1294,7 @@ Bond Handle
     All the :class:`generic properties <ost.GenericPropContainer>` are available.
 
   .. attribute:: first
-  .. attribute:: second
+                 second
 
     Atoms involved in the bond. No assumptions about the order should be made.
     With the internal coordinate system enabled, first and second may even be
