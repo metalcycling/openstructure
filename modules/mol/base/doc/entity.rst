@@ -1660,6 +1660,26 @@ Entity View
          is not part of the view
     :rtype: (Chain\|Residue\|Atom)View
 
+  .. method:: ExtendViewToResidues()
+
+    Extend current view to include all atoms of each residue where
+    at least one atom is selected currently.
+
+    :returns: The extended view
+    :rtype: :class:`EntityView`
+
+  .. method:: ExtendViewToSurrounding(handle)
+
+    Extend current view to include all atoms that are within the sum
+    of their van-der-Waals radius + gap.
+
+    This includes all atoms within: at1.GetRadius() + at2.GetRadius() + gap.
+
+    :param gap: the gap between atoms
+    :type  gap: float
+    :returns: The extended view
+    :rtype: :class:`EntityView`
+
   .. method:: Select(query, flags=0)
 
     Perform selection on entity view. See :meth:`EntityHandle.Select`.
@@ -1679,6 +1699,12 @@ Entity View
       the_copy=view.Select(')
     
     :rtype: :class:`EntityView`
+
+  .. method:: Dump()
+
+    Returns a string containing a human-readable summary of the entity view.
+
+    :rtype: :class:`str`
 
   .. method:: GetMass()
 
@@ -2272,6 +2298,7 @@ Boolean Operators
 Other Entity-Related Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. function:: CreateViewFromAtoms(atom_list)
 .. function:: CreateViewFromAtomList(atom_list)
 
   Returns a view made up of the atoms in *atom_list*. All atoms are required to
