@@ -933,7 +933,8 @@ class ChainMapper:
     def GetQSScoreMapping(self, model, contact_d = 12.0, strategy = "naive",
                           full_n_mdl_chains = None, block_seed_size = 5,
                           block_blocks_per_chem_group = 5,
-                          steep_opt_rate = None, chem_mapping_result = None):
+                          steep_opt_rate = None, chem_mapping_result = None,
+                          greedy_prune_contact_map = False):
         """ Identify chain mapping based on QSScore
 
         Scoring is based on CA/C3' positions which are present in all chains of
@@ -978,6 +979,17 @@ class ChainMapper:
                                     *model*. If set, *model* parameter is not
                                     used.
         :type chem_mapping_result: :class:`tuple`
+        :param greedy_prune_contact_map: Relevant for all strategies that use
+                                         greedy extensions. If True, only chains
+                                         with at least 3 contacts (8A CB
+                                         distance) towards already mapped chains
+                                         in trg/mdl are considered for
+                                         extension. All chains that give a
+                                         potential non-zero QS-score increase
+                                         are used otherwise (at least one
+                                         contact within 12A). The consequence
+                                         is reduced runtime and usually no
+                                         real reduction in accuracy.
         :returns: A :class:`MappingResult`
         """
 
@@ -1021,7 +1033,8 @@ class ChainMapper:
                                                self.chem_groups,
                                                chem_mapping, ref_mdl_alns,
                                                contact_d = contact_d,
-                                               steep_opt_rate=steep_opt_rate)
+                                               steep_opt_rate=steep_opt_rate,
+                                               greedy_prune_contact_map = greedy_prune_contact_map)
             if strategy == "greedy_fast":
                 mapping = _QSScoreGreedyFast(the_greed)
             elif strategy == "greedy_full":
@@ -1230,7 +1243,7 @@ class ChainMapper:
 
         If number of chains in model and target are <= *n_max_naive*, a naive
         QS-score mapping is performed. For anything else, a QS-score mapping
-        with the greedy_block strategy is performed (steep_opt_rate = 3,
+        with the greedy_full strategy is performed (steep_opt_rate = None,
         block_seed_size = 5, block_blocks_per_chem_group = 6).
         """
         n_trg_chains = len(self.target.chains)
@@ -2603,7 +2616,7 @@ def _lDDTGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
 class _QSScoreGreedySearcher(qsscore.QSScorer):
     def __init__(self, ref, mdl, ref_chem_groups, mdl_chem_groups,
                  ref_mdl_alns, contact_d = 12.0,
-                 steep_opt_rate = None):
+                 steep_opt_rate = None, greedy_prune_contact_map=False):
         """ Greedy extension of already existing but incomplete chain mappings
         """
         super().__init__(ref, ref_chem_groups, mdl, ref_mdl_alns,
@@ -2613,15 +2626,30 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
         self.ref_mdl_alns = ref_mdl_alns
         self.steep_opt_rate = steep_opt_rate
 
-        self.neighbors = {k: set() for k in self.qsent1.chain_names}
-        for p in self.qsent1.interacting_chains:
-            self.neighbors[p[0]].add(p[1])
-            self.neighbors[p[1]].add(p[0])
+        if greedy_prune_contact_map:
+            self.neighbors = {k: set() for k in self.qsent1.chain_names}
+            for p in self.qsent1.interacting_chains:
+                if np.count_nonzero(self.qsent1.PairDist(p[0], p[1])<=8) >= 3:
+                    self.neighbors[p[0]].add(p[1])
+                    self.neighbors[p[1]].add(p[0])
 
-        self.mdl_neighbors = {k: set() for k in self.qsent2.chain_names}
-        for p in self.qsent2.interacting_chains:
-            self.mdl_neighbors[p[0]].add(p[1])
-            self.mdl_neighbors[p[1]].add(p[0])
+            self.mdl_neighbors = {k: set() for k in self.qsent2.chain_names}
+            for p in self.qsent2.interacting_chains:
+                if np.count_nonzero(self.qsent2.PairDist(p[0], p[1])<=8) >= 3:
+                    self.mdl_neighbors[p[0]].add(p[1])
+                    self.mdl_neighbors[p[1]].add(p[0])
+
+
+        else:
+            self.neighbors = {k: set() for k in self.qsent1.chain_names}
+            for p in self.qsent1.interacting_chains:
+                self.neighbors[p[0]].add(p[1])
+                self.neighbors[p[1]].add(p[0])
+
+            self.mdl_neighbors = {k: set() for k in self.qsent2.chain_names}
+            for p in self.qsent2.interacting_chains:
+                self.mdl_neighbors[p[0]].add(p[1])
+                self.mdl_neighbors[p[1]].add(p[0])
 
         assert(len(ref_chem_groups) == len(mdl_chem_groups))
         self.ref_chem_groups = ref_chem_groups
