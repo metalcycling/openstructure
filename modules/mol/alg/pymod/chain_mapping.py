@@ -1243,8 +1243,8 @@ class ChainMapper:
 
         If number of chains in model and target are <= *n_max_naive*, a naive
         QS-score mapping is performed. For anything else, a QS-score mapping
-        with the greedy_full strategy is performed (steep_opt_rate = None,
-        block_seed_size = 5, block_blocks_per_chem_group = 6).
+        with the greedy_full strategy is performed
+        (greedy_prune_contact_map = True).
         """
         n_trg_chains = len(self.target.chains)
         res = self.GetChemMapping(model)
@@ -1253,9 +1253,8 @@ class ChainMapper:
             return self.GetQSScoreMapping(model, strategy="naive",
                                           chem_mapping_result=res)
         else:
-            return self.GetQSScoreMapping(model, strategy="greedy_block",
-                                          steep_opt_rate=3, block_seed_size=5,
-                                          block_blocks_per_chem_group=6,
+            return self.GetQSScoreMapping(model, strategy="greedy_full",
+                                          greedy_prune_contact_map=True,
                                           chem_mapping_result=res)
 
     def GetRepr(self, substructure, model, topn=1, inclusion_radius=15.0,
