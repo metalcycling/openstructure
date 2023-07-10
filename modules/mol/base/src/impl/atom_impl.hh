@@ -116,7 +116,13 @@ public:
   { 
     if (element_!=ele) {
       element_=ele;
+      AtomProp* old_prop = prop_;
       prop_=impl::AtomProp::GetDefaultProps(element_);
+      if (old_prop && !old_prop->is_default) {
+        if(old_prop->has_anisou) this->SetAnisou(old_prop->anisou);
+        if(old_prop->charge != 0.0) this->SetCharge(old_prop->charge);
+        delete old_prop;
+      }
     }
   }
   bool HasDefaultProps() const { return prop_->is_default; }
