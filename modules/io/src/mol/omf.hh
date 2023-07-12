@@ -61,7 +61,7 @@ struct ChiDefinition{
 
 struct ResidueDefinition {
 
-  ResidueDefinition(): rotamer_setup(false) { };
+  ResidueDefinition() { };
 
   ResidueDefinition(const ost::mol::ResidueHandle& res);
 
@@ -97,15 +97,13 @@ struct ResidueDefinition {
 
   void _InitIdxMapper() const;
 
-  void _InitRotamer() const;
-
   void _AddChiDefinition(int idx_one, int idx_two, int idx_three,
-                         int idx_four) const;
+                         int idx_four);
 
   void _AddAtomRule(int a_idx, int anch_one_idx,
                     int anch_two_idx, int anch_three_idx, 
                     Real bond_length, Real angle, int dihedral_idx, 
-                    Real base_dihedral) const;
+                    Real base_dihedral);
 
   String name;
   char olc;
@@ -116,11 +114,10 @@ struct ResidueDefinition {
   std::vector<bool> is_hetatm;
   std::vector<int> bonds;
   std::vector<int> bond_orders;
-  mutable bool rotamer_setup;
   mutable std::map<String, int> idx_mapper;
-  mutable std::set<int> rotameric_atoms;
-  mutable std::vector<ChiDefinition> chi_definitions;
-  mutable std::vector<SidechainAtomRule> sidechain_atom_rules;
+  std::set<int> rotameric_atoms;
+  std::vector<ChiDefinition> chi_definitions;
+  std::vector<SidechainAtomRule> sidechain_atom_rules;
 };
 
 

@@ -930,7 +930,6 @@ ResidueDefinition::ResidueDefinition(const ost::mol::ResidueHandle& res) {
   olc = res.GetOneLetterCode();
   chem_type = char(res.GetChemType());
   chem_class = char(res.GetChemClass());
-  rotamer_setup = false;
   ost::mol::AtomHandleList at_list = res.GetAtomList();
   for(auto it = at_list.begin(); it != at_list.end(); ++it) {
     anames.push_back(it->GetName());
@@ -1024,31 +1023,19 @@ int ResidueDefinition::GetIdx(const String& aname) const {
 }
 
 const std::set<int>& ResidueDefinition::GetRotamericAtoms() const {
-  if(!rotamer_setup) {
-    _InitRotamer();
-  }
   return rotameric_atoms;
 }
 
 const std::vector<ChiDefinition>& ResidueDefinition::GetChiDefinitions() const {
-  if(!rotamer_setup) {
-    _InitRotamer();
-  }
   return chi_definitions;
 }
 
 const std::vector<SidechainAtomRule>&
 ResidueDefinition::GetSidechainAtomRules() const {
-  if(!rotamer_setup) {
-    _InitRotamer();
-  }
   return sidechain_atom_rules;
 }
 
 int ResidueDefinition::GetNChiAngles() const {
-  if(!rotamer_setup) {
-    _InitRotamer();
-  }
   return chi_definitions.size();
 }
 
@@ -1059,384 +1046,21 @@ void ResidueDefinition::_InitIdxMapper() const {
   }
 }
 
-void ResidueDefinition::_InitRotamer() const {
-  rotameric_atoms.clear();
-  if(chem_type == 'A') {
-    int n_idx = GetIdx("N");
-    int ca_idx = GetIdx("CA");
-    int cb_idx = GetIdx("CB");
-    if(n_idx!=-1 && ca_idx!=-1 && cb_idx!=-1) {
-      switch(olc) {
-        case 'R': {
-          int cg_idx = GetIdx("CG");
-          int cd_idx = GetIdx("CD");
-          int ne_idx = GetIdx("NE");
-          int cz_idx = GetIdx("CZ");
-          int nh1_idx = GetIdx("NH1");
-          int nh2_idx = GetIdx("NH2");
-          if(cg_idx!=-1 && cd_idx!=-1 && ne_idx!=-1 && cz_idx!=-1 &&
-             nh1_idx!=-1 && nh2_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, cd_idx);
-            _AddChiDefinition(cb_idx, cg_idx, cd_idx, ne_idx);
-            _AddChiDefinition(cg_idx, cd_idx, ne_idx, cz_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5475), Real(2.02370926769), 0, Real(0.0));
-            _AddAtomRule(cd_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.5384), Real(1.9898498802), 1, Real(0.0));
-            _AddAtomRule(ne_idx, cb_idx, cg_idx, cd_idx,
-                         Real(1.5034), Real(1.86907309596), 2, Real(0.0));
-            _AddAtomRule(cz_idx, cg_idx, cd_idx, ne_idx,
-                         Real(1.3401), Real(2.14762764458), 3, Real(0.0));
-            _AddAtomRule(nh1_idx, cd_idx, ne_idx, cz_idx,
-                         Real(1.3311), Real(2.0605357149), 4, Real(0.0));
-            _AddAtomRule(nh2_idx, cd_idx, ne_idx, cz_idx,
-                         Real(1.3292), Real(2.13174514839), 4, Real(M_PI));
-          }
-          break;
-        }
-        case 'N': {
-          int cg_idx = GetIdx("CG");
-          int od1_idx = GetIdx("OD1");
-          int nd2_idx = GetIdx("ND2");
-          if(cg_idx!=-1 && od1_idx!=-1 && nd2_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, od1_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5319), Real(1.99491133503), 0, Real(0.0));
-            _AddAtomRule(od1_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.2323), Real(2.13907553124), 1, Real(0.0));
-            _AddAtomRule(nd2_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.3521), Real(2.02719992619), 1, Real(M_PI));
-          }
-          break;
-        }
-        case 'D': {
-          int cg_idx = GetIdx("CG");
-          int od1_idx = GetIdx("OD1");
-          int od2_idx = GetIdx("OD2");
-          if(cg_idx!=-1 && od1_idx!=-1 && od2_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, od1_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5218), Real(1.96524073775), 0, Real(0.0));
-            _AddAtomRule(od1_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.2565), Real(2.05931398443), 1, Real(0.0));
-            _AddAtomRule(od2_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.2541), Real(2.0542525296), 1, Real(M_PI));
-          }
-          break;
-        }
-        case 'Q': {
-          int cg_idx = GetIdx("CG");
-          int cd_idx = GetIdx("CD");
-          int oe1_idx = GetIdx("OE1");
-          int ne2_idx = GetIdx("NE2");
-          if(cg_idx!=-1 && cd_idx!=-1 && oe1_idx!=-1 && ne2_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, cd_idx);
-            _AddChiDefinition(cb_idx, cg_idx, cd_idx, oe1_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx, 
-                         Real(1.5534), Real(2.0162043519), 0, Real(0.0));
-            _AddAtomRule(cd_idx, ca_idx, cb_idx, cg_idx, 
-                         Real(1.532), Real(1.96349540849), 1, Real(0.0));
-            _AddAtomRule(oe1_idx, cb_idx, cg_idx, cd_idx, 
-                         Real(1.2294), Real(2.12092410702), 2, Real(0.0));
-            _AddAtomRule(ne2_idx, cb_idx, cg_idx, cd_idx, 
-                         Real(1.353), Real(2.03924269803), 2, Real(M_PI));
-          }
-          break;
-        }
-        case 'E': {
-          int cg_idx = GetIdx("CG");
-          int cd_idx = GetIdx("CD");
-          int oe1_idx = GetIdx("OE1");
-          int oe2_idx = GetIdx("OE2");
-          if(cg_idx!=-1 && cd_idx!=-1 && oe1_idx!=-1 && oe2_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, cd_idx);
-            _AddChiDefinition(cb_idx, cg_idx, cd_idx, oe1_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx, 
-                         Real(1.5557), Real(2.01917141163), 0, Real(0.0));
-            _AddAtomRule(cd_idx, ca_idx, cb_idx, cg_idx, 
-                         Real(1.5307), Real(2.01986954333), 1, Real(0.0));
-            _AddAtomRule(oe1_idx, cb_idx, cg_idx, cd_idx, 
-                         Real(1.259), Real(2.00695410687), 2, Real(0.0));
-            _AddAtomRule(oe2_idx, cb_idx, cg_idx, cd_idx, 
-                         Real(1.2532), Real(2.09579136579), 2, Real(M_PI));
-          }
-          break;
-        }
-        case 'K': {
-          int cg_idx = GetIdx("CG");
-          int cd_idx = GetIdx("CD");
-          int ce_idx = GetIdx("CE");
-          int nz_idx = GetIdx("NZ");
-          if(cg_idx!=-1 && cd_idx!=-1 && ce_idx!=-1 && nz_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, cd_idx);
-            _AddChiDefinition(cb_idx, cg_idx, cd_idx, ce_idx);
-            _AddChiDefinition(cg_idx, cd_idx, ce_idx, nz_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx, 
-                         Real(1.5435), Real(2.02039314211), 0, Real(0.0));
-            _AddAtomRule(cd_idx, ca_idx, cb_idx, cg_idx, 
-                         Real(1.5397), Real(1.97710897666), 1, Real(0.0));
-            _AddAtomRule(ce_idx, cb_idx, cg_idx, cd_idx, 
-                         Real(1.535), Real(1.96052834877), 2, Real(0.0));
-            _AddAtomRule(nz_idx, cg_idx, cd_idx, ce_idx, 
-                         Real(1.4604), Real(1.92789069175), 3, Real(0.0));
-          }
-          break;
-        }
-        case 'S': {
-          int og_idx = GetIdx("OG");
-          if(og_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, og_idx);
-            _AddAtomRule(og_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.4341), Real(1.96262274387), 0, Real(0.0));
-          }
-          break;
-        }
-        case 'C': {
-          int sg_idx = GetIdx("SG");
-          if(sg_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, sg_idx);
-            _AddAtomRule(sg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.8359), Real(1.98740641925), 0, Real(0.0));
-          }
-          break;
-        }
-        case 'M': {
-          int cg_idx = GetIdx("CG");
-          int sd_idx = GetIdx("SD");
-          int ce_idx = GetIdx("CE");
-          if(cg_idx!=-1 && sd_idx!=-1 && ce_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, sd_idx);
-            _AddChiDefinition(cb_idx, cg_idx, sd_idx, ce_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.546), Real(2.02318566891), 0, Real(0.0));
-            _AddAtomRule(sd_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.8219), Real(1.9247490991), 1, Real(0.0));
-            _AddAtomRule(ce_idx, cb_idx, cg_idx, sd_idx,
-                         Real(1.8206), Real(1.72682876192), 2, Real(0.0));
-          }
-          break;
-        }
-        case 'W': {
-          int cg_idx = GetIdx("CG");
-          int cd1_idx = GetIdx("CD1");
-          int cd2_idx = GetIdx("CD2");
-          int ne1_idx = GetIdx("NE1");
-          int ce2_idx = GetIdx("CE2");
-          int ce3_idx = GetIdx("CE3");
-          int cz2_idx = GetIdx("CZ2");
-          int cz3_idx = GetIdx("CZ3");
-          int ch2_idx = GetIdx("CH2");
-          if(cg_idx!=-1 && cd1_idx!=-1 && cd2_idx!=-1 && ne1_idx!=-1 &&
-             ce2_idx!=-1 && ce3_idx!=-1 && cz2_idx!=-1 && cz3_idx!=-1 &&
-             ch2_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, cd1_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5233), Real(2.00957210075), 0, Real(0.0));
-            _AddAtomRule(cd1_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.3679), Real(2.25461632773), 1, Real(0.0));
-            _AddAtomRule(cd2_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.4407), Real(2.16333560785), 1, Real(M_PI));
-            _AddAtomRule(ce2_idx, cd1_idx, cg_idx, cd2_idx,
-                         Real(1.4126), Real(1.86139364725), 4, Real(0.0));
-            _AddAtomRule(ne1_idx, cg_idx, cd2_idx, ce2_idx,
-                         Real(1.3746), Real(1.88268666413), 4, Real(0.0));
-            _AddAtomRule(ce3_idx, cd1_idx, cg_idx, cd2_idx,
-                         Real(1.4011), Real(2.31325939059), 4, Real(M_PI));
-            _AddAtomRule(cz3_idx, ce2_idx, cd2_idx, ce3_idx,
-                         Real(1.4017), Real(2.06228104416), 4, Real(0.0));
-            _AddAtomRule(ch2_idx, cd2_idx, ce3_idx, cz3_idx,
-                         Real(1.4019), Real(2.11132479614), 4, Real(0.0));
-            _AddAtomRule(cz2_idx, ce3_idx, cz3_idx, ch2_idx,
-                         Real(1.403), Real(2.10957946689), 4, Real(0.0));
-          }
-          break;
-        }
-        case 'Y': {
-          int cg_idx = GetIdx("CG");
-          int cd1_idx = GetIdx("CD1");
-          int cd2_idx = GetIdx("CD2");
-          int ce1_idx = GetIdx("CE1");
-          int ce2_idx = GetIdx("CE2");
-          int cz_idx = GetIdx("CZ");
-          int oh_idx = GetIdx("OH");
-          if(cg_idx!=-1 && cd1_idx!=-1 && cd2_idx!=-1 && ce1_idx!=-1 &&
-             ce2_idx!=-1 && cz_idx!=-1 && oh_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, cd1_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5113), Real(1.9711748572), 0, Real(0.0));
-            _AddAtomRule(cd1_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.4064), Real(2.10294721573), 1, Real(0.0));
-            _AddAtomRule(cd2_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.4068), Real(2.10242361695), 1, Real(M_PI));
-            _AddAtomRule(ce1_idx, cd2_idx, cg_idx, cd1_idx,
-                         Real(1.4026), Real(2.1013764194), 4, Real(0.0));
-            _AddAtomRule(ce2_idx, cd1_idx, cg_idx, cd2_idx,
-                         Real(1.4022), Real(2.1041689462), 4, Real(0.0));
-            _AddAtomRule(cz_idx, cg_idx, cd1_idx, ce1_idx,
-                         Real(1.3978), Real(2.09596589872), 4, Real(0.0));
-            _AddAtomRule(oh_idx, cd2_idx, ce2_idx, cz_idx,
-                         Real(1.4063), Real(2.09875842552), 4, Real(M_PI));
-          }
-          break;
-        }
-        case 'T': {
-          int og1_idx = GetIdx("OG1");
-          int cg2_idx = GetIdx("CG1");
-          if(og1_idx!=-1 && cg2_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, og1_idx);
-            _AddAtomRule(og1_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.4252), Real(1.95756128904), 0, Real(0.0));
-            _AddAtomRule(cg2_idx, og1_idx, ca_idx, cb_idx,
-                         Real(1.5324), Real(2.02301113599), 4, Real(-2.1665));
-          }
-          break;
-        }
-
-        case 'V': {
-          int cg1_idx = GetIdx("CG1");
-          int cg2_idx = GetIdx("CG2");
-          if(cg1_idx!=-1 && cg2_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg1_idx);
-            _AddAtomRule(cg1_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5441), Real(1.9891517485), 0, Real(0.0));
-            _AddAtomRule(cg2_idx, cg1_idx, ca_idx, cb_idx,
-                         Real(1.5414), Real(1.95773582196), 4, Real(2.1640));
-          }
-          break;
-        }
-        case 'I': {
-          int cg1_idx = GetIdx("CG1");
-          int cg2_idx = GetIdx("CG2");
-          int cd1_idx = GetIdx("CD1");
-          if(cg1_idx!=-1 && cg2_idx!=-1 && cd1_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg1_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg1_idx, cd1_idx);
-            _AddAtomRule(cg1_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5498), Real(1.98321762904), 0, Real(0.0));
-            _AddAtomRule(cg2_idx, cg1_idx, ca_idx, cb_idx,
-                         Real(1.5452), Real(1.9884536168), 4, Real(-2.2696));
-            _AddAtomRule(cd1_idx, ca_idx, cb_idx, cg1_idx,
-                         Real(1.5381), Real(1.9912461436), 1, Real(0.0));
-          }
-          break;
-        }
-        case 'L': {
-          int cg_idx = GetIdx("CG");
-          int cd1_idx = GetIdx("CD1");
-          int cd2_idx = GetIdx("CD2");
-          if(cg_idx!=-1 && cd1_idx!=-1 && cd2_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, cd1_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5472), Real(2.05006373939), 0, Real(0.0));
-            _AddAtomRule(cd1_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.5361), Real(1.9282397576), 1, Real(0.0));
-            _AddAtomRule(cd2_idx, cd1_idx, cb_idx, cg_idx,
-                         Real(1.536), Real(1.96471713897), 4, Real(2.0944));
-
-          }
-          break;
-        }
-        case 'P': {
-          int cg_idx = GetIdx("CG");
-          int cd_idx = GetIdx("CD");
-          if(cg_idx!=-1 && cd_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, cd_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5322), Real(1.82194920616), 0, Real(0.0));
-            _AddAtomRule(cd_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.5317), Real(1.80135432098), 1, Real(0.0));
-          }
-          break;
-        }
-        case 'H': {
-          int cg_idx = GetIdx("CG");
-          int nd1_idx = GetIdx("ND1");
-          int cd2_idx = GetIdx("CD1");
-          int ce1_idx = GetIdx("CE2");
-          int ne2_idx = GetIdx("NE2");
-
-          if(cg_idx!=-1 && nd1_idx!=-1 && cd2_idx!=-1 && ce1_idx!=-1 &&
-             ne2_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, nd1_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5109), Real(2.04098802728), 0, Real(0.0));
-            _AddAtomRule(nd1_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.3859), Real(2.09736216212), 1, Real(0.0));
-            _AddAtomRule(cd2_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.3596), Real(2.26386657276), 1, Real(M_PI));
-            _AddAtomRule(ce1_idx, cd2_idx, cg_idx, nd1_idx,
-                         Real(1.317), Real(1.8360863731), 4, Real(0.0));
-            _AddAtomRule(ne2_idx, nd1_idx, cg_idx, cd2_idx,
-                         Real(1.3782), Real(1.84655834861), 4, Real(0.0));
-          }
-          break;
-        }
-        case 'F': {
-          int cg_idx = GetIdx("CG");
-          int cd1_idx = GetIdx("CD1");
-          int cd2_idx = GetIdx("CD2");
-          int ce1_idx = GetIdx("CE1");
-          int ce2_idx = GetIdx("CE2");
-          int cz_idx = GetIdx("CZ");
-          if(cg_idx!=-1 && cd1_idx!=-1 && cd2_idx!=-1 && ce1_idx!=-1 &&
-             ce2_idx!=-1 && cz_idx!=-1) {
-            _AddChiDefinition(n_idx, ca_idx, cb_idx, cg_idx);
-            _AddChiDefinition(ca_idx, cb_idx, cg_idx, cd1_idx);
-            _AddAtomRule(cg_idx, n_idx, ca_idx, cb_idx,
-                         Real(1.5109), Real(1.96803326455), 0, Real(0.0));
-            _AddAtomRule(cd1_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.4059), Real(2.099980156), 1, Real(0.0));
-            _AddAtomRule(cd2_idx, ca_idx, cb_idx, cg_idx,
-                         Real(1.4062), Real(2.10765960471), 1, Real(M_PI));
-            _AddAtomRule(ce1_idx, cd2_idx, cg_idx, cd1_idx,
-                         Real(1.4006), Real(2.10539067668), 4, Real(0.0));
-            _AddAtomRule(ce2_idx, cd1_idx, cg_idx, cd2_idx,
-                         Real(1.4002), Real(2.10521614376), 4, Real(0.0));
-            _AddAtomRule(cz_idx, cg_idx, cd1_idx, ce1_idx,
-                         Real(1.4004), Real(2.09317337192), 4, Real(0.0));
-          }
-          break;
-        }
-      }
-    }
-  }
-
-  for(auto it = sidechain_atom_rules.begin();
-      it != sidechain_atom_rules.end(); ++it) {
-    rotameric_atoms.insert(it->sidechain_atom_idx);
-  }
-
-  rotamer_setup = true;
-}
-
 void ResidueDefinition::_AddChiDefinition(int idx_one, int idx_two,
-                                          int idx_three, int idx_four) const {
+                                          int idx_three, int idx_four) {
   ChiDefinition chi_definition;
   chi_definition.idx_one = idx_one;
   chi_definition.idx_two = idx_two;
   chi_definition.idx_three = idx_three;
   chi_definition.idx_four = idx_four;
   chi_definitions.push_back(chi_definition);
-
 }
 
 void ResidueDefinition::_AddAtomRule(int a_idx, int anch_one_idx,
                                      int anch_two_idx, int anch_three_idx, 
                                      Real bond_length, Real angle,
                                      int dihedral_idx,
-                                     Real base_dihedral) const {
+                                     Real base_dihedral) {
   SidechainAtomRule rule;
   rule.sidechain_atom_idx = a_idx;
   rule.anchor_idx[0] = anch_one_idx;
@@ -1605,7 +1229,7 @@ void ChainData::ToStream(std::ostream& stream,
       std::set<int> skip_indices = def.GetRotamericAtoms();
       int o_idx = -1;
       if(def.chem_type == 'A') {
-        // can reconstruct O if there is CA, C,  no OXT, its not the last
+        // can reconstruct O if there is CA, C, no OXT, its not the last
         // residue (res_idx < res_def_indices.size()-1) and the next residue is
         // an amino acid too and has N.
         if(def.GetIdx("CA") != -1 && def.GetIdx("C") != -1 &&
@@ -1726,7 +1350,6 @@ void ChainData::FromStream(std::istream& stream,
     }
 
     // infer
-
     int start_idx = 0;
     int chi_idx = 0;
     for(int res_idx = 0; res_idx < n_res; ++res_idx) {
@@ -1778,67 +1401,6 @@ void ChainData::FromStream(std::istream& stream,
 }
 
 DefaultPepLib::DefaultPepLib() {
-
-  /* hardcoded constructor created with:
-
-  from ost import conop
-  def ProcessCompound(comp_name, lib, skip_oxt=True, ca_only=False):
-      c = lib.FindCompound(comp_name)   
-      anames = list()
-      idx_mapper = dict()
-      element_mapper = dict()
-      for a_idx, a in enumerate(c.atom_specs):
-          if a.element == "H":
-              continue
-          if skip_oxt and a.name == "OXT":
-              continue
-          if ca_only and a.name != "CA":
-              continue
-          idx_mapper[a_idx] = a.name
-          anames.append(a.name)
-          element_mapper[a.name] = a.element
-      anames.sort()
-      bond_data = list()
-      for b in c.bond_specs:
-          idx_one = b.atom_one
-          idx_two = b.atom_two
-          if idx_one in idx_mapper and idx_two in idx_mapper:
-              aname_one = idx_mapper[idx_one]
-              aname_two = idx_mapper[idx_two]
-              idx_one = anames.index(aname_one)
-              idx_two = anames.index(aname_two)
-              if idx_one < idx_two:
-                  bond_data.append(((idx_one, idx_two), b.order))
-              else:
-                  bond_data.append(((idx_two, idx_one), b.order))
-      bond_data.sort()
-      print(f"  res_def = ResidueDefinition();")
-      print(f"  res_def.name = \"{comp_name}\";")
-      print(f"  res_def.olc = '{c.GetOneLetterCode()}';")
-      print(f"  res_def.chem_type = '{c.chem_type}';")
-      print(f"  res_def.chem_class = '{c.chem_class}';")
-      for aname in anames:
-          print(f"  res_def.anames.push_back(\"{aname}\");")
-      for aname in anames:
-          print(f"  res_def.elements.push_back(\"{element_mapper[aname]}\");")
-      print(f"  res_def.is_hetatm.assign({len(anames)}, false);")
-      for b in bond_data:
-          print(f"  res_def.bonds.push_back({b[0][0]});")
-          print(f"  res_def.bonds.push_back({b[0][1]});")
-      for b in bond_data:
-          print(f"  res_def.bond_orders.push_back({b[1]});")
-      print("  residue_definitions.push_back(res_def);")
-      print()
-  lib = conop.GetDefaultLib()
-  anames = ["ALA", "ARG", "ASN", "ASP", "GLN", "GLU", "LYS", "SER", "CYS",
-            "MET", "TRP", "TYR", "THR", "VAL", "ILE", "LEU", "GLY", "PRO",
-            "HIS", "PHE"]
-  print("  ResidueDefinition res_def;")
-  for aname in anames:
-    ProcessCompound(aname, lib)
-    ProcessCompound(aname, lib, skip_oxt = False)
-    ProcessCompound(aname, lib, ca_only=True)
-  */
   ResidueDefinition res_def;
   res_def = ResidueDefinition();
   res_def.name = "ALA";
@@ -1973,6 +1535,17 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
+  res_def._AddChiDefinition(6, 1, 2, 4);
+  res_def._AddChiDefinition(1, 2, 4, 3);
+  res_def._AddChiDefinition(2, 4, 3, 7);
+  res_def._AddChiDefinition(4, 3, 7, 5);
+  res_def._AddAtomRule(4, 6, 1, 2, 1.5475, 2.0237, 0, 0.0);
+  res_def._AddAtomRule(3, 1, 2, 4, 1.5384, 1.9898, 1, 0.0);
+  res_def._AddAtomRule(7, 2, 4, 3, 1.5034, 1.8691, 2, 0.0);
+  res_def._AddAtomRule(5, 4, 3, 7, 1.3401, 2.1476, 3, 0.0);
+  res_def._AddAtomRule(8, 3, 7, 5, 1.3311, 2.0605, 4, 0.0);
+  res_def._AddAtomRule(9, 3, 7, 5, 1.3292, 2.1317, 4, M_PI);
+  res_def.rotameric_atoms.insert({4, 3, 7, 5, 8, 9});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2038,6 +1611,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2093,6 +1670,12 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
+  res_def._AddChiDefinition(4, 1, 2, 3);
+  res_def._AddChiDefinition(1, 2, 3, 7);
+  res_def._AddAtomRule(3, 4, 1, 2, 1.5319, 1.9949, 0, 0.0);
+  res_def._AddAtomRule(7, 1, 2, 3, 1.2323, 2.1391, 1, 0.0);
+  res_def._AddAtomRule(5, 1, 2, 3, 1.3521, 2.0272, 1, M_PI);
+  res_def.rotameric_atoms.insert({3, 7, 5});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2143,6 +1726,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2198,6 +1785,12 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(4, 1, 2, 3);
+  res_def._AddChiDefinition(1, 2, 3, 6);
+  res_def._AddAtomRule(3, 4, 1, 2, 1.5218, 1.9652, 0, 0.0);
+  res_def._AddAtomRule(6, 1, 2, 3, 1.2565, 2.0593, 1, 0.0);
+  res_def._AddAtomRule(7, 1, 2, 3, 1.2541, 2.0543, 1, M_PI);
+  res_def.rotameric_atoms.insert({3, 6, 7});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2248,6 +1841,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2308,6 +1905,14 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
+  res_def._AddChiDefinition(5, 1, 2, 4);
+  res_def._AddChiDefinition(1, 2, 4, 3);
+  res_def._AddChiDefinition(2, 4, 3, 8);
+  res_def._AddAtomRule(4, 5, 1, 2, 1.5534, 2.0162, 0, 0.0);
+  res_def._AddAtomRule(3, 1, 2, 4, 1.5320, 1.9635, 1, 0.0);
+  res_def._AddAtomRule(8, 2, 4, 3, 1.2294, 2.1209, 2, 0.0);
+  res_def._AddAtomRule(6, 2, 4, 3, 1.3530, 2.0392, 2, M_PI);
+  res_def.rotameric_atoms.insert({4, 3, 8, 6});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2363,6 +1968,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2423,6 +2032,14 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(5, 1, 2, 4);
+  res_def._AddChiDefinition(1, 2, 4, 3);
+  res_def._AddChiDefinition(2, 4, 3, 7);
+  res_def._AddAtomRule(4, 5, 1, 2, 1.5557, 2.0192, 0, 0.0);
+  res_def._AddAtomRule(3, 1, 2, 4, 1.5307, 2.0199, 1, 0.0);
+  res_def._AddAtomRule(7, 2, 4, 3, 1.2590, 2.0070, 2, 0.0);
+  res_def._AddAtomRule(8, 2, 4, 3, 1.2532, 2.0958, 2, M_PI);
+  res_def.rotameric_atoms.insert({4, 3, 7, 8});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2478,6 +2095,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2538,6 +2159,15 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(6, 1, 2, 5);
+  res_def._AddChiDefinition(1, 2, 5, 3);
+  res_def._AddChiDefinition(2, 5, 3, 4);
+  res_def._AddChiDefinition(5, 3, 4, 7);
+  res_def._AddAtomRule(5, 6, 1, 2, 1.5435, 2.0204, 0, 0.0);
+  res_def._AddAtomRule(3, 1, 2, 5, 1.5397, 1.9771, 1, 0.0);
+  res_def._AddAtomRule(4, 2, 5, 3, 1.5350, 1.9605, 2, 0.0);
+  res_def._AddAtomRule(7, 5, 3, 4, 1.4604, 1.9279, 3, 0.0);
+  res_def.rotameric_atoms.insert({5, 3, 4, 7});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2593,6 +2223,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2638,6 +2272,9 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(3, 1, 2, 5);
+  res_def._AddAtomRule(5, 3, 1, 2, 1.4341, 1.9626, 0, 0.0);
+  res_def.rotameric_atoms.insert(5);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2678,6 +2315,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2723,6 +2364,9 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(3, 1, 2, 5);
+  res_def._AddAtomRule(5, 3, 1, 2, 1.8359, 1.9874, 0, 0.0);
+  res_def.rotameric_atoms.insert(5);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2763,6 +2407,9 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(3, 1, 2, 6);
+  res_def._AddAtomRule(6, 3, 1, 2, 1.8359, 1.9874, 0, 0.0);
+  res_def.rotameric_atoms.insert(6);
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2818,6 +2465,13 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(5, 1, 2, 4);
+  res_def._AddChiDefinition(1, 2, 4, 7);
+  res_def._AddChiDefinition(2, 4, 7, 3);
+  res_def._AddAtomRule(4, 5, 1, 2, 1.5460, 2.0232, 0, 0.0);
+  res_def._AddAtomRule(7, 1, 2, 4, 1.8219, 1.9247, 1, 0.0);
+  res_def._AddAtomRule(3, 2, 4, 7, 1.8206, 1.7268, 2, 0.0);
+  res_def.rotameric_atoms.insert({4, 7, 3});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2868,6 +2522,13 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(5, 1, 2, 4);
+  res_def._AddChiDefinition(1, 2, 4, 8);
+  res_def._AddChiDefinition(2, 4, 8, 3);
+  res_def._AddAtomRule(4, 5, 1, 2, 1.5460, 2.0232, 0, 0.0);
+  res_def._AddAtomRule(8, 1, 2, 4, 1.8219, 1.9247, 1, 0.0);
+  res_def._AddAtomRule(3, 2, 4, 8, 1.8206, 1.7268, 2, 0.0);
+  res_def.rotameric_atoms.insert({4, 8, 3});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -2959,6 +2620,18 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(11, 1, 2, 7);
+  res_def._AddChiDefinition(1, 2, 7, 3);
+  res_def._AddAtomRule(7, 11, 1, 2, 1.5233, 2.0096, 0, 0.0);
+  res_def._AddAtomRule(3, 1, 2, 7,  1.3679, 2.2546, 1, 0.0);
+  res_def._AddAtomRule(4, 1, 2, 7,  1.4407, 2.1633, 1, M_PI);
+  res_def._AddAtomRule(5, 3, 7, 4,  1.4126, 1.8614, 4, 0.0);
+  res_def._AddAtomRule(12, 7, 4, 5, 1.3746, 1.8827, 4, 0.0);
+  res_def._AddAtomRule(6, 3, 7, 4,  1.4011, 2.3133, 4, M_PI);
+  res_def._AddAtomRule(10, 5, 4, 6, 1.4017, 2.0623, 4, 0.0);
+  res_def._AddAtomRule(8, 4, 6, 10, 1.4019, 2.1113, 4, 0.0);
+  res_def._AddAtomRule(9, 6, 10, 8, 1.4030, 2.1096, 4, 0.0);
+  res_def.rotameric_atoms.insert({7, 3, 4, 5, 12, 6, 10, 8, 9});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3045,6 +2718,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3123,6 +2800,16 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(9, 1, 2, 7);
+  res_def._AddChiDefinition(1, 2, 7, 3);
+  res_def._AddAtomRule(7, 9, 1, 2, 1.5113, 1.9712, 0, 0.0);
+  res_def._AddAtomRule(3, 1, 2, 7, 1.4064, 2.1029, 1, 0.0);
+  res_def._AddAtomRule(4, 1, 2, 7, 1.4068, 2.1024, 1, M_PI);
+  res_def._AddAtomRule(5, 4, 7, 3, 1.4026, 2.1014, 4, 0.0);
+  res_def._AddAtomRule(6, 3, 7, 4, 1.4022, 2.1042, 4, 0.0);
+  res_def._AddAtomRule(8, 7, 3, 5, 1.3978, 2.0960, 4, 0.0);
+  res_def._AddAtomRule(11, 4, 6, 8, 1.4063, 2.0988, 4, M_PI);
+  res_def.rotameric_atoms.insert({7, 3, 4, 5, 6, 8, 11});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3196,6 +2883,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3246,6 +2937,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(4, 1, 2, 6);
+  res_def._AddAtomRule(6, 4, 1, 2, 1.4252, 1.9576, 0, 0.0);
+  res_def._AddAtomRule(3, 6, 1, 2, 1.5324, 2.0230, 4, -2.1665);
+  res_def.rotameric_atoms.insert({6, 3});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3291,6 +2986,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3341,6 +3040,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(5, 1, 2, 3);
+  res_def._AddAtomRule(3, 5, 1, 2, 1.5441, 1.9892, 0, 0.0);
+  res_def._AddAtomRule(4, 3, 1, 2, 1.5414, 1.9577, 4, 2.1640);
+  res_def.rotameric_atoms.insert({3, 4});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3386,6 +3089,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3441,6 +3148,12 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(6, 1, 2, 4);
+  res_def._AddChiDefinition(1, 2, 4, 3);
+  res_def._AddAtomRule(4, 6, 1, 2, 1.5498, 1.9832, 0, 0.0);
+  res_def._AddAtomRule(5, 4, 1, 2, 1.5452, 1.9885, 4, -2.2696);
+  res_def._AddAtomRule(3, 1, 2, 4, 1.5381, 1.9912, 1, 0.0);
+  res_def.rotameric_atoms.insert({4, 5, 3});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3491,6 +3204,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3546,6 +3263,12 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(6, 1, 2, 5);
+  res_def._AddChiDefinition(1, 2, 5, 3);
+  res_def._AddAtomRule(5, 6, 1, 2, 1.5472, 2.0501, 0, 0.0);
+  res_def._AddAtomRule(3, 1, 2, 5, 1.5361, 1.9282, 1, 0.0);
+  res_def._AddAtomRule(4, 3, 2, 5, 1.5360, 1.9647, 4, 2.0944);
+  res_def.rotameric_atoms.insert({5, 3, 4});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3596,6 +3319,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3714,6 +3441,11 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(5, 1, 2, 4);
+  res_def._AddChiDefinition(1, 2, 4, 3);
+  res_def._AddAtomRule(4, 5, 1, 2, 1.5322, 1.8219, 0, 0.0);
+  res_def._AddAtomRule(3, 1, 2, 4, 1.5317, 1.8014, 1, 0.0);
+  res_def.rotameric_atoms.insert({4, 3});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3762,6 +3494,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3830,6 +3566,14 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(6, 1, 2, 5);
+  res_def._AddChiDefinition(1, 2, 5, 7);
+  res_def._AddAtomRule(5, 6, 1, 2, 1.5109, 2.0410, 0, 0.0);
+  res_def._AddAtomRule(7, 1, 2, 5, 1.3859, 2.0974, 1, 0.0);
+  res_def._AddAtomRule(3, 1, 2, 5, 1.3596, 2.2639, 1, M_PI);
+  res_def._AddAtomRule(4, 3, 5, 7, 1.3170, 1.8361, 4, 0.0);
+  res_def._AddAtomRule(8, 7, 5, 3, 1.3782, 1.8466, 4, 0.0);
+  res_def.rotameric_atoms.insert({5, 7, 3, 4, 8});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3893,6 +3637,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -3966,6 +3714,15 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  res_def._AddChiDefinition(9, 1, 2, 7);
+  res_def._AddChiDefinition(1, 2, 7, 3);
+  res_def._AddAtomRule(7, 9, 1, 2, 1.5109, 1.9680, 0, 0.0);
+  res_def._AddAtomRule(3, 1, 2, 7, 1.4059, 2.0100, 1, 0.0);
+  res_def._AddAtomRule(4, 1, 2, 7, 1.4062, 2.1077, 1, M_PI);
+  res_def._AddAtomRule(5, 4, 7, 3, 1.4006, 2.1054, 4, 0.0);
+  res_def._AddAtomRule(6, 3, 7, 4, 1.4002, 2.1052, 4, 0.0);
+  res_def._AddAtomRule(8, 7, 3, 5, 1.4004, 2.0932, 4, 0.0);
+  res_def.rotameric_atoms.insert({7, 3, 4, 5, 6, 8});
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
@@ -4034,6 +3791,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(2);
   res_def.bond_orders.push_back(1);
+  // same rotamer information as previous one
+  res_def.chi_definitions = residue_definitions.back().chi_definitions;
+  res_def.sidechain_atom_rules = residue_definitions.back().sidechain_atom_rules;
+  res_def.rotameric_atoms = residue_definitions.back().rotameric_atoms;
   residue_definitions.push_back(res_def);
 
   res_def = ResidueDefinition();
