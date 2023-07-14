@@ -295,15 +295,14 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
 .. code-block:: console
 
     usage: ost compare-ligand-structures [-h] -m MODEL [-ml [MODEL_LIGANDS ...]]
-                                     -r REFERENCE
-                                     [-rl [REFERENCE_LIGANDS ...]]
-                                     [-o OUTPUT] [-mf {pdb,mmcif,cif}]
-                                     [-rf {pdb,mmcif,cif}] [-ft] [-rna] [-ec]
-                                     [-sm] [--lddt-pli] [--rmsd]
-                                     [--radius RADIUS]
-                                     [--lddt-pli-radius LDDT_PLI_RADIUS]
-                                     [--lddt-bs-radius LDDT_BS_RADIUS]
-                                     [-v VERBOSITY]
+                                         -r REFERENCE [-rl [REFERENCE_LIGANDS ...]]
+                                         [-o OUTPUT] [-mf {pdb,mmcif,cif}]
+                                         [-rf {pdb,mmcif,cif}] [-ft] [-rna] [-ec] [-sm]
+                                         [-gcm] [-c CHAIN_MAPPING [CHAIN_MAPPING ...]]
+                                         [-ra] [--lddt-pli] [--rmsd] [--radius RADIUS]
+                                         [--lddt-pli-radius LDDT_PLI_RADIUS]
+                                         [--lddt-lp-radius LDDT_LP_RADIUS]
+                                         [-v VERBOSITY] [--n-max-naive N_MAX_NAIVE]
 
     Evaluate model with non-polymer/small molecule ligands against reference.
 
@@ -342,19 +341,19 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
 
      * "model_ligands": A list of ligands in the model. If ligands were provided
        explicitly with --model-ligands, elements of the list will be the paths to
-       the ligand SDF file(s). Otherwise, they will be the chain name and residue
-       number of the ligand, separated by a dot.
+       the ligand SDF file(s). Otherwise, they will be the chain name, residue
+       number and insertion code of the ligand, separated by a dot.
      * "reference_ligands": A list of ligands in the reference. If ligands were
        provided explicitly with --reference-ligands, elements of the list will be
-       the paths to the ligand SDF file(s). Otherwise, they will be the chain name
-       and residue number of the ligand, separated by a dot.
+       the paths to the ligand SDF file(s). Otherwise, they will be the chain name,
+       residue number and insertion code of the ligand, separated by a dot.
      * "status": SUCCESS if everything ran through. In case of failure, the only
        content of the JSON output will be "status" set to FAILURE and an
        additional key: "traceback".
 
     Each score is opt-in and, be enabled with optional arguments and is added
     to the output. Keys correspond to the values in "model_ligands" above.
-    Only assigned mapped ligands are reported.
+    Only assigned (mapped) ligands are reported.
 
     options:
       -h, --help            show this help message and exit
@@ -396,17 +395,33 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
                             the selected mapping are reported.
       -sm, --substructure-match
                             Allow incomplete target ligands.
+      -gcm, --global-chain-mapping
+                            Use a global chain mapping.
+      -c CHAIN_MAPPING [CHAIN_MAPPING ...],
+                            --chain-mapping CHAIN_MAPPING [CHAIN_MAPPING ...]
+                            Custom mapping of chains between the reference and
+                            the model. Each separate mapping consist of key:value
+                            pairs where key is the chain name in reference and
+                            value is the chain name in model. Only has an effect
+                            if global-chain-mapping flag is set.
+      -ra, --rmsd-assignment
+                            Use RMSD for ligand assignment.
       --lddt-pli            Compute lDDT-PLI score and store as key "lddt-pli".
       --rmsd                Compute RMSD score and store as key "rmsd".
       --radius RADIUS       Inclusion radius for the binding site. Any residue
-                            with atoms within this distance of the ligand will be
-                            included in the binding site.
+                            with atoms within this distance of the ligand will
+                            be included in the binding site.
       --lddt-pli-radius LDDT_PLI_RADIUS
                             lDDT inclusion radius for lDDT-PLI.
-      --lddt-bs-radius LDDT_BS_RADIUS
-                            lDDT inclusion radius for lDDT-BS.
+      --lddt-lp-radius LDDT_LP_RADIUS
+                            lDDT inclusion radius for lDDT-LP.
       -v VERBOSITY, --verbosity VERBOSITY
                             Set verbosity level. Defaults to 3 (INFO).
+      --n-max-naive N_MAX_NAIVE
+                            If number of chains in model and reference are
+                            below or equal that number, the global chain
+                            mapping will naively enumerate all possible
+                            mappings. A heuristic is used otherwise.
 
 
 Additional information about the scores and output values is available in
