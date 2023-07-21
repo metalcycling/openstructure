@@ -305,8 +305,8 @@ class LigandScorer:
         self._unassigned_target_ligands = {}
         self._unassigned_model_ligands = {}
         # Keep track of symmetries/isomorphisms
-        # 0: no isomorphism
-        # 1: isomorphic
+        # 0.0: no isomorphism
+        # 1.0: isomorphic
         # np.nan: not assessed yet
         self._assignment_isomorphisms = None
 
@@ -1249,7 +1249,8 @@ class LigandScorer:
                         self.model_ligands[ligand_idx],
                         self.target_ligands[trg_lig_idx],
                         substructure_match=self.substructure_match,
-                        by_atom_index=True)
+                        by_atom_index=True,
+                        return_symmetries=False)
                 except NoSymmetryError:
                     assigned = 0.
                 else:
@@ -1301,7 +1302,8 @@ class LigandScorer:
                         self.model_ligands[model_lig_idx],
                         self.target_ligands[ligand_idx],
                         substructure_match=self.substructure_match,
-                        by_atom_index=True)
+                        by_atom_index=True,
+                        return_symmetries=False)
                 except NoSymmetryError:
                     assigned = 0.
                 else:
@@ -1412,7 +1414,7 @@ def SCRMSD(model_ligand, target_ligand, transformation=geom.Mat4(),
 
 
 def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
-                       by_atom_index=False):
+                       by_atom_index=False, return_symmetries=True):
     """Return a list of symmetries (isomorphisms) of the model onto the target
     residues.
 
@@ -1430,6 +1432,12 @@ def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
                           Otherwise, if False, the symmetries refer to atom
                           names.
     :type by_atom_index: :class:`bool`
+    :type return_symmetries: If Truthy, return the mappings, otherwise simply
+                             return True if a mapping is found (and raise if
+                             no mapping is found). This is useful to quickly
+                             find out if a mapping exist without the expensive
+                             step to find all the mappings.
+    :type return_symmetries: :class:`bool`
     :raises: :class:`NoSymmetryError` when no symmetry can be found.
 
     """
@@ -1451,12 +1459,16 @@ def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
         model_graph, target_graph, node_match=lambda x, y:
         x["element"] == y["element"])
     if gm.is_isomorphic():
+        if not return_symmetries:
+            return True
         symmetries = [
             (list(isomorphism.values()), list(isomorphism.keys()))
             for isomorphism in gm.isomorphisms_iter()]
         assert len(symmetries) > 0
         LogDebug("Found %s isomorphic mappings (symmetries)" % len(symmetries))
     elif gm.subgraph_is_isomorphic() and substructure_match:
+        if not return_symmetries:
+            return True
         symmetries = [(list(isomorphism.values()), list(isomorphism.keys())) for isomorphism in
                       gm.subgraph_isomorphisms_iter()]
         assert len(symmetries) > 0
