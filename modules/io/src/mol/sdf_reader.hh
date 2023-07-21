@@ -22,6 +22,7 @@
 #ifndef OST_IO_SDF_READER_HH
 #define OST_IO_SDF_READER_HH
 
+#include <tuple>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <ost/mol/chain_handle.hh>
@@ -29,6 +30,9 @@
 #include <ost/io/module_config.hh>
 
 namespace ost { namespace io {
+
+
+
 
 class DLLEXPORT_OST_IO SDFReader {
 public:
@@ -41,17 +45,45 @@ public:
   void Import(mol::EntityHandle& ent);
 
 private:
+  typedef std::tuple<int, String, String, String, String, String> atom_data;
+  typedef std::tuple<String, String, String> bond_data;
+  typedef std::tuple<String, String> charge_data;
+  typedef std::tuple<std::vector<String>, std::map<String, String>> v3000_line_tokens;
+
+  boost::iostreams::filtering_stream<boost::iostreams::input>& GetLine(
+  boost::iostreams::filtering_stream<boost::iostreams::input>& in,
+    String& line);
+
   void ClearState(const boost::filesystem::path& loc);
   void NextMolecule();
 
-  void ParseAndAddHeader(const String& line, int line_num, mol::EntityHandle& ent,
+  void ParseHeader(const String& line, int line_num, mol::EntityHandle& ent,
                          mol::XCSEditor& editor);
+  void SetCounts(const String& anum, const String bnum, int line_num);
 
-  void ParseAndAddAtom(const String& line, int line_num, mol::EntityHandle& ent,
-                       bool hetatm, mol::XCSEditor& editor);
+  atom_data ParseAtom(const String& line, int line_num);
+  void AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHandle& ent,
+               bool hetatm, mol::XCSEditor& editor);
 
-  void ParseAndAddBond(const String& line, int line_num, mol::EntityHandle& ent,
+  bond_data ParseBond(const String& line, int line_num);
+  void AddBond(const bond_data& bond_tuple, int line_num, mol::EntityHandle& ent,
                        mol::XCSEditor& editor);
+
+  charge_data ParseMCharge(const String& line, int line_num);
+  void AddCharge(const charge_data& charge_tuple, int line_num, mol::EntityHandle& ent,
+                       mol::XCSEditor& editor);
+  void ResetCharges();
+
+  // V3000 methods
+  v3000_line_tokens TokenizeV3000Line(const String& line, int line_num,
+                                      int num_posval);
+  String CleanupV3000Line(const String& line);
+  void ProcessV3000Line(const String& line, mol::EntityHandle& ent,
+                       mol::XCSEditor& editor);
+  atom_data ParseV3000Atom(const String& line, int line_num);
+  bond_data ParseV3000Bond(const String& line, int line_num);
+  std::tuple<String, String> ParseV3000Counts(const String& line, int line_num);
+  void VerifyV3000Counts();
 
   String curr_chain_name_;
   mol::ResidueKey curr_res_key_;
@@ -65,6 +97,10 @@ private:
   boost::filesystem::ifstream infile_;
   std::istream& instream_;
   boost::iostreams::filtering_stream<boost::iostreams::input>  in_;
+  String version_;
+  bool v3000_atom_block_;
+  bool v3000_bond_block_;
+  bool charges_reset_;
 };
 
 }}

@@ -38,6 +38,13 @@ class TestSDF(unittest.TestCase):
       ent.FindAtom("00001_Simple Ligand", 1, "6").charge = -4
       io.EntityToSDFStr(ent)
 
+  def test_MChg(self):
+    ent = io.LoadSDF('testfiles/sdf/m_chg.sdf')
+    cl_at = ent.FindAtom("00001_Simple Ligand", 1, "6")
+    self.assertEqual(cl_at.charge, -1)
+    # Charge from atom line is ignored
+    n_at = ent.FindAtom("00001_Simple Ligand", 1, "1")
+    self.assertEqual(n_at.charge, 0)
     
 if __name__== '__main__':
   from ost import testutils
