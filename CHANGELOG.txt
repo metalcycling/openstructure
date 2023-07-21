@@ -1,3 +1,10 @@
+Changes in Release 2.6.0
+--------------------------------------------------------------------------------
+
+ * Reporting of unassigned ligands in the LigandScorer.
+ * Experimental support for V3000 SDF files.
+ * Several bug fixes and improvements.
+
 Changes in Release 2.5.0
 --------------------------------------------------------------------------------
 
