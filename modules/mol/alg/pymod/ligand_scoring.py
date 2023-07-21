@@ -228,6 +228,12 @@ class LigandScorer:
                         mapping solution space is enumerated to find the
                         the optimum. A heuristic is used otherwise.
     :type n_max_naive: :class:`int`
+    :param unassigned: If True, unassigned model ligands are reported in
+                       the output together with assigned ligands, with the
+                       a score of None, and reason for not being assigned
+                       in the \*_details matrix.
+                       Defaults to False.
+    :type unassigned: :class:`bool`
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
                  resnum_alignments=False, check_resnames=True,
@@ -236,7 +242,7 @@ class LigandScorer:
                  radius=4.0, lddt_pli_radius=6.0, lddt_lp_radius=10.0,
                  binding_sites_topn=100000, global_chain_mapping=False,
                  rmsd_assignment=False, n_max_naive=12,
-                 custom_mapping=None):
+                 custom_mapping=None, unassigned=False):
 
         if isinstance(model, mol.EntityView):
             self.model = mol.CreateEntityFromView(model, False)
@@ -284,6 +290,7 @@ class LigandScorer:
         self.global_chain_mapping = global_chain_mapping
         self.rmsd_assignment = rmsd_assignment
         self.n_max_naive = n_max_naive
+        self.unassigned = unassigned
 
         # scoring matrices
         self._rmsd_matrix = None
@@ -302,8 +309,9 @@ class LigandScorer:
         self.__model_mapping = None
 
         # Bookkeeping of unassigned ligands
-        self._unassigned_target_ligands = {}
-        self._unassigned_model_ligands = {}
+        self._unassigned_target_ligands = None
+        self._unassigned_model_ligands = None
+        self._unassigned_target_ligands_reason = {}
         # Keep track of symmetries/isomorphisms
         # 0.0: no isomorphism
         # 1.0: isomorphic
@@ -532,14 +540,14 @@ class LigandScorer:
 
                 # Flag empty representation
                 if not self._binding_sites[ligand.hash_code]:
-                    self._unassigned_target_ligands[ligand] = (
+                    self._unassigned_target_ligands_reason[ligand] = (
                         "model_representation",
                         "No representation of the reference binding site was "
                         "found in the model")
 
             else:  # if ref_residues_hashes
                 # Flag missing binding site
-                self._unassigned_target_ligands[ligand] = ("binding_site",
+                self._unassigned_target_ligands_reason[ligand] = ("binding_site",
                     "No residue in proximity of the target ligand")
                 self._binding_sites[ligand.hash_code] = []
 
@@ -668,6 +676,9 @@ class LigandScorer:
                             "substructure_match": substructure_match,
                             "inconsistent_residues": binding_site.inconsistent_residues,
                         }
+                        if self.unassigned:
+                            rmsd_full_matrix[target_i, model_i][
+                                "unassigned"] = False
                         LogDebug("Saved RMSD")
 
                     mdl_bs_ent = self._build_binding_site_entity(
@@ -729,6 +740,9 @@ class LigandScorer:
                                 "substructure_match": substructure_match,
                                 "inconsistent_residues": binding_site.inconsistent_residues,
                             }
+                            if self.unassigned:
+                                lddt_pli_full_matrix[target_i, model_i][
+                                    "unassigned"] = False
                             LogDebug("Saved lDDT-PLI")
 
         self._rmsd_full_matrix = rmsd_full_matrix
@@ -810,6 +824,10 @@ class LigandScorer:
                                           "rmsd")
         self._rmsd = mat_tuple[0]
         self._rmsd_details = mat_tuple[1]
+        # Ignore unassigned ligands - they are dealt with in lddt_pli.
+        # So the following lines should stay commented out:
+        # self._unassigned_target_ligands = mat_tuple[2]
+        # self._unassigned_model_ligands = mat_tuple[3]
 
     def _assign_matrices(self, mat1, mat2, data, main_key):
         """
@@ -858,7 +876,51 @@ class LigandScorer:
             out_details[mdl_cname][mdl_resnum] = data[
                 trg_idx, mdl_idx]
 
-        return out_main, out_details
+
+        unassigned_trg, unassigned_mdl = self._assign_unassigned(
+            assigned_trg, assigned_mdl, [out_main], [out_details], [main_key])
+        return out_main, out_details, unassigned_trg, unassigned_mdl
+
+    def _assign_unassigned(self, assigned_trg, assigned_mdl,
+                           out_main, out_details, main_key):
+        unassigned_trg = {}
+        unassigned_mdl = {}
+
+        unassigned_trg_idx = [i for i, x in enumerate(assigned_trg) if not x]
+        unassigned_mdl_idx = [i for i, x in enumerate(assigned_mdl) if not x]
+
+        for mdl_idx in unassigned_mdl_idx:
+            mdl_lig = self.model_ligands[mdl_idx]
+            reason = self._find_unassigned_model_ligand_reason(mdl_lig, check=False)
+            mdl_cname = mdl_lig.chain.name
+            mdl_resnum = mdl_lig.number
+            if mdl_cname not in unassigned_mdl:
+                unassigned_mdl[mdl_cname] = {}
+            unassigned_mdl[mdl_cname][mdl_resnum] = reason
+            if self.unassigned:
+                for i, _ in enumerate(out_main):
+                    if mdl_cname not in out_main[i]:
+                        out_main[i][mdl_cname] = {}
+                        out_details[i][mdl_cname] = {}
+                    out_main[i][mdl_cname][mdl_resnum] = None
+                    out_details[i][mdl_cname][mdl_resnum] = {
+                        "unassigned": True,
+                        "reason_short": reason[0],
+                        "reason_long": reason[1],
+                        main_key[i]: None,
+                    }
+
+        for trg_idx in unassigned_trg_idx:
+            trg_lig = self.target_ligands[trg_idx]
+            reason = self._find_unassigned_target_ligand_reason(trg_lig, check=False)
+            trg_cname = trg_lig.chain.name
+            trg_resnum = trg_lig.number
+            if trg_cname not in unassigned_trg:
+                unassigned_trg[trg_cname] = {}
+            unassigned_trg[trg_cname][trg_resnum] = reason
+
+        return unassigned_trg, unassigned_mdl
+
 
     def _assign_matrix(self, mat, data1, main_key1, data2, main_key2):
         """
@@ -892,8 +954,12 @@ class LigandScorer:
         out_details1 = {}
         out_main2 = {}
         out_details2 = {}
+        assigned_trg = [False] * len(self.target_ligands)
+        assigned_mdl = [False] * len(self.model_ligands)
         for assignment in assignments:
             trg_idx, mdl_idx = assignment
+            assigned_mdl[mdl_idx] = True
+            assigned_trg[trg_idx] = True
             mdl_lig = self.model_ligands[mdl_idx]
             mdl_cname = mdl_lig.chain.name
             mdl_resnum = mdl_lig.number
@@ -921,7 +987,14 @@ class LigandScorer:
                 trg_idx, mdl_idx][main_key2]
             out_details2[mdl_cname][mdl_resnum] = data2[
                 trg_idx, mdl_idx]
-        return out_main1, out_details1, out_main2, out_details2
+
+        unassigned_trg, unassigned_mdl = self._assign_unassigned(
+            assigned_trg, assigned_mdl,
+            [out_main1, out_main2], [out_details1, out_details2],
+            [main_key1, main_key2])
+
+        return out_main1, out_details1, out_main2, out_details2, \
+            unassigned_trg, unassigned_mdl
 
     def _assign_ligands_lddt_pli(self):
         """ Assign ligands based on lDDT-PLI.
@@ -936,6 +1009,8 @@ class LigandScorer:
                                           "lddt_pli")
         self._lddt_pli = mat_tuple[0]
         self._lddt_pli_details = mat_tuple[1]
+        self._unassigned_target_ligands = mat_tuple[2]
+        self._unassigned_model_ligands = mat_tuple[3]
 
     def _assign_ligands_rmsd_only(self):
         """Assign (map) ligands between model and target based on RMSD only.
@@ -952,6 +1027,8 @@ class LigandScorer:
         self._rmsd_details = mat_tuple[1]
         self._lddt_pli = mat_tuple[2]
         self._lddt_pli_details = mat_tuple[3]
+        self._unassigned_target_ligands = mat_tuple[4]
+        self._unassigned_model_ligands = mat_tuple[5]
 
     @property
     def rmsd_matrix(self):
@@ -1004,6 +1081,9 @@ class LigandScorer:
         """Get a dictionary of RMSD score values, keyed by model ligand
         (chain name, :class:`~ost.mol.ResNum`).
 
+        If the scoring object was instantiated with `unassigned=True`, some
+        scores may be `None`.
+
         :rtype: :class:`dict`
         """
         if self._rmsd is None:
@@ -1049,13 +1129,19 @@ class LigandScorer:
           if `check_resnames=True`.
           Note: more binding site mappings may be explored during scoring,
           but only inconsistencies in the selected mapping are reported.
+        * `unassigned`: only if the scorer was instantiated with
+          `unassigned=True`: `False`
 
-        Unassigned ligands are reported as well and contain the following data:
+        If the scoring object was instantiated with `unassigned=True`, in
+        addition the unmapped ligands will be reported with a score of `None`
+        and the following information:
 
-        * `rmsd`: None.
-        * `target_ligand`: None
-        * `model_ligand`: residue handle of the model ligand.
-        * `error`: the likely reason why the ligand could not be assigned.
+        * `unassigned`: `True`,
+        * `reason_short`: a short token of the reason, see
+          :attr:`unassigned_model_ligands` for details and meaning.
+        * `reason_long`: a human-readable text of the reason, see
+          :attr:`unassigned_model_ligands` for details and meaning.
+        * `rmsd`: `None`
 
         :rtype: :class:`dict`
         """
@@ -1070,6 +1156,9 @@ class LigandScorer:
     def lddt_pli(self):
         """Get a dictionary of lDDT-PLI score values, keyed by model ligand
         (chain name, :class:`~ost.mol.ResNum`).
+
+        If the scoring object was instantiated with `unassigned=True`, some
+        scores may be `None`.
 
         :rtype: :class:`dict`
         """
@@ -1124,6 +1213,19 @@ class LigandScorer:
           if `check_resnames=True`.
           Note: more binding site mappings may be explored during scoring,
           but only inconsistencies in the selected mapping are reported.
+        * `unassigned`: only if the scorer was instantiated with
+          `unassigned=True`: `False`
+
+        If the scoring object was instantiated with `unassigned=True`, in
+        addition the unmapped ligands will be reported with a score of `None`
+        and the following information:
+
+        * `unassigned`: `True`,
+        * `reason_short`: a short token of the reason, see
+          :attr:`unassigned_model_ligands` for details and meaning.
+        * `reason_long`: a human-readable text of the reason, see
+          :attr:`unassigned_model_ligands` for details and meaning.
+        * `lddt_pli`: `None`
 
         :rtype: :class:`dict`
         """
@@ -1133,6 +1235,70 @@ class LigandScorer:
             else:
                 self._assign_ligands_lddt_pli()
         return self._lddt_pli_details
+
+    @property
+    def unassigned_target_ligands(self):
+        """Get a dictionary of target ligands not assigned to any model ligand,
+        keyed by target ligand (chain name, :class:`~ost.mol.ResNum`).
+
+        Assignment is the same as for the lDDT-PLI score (and is controlled
+        by the `rmsd_assignment` argument).
+
+        Each sub-dictionary contains a tuple with information about the reason
+        for the absence of assignment, in short and long format.
+
+        Currently, the following reasons are reported:
+
+        * `binding_site`: no residue in proximity of the target ligand.
+        * `model_representation`: no representation of the reference binding
+          site was found in the model
+        * `identity`: ligand was not found in the model (by isomorphism)
+        * `stoichiometry`: ligand was assigned to an other model ligand
+          (different stoichiometry)
+
+        Some of these reasons can be overlapping, but a single reason will be
+        reported.
+
+        :rtype: :class:`dict`
+        """
+        if self._unassigned_target_ligands is None:
+            if self.rmsd_assignment:
+                self._assign_ligands_rmsd_only()
+            else:
+                self._assign_ligands_lddt_pli()
+        return self._unassigned_target_ligands
+
+    @property
+    def unassigned_model_ligands(self):
+        """Get a dictionary of model ligands not assigned to any target ligand,
+        keyed by model ligand (chain name, :class:`~ost.mol.ResNum`).
+
+        Assignment is the same as for the lDDT-PLI score (and is controlled
+        by the `rmsd_assignment` argument).
+
+        Each sub-dictionary contains a tuple with information about the reason
+        for the absence of assignment, in short and long format.
+
+        Currently, the following reasons are reported:
+
+        * `binding_site`: no residue in proximity of the target ligand.
+        * `model_representation`: no representation of the reference binding
+          site was found in the model
+        * `identity`: ligand was not found in the target (by isomorphism)
+        * `stoichiometry`: ligand was assigned to an other target ligand
+          (different stoichiometry)
+
+        Some of these reasons can be overlapping, but a single reason will be
+        reported.
+
+        :rtype: :class:`dict`
+        """
+        if self._unassigned_model_ligands is None:
+            if self.rmsd_assignment:
+                self._assign_ligands_rmsd_only()
+            else:
+                self._assign_ligands_lddt_pli()
+        return self._unassigned_model_ligands
 
 
     def _set_custom_mapping(self, mapping):
@@ -1228,7 +1394,7 @@ class LigandScorer:
                                                            chem_mapping,
                                                            final_mapping, alns)
 
-    def _find_unassigned_model_ligand_reason(self, ligand, assignment="lddt_pli"):
+    def _find_unassigned_model_ligand_reason(self, ligand, assignment="lddt_pli", check=True):
         # Is this a model ligand?
         try:
             ligand_idx = self.model_ligands.index(ligand)
@@ -1237,9 +1403,12 @@ class LigandScorer:
             raise ValueError("Ligand %s is not in self.model_ligands" % ligand)
 
         # Ensure we are unassigned
-        details = getattr(self, assignment + "_details")
-        if ligand.chain.name in details and ligand.number in details[ligand.chain.name]:
-            raise RuntimeError("Ligand %s is mapped to %s" % (ligand, details[ligand.chain.name][ligand.number]["target_ligand"]))
+        if check:
+            details = getattr(self, assignment + "_details")
+            if ligand.chain.name in details and ligand.number in details[ligand.chain.name]:
+                ligand_details = details[ligand.chain.name][ligand.number]
+                if not ("unassigned" in ligand_details and ligand_details["unassigned"]):
+                    raise RuntimeError("Ligand %s is mapped to %s" % (ligand, ligand_details["target_ligand"]))
 
         # Do we have isomorphisms with the target?
         for trg_lig_idx, assigned in enumerate(self._assignment_isomorphisms[:, ligand_idx]):
@@ -1265,7 +1434,7 @@ class LigandScorer:
                     # The assignment matrix is all nans so we have a problem
                     # with the binding site or the representation
                     trg_ligand = self.target_ligands[trg_lig_idx]
-                    return self._unassigned_target_ligands[trg_ligand]
+                    return self._unassigned_target_ligands_reason[trg_ligand]
                 else:
                     # Ligand was assigned to an other
                     return ("stoichiometry", "Ligand was assigned to an other "
@@ -1274,7 +1443,7 @@ class LigandScorer:
         # Could not be assigned to any ligand - must be different
         return ("identity", "Ligand was not found in the target (by isomorphism)")
 
-    def _find_unassigned_target_ligand_reason(self, ligand, assignment="lddt_pli"):
+    def _find_unassigned_target_ligand_reason(self, ligand, assignment="lddt_pli", check=True):
         # Is this a target ligand?
         try:
             ligand_idx = self.target_ligands.index(ligand)
@@ -1283,16 +1452,19 @@ class LigandScorer:
             raise ValueError("Ligand %s is not in self.target_ligands" % ligand)
 
         # Ensure we are unassigned
-        details = getattr(self, assignment + "_details")
-        for cname, chain_ligands in details.items():
-            for rnum, details in chain_ligands.items():
-                if details['target_ligand'] == ligand:
-                    raise RuntimeError("Ligand %s is mapped to %s.%s" % (
-                        ligand, cname, rnum))
+        if check:
+            details = getattr(self, assignment + "_details")
+            for cname, chain_ligands in details.items():
+                for rnum, details in chain_ligands.items():
+                    if "unassigned" in details and details["unassigned"]:
+                        continue
+                    if details['target_ligand'] == ligand:
+                        raise RuntimeError("Ligand %s is mapped to %s.%s" % (
+                            ligand, cname, rnum))
 
         # Is it because there was no valid binding site or no representation?
-        if ligand in self._unassigned_target_ligands:
-            return self._unassigned_target_ligands[ligand]
+        if ligand in self._unassigned_target_ligands_reason:
+            return self._unassigned_target_ligands_reason[ligand]
         # Or because no symmetry?
         for model_lig_idx, assigned in enumerate(
                 self._assignment_isomorphisms[ligand_idx, :]):
@@ -1315,7 +1487,6 @@ class LigandScorer:
                         "model ligand (different stoichiometry)")
         # Could not be assigned to any ligand - must be different
         return ("identity", "Ligand was not found in the model (by isomorphism)")
-
 
 
 def _ResidueToGraph(residue, by_atom_index=False):

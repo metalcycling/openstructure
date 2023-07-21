@@ -483,25 +483,30 @@ class TestLigandScoring(unittest.TestCase):
         mdl_ed.UpdateICS()
         trg_ed.UpdateICS()
 
-        sc = LigandScorer(mdl, trg, None, None)
+        sc = LigandScorer(mdl, trg, None, None, unassigned=True)
 
         # Check unassigned targets
         # NA: not in contact with target
         trg_na = sc.target.FindResidue("L_NA", 1)
         assert sc._find_unassigned_target_ligand_reason(trg_na)[0] == "binding_site"
+        assert sc.unassigned_target_ligands["L_NA"][1][0] == "binding_site"
         # ZN: no representation
         trg_zn = sc.target.FindResidue("H", 1)
         assert sc._find_unassigned_target_ligand_reason(trg_zn)[0] == "model_representation"
+        assert sc.unassigned_target_ligands["H"][1][0] == "model_representation"
         # CMO: not identical to anything in the model
         trg_afb = sc.target.FindResidue("G", 1)
         assert sc._find_unassigned_target_ligand_reason(trg_afb)[0] == "identity"
+        assert sc.unassigned_target_ligands["G"][1][0] == "identity"
         # F.G3D1: J.G3D1 assigned instead
         trg_fg3d1 = sc.target.FindResidue("F", 1)
         assert sc._find_unassigned_target_ligand_reason(trg_fg3d1)[0] == "stoichiometry"
+        assert sc.unassigned_target_ligands["F"][1][0] == "stoichiometry"
         # J.G3D1: assigned to L_2.G3D1 => error
         trg_jg3d1 = sc.target.FindResidue("J", 1)
         with self.assertRaises(RuntimeError):
             sc._find_unassigned_target_ligand_reason(trg_jg3d1)
+        assert "J" not in sc.unassigned_target_ligands
         # Raises with an invalid ligand
         with self.assertRaises(ValueError):
             sc._find_unassigned_target_ligand_reason(sc.model_ligands[0])
@@ -510,22 +515,58 @@ class TestLigandScoring(unittest.TestCase):
         # OXY: not identical to anything in the model
         mdl_oxy = sc.model.FindResidue("L_OXY", 1)
         assert sc._find_unassigned_model_ligand_reason(mdl_oxy)[0] == "identity"
+        assert sc.unassigned_model_ligands["L_OXY"][1][0] == "identity"
+        assert sc.lddt_pli["L_OXY"][1] is None
         # NA: not in contact with target
         mdl_na = sc.model.FindResidue("L_NA", 1)
         assert sc._find_unassigned_model_ligand_reason(mdl_na)[0] == "binding_site"
+        assert sc.unassigned_model_ligands["L_NA"][1][0] == "binding_site"
+        assert sc.lddt_pli["L_NA"][1] is None
         # ZN: no representation
         mdl_zn = sc.model.FindResidue("L_ZN", 1)
         assert sc._find_unassigned_model_ligand_reason(mdl_zn)[0] == "model_representation"
+        assert sc.unassigned_model_ligands["L_ZN"][1][0] == "model_representation"
+        assert sc.lddt_pli["L_ZN"][1] is None
         # MG in L_MG_2 has stupid coordinates and is not assigned
         mdl_mg_2 = sc.model.FindResidue("L_MG_2", 1)
         assert sc._find_unassigned_model_ligand_reason(mdl_mg_2)[0] == "stoichiometry"
+        assert sc.unassigned_model_ligands["L_MG_2"][1][0] == "stoichiometry"
+        assert sc.lddt_pli["L_MG_2"][1] is None
         # MG in L_MG_0: assigned to I.MG1 => error
         mdl_mg_0 = sc.model.FindResidue("L_MG_0", 1)
         with self.assertRaises(RuntimeError):
             sc._find_unassigned_model_ligand_reason(mdl_mg_0)
+        assert "L_MG_0" not in sc.unassigned_model_ligands
         # Raises with an invalid ligand
         with self.assertRaises(ValueError):
             sc._find_unassigned_model_ligand_reason(sc.target_ligands[0])
+
+        # Should work with rmsd_assignment too
+        sc = LigandScorer(mdl, trg, None, None, unassigned=True,
+                          rmsd_assignment=True)
+        assert sc.unassigned_model_ligands == {
+            'L_ZN': {1: ('model_representation',
+                         'No representation of the reference binding site was found in the model')},
+            'L_NA': {1: ('binding_site',
+                         'No residue in proximity of the target ligand')},
+            'L_OXY': {1: ('identity',
+                          'Ligand was not found in the target (by isomorphism)')},
+            'L_MG_2': {1: ('stoichiometry',
+                           'Ligand was assigned to an other target ligand (different stoichiometry)')}
+        }
+        assert sc.unassigned_target_ligands == {
+            'G': {1: ('identity',
+                      'Ligand was not found in the model (by isomorphism)')},
+            'H': {1: ('model_representation',
+                      'No representation of the reference binding site was found in the model')},
+            'J': {1: ('stoichiometry',
+                      'Ligand was assigned to an other model ligand (different stoichiometry)')},
+            'K': {1: ('identity',
+                      'Ligand was not found in the model (by isomorphism)')},
+            'L_NA': {1: ('binding_site',
+                         'No residue in proximity of the target ligand')}
+        }
+        assert sc.lddt_pli["L_OXY"][1] is None
 
 
 if __name__ == "__main__":
