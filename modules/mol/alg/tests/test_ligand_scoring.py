@@ -388,7 +388,6 @@ class TestLigandScoring(unittest.TestCase):
         assert sc.rmsd_details["L_2"][1]["chain_mapping"] == {'A': 'A'}
         assert sc.lddt_pli_details["L_2"][1]["chain_mapping"] == {'C': 'A'}
 
-
     def test_rmsd_assignment(self):
         """Test that the RMSD-based assignment works.
 

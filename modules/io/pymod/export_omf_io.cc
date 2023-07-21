@@ -61,6 +61,7 @@ void export_omf_io() {
     .value("ROUND_BFACTORS", OMF::ROUND_BFACTORS)
     .value("SKIP_SS", OMF::SKIP_SS)
     .value("INFER_PEP_BONDS", OMF::INFER_PEP_BONDS)
+    .value("INFER_AA_POS", OMF::INFER_AA_POS)
   ;
 
   class_<OMF, OMFPtr>("OMF",no_init)

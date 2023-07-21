@@ -498,28 +498,29 @@ class LigandScorer:
                                 ref_res.qualified_name, ligand.qualified_name))
                             ignored_residue_hashes.add(h)
 
+            if ref_residues_hashes:
+                # reason for doing that separately is to guarantee same ordering of
+                # residues as in underlying entity. (Reorder by ResNum seems only
+                # available on ChainHandles)
+                ref_bs = self.target.CreateEmptyView()
+                for ch in self.target.chains:
+                    for r in ch.residues:
+                        if r.handle.GetHashCode() in ref_residues_hashes:
+                            ref_bs.AddResidue(r, mol.ViewAddFlag.INCLUDE_ALL)
+                if len(ref_bs.residues) == 0:
+                    LogWarning("No residue in proximity of target ligand "
+                               "%s" % str(ligand))
 
-            # reason for doing that separately is to guarantee same ordering of
-            # residues as in underlying entity. (Reorder by ResNum seems only
-            # available on ChainHandles)
-            ref_bs = self.target.CreateEmptyView()
-            for ch in self.target.chains:
-                for r in ch.residues:
-                    if r.handle.GetHashCode() in ref_residues_hashes:
-                        ref_bs.AddResidue(r, mol.ViewAddFlag.INCLUDE_ALL)
-            if len(ref_bs.residues) == 0:
-                LogWarning("No residue in proximity of target ligand "
-                           "%s" % str(ligand))
+                # Find the representations
+                if self.global_chain_mapping:
+                    self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
+                        ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
+                        global_mapping=self._model_mapping)
+                else:
+                    self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
+                        ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
+                        topn=self.binding_sites_topn)
 
-            # Find the representations
-            if self.global_chain_mapping:
-                self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
-                    ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
-                    global_mapping = self._model_mapping)
-            else:
-                self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
-                    ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
-                    topn=self.binding_sites_topn)
         return self._binding_sites[ligand.hash_code]
 
     @staticmethod
@@ -825,6 +826,7 @@ class LigandScorer:
                 trg_idx, mdl_idx][main_key]
             out_details[mdl_cname][mdl_resnum] = data[
                 trg_idx, mdl_idx]
+
         return out_main, out_details
 
     def _assign_matrix(self, mat, data1, main_key1, data2, main_key2):
@@ -985,7 +987,8 @@ class LigandScorer:
         """Get a dictionary of RMSD score details (dictionaries), keyed by
         model ligand (chain name, :class:`~ost.mol.ResNum`).
 
-        Each sub-dictionary contains the following information:
+        The value is a dictionary. For ligands that were assigned (mapped) to
+        the target, the dictionary contain the following information:
 
         * `rmsd`: the RMSD score value.
         * `lddt_lp`: the lDDT score of the ligand pocket (lDDT-LP).
