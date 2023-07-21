@@ -301,6 +301,15 @@ class LigandScorer:
         self._binding_sites = {}
         self.__model_mapping = None
 
+        # Bookkeeping of unassigned ligands
+        self._unassigned_target_ligands = {}
+        self._unassigned_model_ligands = {}
+        # Keep track of symmetries/isomorphisms
+        # 0: no isomorphism
+        # 1: isomorphic
+        # np.nan: not assessed yet
+        self._assignment_isomorphisms = None
+
         if custom_mapping is not None:
             self._set_custom_mapping(custom_mapping)
 
@@ -508,18 +517,31 @@ class LigandScorer:
                         if r.handle.GetHashCode() in ref_residues_hashes:
                             ref_bs.AddResidue(r, mol.ViewAddFlag.INCLUDE_ALL)
                 if len(ref_bs.residues) == 0:
-                    LogWarning("No residue in proximity of target ligand "
-                               "%s" % str(ligand))
+                    raise RuntimeError("Failed to add proximity residues to "
+                                       "the reference binding site entity")
 
                 # Find the representations
                 if self.global_chain_mapping:
                     self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
                         ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
-                        global_mapping=self._model_mapping)
+                        global_mapping = self._model_mapping)
                 else:
                     self._binding_sites[ligand.hash_code] = self.chain_mapper.GetRepr(
                         ref_bs, self.model, inclusion_radius=self.lddt_lp_radius,
                         topn=self.binding_sites_topn)
+
+                # Flag empty representation
+                if not self._binding_sites[ligand.hash_code]:
+                    self._unassigned_target_ligands[ligand] = (
+                        "model_representation",
+                        "No representation of the reference binding site was "
+                        "found in the model")
+
+            else:  # if ref_residues_hashes
+                # Flag missing binding site
+                self._unassigned_target_ligands[ligand] = ("binding_site",
+                    "No residue in proximity of the target ligand")
+                self._binding_sites[ligand.hash_code] = []
 
         return self._binding_sites[ligand.hash_code]
 
@@ -583,6 +605,9 @@ class LigandScorer:
             (len(self.target_ligands), len(self.model_ligands)), dtype=dict)
         lddt_pli_full_matrix = np.empty(
             (len(self.target_ligands), len(self.model_ligands)), dtype=dict)
+        self._assignment_isomorphisms = np.full(
+            (len(self.target_ligands), len(self.model_ligands)), fill_value=np.nan)
+
         for target_i, target_ligand in enumerate(self.target_ligands):
             LogVerbose("Analyzing target ligand %s" % target_ligand)
 
@@ -611,10 +636,12 @@ class LigandScorer:
                             by_atom_index=True)
                         LogVerbose("Ligands %s and %s symmetry match" % (
                             str(model_ligand), str(target_ligand)))
+                        self._assignment_isomorphisms[target_i, model_i] = 1
                     except NoSymmetryError:
                         # Ligands are different - skip
                         LogVerbose("No symmetry between %s and %s" % (
                             str(model_ligand), str(target_ligand)))
+                        self._assignment_isomorphisms[target_i, model_i] = 0
                         continue
                     substructure_match = len(symmetries[0][0]) != len(
                         model_ligand.atoms)
@@ -814,8 +841,12 @@ class LigandScorer:
         assignments = self._find_ligand_assignment(mat1, mat2)
         out_main = {}
         out_details = {}
+        assigned_trg = [False] * len(self.target_ligands)
+        assigned_mdl = [False] * len(self.model_ligands)
         for assignment in assignments:
             trg_idx, mdl_idx = assignment
+            assigned_mdl[mdl_idx] = True
+            assigned_trg[trg_idx] = True
             mdl_lig = self.model_ligands[mdl_idx]
             mdl_cname = mdl_lig.chain.name
             mdl_resnum = mdl_lig.number
@@ -1019,6 +1050,13 @@ class LigandScorer:
           Note: more binding site mappings may be explored during scoring,
           but only inconsistencies in the selected mapping are reported.
 
+        Unassigned ligands are reported as well and contain the following data:
+
+        * `rmsd`: None.
+        * `target_ligand`: None
+        * `model_ligand`: residue handle of the model ligand.
+        * `error`: the likely reason why the ligand could not be assigned.
+
         :rtype: :class:`dict`
         """
         if self._rmsd_details is None:
@@ -1189,6 +1227,94 @@ class LigandScorer:
                                                            chain_mapper.chem_groups,
                                                            chem_mapping,
                                                            final_mapping, alns)
+
+    def _find_unassigned_model_ligand_reason(self, ligand, assignment="lddt_pli"):
+        # Is this a model ligand?
+        try:
+            ligand_idx = self.model_ligands.index(ligand)
+        except ValueError:
+            # Raise with a better error message
+            raise ValueError("Ligand %s is not in self.model_ligands" % ligand)
+
+        # Ensure we are unassigned
+        details = getattr(self, assignment + "_details")
+        if ligand.chain.name in details and ligand.number in details[ligand.chain.name]:
+            raise RuntimeError("Ligand %s is mapped to %s" % (ligand, details[ligand.chain.name][ligand.number]["target_ligand"]))
+
+        # Do we have isomorphisms with the target?
+        for trg_lig_idx, assigned in enumerate(self._assignment_isomorphisms[:, ligand_idx]):
+            if np.isnan(assigned):
+                try:
+                    _ComputeSymmetries(
+                        self.model_ligands[ligand_idx],
+                        self.target_ligands[trg_lig_idx],
+                        substructure_match=self.substructure_match,
+                        by_atom_index=True)
+                except NoSymmetryError:
+                    assigned = 0.
+                else:
+                    assigned = 1.
+                self._assignment_isomorphisms[trg_lig_idx,ligand_idx] = assigned
+            if assigned == 1.:
+                # Could have been assigned
+                # So what's up with this target ligand?
+                assignment_matrix = getattr(self, assignment + "_matrix")
+                all_nan = np.all(np.isnan(assignment_matrix[:, ligand_idx]))
+                if all_nan:
+                    # The assignment matrix is all nans so we have a problem
+                    # with the binding site or the representation
+                    trg_ligand = self.target_ligands[trg_lig_idx]
+                    return self._unassigned_target_ligands[trg_ligand]
+                else:
+                    # Ligand was assigned to an other
+                    return ("stoichiometry", "Ligand was assigned to an other "
+                            "target ligand (different stoichiometry)")
+
+        # Could not be assigned to any ligand - must be different
+        return ("identity", "Ligand was not found in the target (by isomorphism)")
+
+    def _find_unassigned_target_ligand_reason(self, ligand, assignment="lddt_pli"):
+        # Is this a target ligand?
+        try:
+            ligand_idx = self.target_ligands.index(ligand)
+        except ValueError:
+            # Raise with a better error message
+            raise ValueError("Ligand %s is not in self.target_ligands" % ligand)
+
+        # Ensure we are unassigned
+        details = getattr(self, assignment + "_details")
+        for cname, chain_ligands in details.items():
+            for rnum, details in chain_ligands.items():
+                if details['target_ligand'] == ligand:
+                    raise RuntimeError("Ligand %s is mapped to %s.%s" % (
+                        ligand, cname, rnum))
+
+        # Is it because there was no valid binding site or no representation?
+        if ligand in self._unassigned_target_ligands:
+            return self._unassigned_target_ligands[ligand]
+        # Or because no symmetry?
+        for model_lig_idx, assigned in enumerate(
+                self._assignment_isomorphisms[ligand_idx, :]):
+            if np.isnan(assigned):
+                try:
+                    _ComputeSymmetries(
+                        self.model_ligands[model_lig_idx],
+                        self.target_ligands[ligand_idx],
+                        substructure_match=self.substructure_match,
+                        by_atom_index=True)
+                except NoSymmetryError:
+                    assigned = 0.
+                else:
+                    assigned = 1.
+                self._assignment_isomorphisms[ligand_idx,model_lig_idx] = assigned
+            if assigned:
+                # Could have been assigned but was assigned to a different ligand
+                return ("stoichiometry", "Ligand was assigned to an other "
+                        "model ligand (different stoichiometry)")
+        # Could not be assigned to any ligand - must be different
+        return ("identity", "Ligand was not found in the model (by isomorphism)")
+
+
 
 def _ResidueToGraph(residue, by_atom_index=False):
     """Return a NetworkX graph representation of the residue.

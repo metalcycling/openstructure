@@ -420,6 +420,113 @@ class TestLigandScoring(unittest.TestCase):
         assert [str(r) for r in sc.rmsd_details["D"][1]["bs_ref_res"]] == expected_bs_ref_res
         ost.PopVerbosityLevel()
 
+    def test_unassigned_reasons(self):
+        """Test reasons for being unassigned."""
+        trg = _LoadMMCIF("1r8q.cif.gz")
+        mdl = _LoadMMCIF("P84080_model_02.cif.gz")
+
+        def _AppendResidueWithBonds(ed, chain, old_res):
+            new_res = ed.AppendResidue(chain, old_res.name)
+            for old_atom in old_res.atoms:
+                ed.InsertAtom(new_res, old_atom.name, old_atom.pos, old_atom.element,
+                              old_atom.occupancy, old_atom.b_factor, old_atom.is_hetatom)
+            for old_bond in old_atom.bonds:
+                new_first = new_res.FindAtom(old_bond.first.name)
+                new_second = new_res.FindAtom(old_bond.second.name)
+                ed.Connect(new_first, new_second)
+            return new_res
+
+        # Add interesting ligands to model and target
+        mdl_ed = mdl.EditXCS()
+        trg_ed = trg.EditXCS()
+
+        # Add ZN: representation in the model (chain missing in model)
+        new_chain = mdl_ed.InsertChain("L_ZN")
+        mdl_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = _AppendResidueWithBonds(mdl_ed, new_chain, trg.Select("rname=ZN").residues[0].handle)
+        new_res.is_ligand = True
+
+        # Add NA: not in contact with target
+        new_chain = trg_ed.InsertChain("L_NA")
+        trg_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = trg_ed.AppendResidue(new_chain, "NA")
+        new_atom = trg_ed.InsertAtom(new_res, "NA", geom.Vec3(100, 100, 100), "NA")
+        new_res.is_ligand = True
+        new_chain = mdl_ed.InsertChain("L_NA")
+        mdl_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = mdl_ed.AppendResidue(new_chain, "NA")
+        new_atom = mdl_ed.InsertAtom(new_res, "NA", geom.Vec3(100, 100, 100), "NA")
+        new_res.is_ligand = True
+
+        # Add OXY: no symmetry/ not identical -
+        new_chain = mdl_ed.InsertChain("L_OXY")
+        mdl_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = mdl_ed.AppendResidue(new_chain, "OXY")
+        new_atom1 = mdl_ed.InsertAtom(new_res, "O1", geom.Vec3(0, 0, 0), "O")
+        new_atom2 = mdl_ed.InsertAtom(new_res, "O2", geom.Vec3(1, 1, 1), "O")
+        mdl_ed.Connect(new_atom1, new_atom2)
+        new_res.is_ligand = True
+
+        # Add 3 MG in model: assignment/stoichiometry
+        mg_pos = [
+            mdl.geometric_center,
+            mdl.geometric_center + 1,
+            mdl.geometric_center + 100
+        ]
+        for i in range(3):
+            new_chain = mdl_ed.InsertChain("L_MG_%d" % i)
+            mdl_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+            new_res = mdl_ed.AppendResidue(new_chain, "MG")
+            new_atom = mdl_ed.InsertAtom(new_res, "MG", mg_pos[i], "MG")
+            new_res.is_ligand = True
+
+        mdl_ed.UpdateICS()
+        trg_ed.UpdateICS()
+
+        sc = LigandScorer(mdl, trg, None, None)
+
+        # Check unassigned targets
+        # NA: not in contact with target
+        trg_na = sc.target.FindResidue("L_NA", 1)
+        assert sc._find_unassigned_target_ligand_reason(trg_na)[0] == "binding_site"
+        # ZN: no representation
+        trg_zn = sc.target.FindResidue("H", 1)
+        assert sc._find_unassigned_target_ligand_reason(trg_zn)[0] == "model_representation"
+        # CMO: not identical to anything in the model
+        trg_afb = sc.target.FindResidue("G", 1)
+        assert sc._find_unassigned_target_ligand_reason(trg_afb)[0] == "identity"
+        # F.G3D1: J.G3D1 assigned instead
+        trg_fg3d1 = sc.target.FindResidue("F", 1)
+        assert sc._find_unassigned_target_ligand_reason(trg_fg3d1)[0] == "stoichiometry"
+        # J.G3D1: assigned to L_2.G3D1 => error
+        trg_jg3d1 = sc.target.FindResidue("J", 1)
+        with self.assertRaises(RuntimeError):
+            sc._find_unassigned_target_ligand_reason(trg_jg3d1)
+        # Raises with an invalid ligand
+        with self.assertRaises(ValueError):
+            sc._find_unassigned_target_ligand_reason(sc.model_ligands[0])
+
+        # Check unassigned models
+        # OXY: not identical to anything in the model
+        mdl_oxy = sc.model.FindResidue("L_OXY", 1)
+        assert sc._find_unassigned_model_ligand_reason(mdl_oxy)[0] == "identity"
+        # NA: not in contact with target
+        mdl_na = sc.model.FindResidue("L_NA", 1)
+        assert sc._find_unassigned_model_ligand_reason(mdl_na)[0] == "binding_site"
+        # ZN: no representation
+        mdl_zn = sc.model.FindResidue("L_ZN", 1)
+        assert sc._find_unassigned_model_ligand_reason(mdl_zn)[0] == "model_representation"
+        # MG in L_MG_2 has stupid coordinates and is not assigned
+        mdl_mg_2 = sc.model.FindResidue("L_MG_2", 1)
+        assert sc._find_unassigned_model_ligand_reason(mdl_mg_2)[0] == "stoichiometry"
+        # MG in L_MG_0: assigned to I.MG1 => error
+        mdl_mg_0 = sc.model.FindResidue("L_MG_0", 1)
+        with self.assertRaises(RuntimeError):
+            sc._find_unassigned_model_ligand_reason(mdl_mg_0)
+        # Raises with an invalid ligand
+        with self.assertRaises(ValueError):
+            sc._find_unassigned_model_ligand_reason(sc.target_ligands[0])
+
 
 if __name__ == "__main__":
     from ost import testutils
