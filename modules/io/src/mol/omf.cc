@@ -388,14 +388,14 @@ namespace{
             std::map<String, ost::io::ChainDataPtr>& map,
             const std::vector<ost::io::ResidueDefinition>& res_def,
             int version, bool lossy, bool avg_bfactors, bool round_bfactors,
-            bool skip_ss) {
+            bool skip_ss, bool infer_pos) {
     uint32_t size;
     stream.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
     map.clear();
     for(uint i = 0; i < size; ++i) {
       ost::io::ChainDataPtr p(new ost::io::ChainData);
       p->FromStream(stream, res_def, version, lossy, avg_bfactors,
-                    round_bfactors, skip_ss);
+                    round_bfactors, skip_ss, infer_pos);
       map[p->ch_name] = p;
     }
   }
@@ -404,14 +404,14 @@ namespace{
             const std::map<String, ost::io::ChainDataPtr>& map,
             const std::vector<ost::io::ResidueDefinition>& res_def,
             bool lossy, bool avg_bfactors, bool round_bfactors,
-            bool skip_ss) {
+            bool skip_ss, bool infer_pos) {
     uint32_t size = map.size();
     stream.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
     for(auto it = map.begin(); it != map.end(); ++it) {
         // we don't dump the key (chain name), that's an attribute of the
         // chain itself anyway
       it->second->ToStream(stream, res_def, lossy, avg_bfactors,
-                           round_bfactors, skip_ss); 
+                           round_bfactors, skip_ss, infer_pos); 
     }
   }
 
@@ -1212,7 +1212,8 @@ ChainData::ChainData(const ost::mol::ChainHandle& chain,
 void ChainData::ToStream(std::ostream& stream,
                          const std::vector<ResidueDefinition>& res_def,
                          bool lossy, bool avg_bfactors,
-                         bool round_bfactors, bool skip_ss) const {
+                         bool round_bfactors, bool skip_ss,
+                         bool infer_pos) const {
   Dump(stream, ch_name);
   if(chain_type > std::numeric_limits<int8_t>::max()) {
     throw ost::Error("ChainType out of bounds");
@@ -1244,7 +1245,7 @@ void ChainData::ToStream(std::ostream& stream,
     DumpBFactors(stream, bfactors, round_bfactors);
   }
 
-  if(lossy) {
+  if(infer_pos) {
     geom::Vec3List positions_to_dump;
     std::vector<Real> pep_chi_angles;
     std::vector<bool> pep_oxygen_compression;
@@ -1278,15 +1279,19 @@ void ChainData::ToStream(std::ostream& stream,
             geom::Vec3 n_pos = positions[res_start_idx + res_n_atoms +
                                          n_idx_next];
             geom::Vec3 o_pos = positions[res_start_idx + o_idx];
-            ca_pos[0] = 0.1*std::round(ca_pos[0]*10);
-            ca_pos[1] = 0.1*std::round(ca_pos[1]*10);
-            ca_pos[2] = 0.1*std::round(ca_pos[2]*10);
-            c_pos[0] = 0.1*std::round(c_pos[0]*10);
-            c_pos[1] = 0.1*std::round(c_pos[1]*10);
-            c_pos[2] = 0.1*std::round(c_pos[2]*10);
-            n_pos[0] = 0.1*std::round(n_pos[0]*10);
-            n_pos[1] = 0.1*std::round(n_pos[1]*10);
-            n_pos[2] = 0.1*std::round(n_pos[2]*10);
+            if(lossy) {
+              // mimic lossy behaviour and reconstruct with reduced accuracy
+              // so we can still guarantee a hard threshold of 0.5A
+              ca_pos[0] = 0.1*std::round(ca_pos[0]*10);
+              ca_pos[1] = 0.1*std::round(ca_pos[1]*10);
+              ca_pos[2] = 0.1*std::round(ca_pos[2]*10);
+              c_pos[0] = 0.1*std::round(c_pos[0]*10);
+              c_pos[1] = 0.1*std::round(c_pos[1]*10);
+              c_pos[2] = 0.1*std::round(c_pos[2]*10);
+              n_pos[0] = 0.1*std::round(n_pos[0]*10);
+              n_pos[1] = 0.1*std::round(n_pos[1]*10);
+              n_pos[2] = 0.1*std::round(n_pos[2]*10);
+            }
             geom::Vec3 reconstructed_o_pos;
             ConstructOPos(ca_pos, c_pos, n_pos, reconstructed_o_pos);
             if(geom::Length2(reconstructed_o_pos - o_pos) <= Real(0.25)) {
@@ -1300,11 +1305,17 @@ void ChainData::ToStream(std::ostream& stream,
                                           positions.begin() + res_start_idx +
                                           res_n_atoms);
           std::vector<geom::Vec3> comp_res_pos;
-          for(auto it = res_pos.begin(); it != res_pos.end(); ++it) {
-            int x = std::round((*it)[0]*10);
-            int y = std::round((*it)[1]*10);
-            int z = std::round((*it)[2]*10);
-            comp_res_pos.push_back(geom::Vec3(0.1*x, 0.1*y, 0.1*z));
+          if(lossy) {
+            // mimic lossy behaviour and reconstruct with reduced accuracy
+            // so we can still guarantee a hard threshold of 0.5A
+            for(auto it = res_pos.begin(); it != res_pos.end(); ++it) {
+              int x = std::round((*it)[0]*10);
+              int y = std::round((*it)[1]*10);
+              int z = std::round((*it)[2]*10);
+              comp_res_pos.push_back(geom::Vec3(0.1*x, 0.1*y, 0.1*z));
+            }
+          } else {
+            comp_res_pos = res_pos;
           }
 
           std::vector<Real> angles;
@@ -1315,6 +1326,7 @@ void ChainData::ToStream(std::ostream& stream,
                                                  res_pos[it->idx_three],
                                                  res_pos[it->idx_four]));
           }
+          // angles are compressed anyways, independent if lossy or not
           std::vector<Real> comp_angles;
           for(auto it = angles.begin(); it != angles.end(); ++it) {
             int tmp = std::round((*it + M_PI)/(2*M_PI)*255);
@@ -1377,9 +1389,9 @@ void ChainData::ToStream(std::ostream& stream,
     if(!pep_rotamer_compression.empty()) {
       Dump(stream, pep_rotamer_compression);
     }
-    DumpPositions(stream, positions_to_dump, true);
+    DumpPositions(stream, positions_to_dump, lossy);
   } else {
-    DumpPositions(stream, positions, false);
+    DumpPositions(stream, positions, lossy);
   }
   DumpBonds(stream, bonds);
   DumpBondOrders(stream, bond_orders);
@@ -1391,7 +1403,7 @@ void ChainData::ToStream(std::ostream& stream,
 void ChainData::FromStream(std::istream& stream,
                            const std::vector<ResidueDefinition>& res_def,
                            int version, bool lossy, bool avg_bfactors,
-                           bool round_bfactors, bool skip_ss) {
+                           bool round_bfactors, bool skip_ss, bool infer_pos) {
   
   Load(stream, ch_name);
   if(version >= 2) {
@@ -1415,7 +1427,7 @@ void ChainData::FromStream(std::istream& stream,
     LoadBFactors(stream, bfactors, round_bfactors);
   }
   
-  if(lossy) {
+  if(infer_pos) {
     std::vector<Real> pep_chi_angles;
     std::vector<bool> pep_oxygen_compression;
     std::vector<bool> pep_rotamer_compression;
@@ -1431,13 +1443,7 @@ void ChainData::FromStream(std::istream& stream,
       Load(stream, pep_rotamer_compression);
     }
 
-    if(!pep_oxygen_compression.empty()) {
-      flags += 2;
-    }
-    if(!pep_rotamer_compression.empty()) {
-      flags += 4;
-    }
-    LoadPositions(stream, positions, true);
+    LoadPositions(stream, positions, lossy);
 
     int n_res = res_def_indices.size();
     int n_at = 0;
@@ -1519,7 +1525,7 @@ void ChainData::FromStream(std::istream& stream,
     }
     std::swap(positions, full_positions);
   } else {
-    LoadPositions(stream, positions, false);
+    LoadPositions(stream, positions, lossy);
   }
   LoadBonds(stream, bonds);
   LoadBondOrders(stream, bond_orders);
@@ -3950,6 +3956,10 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent,
   omf->options_ = options;
   omf->version_ = OMF_VERSION;
 
+  if(omf->OptionSet(INFER_POS) && !omf->OptionSet(DEFAULT_PEPLIB)) {
+    throw ost::Error("Must set DEFAULT_PEPLIB when INFER_POS is enabled");
+  }
+
   //////////////////////////////////////////////////////////////////////////////
   // Generate kind of a "mini compound library"... Eeach unique residue gets  //
   // an own entry in the residue_definitions_ vector.                         //
@@ -4250,7 +4260,8 @@ void OMF::ToStream(std::ostream& stream) const {
 
   Dump(stream, biounit_definitions_);
   Dump(stream, chain_data_, residue_definitions_, OptionSet(LOSSY),
-       OptionSet(AVG_BFACTORS), OptionSet(ROUND_BFACTORS), OptionSet(SKIP_SS));
+       OptionSet(AVG_BFACTORS), OptionSet(ROUND_BFACTORS), OptionSet(SKIP_SS),
+       OptionSet(INFER_POS));
   Dump(stream, bond_chain_names_);
   Dump(stream, bond_atoms_);
   Dump(stream, bond_orders_);
@@ -4293,7 +4304,8 @@ void OMF::FromStream(std::istream& stream) {
 
   Load(stream, biounit_definitions_);
   Load(stream, chain_data_, residue_definitions_, version_, OptionSet(LOSSY),
-       OptionSet(AVG_BFACTORS), OptionSet(ROUND_BFACTORS), OptionSet(SKIP_SS));
+       OptionSet(AVG_BFACTORS), OptionSet(ROUND_BFACTORS), OptionSet(SKIP_SS),
+       OptionSet(INFER_POS));
   Load(stream, bond_chain_names_);
   Load(stream, bond_atoms_);
   Load(stream, bond_orders_);

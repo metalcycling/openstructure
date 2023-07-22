@@ -152,12 +152,12 @@ struct ChainData {
   void ToStream(std::ostream& stream,
                 const std::vector<ResidueDefinition>& res_def,
                 bool lossy, bool avg_bfactors, bool round_bfactors,
-                bool skip_ss) const;
+                bool skip_ss, bool infer_pos) const;
 
   void FromStream(std::istream& stream,
                   const std::vector<ResidueDefinition>& res_def,
                   int version, bool lossy, bool avg_bfactors,
-                  bool round_bfactors, bool skip_ss);
+                  bool round_bfactors, bool skip_ss, bool infer_pos);
 
   // chain features
   String ch_name;
@@ -200,7 +200,8 @@ class OMF {
 public:
 
   enum OMFOption {DEFAULT_PEPLIB = 1, LOSSY = 2, AVG_BFACTORS = 4,
-                  ROUND_BFACTORS = 8, SKIP_SS = 16, INFER_PEP_BONDS = 32};
+                  ROUND_BFACTORS = 8, SKIP_SS = 16, INFER_PEP_BONDS = 32,
+                  INFER_POS = 64};
 
   bool OptionSet(OMFOption opt) const {
     return (opt & options_) == opt;
