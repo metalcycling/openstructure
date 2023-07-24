@@ -85,7 +85,7 @@ void ChemdictParser::OnDataRow(const StarLoopDesc& header,
                      "'InChI=' prefix." << std::endl;
         return;
       }
-      compound_->SetInchi(columns[indices_[DESC]].substr(6).str());
+      compound_->SetInchi(columns[indices_[DESC]].str());
     } else if (columns[indices_[DESC_TYPE]] == StringRef("InChIKey", 8)) {
       compound_->SetInchiKey(columns[indices_[DESC]].str());
     } else if (columns[indices_[DESC_TYPE]] == StringRef("SMILES_CANONICAL", 16) &&

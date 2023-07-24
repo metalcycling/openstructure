@@ -156,14 +156,14 @@ build the compound library manually.
     
   .. attribute:: inchi
   
-    The InChI code of this compound, without the 'InChI=' part, e.g 
-    '1S/H2O/h1H2' for water. Read-only.
+    The InChI code of this compound, e.g  '1S/H2O/h1H2' for water.
+    Read-only.
     
     :type: :class:`str`
     
   .. attribute:: inchi_key
   
-    The InChIKey of this compound without the 'InChIKey=' part, e.g.
+    The InChIKey of this compound, e.g.
     'XLYOFNOQVPJJNP-UHFFFAOYSA-N' for water. Read-only.
     
     :type: :class:`str`
