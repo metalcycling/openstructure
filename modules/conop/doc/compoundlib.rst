@@ -167,6 +167,14 @@ build the compound library manually.
     'XLYOFNOQVPJJNP-UHFFFAOYSA-N' for water. Read-only.
     
     :type: :class:`str`
+
+  .. attribute:: smiles
+
+    The SMILES string of this compound, e.g 'O' for water. Read-only.
+    The string is read from the canonical SMILES produced by the
+    OpenEye OEToolkits.
+
+    :type: :class:`str`
     
 
 .. class:: AtomSpec
