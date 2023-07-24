@@ -3,6 +3,9 @@ Changes in Release 2.6.0
 
  * Reporting of unassigned ligands in the LigandScorer.
  * Experimental support for V3000 SDF files.
+ * Rotamer based compression in OMF file format.
+ * Chain mapping updates. Default chain mapping strategy now uses increased
+   sampling - only marginal runtime increase.
  * Several bug fixes and improvements.
 
 Changes in Release 2.5.0
