@@ -192,6 +192,10 @@ build the compound library manually.
     of a leaving atom is the *OXT* atom of amino acids that gets lost when a 
     peptide bond is formed.
 
+  .. attribute:: charge
+
+    The charge of the atom.
+
 .. class:: BondSpec
 
   Definition of a bond

@@ -30,7 +30,8 @@ bool ChemdictParser::OnBeginLoop(const StarLoopDesc& header)
     indices_[ELE]=header.GetIndex("type_symbol");      
     indices_[IS_LEAVING]=header.GetIndex("pdbx_leaving_atom_flag");
     indices_[IS_AROMATIC]=header.GetIndex("pdbx_aromatic_flag");
-    indices_[ORDINAL]=header.GetIndex("pdbx_ordinal");      
+    indices_[ORDINAL]=header.GetIndex("pdbx_ordinal");
+    indices_[CHARGE]=header.GetIndex("charge");
     return true;
   } else if (header.GetCategory()=="chem_comp_bond") {
     loop_type_=BOND_SPEC;
@@ -42,6 +43,7 @@ bool ChemdictParser::OnBeginLoop(const StarLoopDesc& header)
     loop_type_=DESC_SPEC;
     indices_[DESC_TYPE]=header.GetIndex("type");
     indices_[DESC]=header.GetIndex("descriptor");
+    indices_[PROGRAM]=header.GetIndex("program");
     return true;
   }
   loop_type_=DONT_KNOW;
@@ -59,6 +61,7 @@ void ChemdictParser::OnDataRow(const StarLoopDesc& header,
     atom.ordinal=columns[indices_[ORDINAL]].to_int().second-1;
     atom.element=columns[indices_[ELE]].str();
     atom.is_aromatic=columns[indices_[IS_AROMATIC]][0]=='Y';
+    atom.charge=columns[indices_[CHARGE]].to_int().second;
     compound_->AddAtom(atom);
     atom_map_[atom.name]=atom.ordinal;
   } else if (loop_type_==BOND_SPEC) {

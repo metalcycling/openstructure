@@ -76,17 +76,19 @@ struct DLLEXPORT_OST_CONOP AtomSpec {
     alt_name(),
     element(),
     is_leaving(false),
-    is_aromatic()
+    is_aromatic(),
+    charge(0)
   {
   }
   AtomSpec(int o, const String& n, const String& a, const String& e,
-           bool l, bool r):
+           bool l, bool r, int c=0):
     ordinal(o),
     name(n),
     alt_name(a),
     element(e),
     is_leaving(l),
-    is_aromatic(r)
+    is_aromatic(r),
+    charge(c)
   {}
   int    ordinal;
   String name;
@@ -94,6 +96,7 @@ struct DLLEXPORT_OST_CONOP AtomSpec {
   String element;
   bool   is_leaving;
   bool   is_aromatic;
+  int    charge;
   bool operator==(const AtomSpec& rhs) const {
     return ordinal==rhs.ordinal && name==rhs.name && alt_name==rhs.alt_name &&
            element==rhs.element && is_leaving==rhs.is_leaving && 

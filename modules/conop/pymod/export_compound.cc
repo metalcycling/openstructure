@@ -138,6 +138,7 @@ void export_Compound() {
     .def_readonly("is_leaving", &AtomSpec::is_leaving)
     .def_readonly("is_aromatic", &AtomSpec::is_aromatic)
     .def_readonly("ordinal", &AtomSpec::ordinal)
+    .def_readonly("charge", &AtomSpec::charge)
   ;
   
   class_<BondSpec>("BondSpec", no_init)

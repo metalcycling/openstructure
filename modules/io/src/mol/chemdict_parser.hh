@@ -75,7 +75,7 @@ private:
     ORDINAL=3,
     IS_LEAVING=4,
     ELE=5,
-    STEREO_CONF=6,
+    CHARGE=6,
     ATOM_ID1=0,
     ATOM_ID2=1,
     BOND_ORDER=2,

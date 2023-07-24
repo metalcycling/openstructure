@@ -37,6 +37,12 @@ class TestCompLib(unittest.TestCase):
         comp_001 = complib.FindCompound("001")
         self.assertTrue(comp_001.smiles == "COc1cc(cc(c1OC)OC)C(C(=O)N2CCCC[C@H]2C(=O)O[C@@H](CCCc3ccccc3)CCCc4cccnc4)(F)F")
 
+    def test_charges(self):
+        complib = self.complib
+        comp_nh4 = complib.FindCompound("NH4")
+        self.assertTrue(comp_nh4.atom_specs[0].charge == 1)
+        self.assertTrue(comp_nh4.atom_specs[1].charge == 0)
+
 
 if __name__ == "__main__":
     from ost import testutils

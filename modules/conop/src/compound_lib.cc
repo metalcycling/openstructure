@@ -74,9 +74,10 @@ const char* CREATE_CMD[]={
 " alt_name           VARCHAR(4) NOT NULL,                                       "
 " element            VARCHAR(2) NOT NULL,                                       "
 " is_aromatic        VARCHAR(1) NOT NULL,                                       "
-" stereo_conf        VARCHAR(1) NOT NULL,                                       "
+" stereo_conf        VARCHAR(1),                                               "
 " is_leaving         VARCHAR(1) NOT NULL,                                       "
-" ordinal            INT                                                        "
+" ordinal            INT,                                                       "
+" charge             INT                                                        "
 ");",
 " CREATE INDEX IF NOT EXISTS atom_name_index ON atoms                           "
 "                                  (compound_id, name, alt_name)",
@@ -86,7 +87,7 @@ const char* CREATE_CMD[]={
 "   atom_one         INTEGER REFERENCES atoms (id) ON DELETE CASCADE,           "
 "   atom_two         INTEGER REFERENCES atoms (id) ON DELETE CASCADE,           "
 "   bond_order       INT,                                                       "
-"   stereo_conf      VARCHAR(1) NOT NULL                                        "
+"   stereo_conf      VARCHAR(1)                                                 "
 " );",
 " CREATE INDEX IF NOT EXISTS bond_index ON bonds (compound_id)",
 " CREATE TRIGGER delete_related_objects                                         "
@@ -104,13 +105,13 @@ const char* INSERT_COMPOUND_STATEMENT="INSERT INTO chem_compounds               
 " VALUES (?, ?, ?, ?, ?, ?, DATE(?), DATE(?), ?, ?, ?, ?)";
 
 const char* INSERT_ATOM_STATEMENT="INSERT INTO atoms                            "
-"        (compound_id, name, alt_name, element, is_aromatic, stereo_conf,       "
-"         is_leaving, ordinal)                                                  "
+"        (compound_id, name, alt_name, element, is_aromatic,                    "
+"         is_leaving, ordinal, charge)                                          "
 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
 const char* INSERT_BOND_STATEMENT="insert into bonds                            "
-"        (compound_id, atom_one, atom_two, bond_order, stereo_conf)             "
-" VALUES (?, ?, ?, ?, ?)";
+"        (compound_id, atom_one, atom_two, bond_order)                          "
+" VALUES (?, ?, ?, ?)";
 
 const char* INSERT_CHEMLIB_INFO_STATEMENT="insert into chemlib_info             "
 "        (creation_date, ost_version_used)                                      "
@@ -296,11 +297,13 @@ void CompoundLib::AddCompound(const CompoundPtr& compound)
                         a.alt_name.length(), NULL);
       sqlite3_bind_text(stmt, 4, a.element.c_str(), a.element.length(), NULL);                        
       sqlite3_bind_int(stmt, 5, a.is_aromatic);
-      sqlite3_bind_int(stmt, 6, 0);                  
-      sqlite3_bind_int(stmt, 7, a.is_leaving);
-      sqlite3_bind_int(stmt, 8, a.ordinal);
+      sqlite3_bind_int(stmt, 6, a.is_leaving);
+      sqlite3_bind_int(stmt, 7, a.ordinal);
+      sqlite3_bind_int(stmt, 8, a.charge);
       retval=sqlite3_step(stmt);
-      assert(retval==SQLITE_DONE);
+      if (retval != SQLITE_DONE) {
+        LOG_ERROR(sqlite3_errmsg(db_->ptr));
+      }
       atom_ids[a.ordinal]=sqlite3_last_insert_rowid(db_->ptr);
     } else {
       LOG_ERROR(sqlite3_errmsg(db_->ptr));
@@ -317,9 +320,10 @@ void CompoundLib::AddCompound(const CompoundPtr& compound)
       sqlite3_bind_int64(stmt, 2, atom_ids[b.atom_one]);
       sqlite3_bind_int64(stmt, 3, atom_ids[b.atom_two]);      
       sqlite3_bind_int(stmt, 4, b.order);
-      sqlite3_bind_int(stmt, 5, 0);
       retval=sqlite3_step(stmt);
-      assert(retval==SQLITE_DONE);
+      if (retval != SQLITE_DONE) {
+        LOG_ERROR(sqlite3_errmsg(db_->ptr));
+      };
     } else {
       LOG_ERROR(sqlite3_errmsg(db_->ptr));
     }
@@ -417,15 +421,27 @@ CompoundLibPtr CompoundLib::Load(const String& database, bool readonly)
   lib->smiles_available_ = retval==SQLITE_OK;
   sqlite3_finalize(stmt);
 
+  // check if charges are available
+  aq="SELECT charge FROM atoms LIMIT 1";
+  retval=sqlite3_prepare_v2(lib->db_->ptr, aq.c_str(),
+                            static_cast<int>(aq.length()),
+                            &stmt, NULL);
+  lib->charges_available_ = retval==SQLITE_OK;
+  sqlite3_finalize(stmt);
+
   lib->creation_date_ = lib->GetCreationDate();
   lib->ost_version_used_ = lib->GetOSTVersionUsed();
   return lib;
 }
 
 void CompoundLib::LoadAtomsFromDB(CompoundPtr comp, int pk) const {
-  String aq=str(format("SELECT name, alt_name, element, ordinal, is_leaving "
-                       "FROM atoms WHERE compound_id=%d "
-                       "ORDER BY ordinal ASC") % pk);  
+  String aq="SELECT name, alt_name, element, ordinal, is_leaving";
+  if (charges_available_) {
+    aq+=", charge";
+  }
+  aq = str(format(aq +
+                  " FROM atoms WHERE compound_id=%d"
+                  " ORDER BY ordinal ASC") % pk);
   sqlite3_stmt* stmt;
   int retval=sqlite3_prepare_v2(db_->ptr, aq.c_str(), 
                                 static_cast<int>(aq.length()),
@@ -439,6 +455,9 @@ void CompoundLib::LoadAtomsFromDB(CompoundPtr comp, int pk) const {
         atom_sp.element=String(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2))); 
         atom_sp.ordinal=sqlite3_column_int(stmt, 3);  
         atom_sp.is_leaving=bool(sqlite3_column_int(stmt, 4)!=0);
+        if (charges_available_) {
+          atom_sp.charge=sqlite3_column_int(stmt, 5);
+        }
         comp->AddAtom(atom_sp);
       }
   } else {
@@ -574,6 +593,7 @@ CompoundLib::CompoundLib():
   name_available_(),
   inchi_available_(),
   smiles_available_(),
+  charges_available_(),
   creation_date_(),
   ost_version_used_() { }
 
