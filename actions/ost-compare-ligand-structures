@@ -194,6 +194,15 @@ def _ParseArgs():
         help=("Use RMSD for ligand assignment."))
 
     parser.add_argument(
+        "-u",
+        "--unassigned",
+        dest="unassigned",
+        default=False,
+        action="store_true",
+        help=("Report unassigned ligands in the output together with assigned "
+              "ligands."))
+
+    parser.add_argument(
         "--lddt-pli",
         dest="lddt_pli",
         default=False,
@@ -354,6 +363,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         substructure_match=args.substructure_match,
         global_chain_mapping=args.global_chain_mapping,
         rmsd_assignment=args.rmsd_assignment,
+        unassigned=args.unassigned,
         radius=args.radius,
         lddt_pli_radius=args.lddt_pli_radius,
         lddt_lp_radius=args.lddt_lp_radius,
@@ -367,8 +377,8 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         # Replace model ligand by path
         if len(model_ligands) == len(scorer.model_ligands):
             # Map ligand => path
-            model_ligands_map = {k: v for k, v in zip(scorer.model_ligands,
-                                                      args.model_ligands)}
+            model_ligands_map = {k.hash_code: v for k, v in zip(
+                scorer.model_ligands, args.model_ligands)}
             out["model_ligands"] = args.model_ligands
         elif len(model_ligands) < len(scorer.model_ligands):
             # Multi-ligand SDF files were given
@@ -384,7 +394,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                                "(%d) than given (%d)" % (
                 len(scorer.model_ligands), len(model_ligands)))
     else:
-        model_ligands_map = {l: _QualifiedResidueNotation(l)
+        model_ligands_map = {l.hash_code: _QualifiedResidueNotation(l)
                              for l in scorer.model_ligands}
         out["model_ligands"] = list(model_ligands_map.values())
 
@@ -392,8 +402,8 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         # Replace reference ligand by path
         if len(reference_ligands) == len(scorer.target_ligands):
             # Map ligand => path
-            reference_ligands_map = {k: v for k, v in zip(scorer.target_ligands,
-                                                      args.reference_ligands)}
+            reference_ligands_map = {k.hash_code: v for k, v in zip(
+                scorer.target_ligands, args.reference_ligands)}
             out["reference_ligands"] = args.reference_ligands
         elif len(reference_ligands) < len(scorer.target_ligands):
             # Multi-ligand SDF files were given
@@ -410,53 +420,78 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 len(scorer.target_ligands), len(reference_ligands)))
 
     else:
-        reference_ligands_map = {l: _QualifiedResidueNotation(l)
+        reference_ligands_map = {l.hash_code: _QualifiedResidueNotation(l)
                              for l in scorer.target_ligands}
         out["reference_ligands"] = list(reference_ligands_map.values())
+
+    if not (args.lddt_pli or args.rmsd):
+        ost.LogWarning("No score selected, output will be empty.")
+    else:
+        out["unassigned_model_ligands"] = {}
+        for chain, unassigned_residues in scorer.unassigned_model_ligands.items():
+            for resnum, unassigned in unassigned_residues.items():
+                mdl_lig = scorer.model.FindResidue(chain, resnum)
+                out["unassigned_model_ligands"][model_ligands_map[
+                    mdl_lig.hash_code]] = unassigned
+        out["unassigned_reference_ligands"] = {}
+        for chain, unassigned_residues in scorer.unassigned_target_ligands.items():
+            for resnum, unassigned in unassigned_residues.items():
+                trg_lig = scorer.target.FindResidue(chain, resnum)
+                out["unassigned_reference_ligands"][reference_ligands_map[
+                    trg_lig.hash_code]] = unassigned
+
 
     if args.lddt_pli:
         out["lddt_pli"] = {}
         for chain, lddt_pli_results in scorer.lddt_pli_details.items():
-            for _, lddt_pli in lddt_pli_results.items():
-                model_key = model_ligands_map[lddt_pli["model_ligand"]]
-                lddt_pli["reference_ligand"] = reference_ligands_map[
-                    lddt_pli.pop("target_ligand")]
-                lddt_pli["model_ligand"] = model_key
-                transform_data = lddt_pli["transform"].data
-                lddt_pli["transform"] = [transform_data[i:i + 4]
-                                         for i in range(0, len(transform_data),
-                                                        4)]
-                lddt_pli["bs_ref_res"] = [_QualifiedResidueNotation(r) for r in
-                                          lddt_pli["bs_ref_res"]]
-                lddt_pli["bs_ref_res_mapped"] = [_QualifiedResidueNotation(r) for r in
-                                                 lddt_pli["bs_ref_res_mapped"]]
-                lddt_pli["bs_mdl_res_mapped"] = [_QualifiedResidueNotation(r) for r in
-                                                 lddt_pli["bs_mdl_res_mapped"]]
-                lddt_pli["inconsistent_residues"] = ["%s-%s" %(
-                    _QualifiedResidueNotation(x), _QualifiedResidueNotation(y)) for x,y in lddt_pli[
-                    "inconsistent_residues"]]
+            for resnum, lddt_pli in lddt_pli_results.items():
+                if args.unassigned and lddt_pli["unassigned"]:
+                    mdl_lig = scorer.model.FindResidue(chain, resnum)
+                    model_key = model_ligands_map[mdl_lig.hash_code]
+                else:
+                    model_key = model_ligands_map[lddt_pli["model_ligand"].hash_code]
+                    lddt_pli["reference_ligand"] = reference_ligands_map[
+                        lddt_pli.pop("target_ligand").hash_code]
+                    lddt_pli["model_ligand"] = model_key
+                    transform_data = lddt_pli["transform"].data
+                    lddt_pli["transform"] = [transform_data[i:i + 4]
+                                             for i in range(0, len(transform_data),
+                                                            4)]
+                    lddt_pli["bs_ref_res"] = [_QualifiedResidueNotation(r) for r in
+                                              lddt_pli["bs_ref_res"]]
+                    lddt_pli["bs_ref_res_mapped"] = [_QualifiedResidueNotation(r) for r in
+                                                     lddt_pli["bs_ref_res_mapped"]]
+                    lddt_pli["bs_mdl_res_mapped"] = [_QualifiedResidueNotation(r) for r in
+                                                     lddt_pli["bs_mdl_res_mapped"]]
+                    lddt_pli["inconsistent_residues"] = ["%s-%s" %(
+                        _QualifiedResidueNotation(x), _QualifiedResidueNotation(y)) for x,y in lddt_pli[
+                        "inconsistent_residues"]]
                 out["lddt_pli"][model_key] = lddt_pli
 
     if args.rmsd:
         out["rmsd"] = {}
         for chain, rmsd_results in scorer.rmsd_details.items():
             for _, rmsd in rmsd_results.items():
-                model_key = model_ligands_map[rmsd["model_ligand"]]
-                rmsd["reference_ligand"] = reference_ligands_map[
-                    rmsd.pop("target_ligand")]
-                rmsd["model_ligand"] = model_key
-                transform_data = rmsd["transform"].data
-                rmsd["transform"] = [transform_data[i:i + 4]
-                                     for i in range(0, len(transform_data), 4)]
-                rmsd["bs_ref_res"] = [_QualifiedResidueNotation(r) for r in
-                                      rmsd["bs_ref_res"]]
-                rmsd["bs_ref_res_mapped"] = [_QualifiedResidueNotation(r) for r in
-                                             rmsd["bs_ref_res_mapped"]]
-                rmsd["bs_mdl_res_mapped"] = [_QualifiedResidueNotation(r) for r in
-                                             rmsd["bs_mdl_res_mapped"]]
-                rmsd["inconsistent_residues"] = ["%s-%s" %(
-                    _QualifiedResidueNotation(x), _QualifiedResidueNotation(y)) for x,y in rmsd[
-                    "inconsistent_residues"]]
+                if args.unassigned and rmsd["unassigned"]:
+                    mdl_lig = scorer.model.FindResidue(chain, resnum)
+                    model_key = model_ligands_map[mdl_lig.hash_code]
+                else:
+                    model_key = model_ligands_map[rmsd["model_ligand"].hash_code]
+                    rmsd["reference_ligand"] = reference_ligands_map[
+                        rmsd.pop("target_ligand").hash_code]
+                    rmsd["model_ligand"] = model_key
+                    transform_data = rmsd["transform"].data
+                    rmsd["transform"] = [transform_data[i:i + 4]
+                                         for i in range(0, len(transform_data), 4)]
+                    rmsd["bs_ref_res"] = [_QualifiedResidueNotation(r) for r in
+                                          rmsd["bs_ref_res"]]
+                    rmsd["bs_ref_res_mapped"] = [_QualifiedResidueNotation(r) for r in
+                                                 rmsd["bs_ref_res_mapped"]]
+                    rmsd["bs_mdl_res_mapped"] = [_QualifiedResidueNotation(r) for r in
+                                                 rmsd["bs_mdl_res_mapped"]]
+                    rmsd["inconsistent_residues"] = ["%s-%s" %(
+                        _QualifiedResidueNotation(x), _QualifiedResidueNotation(y)) for x,y in rmsd[
+                        "inconsistent_residues"]]
                 out["rmsd"][model_key] = rmsd
 
     return out
