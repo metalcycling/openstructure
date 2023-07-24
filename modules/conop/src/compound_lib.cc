@@ -62,7 +62,8 @@ const char* CREATE_CMD[]={
 "  pdb_modified      TIMESTAMP,                                                 "
 "  name              VARCHAR(256),                                              "
 "  inchi_code        TEXT,                                                      "
-"  inchi_key         TEXT                                                       "
+"  inchi_key         TEXT,                                                      "
+"  smiles            TEXT                                                       "
 ");",
 " CREATE UNIQUE INDEX IF NOT EXISTS commpound_tlc_index ON chem_compounds       "
 "                                  (tlc, dialect)",
@@ -98,8 +99,9 @@ const char* CREATE_CMD[]={
 
 
 const char* INSERT_COMPOUND_STATEMENT="INSERT INTO chem_compounds               "
-"        (tlc, olc, dialect, chem_class, chem_type, formula, pdb_initial, pdb_modified, name, inchi_code, inchi_key) "
-" VALUES (?, ?, ?, ?, ?, ?, DATE(?), DATE(?), ?, ?, ?)";
+"        (tlc, olc, dialect, chem_class, chem_type, formula, pdb_initial,       "
+"         pdb_modified, name, inchi_code, inchi_key, smiles) "
+" VALUES (?, ?, ?, ?, ?, ?, DATE(?), DATE(?), ?, ?, ?, ?)";
 
 const char* INSERT_ATOM_STATEMENT="INSERT INTO atoms                            "
 "        (compound_id, name, alt_name, element, is_aromatic, stereo_conf,       "
@@ -262,6 +264,8 @@ void CompoundLib::AddCompound(const CompoundPtr& compound)
                       compound->GetInchi().length(), NULL);
     sqlite3_bind_text(stmt, 11, compound->GetInchiKey().c_str(),
                       compound->GetInchiKey().length(), NULL);
+    sqlite3_bind_text(stmt, 12, compound->GetSMILES().c_str(),
+                      compound->GetSMILES().length(), NULL);
   } else {
     LOG_ERROR(sqlite3_errmsg(db_->ptr));
     sqlite3_finalize(stmt);
@@ -405,6 +409,13 @@ CompoundLibPtr CompoundLib::Load(const String& database, bool readonly)
                             &stmt, NULL);
   lib->inchi_available_ = retval==SQLITE_OK;
   sqlite3_finalize(stmt);
+  // check if SMILES are available
+  aq="SELECT smiles FROM chem_compounds LIMIT 1";
+  retval=sqlite3_prepare_v2(lib->db_->ptr, aq.c_str(),
+                            static_cast<int>(aq.length()),
+                            &stmt, NULL);
+  lib->smiles_available_ = retval==SQLITE_OK;
+  sqlite3_finalize(stmt);
 
   lib->creation_date_ = lib->GetCreationDate();
   lib->ost_version_used_ = lib->GetOSTVersionUsed();
@@ -471,17 +482,24 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
     return i->second;
   }
   String query="SELECT id, tlc, olc, chem_class, dialect, formula";
-  int col_offset = 0;
+  int col_offset_inchi = 0;
+  int col_offset_smiles = 0;
   if(chem_type_available_) {
     query+=", chem_type";
-    col_offset+=1;
+    col_offset_inchi+=1;
+    col_offset_smiles+=1;
     if(name_available_) {
       query+=", name";
-      col_offset+=1;
+      col_offset_inchi+=1;
+      col_offset_smiles+=1;
     }
   }
   if(inchi_available_) {
     query+=", inchi_code, inchi_key";
+    col_offset_smiles+=2;
+  }
+  if(smiles_available_) {
+    query+=", smiles";
   }
 
   query+=" FROM chem_compounds"
@@ -515,15 +533,22 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
         }
       }
       if (inchi_available_) {
-        const char* inchi_code=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6+col_offset));
+        const char* inchi_code=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6+col_offset_inchi));
         if (inchi_code) {
           compound->SetInchi(inchi_code);
         }
-        const char* inchi_key=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6+col_offset+1));
+        const char* inchi_key=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6+col_offset_inchi+1));
         if (inchi_key) {
           compound->SetInchiKey(inchi_key);
         }
       }
+      if (smiles_available_) {
+        const char* smiles=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6+col_offset_smiles));
+        if (smiles) {
+          compound->SetSMILES(smiles);
+        }
+      }
+
       // Load atoms and bonds      
       this->LoadAtomsFromDB(compound, pk);
       this->LoadBondsFromDB(compound, pk);
@@ -548,6 +573,7 @@ CompoundLib::CompoundLib():
   chem_type_available_(false),
   name_available_(),
   inchi_available_(),
+  smiles_available_(),
   creation_date_(),
   ost_version_used_() { }
 

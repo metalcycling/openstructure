@@ -126,6 +126,9 @@ void export_Compound() {
     .add_property("inchi_key",
                   make_function(&Compound::GetInchiKey, 
                                 return_value_policy<copy_const_reference>()))
+    .add_property("smiles",
+                  make_function(&Compound::GetSMILES,
+                                return_value_policy<copy_const_reference>()))
   ;
   
   class_<AtomSpec>("AtomSpec", no_init)

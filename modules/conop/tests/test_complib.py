@@ -7,8 +7,8 @@ import tempfile
 
 class TestCompLib(unittest.TestCase):
 
-    def test_three_vs_five_letter_code(self):
-
+    @classmethod
+    def setUpClass(cls):
         prefix_path = ost.GetPrefixPath()
         chemdict_tool_path = os.path.join(prefix_path, "bin", "chemdict_tool")
         if not os.path.exists(chemdict_tool_path):
@@ -18,8 +18,11 @@ class TestCompLib(unittest.TestCase):
         complib_path = os.path.join(tmp_dir.name, "test_complib.dat")
         cmd = [chemdict_tool_path, "create", compounds_path, complib_path]
         subprocess.run(cmd)
+        cls.complib = conop.CompoundLib.Load(complib_path)
+        tmp_dir.cleanup()
 
-        complib = conop.CompoundLib.Load(complib_path)
+    def test_three_vs_five_letter_code(self):
+        complib = self.complib
 
         comp_001 = complib.FindCompound("001")
         comp_hello = complib.FindCompound("hello")
@@ -28,6 +31,12 @@ class TestCompLib(unittest.TestCase):
         self.assertFalse(comp_001 is None)
         self.assertFalse(comp_hello is None)
         self.assertTrue(comp_yolo is None)
+
+    def test_smiles(self):
+        complib = self.complib
+        comp_001 = complib.FindCompound("001")
+        self.assertTrue(comp_001.smiles == "COc1cc(cc(c1OC)OC)C(C(=O)N2CCCC[C@H]2C(=O)O[C@@H](CCCc3ccccc3)CCCc4cccnc4)(F)F")
+
 
 if __name__ == "__main__":
     from ost import testutils

@@ -85,6 +85,9 @@ void ChemdictParser::OnDataRow(const StarLoopDesc& header,
       compound_->SetInchi(columns[indices_[DESC]].substr(6).str());
     } else if (columns[indices_[DESC_TYPE]] == StringRef("InChIKey", 8)) {
       compound_->SetInchiKey(columns[indices_[DESC]].str());
+    } else if (columns[indices_[DESC_TYPE]] == StringRef("SMILES_CANONICAL", 16) &&
+              columns[indices_[PROGRAM]] == StringRef("OpenEye OEToolkits", 18)) {
+      compound_->SetSMILES(columns[indices_[DESC]].str());
     }
   }
 }

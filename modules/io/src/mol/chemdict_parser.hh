@@ -80,7 +80,8 @@ private:
     ATOM_ID2=1,
     BOND_ORDER=2,
     DESC_TYPE=0,
-    DESC=1
+    DESC=1,
+    PROGRAM=2,
   } PropIndex;
   char                                    last_;
   int                                     indices_[10];

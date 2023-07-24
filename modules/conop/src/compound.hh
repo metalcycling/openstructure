@@ -149,6 +149,7 @@ public:
     name_(),
     inchi_(),
     inchi_key_(),
+    smiles_(),
     atom_specs_(),
     bond_specs_(),
     chem_class_(),
@@ -252,6 +253,10 @@ public:
 
   const String& GetInchiKey() { return inchi_key_; }
 
+  void SetSMILES(const String& smiles) { smiles_=smiles; }
+
+  const String& GetSMILES() { return smiles_; }
+
   const BondSpecList& GetBondSpecs() const {
     return bond_specs_;
   }
@@ -281,6 +286,7 @@ private:
   String                       name_;
   String                       inchi_;
   String                       inchi_key_;
+  String                       smiles_;
   AtomSpecList                 atom_specs_;
   BondSpecList                 bond_specs_;
   mol::ChemClass               chem_class_;
