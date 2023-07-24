@@ -48,7 +48,8 @@ options, this is a dictionary with three keys:
 
 Each score is opt-in and, be enabled with optional arguments and is added
 to the output. Keys correspond to the values in "model_ligands" above.
-Only assigned (mapped) ligands are reported.
+Unassigned ligands are reported with a message in "unassigned_model_ligands"
+and "unassigned_reference_ligands".
 """
 
 import argparse
@@ -199,8 +200,9 @@ def _ParseArgs():
         dest="unassigned",
         default=False,
         action="store_true",
-        help=("Report unassigned ligands in the output together with assigned "
-              "ligands."))
+        help=("Report unassigned model ligands in the output together with "
+              "assigned ligands, with a null score, and reason for not being "
+              "assigned."))
 
     parser.add_argument(
         "--lddt-pli",

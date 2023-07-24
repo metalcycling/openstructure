@@ -353,7 +353,8 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
 
     Each score is opt-in and, be enabled with optional arguments and is added
     to the output. Keys correspond to the values in "model_ligands" above.
-    Only assigned (mapped) ligands are reported.
+    Unassigned ligands are reported with a message in
+    "unassigned_model_ligands" and "unassigned_reference_ligands".
 
     options:
       -h, --help            show this help message and exit
@@ -406,6 +407,10 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
                             if global-chain-mapping flag is set.
       -ra, --rmsd-assignment
                             Use RMSD for ligand assignment.
+      -u, --unassigned      Report unassigned model ligands in the output
+                            together with assigned ligands, with a null score,
+                            and reason for not being assigned.
+
       --lddt-pli            Compute lDDT-PLI score and store as key "lddt-pli".
       --rmsd                Compute RMSD score and store as key "rmsd".
       --radius RADIUS       Inclusion radius for the binding site. Any residue
