@@ -24,6 +24,8 @@ from ._ost_base import *
 from .stutil import *
 from ost import conop
 
+__version__ = _ost_base.VERSION
+
 class StreamLogSink(LogSink):
   def __init__(self, stream):
     LogSink.__init__(self)
