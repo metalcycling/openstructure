@@ -156,7 +156,8 @@ build the compound library manually.
     
   .. attribute:: inchi
   
-    The InChI code of this compound, e.g  '1S/H2O/h1H2' for water.
+    The InChI code of this compound, e.g  '1S/H2O/h1H2' for water, or an empty
+    string if missing.
     Read-only.
     
     :type: :class:`str`
@@ -164,13 +165,16 @@ build the compound library manually.
   .. attribute:: inchi_key
   
     The InChIKey of this compound, e.g.
-    'XLYOFNOQVPJJNP-UHFFFAOYSA-N' for water. Read-only.
+    'XLYOFNOQVPJJNP-UHFFFAOYSA-N' for water, or an empty string if missing.
+    Read-only.
     
     :type: :class:`str`
 
   .. attribute:: smiles
 
-    The SMILES string of this compound, e.g 'O' for water. Read-only.
+    The SMILES string of this compound, e.g 'O' for water, or an empty string
+    if missing. Read-only.
+
     The string is read from the canonical SMILES produced by the
     OpenEye OEToolkits.
 
