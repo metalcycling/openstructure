@@ -110,7 +110,7 @@ behaviour.
   (OMF - OpenStructure Minimal Format). Shares lots of ideas with the mmtf or
   binaryCIF formats but comes with no dependencies attached.
 
-  .. staticmethod:: FromEntity(ent)
+  .. staticmethod:: FromEntity(ent, options=0)
 
     Generates :class:`ost.io.OMF` object starting from an 
     :class:`ost.mol.EntityHandle`. *ent* is is assigned as assymetric unit,
@@ -118,15 +118,19 @@ behaviour.
 
     :param ent: Structural data
     :type ent: :class:`ost.mol.EntityHandle`
+    :param options: Control file compression
+    :type options: :class:`ost.io.OMFOption`
     :returns: The created :class:`ost.io.OMF` object
 
-  .. staticmethod:: FromFile(filepath)
+  .. staticmethod:: FromFile(filepath, options=0)
 
     Generates :class:`ost.io.OMF` object from a file stored with 
     :func:`ToFile`.
 
     :param filepath: The file
     :type filepath: :class:`str`
+    :param options: Control file compression
+    :type options: :class:`ost.io.OMFOption`
     :returns: The created :class:`ost.io.OMF` object    
 
   .. staticmethod:: FromMMCIF(ent, info)
@@ -187,6 +191,40 @@ behaviour.
     :type bu_idx: :class:`int`
     :returns: The Biounit as :class:`ost.mol.EntityHandle`
     :raises: :class:`RuntimeError` if *bu_idx* doesn't exist
+
+.. class:: ost.io.OMFOption
+
+  OMF options control file compression. They can be combined with bitwise or:
+
+  .. code-block:: python
+
+    omf_opts = io.OMFOption.LOSSY | io.OMFOption.AVG_BFACTORS
+
+  * DEFAULT_PEPLIB: Compound information (connectivity, chem type etc.) for each
+    unique residue in a structure is stored in a library. This option defines a
+    default library of such compounds with proteinogenic amino acids. This
+    reduces the size of the library that needs to be written for each OMF file.
+  * LOSSY: Default accuracy for coordinates is 3 decimals. Enabling this option,
+    reduces accuracy to 1 decimal and results in smaller file sizes.
+    This gives a hard upper limit for errors of 0.087A
+  * AVG_BFACTORS: Protein models often have the same bfactor for all atoms of
+    a residue. One example is AFDB. Enabling this option results in only one
+    bfactor being stored per residue, thus reducing file size.
+  * ROUND_BFACTORS: Round bfactor to integer. This gives sufficient accuracy
+    for bfactors in AFDB that are in range [0.0, 100.0].
+  * SKIP_SS: Dont save secondary structure to save some memory
+  * INFER_PEP_BONDS: Connectivity of compounds is stored in an internal library.
+    However, inter-residue connectivity needs to be stored separately. If this
+    option is enabled, stereochemically reasonable peptide bonds are inferred
+    at loading and there is no need to save them.
+  * INFER_POS: Some positions can be inferred from other positions or stored
+    in an abstract manner. Enabling this option leads to inferred backbone
+    oxygen positions, as well as representation of amino acid sidechains as
+    rotamers. Rotamer information is stored in the default peptide library.
+    Using this option without DEFAULT_PEPLIB thus raises an error.
+    This option gives a hard upper limit for errors of 0.5A. 
+
+
 
 
 Loading Molecular Structures From Remote Repositories
