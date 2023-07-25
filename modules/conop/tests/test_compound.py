@@ -19,7 +19,7 @@ class TestCompound(unittest.TestCase):
         self.assertEqual(compound.formula, 'C3 H7 N O2')
         self.assertEqual(compound.chem_class, mol.L_PEPTIDE_LINKING)
         self.assertEqual(compound.inchi,
-                        "1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1")
+                        "InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1")
         self.assertEqual(compound.inchi_key, "QNAYBMKLOCPYGJ-REOHCLBHSA-N")
         self.assertEqual(compound.smiles, "C[C@@H](C(=O)O)N"  )
 
