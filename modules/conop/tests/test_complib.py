@@ -3,6 +3,7 @@ import ost
 from ost import conop
 import subprocess
 import tempfile
+import warnings
 
 
 class TestCompLib(unittest.TestCase):
@@ -42,6 +43,15 @@ class TestCompLib(unittest.TestCase):
         comp_nh4 = complib.FindCompound("NH4")
         self.assertTrue(comp_nh4.atom_specs[0].charge == 1)
         self.assertTrue(comp_nh4.atom_specs[1].charge == 0)
+
+    def test_default_lib_version(self):
+        compound_lib = conop.GetDefaultLib()
+        if compound_lib is None:
+            warnings.warn("Compound library not available. Some functionality may not work as expected.")
+        else:
+            lib_version = compound_lib.GetOSTVersionUsed()
+            if lib_version < ost.__version__:
+                warnings.warn("Using old version of the compound library: %s" % lib_version)
 
 
 if __name__ == "__main__":
