@@ -74,7 +74,6 @@ const char* CREATE_CMD[]={
 " alt_name           VARCHAR(4) NOT NULL,                                       "
 " element            VARCHAR(2) NOT NULL,                                       "
 " is_aromatic        VARCHAR(1) NOT NULL,                                       "
-" stereo_conf        VARCHAR(1),                                               "
 " is_leaving         VARCHAR(1) NOT NULL,                                       "
 " ordinal            INT,                                                       "
 " charge             INT                                                        "
@@ -86,8 +85,7 @@ const char* CREATE_CMD[]={
 "   compound_id      INTEGER REFERENCES chem_compounds (id) ON DELETE CASCADE,  "
 "   atom_one         INTEGER REFERENCES atoms (id) ON DELETE CASCADE,           "
 "   atom_two         INTEGER REFERENCES atoms (id) ON DELETE CASCADE,           "
-"   bond_order       INT,                                                       "
-"   stereo_conf      VARCHAR(1)                                                 "
+"   bond_order       INT                                                        "
 " );",
 " CREATE INDEX IF NOT EXISTS bond_index ON bonds (compound_id)",
 " CREATE TRIGGER delete_related_objects                                         "
