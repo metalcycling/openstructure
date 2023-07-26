@@ -397,7 +397,6 @@ CompoundLibPtr CompoundLib::Load(const String& database, bool readonly)
   }
   String aq;
   sqlite3_stmt* stmt;
-  std::stringstream ss;
   // check if SMILES are available
   aq="SELECT smiles FROM chem_compounds LIMIT 1";
   retval=sqlite3_prepare_v2(lib->db_->ptr, aq.c_str(),
@@ -417,11 +416,23 @@ CompoundLibPtr CompoundLib::Load(const String& database, bool readonly)
   lib->creation_date_ = lib->GetCreationDate();
   lib->ost_version_used_ = lib->GetOSTVersionUsed();
 
+  // Report compatibility issues
   if (lib->ost_version_used_.compare(COMPAT_VERSION) < 0) {
+    std::stringstream ss;
     ss << "Compound lib was created with an unsupported version of OST: "
        << lib->ost_version_used_
        << ". Please update your compound library.";
     throw ost::Error(ss.str());
+  }
+  if (!lib->smiles_available_) {
+    LOG_WARNING("SMILES not available in compound library v."
+                << lib->ost_version_used_
+                << ". Only empty strings will be returned.");
+  }
+  if (!lib->charges_available_) {
+    LOG_WARNING("Charges not available in compound library v."
+                << lib->ost_version_used_
+                << ". All charges will be 0.");
   }
   return lib;
 }
