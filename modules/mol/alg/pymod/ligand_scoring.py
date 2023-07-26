@@ -908,6 +908,8 @@ class LigandScorer:
                         "reason_long": reason[1],
                         main_key[i]: None,
                     }
+                    LogInfo("Model ligand %s is unassigned: %s" % (
+                        mdl_lig.qualified_name, reason[1]))
 
         for trg_idx in unassigned_trg_idx:
             trg_lig = self.target_ligands[trg_idx]
@@ -917,6 +919,8 @@ class LigandScorer:
             if trg_cname not in unassigned_trg:
                 unassigned_trg[trg_cname] = {}
             unassigned_trg[trg_cname][trg_resnum] = reason
+            LogInfo("Target ligand %s is unassigned: %s" % (
+                trg_lig.qualified_name, reason[1]))
 
         return unassigned_trg, unassigned_mdl
 
