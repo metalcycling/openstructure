@@ -568,6 +568,30 @@ class TestLigandScoring(unittest.TestCase):
         }
         assert sc.lddt_pli["L_OXY"][1] is None
 
+        # With missing ligands
+        sc = LigandScorer(mdl.Select("cname=A"), trg, None, None)
+        assert sc.unassigned_target_ligands["E"][1] == ('no_ligand', 'No ligand in the model')
+
+        sc = LigandScorer(mdl, trg.Select("cname=A"), None, None)
+        assert sc.unassigned_model_ligands["L_2"][1] == ('no_ligand', 'No ligand in the target')
+
+        sc = LigandScorer(mdl.Select("cname=A"), trg, None, None,
+                          unassigned=True, rmsd_assignment=True)
+        assert sc.unassigned_target_ligands["E"][1] == ('no_ligand', 'No ligand in the model')
+
+        sc = LigandScorer(mdl, trg.Select("cname=A"), None, None,
+                          unassigned=True, rmsd_assignment=True)
+        assert sc.unassigned_model_ligands["L_2"][1] == ('no_ligand', 'No ligand in the target')
+
+        # However not everything must be missing
+        with self.assertRaises(ValueError):
+            sc = LigandScorer(mdl.Select("cname=A"), trg.Select("cname=A"), None, None,
+                              unassigned=True, rmsd_assignment=True)
+
+
+
+
+
 
 if __name__ == "__main__":
     from ost import testutils

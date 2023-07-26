@@ -265,7 +265,7 @@ class LigandScorer:
                                                         target_ligands,
                                                         rename_ligand_chain)
         if len(self.target_ligands) == 0:
-            raise ValueError("No ligands in the target")
+            LogWarning("No ligands in the target")
 
         # Extract ligands from model
         if model_ligands is None:
@@ -275,7 +275,9 @@ class LigandScorer:
                                                        model_ligands,
                                                        rename_ligand_chain)
         if len(self.model_ligands) == 0:
-            raise ValueError("No ligands in the model")
+            LogWarning("No ligands in the model")
+            if len(self.target_ligands) == 0:
+                raise ValueError("No ligand in the model and in the target")
 
         self._chain_mapper = chain_mapper
         self.resnum_alignments = resnum_alignments
@@ -764,6 +766,10 @@ class LigandScorer:
         else:
             mat2 = np.copy(mat2)
         assignments = []
+        if 0 in mat1.shape:
+            # No model or target ligand
+            LogDebug("No model or target ligand, returning no assignment.")
+            return assignments
         min_mat1 = LigandScorer._nanmin_nowarn(mat1)
         while not np.isnan(min_mat1):
             best_mat1 = np.argwhere(mat1 == min_mat1)
@@ -1252,6 +1258,7 @@ class LigandScorer:
 
         Currently, the following reasons are reported:
 
+        * `no_ligand`: No ligand in the model.
         * `binding_site`: no residue in proximity of the target ligand.
         * `model_representation`: no representation of the reference binding
           site was found in the model
@@ -1284,6 +1291,7 @@ class LigandScorer:
 
         Currently, the following reasons are reported:
 
+        * `no_ligand`: No ligand in the target.
         * `binding_site`: no residue in proximity of the target ligand.
         * `model_representation`: no representation of the reference binding
           site was found in the model
@@ -1413,6 +1421,10 @@ class LigandScorer:
                 if not ("unassigned" in ligand_details and ligand_details["unassigned"]):
                     raise RuntimeError("Ligand %s is mapped to %s" % (ligand, ligand_details["target_ligand"]))
 
+        # Were there any ligands in the target?
+        if len(self.target_ligands) == 0:
+            return ("no_ligand", "No ligand in the target")
+
         # Do we have isomorphisms with the target?
         for trg_lig_idx, assigned in enumerate(self._assignment_isomorphisms[:, ligand_idx]):
             if np.isnan(assigned):
@@ -1464,6 +1476,10 @@ class LigandScorer:
                     if details['target_ligand'] == ligand:
                         raise RuntimeError("Ligand %s is mapped to %s.%s" % (
                             ligand, cname, rnum))
+
+        # Were there any ligands in the model?
+        if len(self.model_ligands) == 0:
+            return ("no_ligand", "No ligand in the model")
 
         # Is it because there was no valid binding site or no representation?
         if ligand in self._unassigned_target_ligands_reason:
