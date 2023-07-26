@@ -53,7 +53,7 @@ String ChainBase::GetDescription() const {
 }
 
 void ChainBase::CheckValidity() const {
-  if (!impl_)
+  if (! (impl_ && impl_->GetEntity()))
     throw InvalidHandle();
 }
 

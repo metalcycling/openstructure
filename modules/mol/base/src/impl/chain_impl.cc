@@ -369,6 +369,9 @@ AtomImplPtr ChainImpl::FindAtom(const ResNum& num,
 
 EntityImplPtr ChainImpl::GetEntity() const 
 {
+  if (!ent_.lock()) {
+    throw InvalidHandle();
+  }
   return ent_.lock();
 }
 int ChainImpl::GetIndexForResNum(const ResNum& number) const
