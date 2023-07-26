@@ -467,6 +467,20 @@ class TestLigandScoring(unittest.TestCase):
         mdl_ed.Connect(new_atom1, new_atom2)
         new_res.is_ligand = True
 
+        # Add CMO: disconnected
+        new_chain = mdl_ed.InsertChain("L_CMO")
+        mdl_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = mdl_ed.AppendResidue(new_chain, "CMO")
+        new_atom1 = mdl_ed.InsertAtom(new_res, "O", geom.Vec3(0, 0, 0), "O")
+        new_atom2 = mdl_ed.InsertAtom(new_res, "C", geom.Vec3(1, 1, 1), "O")
+        new_res.is_ligand = True
+        new_chain = trg_ed.InsertChain("L_CMO")
+        trg_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = trg_ed.AppendResidue(new_chain, "CMO")
+        new_atom1 = trg_ed.InsertAtom(new_res, "O", geom.Vec3(0, 0, 0), "O")
+        new_atom2 = trg_ed.InsertAtom(new_res, "C", geom.Vec3(1, 1, 1), "O")
+        new_res.is_ligand = True
+
         # Add 3 MG in model: assignment/stoichiometry
         mg_pos = [
             mdl.geometric_center,
@@ -494,7 +508,7 @@ class TestLigandScoring(unittest.TestCase):
         trg_zn = sc.target.FindResidue("H", 1)
         assert sc._find_unassigned_target_ligand_reason(trg_zn)[0] == "model_representation"
         assert sc.unassigned_target_ligands["H"][1][0] == "model_representation"
-        # CMO: not identical to anything in the model
+        # AFB: not identical to anything in the model
         trg_afb = sc.target.FindResidue("G", 1)
         assert sc._find_unassigned_target_ligand_reason(trg_afb)[0] == "identity"
         assert sc.unassigned_target_ligands["G"][1][0] == "identity"
@@ -502,6 +516,10 @@ class TestLigandScoring(unittest.TestCase):
         trg_fg3d1 = sc.target.FindResidue("F", 1)
         assert sc._find_unassigned_target_ligand_reason(trg_fg3d1)[0] == "stoichiometry"
         assert sc.unassigned_target_ligands["F"][1][0] == "stoichiometry"
+        # CMO: disconnected
+        trg_cmo1 = sc.target.FindResidue("L_CMO", 1)
+        sc._find_unassigned_target_ligand_reason(trg_cmo1)[0] == "disconnected"
+        assert sc.unassigned_target_ligands["L_CMO"][1][0] == "disconnected"
         # J.G3D1: assigned to L_2.G3D1 => error
         trg_jg3d1 = sc.target.FindResidue("J", 1)
         with self.assertRaises(RuntimeError):
@@ -537,6 +555,10 @@ class TestLigandScoring(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             sc._find_unassigned_model_ligand_reason(mdl_mg_0)
         assert "L_MG_0" not in sc.unassigned_model_ligands
+        # CMO: disconnected
+        mdl_cmo1 = sc.model.FindResidue("L_CMO", 1)
+        sc._find_unassigned_model_ligand_reason(mdl_cmo1)[0] == "disconnected"
+        assert sc.unassigned_model_ligands["L_CMO"][1][0] == "disconnected"
         # Raises with an invalid ligand
         with self.assertRaises(ValueError):
             sc._find_unassigned_model_ligand_reason(sc.target_ligands[0])
@@ -552,7 +574,9 @@ class TestLigandScoring(unittest.TestCase):
             'L_OXY': {1: ('identity',
                           'Ligand was not found in the target (by isomorphism)')},
             'L_MG_2': {1: ('stoichiometry',
-                           'Ligand was assigned to an other target ligand (different stoichiometry)')}
+                           'Ligand was assigned to an other target ligand (different stoichiometry)')},
+            "L_CMO": {1: ('disconnected',
+                          'Ligand graph is disconnected')}
         }
         assert sc.unassigned_target_ligands == {
             'G': {1: ('identity',
@@ -564,7 +588,9 @@ class TestLigandScoring(unittest.TestCase):
             'K': {1: ('identity',
                       'Ligand was not found in the model (by isomorphism)')},
             'L_NA': {1: ('binding_site',
-                         'No residue in proximity of the target ligand')}
+                         'No residue in proximity of the target ligand')},
+            "L_CMO": {1: ('disconnected',
+                          'Ligand graph is disconnected')}
         }
         assert sc.lddt_pli["L_OXY"][1] is None
 
@@ -587,10 +613,6 @@ class TestLigandScoring(unittest.TestCase):
         with self.assertRaises(ValueError):
             sc = LigandScorer(mdl.Select("cname=A"), trg.Select("cname=A"), None, None,
                               unassigned=True, rmsd_assignment=True)
-
-
-
-
 
 
 if __name__ == "__main__":

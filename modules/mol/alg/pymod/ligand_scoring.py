@@ -652,6 +652,9 @@ class LigandScorer:
                             str(model_ligand), str(target_ligand)))
                         self._assignment_isomorphisms[target_i, model_i] = 0
                         continue
+                    except DisconnectedGraphError:
+                        # Disconnected graph is handled elsewhere
+                        continue
                     substructure_match = len(symmetries[0][0]) != len(
                         model_ligand.atoms)
 
@@ -1258,7 +1261,8 @@ class LigandScorer:
 
         Currently, the following reasons are reported:
 
-        * `no_ligand`: No ligand in the model.
+        * `no_ligand`: no ligand in the model.
+        * `disconnected`: ligand graph is disconnected.
         * `binding_site`: no residue in proximity of the target ligand.
         * `model_representation`: no representation of the reference binding
           site was found in the model
@@ -1291,7 +1295,8 @@ class LigandScorer:
 
         Currently, the following reasons are reported:
 
-        * `no_ligand`: No ligand in the target.
+        * `no_ligand`: no ligand in the target.
+        * `disconnected`: ligand graph is disconnected.
         * `binding_site`: no residue in proximity of the target ligand.
         * `model_representation`: no representation of the reference binding
           site was found in the model
@@ -1425,6 +1430,11 @@ class LigandScorer:
         if len(self.target_ligands) == 0:
             return ("no_ligand", "No ligand in the target")
 
+        # Is the ligand disconnected?
+        graph = _ResidueToGraph(ligand)
+        if not networkx.is_connected(graph):
+            return ("disconnected", "Ligand graph is disconnected")
+
         # Do we have isomorphisms with the target?
         for trg_lig_idx, assigned in enumerate(self._assignment_isomorphisms[:, ligand_idx]):
             if np.isnan(assigned):
@@ -1435,7 +1445,7 @@ class LigandScorer:
                         substructure_match=self.substructure_match,
                         by_atom_index=True,
                         return_symmetries=False)
-                except NoSymmetryError:
+                except (NoSymmetryError, DisconnectedGraphError):
                     assigned = 0.
                 else:
                     assigned = 1.
@@ -1481,6 +1491,11 @@ class LigandScorer:
         if len(self.model_ligands) == 0:
             return ("no_ligand", "No ligand in the model")
 
+        # Is the ligand disconnected?
+        graph = _ResidueToGraph(ligand)
+        if not networkx.is_connected(graph):
+            return ("disconnected", "Ligand graph is disconnected")
+
         # Is it because there was no valid binding site or no representation?
         if ligand in self._unassigned_target_ligands_reason:
             return self._unassigned_target_ligands_reason[ligand]
@@ -1495,7 +1510,7 @@ class LigandScorer:
                         substructure_match=self.substructure_match,
                         by_atom_index=True,
                         return_symmetries=False)
-                except NoSymmetryError:
+                except (NoSymmetryError, DisconnectedGraphError):
                     assigned = 0.
                 else:
                     assigned = 1.
@@ -1563,7 +1578,8 @@ def SCRMSD(model_ligand, target_ligand, transformation=geom.Mat4(),
                                ligand.
     :type substructure_match: :class:`bool`
     :rtype: :class:`float`
-    :raises: :class:`NoSymmetryError` when no symmetry can be found.
+    :raises: :class:`NoSymmetryError` when no symmetry can be found,
+             :class:`DisconnectedGraphError` when ligand graph is disconnected.
     """
 
     symmetries = _ComputeSymmetries(model_ligand, target_ligand,
@@ -1637,9 +1653,9 @@ def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
     target_graph = _ResidueToGraph(target_ligand, by_atom_index=by_atom_index)
 
     if not networkx.is_connected(model_graph):
-        raise RuntimeError("Disconnected graph for model ligand %s" % model_ligand)
+        raise DisconnectedGraphError("Disconnected graph for model ligand %s" % model_ligand)
     if not networkx.is_connected(target_graph):
-        raise RuntimeError("Disconnected graph for target ligand %s" % target_ligand)
+        raise DisconnectedGraphError("Disconnected graph for target ligand %s" % target_ligand)
 
     # Note the argument order (model, target) which differs from spyrmsd.
     # This is because a subgraph of model is isomorphic to target - but not the opposite
@@ -1683,5 +1699,10 @@ class NoSymmetryError(Exception):
     """
     pass
 
+class DisconnectedGraphError(Exception):
+    """Exception to be raised when the ligand graph is disconnected.
+    """
+    pass
 
-__all__ = ["LigandScorer", "SCRMSD", "NoSymmetryError"]
+
+__all__ = ["LigandScorer", "SCRMSD", "NoSymmetryError", "DisconnectedGraphError"]
