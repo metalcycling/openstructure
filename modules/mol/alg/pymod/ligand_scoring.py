@@ -1466,7 +1466,11 @@ class LigandScorer:
                             "target ligand (different stoichiometry)")
 
         # Could not be assigned to any ligand - must be different
-        return ("identity", "Ligand was not found in the target (by isomorphism)")
+        if self.substructure_match:
+            iso = "subgraph isomorphism"
+        else:
+            iso = "full graph isomorphism"
+        return ("identity", "Ligand was not found in the target (by %s)" % iso)
 
     def _find_unassigned_target_ligand_reason(self, ligand, assignment="lddt_pli", check=True):
         # Is this a target ligand?
@@ -1519,8 +1523,13 @@ class LigandScorer:
                 # Could have been assigned but was assigned to a different ligand
                 return ("stoichiometry", "Ligand was assigned to an other "
                         "model ligand (different stoichiometry)")
+
         # Could not be assigned to any ligand - must be different
-        return ("identity", "Ligand was not found in the model (by isomorphism)")
+        if self.substructure_match:
+            iso = "subgraph isomorphism"
+        else:
+            iso = "full graph isomorphism"
+        return ("identity", "Ligand was not found in the model (by %s)" % iso)
 
 
 def _ResidueToGraph(residue, by_atom_index=False):
