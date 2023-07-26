@@ -55,11 +55,8 @@ private:
   struct Database;
   Database* db_;
   mutable CompoundMap       compound_cache_;
-  bool                      chem_type_available_; // wether pdbx_type is available in db
-  bool                      name_available_; // wether name is available in db
-  bool                      inchi_available_; //whether inchi is available in db
-  bool                      smiles_available_; //whether smiles are available in db
-  bool                      charges_available_; //whether atom charges are available in db
+  bool                      smiles_available_; //whether smiles are available in db - introduced in 2.6.0
+  bool                      charges_available_; //whether atom charges are available in db - introduced in 2.6.0
   Date                      creation_date_;
   String                    ost_version_used_;
 };

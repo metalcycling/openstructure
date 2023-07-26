@@ -37,6 +37,11 @@ namespace ost { namespace conop {
 namespace {
 
 /*
+This is the oldest version (GetCreationDate) of compound libraries we support.
+*/
+const String COMPAT_VERSION = "1.5.0";
+
+/*
 COMMENT ON CREATE_CMD
 
 CREATE_CMD specifies so called affinities. e.g. VARCHAR(64) where common sense
@@ -390,27 +395,9 @@ CompoundLibPtr CompoundLib::Load(const String& database, bool readonly)
     LOG_ERROR(sqlite3_errmsg(lib->db_->ptr));
     return CompoundLibPtr();
   }
-  // check if column chem_type exists in database
-  String aq="SELECT chem_type FROM chem_compounds LIMIT 1";
+  String aq;
   sqlite3_stmt* stmt;
-  retval=sqlite3_prepare_v2(lib->db_->ptr, aq.c_str(),
-                            static_cast<int>(aq.length()),
-                            &stmt, NULL);
-  lib->chem_type_available_ = retval==SQLITE_OK;
-  sqlite3_finalize(stmt);
-  aq="SELECT name FROM chem_compounds LIMIT 1";
-  retval=sqlite3_prepare_v2(lib->db_->ptr, aq.c_str(),
-                            static_cast<int>(aq.length()),
-                            &stmt, NULL);
-  lib->name_available_ = retval==SQLITE_OK;
-  sqlite3_finalize(stmt);
-  // check if InChIs are available
-  aq="SELECT inchi_code FROM chem_compounds LIMIT 1";
-  retval=sqlite3_prepare_v2(lib->db_->ptr, aq.c_str(),
-                            static_cast<int>(aq.length()),
-                            &stmt, NULL);
-  lib->inchi_available_ = retval==SQLITE_OK;
-  sqlite3_finalize(stmt);
+  std::stringstream ss;
   // check if SMILES are available
   aq="SELECT smiles FROM chem_compounds LIMIT 1";
   retval=sqlite3_prepare_v2(lib->db_->ptr, aq.c_str(),
@@ -429,6 +416,13 @@ CompoundLibPtr CompoundLib::Load(const String& database, bool readonly)
 
   lib->creation_date_ = lib->GetCreationDate();
   lib->ost_version_used_ = lib->GetOSTVersionUsed();
+
+  if (lib->ost_version_used_.compare(COMPAT_VERSION) < 0) {
+    ss << "Compound lib was created with an unsupported version of OST: "
+       << lib->ost_version_used_
+       << ". Please update your compound library.";
+    throw ost::Error(ss.str());
+  }
   return lib;
 }
 
@@ -498,23 +492,7 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
   if (i!=compound_cache_.end()) {
     return i->second;
   }
-  String query="SELECT id, tlc, olc, chem_class, dialect, formula";
-  int col_offset_inchi = 0;
-  int col_offset_smiles = 0;
-  if(chem_type_available_) {
-    query+=", chem_type";
-    col_offset_inchi+=1;
-    col_offset_smiles+=1;
-    if(name_available_) {
-      query+=", name";
-      col_offset_inchi+=1;
-      col_offset_smiles+=1;
-    }
-  }
-  if(inchi_available_) {
-    query+=", inchi_code, inchi_key";
-    col_offset_smiles+=2;
-  }
+  String query="SELECT id, tlc, olc, chem_class, dialect, formula, chem_type, name, inchi_code, inchi_key";
   if(smiles_available_) {
     query+=", smiles";
   }
@@ -540,27 +518,19 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
       compound->SetDialect(Compound::Dialect(sqlite3_column_text(stmt, 4)[0]));
       const char* f=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5));
       compound->SetFormula(f);
-      if(chem_type_available_) {
-        compound->SetChemType(mol::ChemType(sqlite3_column_text(stmt, 6)[0]));
+      compound->SetChemType(mol::ChemType(sqlite3_column_text(stmt, 6)[0]));
+      const char* name=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 7));
+      compound->SetName(name);
+      const char* inchi_code=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 8));
+      if (inchi_code) {
+        compound->SetInchi(inchi_code);
       }
-      if (name_available_) {
-        const char* name=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 7));
-        if (name) {
-          compound->SetName(name);
-        }
-      }
-      if (inchi_available_) {
-        const char* inchi_code=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6+col_offset_inchi));
-        if (inchi_code) {
-          compound->SetInchi(inchi_code);
-        }
-        const char* inchi_key=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6+col_offset_inchi+1));
-        if (inchi_key) {
-          compound->SetInchiKey(inchi_key);
-        }
+      const char* inchi_key=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 9));
+      if (inchi_key) {
+        compound->SetInchiKey(inchi_key);
       }
       if (smiles_available_) {
-        const char* smiles=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6+col_offset_smiles));
+        const char* smiles=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 10));
         if (smiles) {
           compound->SetSMILES(smiles);
         }
@@ -587,9 +557,6 @@ CompoundLib::CompoundLib():
   CompoundLibBase(),
   db_(new Database),
   compound_cache_(),
-  chem_type_available_(false),
-  name_available_(),
-  inchi_available_(),
   smiles_available_(),
   charges_available_(),
   creation_date_(),

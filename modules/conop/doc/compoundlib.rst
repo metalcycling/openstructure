@@ -11,13 +11,13 @@ information for the :class:`rule-based processor <RuleBasedBuilder>`.
 The compound definitions for standard PDB files are taken from the 
 components.cif dictionary provided by the PDB. The dictionary is updated with 
 every PDB release and augmented with the compound definitions of newly 
-crystallized compounds. 
+crystallized compounds. Follow :ref:`these instructions <mmcif-convert>` to
+build the compound library.
 
-If you downloaded the bundle, a recent version of the compound library is 
-already included. If you are compiling from source or want to incorporate the 
-latest compound definitions, follow :ref:`these instructions <mmcif-convert>` to 
-build the compound library manually.
-
+In general, compound libraries built with older versions of OST are compatible
+with newer version of OST, so it may not be necessary to rebuild a new one.
+However, some functionality may not be available. Currently, compound libraries
+built with OST 1.5.0 or later can be loaded.
 
 .. function:: GetDefaultLib()
 
