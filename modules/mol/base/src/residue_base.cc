@@ -158,12 +158,12 @@ const impl::ResidueImplPtr& ResidueBase::Impl() const
 
 bool ResidueBase::IsValid() const
 {
-  return Impl().get()!=0;
+  return Impl().get()!=0 && impl_->GetEntity();
 }
 
 void ResidueBase::CheckValidity() const 
 {
-  if (! (impl_ && impl_->GetEntity()))
+  if (! IsValid())
     throw InvalidHandle();
 }
 
