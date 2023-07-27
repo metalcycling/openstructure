@@ -200,9 +200,6 @@ void ResidueImpl::SetSecStructure(SecStructure ss)
 
 EntityImplPtr ResidueImpl::GetEntity() const
 {
-  if (!ent_.lock()) {
-    throw InvalidHandle();
-  }
   return ent_.lock();
 }
 
@@ -259,9 +256,6 @@ int ResidueImpl::GetBondCount() const
 
 ChainImplPtr ResidueImpl::GetChain() const
 {
-  if (!chain_.lock()) {
-    throw InvalidHandle();
-  }
   return chain_.lock();
 }
 

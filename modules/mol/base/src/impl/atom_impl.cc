@@ -73,9 +73,6 @@ void AtomImpl::Apply(EntityVisitor& v)
 
 ResidueImplPtr AtomImpl::GetResidue() const
 {
-  if (!res_.lock()) {
-    throw InvalidHandle();
-  }
   return res_.lock();
 }
 
@@ -218,7 +215,7 @@ AtomImpl::~AtomImpl() {
 EntityImplPtr AtomImpl::GetEntity() const
 {
   if (!res_.lock()) {
-    throw InvalidHandle();
+    return EntityImplPtr();
   }
   return res_.lock()->GetEntity();
 }
