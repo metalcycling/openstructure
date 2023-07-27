@@ -156,6 +156,11 @@ const impl::ResidueImplPtr& ResidueBase::Impl() const
   return impl_;
 }
 
+bool ResidueBase::IsValid() const
+{
+  return Impl().get()!=0;
+}
+
 void ResidueBase::CheckValidity() const 
 {
   if (! (impl_ && impl_->GetEntity()))
