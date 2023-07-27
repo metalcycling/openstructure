@@ -47,7 +47,7 @@ public:
   operator bool() const { return this->IsValid(); }
   /// \brief check validity of handle
   /// \sa #operator bool()
-  bool IsValid() const { return data_.get()!=0; }
+  bool IsValid() const;
   //@}
   // constructors  
   AtomView();

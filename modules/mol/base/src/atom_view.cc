@@ -167,6 +167,11 @@ unsigned long AtomView::GetHashCode() const
   return reinterpret_cast<unsigned long>(data_.get());
 } 
 
+bool AtomView::IsValid() const
+{
+  return Impl().get()!=0 && Impl()->GetEntity();
+}
+
 }} // ns
 
 

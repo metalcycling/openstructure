@@ -291,4 +291,9 @@ unsigned long ResidueView::GetHashCode() const
   return reinterpret_cast<unsigned long>(data_.get());
 }
 
+bool ResidueView::IsValid() const
+{
+  return Impl().get()!=0 && Impl()->GetEntity();
+}
+
 }} //ns
