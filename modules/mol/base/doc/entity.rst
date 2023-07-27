@@ -356,7 +356,7 @@ Chain Handle
 .. class:: ChainHandle
 
   A chain of one or more :class:`residues <ResidueHandle>`. Chains are always 
-  part of an entity.
+  part of an entity (see :ref:`note on memory management <memory_management>`).
 
   .. attribute:: properties
 
@@ -604,7 +604,8 @@ Residue Handle
   in a polymer, e.g. in a protein, DNA or RNA. A residue consists of one or 
   more :class:`atoms <AtomHandle>`. Residues are always part of a 
   :class:`ChainHandle`, even if they are ligands or water molecules where the 
-  concept of a chain does not apply.
+  concept of a chain does not apply, and of an entity (see
+  :ref:`note on memory management <memory_management>`).
 
   .. attribute:: properties
 
@@ -1041,7 +1042,8 @@ Atom Handle
 .. class:: AtomHandle
 
   Represents an atom in a molecular structure. Atoms are always part of a 
-  residue.
+  residue and of an entity (see
+  :ref:`note on memory management <memory_management>`)
 
   .. attribute:: properties
 

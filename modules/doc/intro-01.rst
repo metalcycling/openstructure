@@ -230,4 +230,32 @@ select the backbone atoms and then save it:
 That's it for the mol module. Continue with :doc:`part two<intro-02>` of the 
 tutorial.
 
+.. _memory_management:
+
+Memory management
+--------------------------------------------------------------------------------
+
+Because the data is managed by OST's underlying C++ layer, some behaviors can
+be somewhat surprising to Python developers. One such behavior is that
+:class:`entities <ost.mol.EntityHandle>` store all the data about chains,
+residues and atoms.
+
+Once an entity is deleted, all :class:`chains <ost.mol.ChainHandle>`,
+:class:`residues <ost.mol.ResidueHandle>` and
+:class:`atoms <ost.mol.AtomHandle>` that refer to it become invalid, so the
+following code is invalid and raises an exception:
+
+.. code-block:: python
+
+   ent = io.LoadPDB('1crn', remote=True)
+   my_residue = ent.FindResidue("A", 1)
+   print(my_residue.qualified_name)
+   # A.THR1
+   ent = None
+   print(my_residue.qualified_name)
+   # Exception: Can not access invalid handle or view
+
+This can frequently be an issue when you return data from a function.
+Make sure the entity is always defined outside of the function.
+
 ..  LocalWords:  attr
