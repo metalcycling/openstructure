@@ -9,7 +9,7 @@ stages:
 # CentOS7 STAGE
 test:centos7.3:
   stage: test
-  image: centos:7.9.2009
+  image: centos:7.3.1611
   before_script:
     - echo "Running centos7.3 'before_script'..."
     - yum -y -q -e 0 install tcl
