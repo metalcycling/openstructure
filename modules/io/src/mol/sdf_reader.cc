@@ -400,8 +400,8 @@ std::vector<SDFReader::charge_data> SDFReader::ParseMCharge(const String& line, 
 
   if(line.length()<15) {
     // Handle the case where we have trailing space characters
-    String msg="Bad Charge line %d: Not correct number of characters on the"
-               " line: %i (should be between 15 and 17)";
+    String msg="Bad Charge line %d: Not enough characters on the"
+               " line: %i (should be between 15 or more)";
     throw IOException(str(format(msg) % line_num % line.length()));
   }
 
