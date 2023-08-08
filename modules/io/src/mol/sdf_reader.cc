@@ -85,7 +85,10 @@ void SDFReader::Import(mol::EntityHandle& ent)
     } else if (version_ == "V2000" && line_num<=bond_count_+atom_count_+4) {
       AddBond(ParseBond(line, line_num), line_num, ent, editor);
     } else if (version_ == "V2000" &&  boost::iequals(line.substr(0,6), "M  CHG")) {
-      AddCharge(ParseMCharge(line, line_num), line_num, ent, editor);
+      auto charges = ParseMCharge(line, line_num);
+      for (const charge_data& c : charges) {
+        AddCharge(c, line_num, ent, editor);
+      }
     } else if (boost::iequals(line.substr(0,2), "> ")) {
       // parse data items
       int data_header_start = line.find('<');
@@ -385,8 +388,9 @@ void SDFReader::ResetCharges()
 }
 
 
-SDFReader::charge_data SDFReader::ParseMCharge(const String& line, int line_num)
+std::vector<SDFReader::charge_data> SDFReader::ParseMCharge(const String& line, int line_num)
 {
+  std::vector<charge_data> charges;
 
   LOG_TRACE( "line: [" << line << "]" );
 
@@ -394,22 +398,24 @@ SDFReader::charge_data SDFReader::ParseMCharge(const String& line, int line_num)
     ResetCharges();
   }
 
-  if(line.length()<15 || line.length()>17) {
+  if(line.length()<15) {
     // Handle the case where we have trailing space characters
-    if (line.length()>17 && boost::trim_copy(line.substr(17)) == "") {
-      LOG_DEBUG( "Ignoring trailing space" );
-    }
-    else {
-      String msg="Bad Charge line %d: Not correct number of characters on the"
-                 " line: %i (should be between 15 and 17)";
-      throw IOException(str(format(msg) % line_num % line.length()));
-    }
+    String msg="Bad Charge line %d: Not correct number of characters on the"
+               " line: %i (should be between 15 and 17)";
+    throw IOException(str(format(msg) % line_num % line.length()));
   }
 
-  String atom_index=line.substr(10,3);
-  String charge=line.substr(14,3);
+  int nn=boost::lexical_cast<int>(boost::trim_copy(line.substr(6,3)));
+  LOG_TRACE( "Line contains " << nn << " charge(s)" );
+  charges.reserve(nn);
 
-  return std::make_tuple(atom_index, charge);
+  for (int i = 0; i < nn; i++) {
+    String atom_index=line.substr(10 + i * 8, 3);
+    String charge=line.substr(14 + i * 8, 3);
+    charges.push_back(std::make_tuple(atom_index, charge));
+  }
+
+  return charges;
 }
 
   void SDFReader::AddCharge(const charge_data& charge_tuple, int line_num, mol::EntityHandle& ent,

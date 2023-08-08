@@ -69,7 +69,7 @@ private:
   void AddBond(const bond_data& bond_tuple, int line_num, mol::EntityHandle& ent,
                        mol::XCSEditor& editor);
 
-  charge_data ParseMCharge(const String& line, int line_num);
+  std::vector<charge_data> ParseMCharge(const String& line, int line_num);
   void AddCharge(const charge_data& charge_tuple, int line_num, mol::EntityHandle& ent,
                        mol::XCSEditor& editor);
   void ResetCharges();
