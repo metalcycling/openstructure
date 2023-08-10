@@ -71,7 +71,7 @@ def GetMinDistBetwCenterOfMassAndView(sele1,sele2):
   :type sele1: :class:`~ost.mol.EntityView`
   :type sele2: :class:`~ost.mol.EntityView`
 
-  :return: distance (\ :class:`float`\ )
+  :return: distance (\\ :class:`float`\\ )
   """
   if not sele1.IsValid() and sele2.IsValid():
     print('invalid view')
@@ -155,7 +155,7 @@ def CalculateHelixAxis(sele1):
 
 def CalculateDistanceDifferenceMatrix(sele1,sele2):
   """
-  This function calculates the pairwise distance differences between two selections (\ :class:`~ost.mol.EntityView`\ ).
+  This function calculates the pairwise distance differences between two selections (\\ :class:`~ost.mol.EntityView`\\ ).
   The two selections should have the same number of atoms
   It returns an NxN DistanceDifferenceMatrix M (where N is the number of atoms in sele1)
   where M[i,j]=||(sele2.atoms[i].pos-sele2.atoms[j].pos)||-||(sele1.atoms[i].pos-sele1.atoms[j].pos)||
