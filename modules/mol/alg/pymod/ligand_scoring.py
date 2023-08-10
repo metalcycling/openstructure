@@ -451,8 +451,8 @@ class LigandScorer:
             new_res = None
             if res.entity.handle == old_entity.handle:
                 # Residue is part of the old_entity handle.
-                # However it may not be in the copied one, for instance it may have been a view
-                # We try to grab it grab it first, othewise we copyp it
+                # However, it may not be in the copied one, for instance it may have been a view
+                # We try to grab it first, otherwise we copy it
                 new_res = new_entity.FindResidue(res.chain.name, res.number)
             if new_res and new_res.valid:
                 LogVerbose("Ligand residue %s already in entity" % res.handle.qualified_name)
@@ -1256,19 +1256,24 @@ class LigandScorer:
         Assignment is the same as for the lDDT-PLI score (and is controlled
         by the `rmsd_assignment` argument).
 
-        Each sub-dictionary contains a tuple with information about the reason
-        for the absence of assignment, in short and long format.
+        Each sub-dictionary contains a string from a controlled dictionary
+        about the reason for the absence of assignment.
 
         Currently, the following reasons are reported:
 
-        * `no_ligand`: no ligand in the model.
-        * `disconnected`: ligand graph is disconnected.
-        * `binding_site`: no residue in proximity of the target ligand.
+        * `no_ligand`: there was no ligand in the model.
+        * `disconnected`: the ligand graph was disconnected.
+        * `binding_site`: no residues were in proximity of the ligand.
         * `model_representation`: no representation of the reference binding
-          site was found in the model
-        * `identity`: ligand was not found in the model (by isomorphism)
-        * `stoichiometry`: ligand was assigned to an other model ligand
-          (different stoichiometry)
+          site was found in the model. (I.e. the binding site was not modeled.
+          Remember: the binding site is defined in the target structure,
+          the position of the model ligand itself is ignored at this point.)
+        * `identity`: the ligand was not found in the model (by graph
+          isomorphism). Check your ligand connectivity, and enable the
+          `substructure_match` option if the target ligand is incomplete.
+        * `stoichiometry`: there was a possible assignment in the model, but
+          the model ligand was already assigned to a different target ligand.
+          This indicates different stoichiometries.
 
         Some of these reasons can be overlapping, but a single reason will be
         reported.
@@ -1295,14 +1300,22 @@ class LigandScorer:
 
         Currently, the following reasons are reported:
 
-        * `no_ligand`: no ligand in the target.
-        * `disconnected`: ligand graph is disconnected.
-        * `binding_site`: no residue in proximity of the target ligand.
-        * `model_representation`: no representation of the reference binding
-          site was found in the model
-        * `identity`: ligand was not found in the target (by isomorphism)
-        * `stoichiometry`: ligand was assigned to an other target ligand
-          (different stoichiometry)
+        * `no_ligand`: there was no ligand in the target.
+        * `disconnected`: the ligand graph is disconnected.
+        * `binding_site`: a potential assignment was found in the target, but
+          there were no polymer residues in proximity of the ligand in the
+          target.
+        * `model_representation`: a potential assignment was found in the target,
+          but no representation of the binding site was found in the model.
+          (I.e. the binding site was not modeled. Remember: the binding site
+          is defined in the target structure, the position of the model ligand
+          itself is ignored at this point.)
+        * `identity`: the ligand was not found in the target (by graph
+          isomorphism). Check your ligand connectivity, and enable the
+          `substructure_match` option if the target ligand is incomplete.
+        * `stoichiometry`: there was a possible assignment in the target, but
+          the model target was already assigned to a different model ligand.
+          This indicates different stoichiometries.
 
         Some of these reasons can be overlapping, but a single reason will be
         reported.
@@ -1461,9 +1474,10 @@ class LigandScorer:
                     trg_ligand = self.target_ligands[trg_lig_idx]
                     return self._unassigned_target_ligands_reason[trg_ligand]
                 else:
-                    # Ligand was assigned to an other
-                    return ("stoichiometry", "Ligand was assigned to an other "
-                            "target ligand (different stoichiometry)")
+                    # Ligand was already assigned
+                    return ("stoichiometry",
+                            "Ligand was already assigned to an other "
+                            "model ligand (different stoichiometry)")
 
         # Could not be assigned to any ligand - must be different
         if self.substructure_match:
@@ -1521,8 +1535,9 @@ class LigandScorer:
                 self._assignment_isomorphisms[ligand_idx,model_lig_idx] = assigned
             if assigned:
                 # Could have been assigned but was assigned to a different ligand
-                return ("stoichiometry", "Ligand was assigned to an other "
-                        "model ligand (different stoichiometry)")
+                return ("stoichiometry",
+                        "Ligand was already assigned to an other "
+                        "target ligand (different stoichiometry)")
 
         # Could not be assigned to any ligand - must be different
         if self.substructure_match:

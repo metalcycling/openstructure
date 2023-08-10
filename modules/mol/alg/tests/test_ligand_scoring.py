@@ -574,7 +574,7 @@ class TestLigandScoring(unittest.TestCase):
             'L_OXY': {1: ('identity',
                           'Ligand was not found in the target (by full graph isomorphism)')},
             'L_MG_2': {1: ('stoichiometry',
-                           'Ligand was assigned to an other target ligand (different stoichiometry)')},
+                           'Ligand was already assigned to an other model ligand (different stoichiometry)')},
             "L_CMO": {1: ('disconnected',
                           'Ligand graph is disconnected')}
         }
@@ -584,7 +584,7 @@ class TestLigandScoring(unittest.TestCase):
             'H': {1: ('model_representation',
                       'No representation of the reference binding site was found in the model')},
             'J': {1: ('stoichiometry',
-                      'Ligand was assigned to an other model ligand (different stoichiometry)')},
+                      'Ligand was already assigned to an other target ligand (different stoichiometry)')},
             'K': {1: ('identity',
                       'Ligand was not found in the model (by full graph isomorphism)')},
             'L_NA': {1: ('binding_site',
