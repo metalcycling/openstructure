@@ -162,6 +162,17 @@ Local Distance Test scores (lDDT, DRMSD)
 .. currentmodule:: ost.mol.alg
 
 
+:mod:`Contact Scores <ost.mol.alg.contact_scores>` -- Contact based scores
+--------------------------------------------------------------------------------
+
+.. automodule:: ost.mol.alg.contact_score
+   :members:
+   :member-order: bysource
+   :synopsis: Contact Scores
+
+.. currentmodule:: ost.mol.alg
+
+
 .. _steric-clashes:
 
 Steric Clashes

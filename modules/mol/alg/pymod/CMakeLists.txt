@@ -29,6 +29,7 @@ set(OST_MOL_ALG_PYMOD_MODULES
   stereochemistry.py
   ligand_scoring.py
   dockq.py
+  contact_score.py
 )
 
 if (NOT ENABLE_STATIC)
