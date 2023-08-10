@@ -7,8 +7,10 @@ Changes in Release 2.6.0
  * Chain mapping updates. Default chain mapping strategy now uses increased
    sampling - only marginal runtime increase.
  * The compound library now knows about SMILES strings and atom charges.
-   Backward compatible with older compound libraries.
- * Compound library now reads the "InChI=" part of InChI codes.
+   Compound libraries created by OST 1.5.0 or later can still be read (SMILES
+   will be empty and charges set to 0, with a warning). Older files are no
+   longer supported.
+ * The compound library now reads the "InChI=" part of InChI codes.
  * Several bug fixes and improvements.
 
 Changes in Release 2.5.0
