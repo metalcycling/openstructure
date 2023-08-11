@@ -55,7 +55,7 @@ class LigandScorer:
     Note that this global chain mapping currently ignores non polymer entities
     such as small ligands, and may result in overly pessimistic scores.
 
-    By defaults, target-model ligand assignments are computed independently
+    By default, target-model ligand assignments are computed independently
     for the RMSD and lDDT-PLI scores. For RMSD, each model ligand is uniquely
     assigned to a target ligand, starting from the "best" possible mapping
     (lowest RMSD) and using each target and model ligand in a single
@@ -78,7 +78,7 @@ class LigandScorer:
     scoring. :ref:`Molck <molck>` should be used with extra
     care, as many of the options (such as `rm_non_std` or `map_nonstd_res`) can
     cause ligands to be removed from the structure. If cleanup with Molck is
-    needed, ligands should be kept and passed separately. Non-ligand residues
+    needed, ligands should be kept aside and passed separately. Non-ligand residues
     should be valid compounds with atom names following the naming conventions
     of the component dictionary. Non-standard residues are acceptable, and if
     the model contains a standard residue at that position, only atoms with
