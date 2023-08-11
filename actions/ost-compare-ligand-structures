@@ -442,6 +442,8 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 trg_lig = scorer.target.FindResidue(chain, resnum)
                 out["unassigned_reference_ligands"][reference_ligands_map[
                     trg_lig.hash_code]] = unassigned
+        out["unassigned_model_ligand_descriptions"] = scorer.unassigned_model_ligand_descriptions
+        out["unassigned_reference_ligand_descriptions"] = scorer.unassigned_target_ligand_descriptions
 
 
     if args.lddt_pli:

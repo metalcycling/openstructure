@@ -313,6 +313,10 @@ class LigandScorer:
         self._unassigned_target_ligands = None
         self._unassigned_model_ligands = None
         self._unassigned_target_ligands_reason = {}
+        self._unassigned_target_ligand_short = None
+        self._unassigned_model_ligand_short = None
+        self._unassigned_target_ligand_descriptions = None
+        self._unassigned_model_ligand_descriptions = None
         # Keep track of symmetries/isomorphisms
         # 0.0: no isomorphism
         # 1.0: isomorphic
@@ -1145,7 +1149,7 @@ class LigandScorer:
           `unassigned=True`: `False`
 
         If the scoring object was instantiated with `unassigned=True`, in
-        addition the unmapped ligands will be reported with a score of `None`
+        addition the unassigned ligands will be reported with a score of `None`
         and the following information:
 
         * `unassigned`: `True`,
@@ -1253,11 +1257,13 @@ class LigandScorer:
         """Get a dictionary of target ligands not assigned to any model ligand,
         keyed by target ligand (chain name, :class:`~ost.mol.ResNum`).
 
-        Assignment is the same as for the lDDT-PLI score (and is controlled
+        The assignment for the lDDT-PLI score is used (and is controlled
         by the `rmsd_assignment` argument).
 
-        Each sub-dictionary contains a string from a controlled dictionary
+        Each item contains a string from a controlled dictionary
         about the reason for the absence of assignment.
+        A human-readable description can be obtained from the
+        :attr:`unassigned_target_ligand_descriptions` property.
 
         Currently, the following reasons are reported:
 
@@ -1280,24 +1286,42 @@ class LigandScorer:
 
         :rtype: :class:`dict`
         """
-        if self._unassigned_target_ligands is None:
+        if self._unassigned_target_ligand_short is None:
             if self.rmsd_assignment:
                 self._assign_ligands_rmsd_only()
             else:
                 self._assign_ligands_lddt_pli()
-        return self._unassigned_target_ligands
+            self._unassigned_target_ligand_short = {}
+            self._unassigned_target_ligand_descriptions = {}
+            for cname, res in self._unassigned_target_ligands.items():
+                self._unassigned_target_ligand_short[cname] = {}
+                for resnum, val in res.items():
+                    self._unassigned_target_ligand_short[cname][resnum] = val[0]
+                    self._unassigned_target_ligand_descriptions[val[0]] = val[1]
+        return self._unassigned_target_ligand_short
+
+    @property
+    def unassigned_target_ligand_descriptions(self):
+        """Get a human-readable description of why target ligands were
+        unassigned, as a dictionary keyed by the controlled dictionary
+        from :attr:`unassigned_target_ligands`.
+        """
+        if self._unassigned_target_ligand_descriptions is None:
+            _ = self.unassigned_target_ligands  # assigned there
+        return self._unassigned_target_ligand_descriptions
 
     @property
     def unassigned_model_ligands(self):
         """Get a dictionary of model ligands not assigned to any target ligand,
         keyed by model ligand (chain name, :class:`~ost.mol.ResNum`).
 
-        Assignment is the same as for the lDDT-PLI score (and is controlled
+        The assignment for the lDDT-PLI score is used (and is controlled
         by the `rmsd_assignment` argument).
 
-        Each sub-dictionary contains a tuple with information about the reason
-        for the absence of assignment, in short and long format.
-
+        Each item contains a string from a controlled dictionary
+        about the reason for the absence of assignment.
+        A human-readable description can be obtained from the
+        :attr:`unassigned_model_ligand_descriptions` property.
         Currently, the following reasons are reported:
 
         * `no_ligand`: there was no ligand in the target.
@@ -1322,12 +1346,29 @@ class LigandScorer:
 
         :rtype: :class:`dict`
         """
-        if self._unassigned_model_ligands is None:
+        if self._unassigned_model_ligand_short is None:
             if self.rmsd_assignment:
                 self._assign_ligands_rmsd_only()
             else:
                 self._assign_ligands_lddt_pli()
-        return self._unassigned_model_ligands
+            self._unassigned_model_ligand_short = {}
+            self._unassigned_model_ligand_descriptions = {}
+            for cname, res in self._unassigned_model_ligands.items():
+                self._unassigned_model_ligand_short[cname] = {}
+                for resnum, val in res.items():
+                    self._unassigned_model_ligand_short[cname][resnum] = val[0]
+                    self._unassigned_model_ligand_descriptions[val[0]] = val[1]
+        return self._unassigned_model_ligand_short
+
+    @property
+    def unassigned_model_ligand_descriptions(self):
+        """Get a human-readable description of why model ligands were
+        unassigned, as a dictionary keyed by the controlled dictionary
+        from :attr:`unassigned_model_ligands`.
+        """
+        if self._unassigned_model_ligand_descriptions is None:
+            _ = self.unassigned_model_ligands  # assigned there
+        return self._unassigned_model_ligand_descriptions
 
 
     def _set_custom_mapping(self, mapping):
