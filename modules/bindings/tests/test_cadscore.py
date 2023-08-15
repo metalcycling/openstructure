@@ -18,9 +18,8 @@ class TestCADBindings(unittest.TestCase):
       cad_read_g_path = settings.Locate('CADscore_read_global_scores.bash')  
       cad_read_l_path = settings.Locate('CADscore_read_local_scores.bash')
       executable_path = settings.Locate('voroprot2')
-    except:
-      print("Could not find CAD score classic executables: ignoring unit tests")
-      return
+    except settings.FileNotFound:
+      self.skipTest("Could not find CAD score classic executables: ignoring unit tests")
 
     cad_result = cadscore.CADScore(self.protein, self.protein, 
                                    label="cad_classic")
@@ -47,9 +46,8 @@ class TestCADBindings(unittest.TestCase):
       # all of the following need to be present
       voronota_cadscore_path = settings.Locate("voronota-cadscore")
       executable_path = settings.Locate("voronota")   
-    except:
-      print("Could not find CAD score voronota executables: ignoring unit tests")
-      return
+    except settings.FileNotFound:
+      self.skipTest("Could not find CAD score voronota executables: ignoring unit tests")
 
     cad_result = cadscore.CADScore(self.protein, self.protein, mode="voronota",
                                    label="cad_voronota")
