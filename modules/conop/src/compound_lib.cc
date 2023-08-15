@@ -509,11 +509,14 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
   }
 
   query+=" FROM chem_compounds"
-         " WHERE tlc='"+id+"' AND dialect='"+String(1, char(dialect))+"'";
+         " WHERE tlc=? AND dialect='"+String(1, char(dialect))+"'";
   sqlite3_stmt* stmt;
   int retval=sqlite3_prepare_v2(db_->ptr, query.c_str(), 
                                 static_cast<int>(query.length()),
                                 &stmt, NULL);
+  sqlite3_bind_text(stmt, 1, id.c_str(),
+                      strlen(id.c_str()), NULL);
+
   if (SQLITE_OK==retval) {
     int ret=sqlite3_step(stmt);
     if (SQLITE_DONE==ret) {
