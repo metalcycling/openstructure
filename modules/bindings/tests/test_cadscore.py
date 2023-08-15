@@ -21,7 +21,7 @@ class TestCADBindings(unittest.TestCase):
     except settings.FileNotFound:
       self.skipTest("Could not find CAD score classic executables: ignoring unit tests")
 
-    cad_result = cadscore.CADScore(self.protein, self.protein, 
+    cad_result = cadscore.CADScore(self.protein, self.protein, mode="classic",
                                    label="cad_classic")
 
     # model and reference are the same, we expect a global CAD score of 1
