@@ -39,7 +39,8 @@ public:
   ~CompoundLib();
   
   virtual CompoundPtr FindCompound(const String& id, 
-                                   Compound::Dialect dialect) const;
+                                   Compound::Dialect dialect,
+                                   const String& by="tlc") const;
   void AddCompound(const CompoundPtr& compound);
   CompoundLibPtr Copy(const String& filename) const;
   void ClearCache();

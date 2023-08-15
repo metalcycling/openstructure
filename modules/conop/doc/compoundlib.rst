@@ -58,11 +58,17 @@ built with OST 1.5.0 or later can be loaded.
     
     Create a new compound library
     
-  .. method:: FindCompound(tlc, dialect='PDB')
+  .. method:: FindCompound(id, dialect='PDB', by="tlc")
   
-    Lookup compound by its three-letter-code, e.g ALA. If no compound with that 
-    name exists, the function returns None. Compounds are cached after they have 
-    been loaded with FindCompound. To delete the compound cache, use 
+    Lookup a compound. By default the compound is searched by its
+    three-letter-code, e.g ALA. This can be changed with the `by` argument.
+    The following keys are available: "tlc" (three-letter-code or compound ID),
+    "inchi_code", "inchi_key" and "smiles".
+
+    If no compound with that name exists, the function returns None.
+
+    Compounds are cached after they have been loaded with FindCompound.
+    To delete the compound cache, use
     :meth:`ClearCache`.
     
     :returns: The found compound

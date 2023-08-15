@@ -70,8 +70,14 @@ const char* CREATE_CMD[]={
 "  inchi_key         TEXT,                                                      "
 "  smiles            TEXT                                                       "
 ");",
-" CREATE UNIQUE INDEX IF NOT EXISTS commpound_tlc_index ON chem_compounds       "
+" CREATE UNIQUE INDEX IF NOT EXISTS compound_tlc_index ON chem_compounds        "
 "                                  (tlc, dialect)",
+" CREATE INDEX IF NOT EXISTS compound_smiles_index ON chem_compounds            "
+"                                  (smiles, dialect)",
+" CREATE INDEX IF NOT EXISTS compound_inchi_code_index ON chem_compounds        "
+"                                  (inchi_code, dialect)",
+" CREATE INDEX IF NOT EXISTS compound_inchi_key_index ON chem_compounds         "
+"                                  (inchi_key, dialect)",
 "CREATE TABLE IF NOT EXISTS atoms (                                             "
 " id                 INTEGER PRIMARY KEY AUTOINCREMENT,                         "
 " compound_id        INTEGER REFERENCES chem_compounds (id) ON DELETE CASCADE,  "
@@ -498,18 +504,37 @@ void CompoundLib::LoadBondsFromDB(CompoundPtr comp, int pk) const {
 }
 
 CompoundPtr CompoundLib::FindCompound(const String& id, 
-                                      Compound::Dialect dialect) const {
-  CompoundMap::const_iterator i=compound_cache_.find(id);
+                                      Compound::Dialect dialect,
+                                      const String& by) const {
+
+  // Validate "by" argument
+  std::set<std::string> allowed_keys{"tlc", "inchi_code", "inchi_key"};
+  if(smiles_available_) {
+     allowed_keys.insert("smiles");
+  }
+  if (allowed_keys.find(by) == allowed_keys.end()) {
+    std::stringstream msg;
+    msg << "Invalid 'by' key: " << by;
+    throw ost::Error(msg.str());
+  }
+
+  // Check cache
+  String cache_key = by + "_" + id;
+  CompoundMap::const_iterator i=compound_cache_.find(cache_key);
   if (i!=compound_cache_.end()) {
+    LOG_DEBUG("Retrieved compound " << cache_key << " from cache");
     return i->second;
   }
+
+  // Build the query
   String query="SELECT id, tlc, olc, chem_class, dialect, formula, chem_type, name, inchi_code, inchi_key";
   if(smiles_available_) {
     query+=", smiles";
   }
-
   query+=" FROM chem_compounds"
-         " WHERE tlc=? AND dialect='"+String(1, char(dialect))+"'";
+         " WHERE " + by + "=? AND dialect='"+String(1, char(dialect))+"'";
+
+  // Run the query
   sqlite3_stmt* stmt;
   int retval=sqlite3_prepare_v2(db_->ptr, query.c_str(), 
                                 static_cast<int>(query.length()),
@@ -553,7 +578,7 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
       // Load atoms and bonds      
       this->LoadAtomsFromDB(compound, pk);
       this->LoadBondsFromDB(compound, pk);
-      compound_cache_.insert(std::make_pair(compound->GetID(), compound));
+      compound_cache_.insert(std::make_pair(cache_key, compound));
       sqlite3_finalize(stmt);
       return compound;   
     }

@@ -13,7 +13,8 @@ class DLLEXPORT_OST_CONOP CompoundLibBase {
 public:
   virtual ~CompoundLibBase() {}
   virtual CompoundPtr FindCompound(const String& id, 
-                                   Compound::Dialect dialect) const = 0;
+                                   Compound::Dialect dialect,
+                                   const String& by="tlc") const = 0;
 
   bool IsResidueComplete(const ost::mol::ResidueHandle& res, 
                          bool check_hydrogens, 

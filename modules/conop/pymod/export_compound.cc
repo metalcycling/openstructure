@@ -70,9 +70,10 @@ char get_chemtype(CompoundPtr compound)
 }
 
 CompoundPtr find_compound(CompoundLibPtr comp_lib, 
-                          const String& tlc, const String& dialect)
+                          const String& id, const String& dialect,
+                          const String& by="tlc")
 {
-  return comp_lib->FindCompound(tlc, tr_dialect(dialect));
+  return comp_lib->FindCompound(id, tr_dialect(dialect), by);
 }
 
 bool is_residue_complete(CompoundLibPtr comp_lib,
@@ -151,7 +152,7 @@ void export_Compound() {
   class_<CompoundLib>("CompoundLib", no_init)
     .def("Load", &CompoundLib::Load, arg("readonly")=true).staticmethod("Load")
     .def("FindCompound", &find_compound, 
-         (arg("tlc"), arg("dialect")="PDB"))
+         (arg("id"), arg("dialect")="PDB", arg("by")="tlc"))
     .def("IsResidueComplete", &is_residue_complete, (arg("residue"), 
                                                      arg("check_hydrogens")=false,
                                                      arg("dialect")="PDB"))
