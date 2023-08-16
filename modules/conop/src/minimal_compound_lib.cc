@@ -42,15 +42,8 @@ CompoundMap MinimalCompoundLib::InitCompounds() {
 
 
 CompoundPtr MinimalCompoundLib::FindCompound(const String& id, 
-                                             Compound::Dialect dialect,
-                                             const String& by) const
+                                             Compound::Dialect dialect) const
 {
-   if (by != "tlc") {
-     // Only tlc is supported by the minimal compound lib
-     std::stringstream msg;
-     msg << "Invalid 'by' key: " << by;
-     throw ost::Error(msg.str());
-   }
    CompoundMap::const_iterator i = MinimalCompoundLib::compounds_.find(id); 
    if (i != MinimalCompoundLib::compounds_.end()) {
      return i->second;

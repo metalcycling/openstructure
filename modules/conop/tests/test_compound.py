@@ -26,26 +26,36 @@ class TestCompound(unittest.TestCase):
 
     def testFindCompoundBySMILES(self):
         """ Test FindCompound by="smiles"."""
-        compound = self.compound_lib.FindCompound('O', by="smiles")
-        self.assertNotEqual(compound, None)
-        self.assertEqual(compound.smiles, 'O')
+        compounds = self.compound_lib.FindCompounds('O', by="smiles")
+        # Make sure all the compounds have the right smiles
+        for compound in compounds:
+            self.assertNotEqual(compound, None)
+            self.assertEqual(compound.smiles, 'O')
 
-        # Now we should prefer a non-obsolete compound
+        # Now we should prefer a non-obsolete compound first.
         # Default ordering has DIS as first pick but FindCompound should sort
         # active compounds first.
         # This assumes there are non-obsolete O/HOH compounds in the compound
         # lib, which should always be the case.
-        self.assertFalse(compound.obsolete)
+        self.assertFalse(compounds[0].obsolete)
 
     def testFindCompoundByInChI(self):
         """ Test FindCompound by="inchi_code|key"."""
         inchi_code = "InChI=1/H2O/h1H2"
         inchi_key = "XLYOFNOQVPJJNP-UHFFFAOYAF"
-        compound = self.compound_lib.FindCompound(inchi_code, by="inchi_code")
-        self.assertNotEqual(compound, None)
-        self.assertEqual(compound.inchi, inchi_code)
-        self.assertEqual(compound.inchi_key, inchi_key)
+        compounds = self.compound_lib.FindCompounds(inchi_code, by="inchi_code")
+        # Make sure all the compounds have the right inchis
+        for compound in compounds:
+            self.assertNotEqual(compound, None)
+            self.assertEqual(compound.inchi, inchi_code)
+            self.assertEqual(compound.inchi_key, inchi_key)
 
+        compounds = self.compound_lib.FindCompounds(inchi_key, by="inchi_key")
+        # Make sure all the compounds have the right inchis
+        for compound in compounds:
+            self.assertNotEqual(compound, None)
+            self.assertEqual(compound.inchi, inchi_code)
+            self.assertEqual(compound.inchi_key, inchi_key)
      
 if __name__=='__main__':
     from ost import testutils

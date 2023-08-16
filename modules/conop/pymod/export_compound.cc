@@ -70,10 +70,25 @@ char get_chemtype(CompoundPtr compound)
 }
 
 CompoundPtr find_compound(CompoundLibPtr comp_lib, 
-                          const String& id, const String& dialect,
-                          const String& by="tlc")
+                          const String& id, const String& dialect)
 {
-  return comp_lib->FindCompound(id, tr_dialect(dialect), by);
+  return comp_lib->FindCompound(id, tr_dialect(dialect));
+}
+
+boost::python::list find_compounds(CompoundLibPtr comp_lib,
+                                        const String& query,
+                                        const String& by,
+                                        const String& dialect)
+{
+  CompoundPtrList ptr_list = comp_lib->FindCompounds(query, by, tr_dialect(dialect));
+  // We can't return ptr_list directly - the list was full of non working
+  // compounds for no obvious reason. So we convert it to a boost python list
+  // of Compounds.
+  boost::python::list l;
+  for(auto it = ptr_list.begin(); it != ptr_list.end(); ++it) {
+    l.append(*it);
+  }
+  return l;
 }
 
 bool is_residue_complete(CompoundLibPtr comp_lib,
@@ -156,7 +171,9 @@ void export_Compound() {
   class_<CompoundLib>("CompoundLib", no_init)
     .def("Load", &CompoundLib::Load, arg("readonly")=true).staticmethod("Load")
     .def("FindCompound", &find_compound, 
-         (arg("id"), arg("dialect")="PDB", arg("by")="tlc"))
+         (arg("id"), arg("dialect")="PDB"))
+    .def("FindCompounds", &find_compounds,
+         (arg("query"), arg("by"), arg("dialect")="PDB"))
     .def("IsResidueComplete", &is_residue_complete, (arg("residue"), 
                                                      arg("check_hydrogens")=false,
                                                      arg("dialect")="PDB"))

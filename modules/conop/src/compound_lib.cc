@@ -524,28 +524,9 @@ void CompoundLib::LoadBondsFromDB(CompoundPtr comp, int pk) const {
   sqlite3_finalize(stmt);
 }
 
-CompoundPtr CompoundLib::FindCompound(const String& id, 
-                                      Compound::Dialect dialect,
-                                      const String& by) const {
-
-  // Validate "by" argument
-  std::set<std::string> allowed_keys{"tlc", "inchi_code", "inchi_key"};
-  if(smiles_available_) {
-     allowed_keys.insert("smiles");
-  }
-  if (allowed_keys.find(by) == allowed_keys.end()) {
-    std::stringstream msg;
-    msg << "Invalid 'by' key: " << by;
-    throw ost::Error(msg.str());
-  }
-
-  // Check cache
-  String cache_key = by + "_" + id;
-  CompoundMap::const_iterator i=compound_cache_.find(cache_key);
-  if (i!=compound_cache_.end()) {
-    LOG_DEBUG("Retrieved compound " << cache_key << " from cache");
-    return i->second;
-  }
+String CompoundLib::BuildFindCompoundQuery(const String& id,
+                                           Compound::Dialect dialect,
+                                           const String& by) const {
 
   // Build the query
   String query="SELECT id, tlc, olc, chem_class, dialect, formula, chem_type, name, inchi_code, inchi_key";
@@ -557,10 +538,121 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
   }
   query+=" FROM chem_compounds"
          " WHERE " + by + "=? AND dialect='"+String(1, char(dialect))+"'";
+
+  return query;
+}
+
+CompoundPtr CompoundLib::LoadCompoundFromDB(sqlite3_stmt* stmt) const {
+  int pk=sqlite3_column_int(stmt, 0);
+  const char* id=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+  CompoundPtr compound(new Compound(id));
+  compound->SetOneLetterCode((sqlite3_column_text(stmt, 2))[0]);
+  compound->SetChemClass(mol::ChemClass(sqlite3_column_text(stmt, 3)[0]));
+  compound->SetDialect(Compound::Dialect(sqlite3_column_text(stmt, 4)[0]));
+  const char* f=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5));
+  compound->SetFormula(f);
+  compound->SetChemType(mol::ChemType(sqlite3_column_text(stmt, 6)[0]));
+  const char* name=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 7));
+  compound->SetName(name);
+  const char* inchi_code=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 8));
+  if (inchi_code) {
+    compound->SetInchi(inchi_code);
+  }
+  const char* inchi_key=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 9));
+  if (inchi_key) {
+    compound->SetInchiKey(inchi_key);
+  }
+  int next_column = 10;
+  if (smiles_available_) {
+    const char* smiles=reinterpret_cast<const char*>(sqlite3_column_text(stmt, next_column));
+    next_column++;
+    if (smiles) {
+      compound->SetSMILES(smiles);
+    }
+  }
+  if (obsolete_available_) {
+    bool obsolete=sqlite3_column_int(stmt, next_column);
+    compound->SetObsolete(obsolete);
+    next_column++;
+    const char* replaced_by=reinterpret_cast<const char*>(sqlite3_column_text(stmt, next_column));
+    next_column++;
+    if (replaced_by) {
+      compound->SetReplacedBy(replaced_by);
+    }
+  }
+
+  // Load atoms and bonds
+  this->LoadAtomsFromDB(compound, pk);
+  this->LoadBondsFromDB(compound, pk);
+
+  return compound;
+}
+
+
+CompoundPtrList CompoundLib::FindCompounds(const String& query,
+                                                    const String& by,
+                                                    Compound::Dialect dialect) const {
+  CompoundPtrList compounds_vec;
+
+  // Validate "by" argument
+  std::set<std::string> allowed_keys{"inchi_code", "inchi_key", "formula"};
+  if(smiles_available_) {
+     allowed_keys.insert("smiles");
+  }
+  if (allowed_keys.find(by) == allowed_keys.end()) {
+    std::stringstream msg;
+    msg << "Invalid 'by' key: " << by;
+    throw ost::Error(msg.str());
+  }
+
+  String sql_query = BuildFindCompoundQuery(query, dialect, by);
+
   if(obsolete_available_) {
     // Prefer active compounds, then the ones with a replacement
-    query+=" ORDER BY obsolete, replaced_by IS NULL";
+    sql_query += " ORDER BY obsolete, replaced_by IS NULL";
   }
+
+  // Run the query
+  sqlite3_stmt* stmt;
+  int retval=sqlite3_prepare_v2(db_->ptr, sql_query.c_str(),
+                                static_cast<int>(sql_query.length()),
+                                &stmt, NULL);
+  sqlite3_bind_text(stmt, 1, query.c_str(),
+                      strlen(query.c_str()), NULL);
+
+  if (SQLITE_OK==retval) {
+    int ret=sqlite3_step(stmt);
+    if (SQLITE_DONE==ret) {
+      sqlite3_finalize(stmt);
+      return compounds_vec;  // Empty
+    }
+    while (SQLITE_ROW==ret) {
+      CompoundPtr compound = LoadCompoundFromDB(stmt);
+      compounds_vec.push_back(compound);
+      // next row
+      ret=sqlite3_step(stmt);
+    }
+    assert(SQLITE_DONE==sqlite3_step(stmt));
+  } else {
+    LOG_ERROR("ERROR: " << sqlite3_errmsg(db_->ptr));
+    sqlite3_finalize(stmt);
+    return compounds_vec;  // empty
+  }
+  sqlite3_finalize(stmt);
+  return compounds_vec;
+}
+
+CompoundPtr CompoundLib::FindCompound(const String& id, 
+                                      Compound::Dialect dialect) const {
+  // Check cache
+  String cache_key = id;
+  CompoundMap::const_iterator i=compound_cache_.find(cache_key);
+  if (i!=compound_cache_.end()) {
+    LOG_DEBUG("Retrieved compound " << cache_key << " from cache");
+    return i->second;
+  }
+
+  String query = BuildFindCompoundQuery(id, dialect, "tlc");
 
   // Run the query
   sqlite3_stmt* stmt;
@@ -577,47 +669,7 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
       return CompoundPtr();
     }
     if (SQLITE_ROW==ret) {
-      int pk=sqlite3_column_int(stmt, 0);
-      const char* id=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-      CompoundPtr compound(new Compound(id));
-      compound->SetOneLetterCode((sqlite3_column_text(stmt, 2))[0]);
-      compound->SetChemClass(mol::ChemClass(sqlite3_column_text(stmt, 3)[0]));
-      compound->SetDialect(Compound::Dialect(sqlite3_column_text(stmt, 4)[0]));
-      const char* f=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5));
-      compound->SetFormula(f);
-      compound->SetChemType(mol::ChemType(sqlite3_column_text(stmt, 6)[0]));
-      const char* name=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 7));
-      compound->SetName(name);
-      const char* inchi_code=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 8));
-      if (inchi_code) {
-        compound->SetInchi(inchi_code);
-      }
-      const char* inchi_key=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 9));
-      if (inchi_key) {
-        compound->SetInchiKey(inchi_key);
-      }
-      int next_column = 10;
-      if (smiles_available_) {
-        const char* smiles=reinterpret_cast<const char*>(sqlite3_column_text(stmt, next_column));
-        next_column++;
-        if (smiles) {
-          compound->SetSMILES(smiles);
-        }
-      }
-      if (obsolete_available_) {
-        bool obsolete=sqlite3_column_int(stmt, next_column);
-        compound->SetObsolete(obsolete);
-        next_column++;
-        const char* replaced_by=reinterpret_cast<const char*>(sqlite3_column_text(stmt, next_column));
-        next_column++;
-        if (replaced_by) {
-          compound->SetReplacedBy(replaced_by);
-        }
-      }
-
-      // Load atoms and bonds      
-      this->LoadAtomsFromDB(compound, pk);
-      this->LoadBondsFromDB(compound, pk);
+      CompoundPtr compound = LoadCompoundFromDB(stmt);
       compound_cache_.insert(std::make_pair(cache_key, compound));
       sqlite3_finalize(stmt);
       return compound;   

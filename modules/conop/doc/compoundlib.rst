@@ -58,27 +58,38 @@ built with OST 1.5.0 or later can be loaded.
     
     Create a new compound library
     
-  .. method:: FindCompound(id, dialect='PDB', by="tlc")
-  
-    Lookup a compound. By default the compound is searched by its
-    three-letter-code, e.g ALA. This can be changed with the `by` argument.
-    The following keys are available: "tlc" (three-letter-code or compound ID),
-    "inchi_code", "inchi_key" and "smiles".
+  .. method:: FindCompound(id, dialect='PDB')
 
-    .. note::
-      Multiple compounds may share the same SMILES string or InChI code or key.
-      An arbitrary compound will be returned, with a preference for a
-      non-obsolete one.
-
-    If no compound with that name exists, the function returns None.
-
-    Compounds are cached after they have been loaded with FindCompound.
-    To delete the compound cache, use
+    Lookup compound by its three-letter-code, e.g ALA. If no compound with that
+    name exists, the function returns None. Compounds are cached after they
+    have been loaded with FindCompound. To delete the compound cache, use
     :meth:`ClearCache`.
     
     :returns: The found compound
     :rtype: :class:`Compound`
-  
+
+  .. method:: FindCompounds(query, by, dialect='PDB')
+
+    Lookup one or more compound by SMILES string, InChI code, InChI key or
+    formula.
+
+    The compound library is queried for exact matches. Many SMILES strings
+    can represent the same compound, so this function is only useful for SMILES
+    strings coming from the PDB. This is also the case for InChI codes,
+    although to a lesser extent.
+
+    :param query: the string to lookup.
+    :type query: :class:`string`
+    :param key: the field into which to look up the query. One of: "smiles",
+      "inchi_code", "inchi_key" or "formula".
+    :type key: :class:`string`
+    :param dialect: the dialect to select for (typically "PDB", or "CHARMM" if
+      your compound library was built with charmm support).
+    :type dialect: :class:`string`
+    :returns: A list of found compounds, or an empty list if no compound was
+      found.
+    :rtype: :class:`list` or :class:`Compound`
+
   .. method:: Copy(dst_filename)
   
     Copy database to dst_filename. The new library will be an exact copy of the 

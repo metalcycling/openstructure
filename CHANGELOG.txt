@@ -12,8 +12,8 @@ Changes in Release 2.6.0
    read (SMILES will be empty, charges set to 0, no information about the
    obsolete status of compounds, with warnings). Older files are no
    longer supported.
- * FindCompound now takes an optional 'by' argument to find compounds by SMILES
-   string, InChI code or InChI key.
+ * New FindCompounds method of CompoundLib to query compounds by SMILES
+   string, InChI code, InChI key or formula.
  * The compound library now reads the "InChI=" part of InChI codes.
  * Several bug fixes and improvements.
 

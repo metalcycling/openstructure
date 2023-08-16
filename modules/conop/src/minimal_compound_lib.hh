@@ -17,8 +17,7 @@ public:
     CompoundLibBase()
   {}
   virtual CompoundPtr FindCompound(const String& id, 
-                                   Compound::Dialect dialect,
-                                   const String& by="tlc") const;
+                                   Compound::Dialect dialect) const;
 private:
   static CompoundMap InitCompounds();
   // since this information is never going to change, it is shared 
