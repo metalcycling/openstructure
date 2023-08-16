@@ -65,6 +65,11 @@ built with OST 1.5.0 or later can be loaded.
     The following keys are available: "tlc" (three-letter-code or compound ID),
     "inchi_code", "inchi_key" and "smiles".
 
+    .. note::
+      Multiple compounds may share the same SMILES string or InChI code or key.
+      An arbitrary compound will be returned, with a preference for a
+      non-obsolete one.
+
     If no compound with that name exists, the function returns None.
 
     Compounds are cached after they have been loaded with FindCompound.
@@ -183,6 +188,20 @@ built with OST 1.5.0 or later can be loaded.
 
     The string is read from the canonical SMILES produced by the
     OpenEye OEToolkits.
+
+    :type: :class:`str`
+
+  .. attribute:: obsolete
+
+    Whether the component has been obsoleted by the PDB.
+
+    :type: :class:`bool`
+
+  .. attribute:: replaced_by
+
+    If the component has been obsoleted by the PDB, this is the three-letter
+    code of the compound that replaces it. This is not set for all obsolete
+    compounds.
 
     :type: :class:`str`
     

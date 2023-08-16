@@ -57,6 +57,7 @@ private:
   Database* db_;
   mutable CompoundMap       compound_cache_;
   bool                      smiles_available_; //whether smiles are available in db - introduced in 2.6.0
+  bool                      obsolete_available_; //whether obsolete info is available in db - introduced in 2.6.0
   bool                      charges_available_; //whether atom charges are available in db - introduced in 2.6.0
   Date                      creation_date_;
   String                    ost_version_used_;

@@ -68,7 +68,9 @@ const char* CREATE_CMD[]={
 "  name              VARCHAR(256),                                              "
 "  inchi_code        TEXT,                                                      "
 "  inchi_key         TEXT,                                                      "
-"  smiles            TEXT                                                       "
+"  smiles            TEXT,                                                      "
+"  obsolete          BOOL,                                                      "
+"  replaced_by       VARCHAR(5)                                                 "
 ");",
 " CREATE UNIQUE INDEX IF NOT EXISTS compound_tlc_index ON chem_compounds        "
 "                                  (tlc, dialect)",
@@ -110,8 +112,9 @@ const char* CREATE_CMD[]={
 
 const char* INSERT_COMPOUND_STATEMENT="INSERT INTO chem_compounds               "
 "        (tlc, olc, dialect, chem_class, chem_type, formula, pdb_initial,       "
-"         pdb_modified, name, inchi_code, inchi_key, smiles) "
-" VALUES (?, ?, ?, ?, ?, ?, DATE(?), DATE(?), ?, ?, ?, ?)";
+"         pdb_modified, name, inchi_code, inchi_key, smiles, obsolete,          "
+"         replaced_by) "
+" VALUES (?, ?, ?, ?, ?, ?, DATE(?), DATE(?), ?, ?, ?, ?, ?, ?)";
 
 const char* INSERT_ATOM_STATEMENT="INSERT INTO atoms                            "
 "        (compound_id, name, alt_name, element, is_aromatic,                    "
@@ -276,6 +279,11 @@ void CompoundLib::AddCompound(const CompoundPtr& compound)
                       compound->GetInchiKey().length(), NULL);
     sqlite3_bind_text(stmt, 12, compound->GetSMILES().c_str(),
                       compound->GetSMILES().length(), NULL);
+    sqlite3_bind_int(stmt, 13, compound->GetObsolete());
+    if (compound->GetReplacedBy() != "") {
+      sqlite3_bind_text(stmt, 14, compound->GetReplacedBy().c_str(),
+                        compound->GetReplacedBy().length(), NULL);
+    }
   } else {
     LOG_ERROR(sqlite3_errmsg(db_->ptr));
     sqlite3_finalize(stmt);
@@ -411,6 +419,14 @@ CompoundLibPtr CompoundLib::Load(const String& database, bool readonly)
   lib->smiles_available_ = retval==SQLITE_OK;
   sqlite3_finalize(stmt);
 
+  // check if obsolete info are available
+  aq="SELECT obsolete, replaced_by FROM chem_compounds LIMIT 1";
+  retval=sqlite3_prepare_v2(lib->db_->ptr, aq.c_str(),
+                            static_cast<int>(aq.length()),
+                            &stmt, NULL);
+  lib->obsolete_available_ = retval==SQLITE_OK;
+  sqlite3_finalize(stmt);
+
   // check if charges are available
   aq="SELECT charge FROM atoms LIMIT 1";
   retval=sqlite3_prepare_v2(lib->db_->ptr, aq.c_str(),
@@ -434,6 +450,11 @@ CompoundLibPtr CompoundLib::Load(const String& database, bool readonly)
     LOG_WARNING("SMILES not available in compound library v."
                 << lib->ost_version_used_
                 << ". Only empty strings will be returned.");
+  }
+  if (!lib->obsolete_available_) {
+    LOG_WARNING("Obsolete information not available in compound library v."
+                << lib->ost_version_used_
+                << ". No compound will be marked as obsolete.");
   }
   if (!lib->charges_available_) {
     LOG_WARNING("Charges not available in compound library v."
@@ -531,8 +552,15 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
   if(smiles_available_) {
     query+=", smiles";
   }
+  if(obsolete_available_) {
+    query+=", obsolete, replaced_by";
+  }
   query+=" FROM chem_compounds"
          " WHERE " + by + "=? AND dialect='"+String(1, char(dialect))+"'";
+  if(obsolete_available_) {
+    // Prefer active compounds, then the ones with a replacement
+    query+=" ORDER BY obsolete, replaced_by NULLS LAST";
+  }
 
   // Run the query
   sqlite3_stmt* stmt;
@@ -568,10 +596,22 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
       if (inchi_key) {
         compound->SetInchiKey(inchi_key);
       }
+      int next_column = 10;
       if (smiles_available_) {
-        const char* smiles=reinterpret_cast<const char*>(sqlite3_column_text(stmt, 10));
+        const char* smiles=reinterpret_cast<const char*>(sqlite3_column_text(stmt, next_column));
+        next_column++;
         if (smiles) {
           compound->SetSMILES(smiles);
+        }
+      }
+      if (obsolete_available_) {
+        bool obsolete=sqlite3_column_int(stmt, next_column);
+        compound->SetObsolete(obsolete);
+        next_column++;
+        const char* replaced_by=reinterpret_cast<const char*>(sqlite3_column_text(stmt, next_column));
+        next_column++;
+        if (replaced_by) {
+          compound->SetReplacedBy(replaced_by);
         }
       }
 
@@ -597,6 +637,7 @@ CompoundLib::CompoundLib():
   db_(new Database),
   compound_cache_(),
   smiles_available_(),
+  obsolete_available_(),
   charges_available_(),
   creation_date_(),
   ost_version_used_() { }

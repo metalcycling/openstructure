@@ -130,6 +130,10 @@ void export_Compound() {
     .add_property("smiles",
                   make_function(&Compound::GetSMILES,
                                 return_value_policy<copy_const_reference>()))
+    .add_property("obsolete", &Compound::GetObsolete)
+    .add_property("replaced_by",
+                  make_function(&Compound::GetReplacedBy,
+                                return_value_policy<copy_const_reference>()))
   ;
   
   class_<AtomSpec>("AtomSpec", no_init)

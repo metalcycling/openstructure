@@ -1,4 +1,5 @@
 import unittest
+
 from ost import mol, conop
 
 
@@ -22,6 +23,28 @@ class TestCompound(unittest.TestCase):
                         "InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1")
         self.assertEqual(compound.inchi_key, "QNAYBMKLOCPYGJ-REOHCLBHSA-N")
         self.assertEqual(compound.smiles, "C[C@@H](C(=O)O)N"  )
+
+    def testFindCompoundBySMILES(self):
+        """ Test FindCompound by="smiles"."""
+        compound = self.compound_lib.FindCompound('O', by="smiles")
+        self.assertNotEqual(compound, None)
+        self.assertEqual(compound.smiles, 'O')
+
+        # Now we should prefer a non-obsolete compound
+        # Default ordering has DIS as first pick but FindCompound should sort
+        # active compounds first.
+        # This assumes there are non-obsolete O/HOH compounds in the compound
+        # lib, which should always be the case.
+        self.assertFalse(compound.obsolete)
+
+    def testFindCompoundByInChI(self):
+        """ Test FindCompound by="inchi_code|key"."""
+        inchi_code = "InChI=1/H2O/h1H2"
+        inchi_key = "XLYOFNOQVPJJNP-UHFFFAOYAF"
+        compound = self.compound_lib.FindCompound(inchi_code, by="inchi_code")
+        self.assertNotEqual(compound, None)
+        self.assertEqual(compound.inchi, inchi_code)
+        self.assertEqual(compound.inchi_key, inchi_key)
 
      
 if __name__=='__main__':

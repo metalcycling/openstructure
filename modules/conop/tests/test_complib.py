@@ -44,6 +44,18 @@ class TestCompLib(unittest.TestCase):
         self.assertTrue(comp_nh4.atom_specs[0].charge == 1)
         self.assertTrue(comp_nh4.atom_specs[1].charge == 0)
 
+    def test_obsolete(self):
+        complib = self.complib
+        comp_ox = complib.FindCompound("OX")
+        # First test that we do get data
+        self.assertTrue(comp_ox.smiles == "O")
+        # Now the obsolete part
+        self.assertTrue(comp_ox.obsolete)
+        self.assertTrue(comp_ox.replaced_by == "O")
+        # Ensure not everything is obsolete
+        comp_001 = complib.FindCompound("001")
+        self.assertFalse(comp_001.obsolete)
+
     def test_default_lib_version(self):
         compound_lib = conop.GetDefaultLib()
         if compound_lib is None:
