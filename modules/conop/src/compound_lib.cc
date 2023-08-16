@@ -559,7 +559,7 @@ CompoundPtr CompoundLib::FindCompound(const String& id,
          " WHERE " + by + "=? AND dialect='"+String(1, char(dialect))+"'";
   if(obsolete_available_) {
     // Prefer active compounds, then the ones with a replacement
-    query+=" ORDER BY obsolete, replaced_by NULLS LAST";
+    query+=" ORDER BY obsolete, replaced_by IS NULL";
   }
 
   // Run the query
