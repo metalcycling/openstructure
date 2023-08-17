@@ -73,16 +73,20 @@ built with OST 1.5.0 or later can be loaded.
     Lookup one or more compound by SMILES string, InChI code, InChI key or
     formula.
 
-    The compound library is queried for exact matches. Many SMILES strings
-    can represent the same compound, so this function is only useful for SMILES
-    strings coming from the PDB. This is also the case for InChI codes,
-    although to a lesser extent.
+    The compound library is queried for exact string matches. Many SMILES
+    strings can represent the same compound, so this function is only useful
+    for SMILES strings coming from the PDB (or canonical SMILES from the
+    OpenEye Toolkits). This is also the case for InChI codes, although to a
+    lesser extent.
+
+    Obsolete compounds will be sorted at the back of the list. However, there
+    is no guarantee that the first compound is active.
 
     :param query: the string to lookup.
     :type query: :class:`string`
-    :param key: the field into which to look up the query. One of: "smiles",
+    :param by: the key into which to lookup for the query. One of: "smiles",
       "inchi_code", "inchi_key" or "formula".
-    :type key: :class:`string`
+    :type by: :class:`string`
     :param dialect: the dialect to select for (typically "PDB", or "CHARMM" if
       your compound library was built with charmm support).
     :type dialect: :class:`string`
