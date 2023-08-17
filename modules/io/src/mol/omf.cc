@@ -75,6 +75,773 @@ namespace{
              norm_n[2]*sin_dihedral*bond_length_x_sin_angle + C[2];
   }
 
+  inline Real PeptideBond() {
+    return 1.33;
+  }
+
+  inline Real N_CA_Bond(char olc) {
+    return 1.46;
+  }
+
+  inline Real CA_C_Bond(char olc) {
+    return 1.52;
+  }
+
+  inline Real CA_CB_Bond(char olc) {
+    return 1.52;
+  }
+
+  inline Real C_CA_CB_Angle(char olc) {
+    return 1.9111;
+  }
+
+  inline Real CA_C_N_Angle(char olc) {
+    return 2.0358;
+  }
+
+  inline Real C_N_CA_Angle(char olc) {
+    return 2.1185;
+  }
+
+  inline Real N_CA_C_Angle(char olc) {
+    switch(olc) {
+      case 'G': {
+        return 1.9354;
+      }
+      case 'A': {
+        return 1.9385;
+      }
+      case 'S': {
+        return 1.9422;
+      }
+      case 'C': {
+        return 1.9353;
+      }
+      case 'V': {
+        return 1.9158;
+      }
+      case 'I': {
+        return 1.9150;
+      }
+      case 'L': {
+        return 1.9350;
+      }
+      case 'T': {
+        return 1.9321;
+      }
+      case 'R': {
+        return 1.9370;
+      }
+      case 'K': {
+        return 1.9387;
+      }
+      case 'D': {
+        return 1.9378;
+      }
+      case 'N': {
+        return 1.9460;
+      }
+      case 'E': {
+        return 1.9403;
+      }
+      case 'Q': {
+        return 1.9388;
+      }
+      case 'M': {
+        return 1.9363;
+      }
+      case 'H': {
+        return 1.9388;
+      }
+      case 'P': {
+        return 1.9679;
+      }
+      case 'F': {
+        return 1.9330;
+      }
+      case 'Y': {
+        return 1.9361;
+      }
+      case 'W': {
+        return 1.9354;
+      }
+      default: {
+        return 1.94;
+      }
+    }
+  }
+
+
+  inline Real N_C_CA_CB_DiAngle(char olc) {
+    switch(olc) {
+      case 'A': {
+        return 2.1413;
+      }
+      case 'S': {
+        return 2.1409;
+      }
+      case 'C': {
+        return 2.1381;
+      }
+      case 'V': {
+        return 2.1509;
+      }
+      case 'I': {
+        return 2.1509;
+      }
+      case 'L': {
+        return 2.1379;
+      }
+      case 'T': {
+        return 2.1484;
+      }
+      case 'R': {
+        return 2.1426;
+      }
+      case 'K': {
+        return 2.1426;
+      }
+      case 'D': {
+        return 2.1436;
+      }
+      case 'N': {
+        return 2.1507;
+      }
+      case 'E': {
+        return 2.1445;
+      }
+      case 'Q': {
+        return 2.1435;
+      }
+      case 'M': {
+        return 2.1411;
+      }
+      case 'H': {
+        return 2.1410;
+      }
+      case 'P': {
+        return 2.0123;
+      }
+      case 'F': {
+        return 2.1399;
+      }
+      case 'Y': {
+        return 2.1398;
+      }
+      case 'W': {
+        return 2.1400;
+      }
+      default: {
+        return 2.14;
+      }
+    }
+  }
+
+  void FillInferredTriPeptideIndices(const ost::io::ResidueDefinition& def_one,
+                                     const ost::io::ResidueDefinition& def_two,
+                                     const ost::io::ResidueDefinition& def_three,
+                                     int res_idx,
+                                     std::vector<std::set<int> >& indices) {
+    indices[res_idx].insert(def_one.GetIdx("N"));
+    indices[res_idx].insert(def_one.GetIdx("C"));
+    int cb_idx = def_one.GetIdx("CB");
+    if(cb_idx != -1) {
+      indices[res_idx].insert(cb_idx);
+    }
+    indices[res_idx+1].insert(def_two.GetIdx("N"));
+    indices[res_idx+1].insert(def_two.GetIdx("C"));
+    cb_idx = def_two.GetIdx("CB");
+    if(cb_idx != -1) {
+      indices[res_idx+1].insert(cb_idx);
+    }
+    indices[res_idx+2].insert(def_three.GetIdx("N"));
+    indices[res_idx+2].insert(def_three.GetIdx("C"));
+    cb_idx = def_three.GetIdx("CB");
+    if(cb_idx != -1) {
+      indices[res_idx+2].insert(cb_idx);
+    }
+  }
+
+  void FillInferredRotIndices(const ost::io::ResidueDefinition& def,
+                              int res_idx,
+                              std::vector<std::set<int> >& inferred_indices) {
+    const std::vector<ost::io::SidechainAtomRule>& at_rules =
+    def.GetSidechainAtomRules();
+    for(auto it = at_rules.begin(); it != at_rules.end(); ++it) {
+      inferred_indices[res_idx].insert(it->sidechain_atom_idx);
+    }
+  }
+
+  bool EncodeTriPeptide(const ost::io::ResidueDefinition& def_one,
+                        const ost::io::ResidueDefinition& def_two,
+                        const ost::io::ResidueDefinition& def_three,
+                        Real error_thresh,
+                        const std::vector<geom::Vec3>& ref_positions,
+                        int res_idx,
+                        int res_start_idx,
+                        std::vector<std::set<int> >& skip_indices,
+                        std::vector<geom::Vec3>& positions,
+                        std::vector<uint8_t>& data) {
+
+    // extracts data required to reconstruct positions
+    // if max reconstruction error is below specified threshold,
+    // the reconstructed positions are directly fed back into
+    // positions. res_idx, res_start_idx and skip_indices are updated.
+    // That means: in case of successful reconstruction res_idx is
+    // incremented by 3, 1 otherwise. res_start_idx is updated too to
+    // point to the start atom of res_idx
+
+    Real max_error = 0.0;
+
+    int n_one_idx = def_one.GetIdx("N");
+    int ca_one_idx = def_one.GetIdx("CA");
+    int c_one_idx = def_one.GetIdx("C");
+    int n_two_idx = def_two.GetIdx("N");
+    int ca_two_idx = def_two.GetIdx("CA");
+    int c_two_idx = def_two.GetIdx("C");
+    int n_three_idx = def_three.GetIdx("N");
+    int ca_three_idx = def_three.GetIdx("CA");
+    int c_three_idx = def_three.GetIdx("C");
+
+    if(n_one_idx == -1 || ca_one_idx == -1 || c_one_idx == -1 ||
+       n_two_idx == -1 || ca_two_idx == -1 || c_two_idx == -1 ||
+       n_three_idx == -1 || ca_three_idx == -1 || c_three_idx == -1) {
+      return false;
+    }
+
+    // CBeta are optional
+    int cb_one_idx = def_one.GetIdx("CB");
+    int cb_two_idx = def_two.GetIdx("CB");
+    int cb_three_idx = def_three.GetIdx("CB");
+
+    int def_one_size = def_one.anames.size();
+    int def_two_size = def_two.anames.size();
+
+    n_one_idx += res_start_idx;
+    ca_one_idx += res_start_idx;
+    c_one_idx += res_start_idx;
+    n_two_idx += (res_start_idx + def_one_size); 
+    ca_two_idx += (res_start_idx + def_one_size); 
+    c_two_idx += (res_start_idx + def_one_size); 
+    n_three_idx += (res_start_idx + def_one_size + def_two_size); 
+    ca_three_idx += (res_start_idx + def_one_size + def_two_size); 
+    c_three_idx += (res_start_idx + def_one_size + def_two_size);
+
+    if(cb_one_idx != -1) {
+      cb_one_idx += res_start_idx;
+    }
+
+    if(cb_two_idx != -1) {
+      cb_two_idx += (res_start_idx + def_one_size);
+    }
+
+    if(cb_three_idx != -1) {
+      cb_three_idx += (res_start_idx + def_one_size + def_two_size);
+    }
+
+    // derive parameters to reconstruct c_two
+    /////////////////////////////////////////
+    Real da_c_two = geom::DihedralAngle(positions[ca_one_idx],
+                                        positions[ca_three_idx],
+                                        positions[ca_two_idx],
+                                        ref_positions[c_two_idx]);
+    Real a_c_two = geom::Angle(positions[ca_three_idx] - positions[ca_two_idx],
+                               ref_positions[c_two_idx] - positions[ca_two_idx]);
+    uint8_t int_da_c_two = round((da_c_two + M_PI)/(2*M_PI)*255);
+    uint8_t int_a_c_two = round((a_c_two)/(M_PI)*255);
+    geom::Vec3 reconstructed_c_two;
+    ConstructAtomPos(positions[ca_one_idx], positions[ca_three_idx],
+                     positions[ca_two_idx], CA_C_Bond(def_two.olc),
+                     static_cast<Real>(int_a_c_two)/255*M_PI,
+                     static_cast<Real>(int_da_c_two)/255*2*M_PI-M_PI,
+                     reconstructed_c_two);
+    max_error = std::max(max_error, geom::Distance(reconstructed_c_two,
+                                                   ref_positions[c_two_idx]));
+
+    // derive parameters to reconstruct n_two
+    /////////////////////////////////////////
+    Real da_n_two = geom::DihedralAngle(positions[ca_one_idx],
+                                        positions[ca_three_idx],
+                                        positions[ca_two_idx],
+                                        ref_positions[n_two_idx]);
+    Real a_n_two = geom::Angle(positions[ca_three_idx] - positions[ca_two_idx],
+                               ref_positions[n_two_idx] - positions[ca_two_idx]);
+    uint8_t int_da_n_two = round((da_n_two + M_PI)/(2*M_PI)*255);
+    uint8_t int_a_n_two = round((a_n_two)/(M_PI)*255);
+    geom::Vec3 reconstructed_n_two;
+    ConstructAtomPos(positions[ca_one_idx], positions[ca_three_idx],
+                     positions[ca_two_idx], N_CA_Bond(def_two.olc),
+                     static_cast<Real>(int_a_n_two)/255*M_PI,
+                     static_cast<Real>(int_da_n_two)/255*2*M_PI-M_PI,
+                     reconstructed_n_two);
+    max_error = std::max(max_error, geom::Distance(reconstructed_n_two,
+                                                   ref_positions[n_two_idx]));
+
+    // derive parameters to reconstruct n_three
+    ///////////////////////////////////////////
+    Real da_n_three = geom::DihedralAngle(reconstructed_n_two,
+                                          positions[ca_two_idx],
+                                          reconstructed_c_two,
+                                          ref_positions[n_three_idx]);
+    Real a_n_three = geom::Angle(positions[ca_two_idx] - reconstructed_c_two,
+                                 ref_positions[n_three_idx] - reconstructed_c_two);
+    uint8_t int_da_n_three = round((da_n_three + M_PI)/(2*M_PI)*255);
+    // store angle as diff to ideal angle
+    Real diff = a_n_three-CA_C_N_Angle(def_two.olc);
+    // quantization by 0.5 degrees => 0.0087 in radians
+    int int_diff = round(diff/0.0087);
+    // make it fit in 4 bits
+    uint8_t int_a_n_three = std::min(8, std::max(-7, int_diff)) + 7;
+    
+    geom::Vec3 reconstructed_n_three;
+    ConstructAtomPos(reconstructed_n_two,
+                     positions[ca_two_idx],
+                     reconstructed_c_two, PeptideBond(),
+                     CA_C_N_Angle(def_two.olc) + (int_a_n_three-7)*0.0087,
+                     static_cast<Real>(int_da_n_three)/255*2*M_PI-M_PI,
+                     reconstructed_n_three);
+    max_error = std::max(max_error, geom::Distance(reconstructed_n_three,
+                                                   ref_positions[n_three_idx]));
+
+    // derive parameters to reconstruct c_three
+    ///////////////////////////////////////////
+    Real da_c_three = geom::DihedralAngle(reconstructed_c_two,
+                                          reconstructed_n_three,
+                                          positions[ca_three_idx],
+                                          ref_positions[c_three_idx]);
+    Real a_c_three = geom::Angle(reconstructed_n_three - positions[ca_three_idx],
+                                 ref_positions[c_three_idx] - positions[ca_three_idx]);
+    uint8_t int_da_c_three = round((da_c_three + M_PI)/(2*M_PI)*255);
+    // store angle as diff to ideal angle derived from N_CA_C_Angle function
+    diff = a_c_three-N_CA_C_Angle(def_three.olc);
+    // quantization by 0.5 degrees => 0.0087 in radians
+    int_diff = round(diff/0.0087);
+    // make it fit in 4 bits
+    uint8_t int_a_c_three = std::min(8, std::max(-7, int_diff)) + 7;
+    
+    geom::Vec3 reconstructed_c_three;
+    ConstructAtomPos(reconstructed_c_two,
+                     reconstructed_n_three,
+                     positions[ca_three_idx], CA_C_Bond(def_three.olc),
+                     N_CA_C_Angle(def_three.olc) + (int_a_c_three-7)*0.0087,
+                     static_cast<Real>(int_da_c_three)/255*2*M_PI-M_PI,
+                     reconstructed_c_three);
+    max_error = std::max(max_error, geom::Distance(reconstructed_c_three,
+                                                   ref_positions[c_three_idx]));
+
+    // derive parameters to reconstruct c_one
+    /////////////////////////////////////////
+    Real da_c_one = geom::DihedralAngle(reconstructed_c_two,
+                                        positions[ca_two_idx],
+                                        reconstructed_n_two,
+                                        ref_positions[c_one_idx]);
+    Real a_c_one = geom::Angle(positions[ca_two_idx] - reconstructed_n_two,
+                               ref_positions[c_one_idx] - reconstructed_n_two);
+    uint8_t int_da_c_one = round((da_c_one + M_PI)/(2*M_PI)*255);
+    // store angle as diff to ideal peptide angle
+    diff = a_c_one-C_N_CA_Angle(def_two.olc);
+    // quantization by 0.5 degrees => 0.0087 in radians
+    int_diff = round(diff/0.0087);
+    // make it fit in 4 bits
+    uint8_t int_a_c_one = std::min(8, std::max(-7, int_diff)) + 7;
+    
+    geom::Vec3 reconstructed_c_one;
+    ConstructAtomPos(reconstructed_c_two,
+                     positions[ca_two_idx],
+                     reconstructed_n_two, PeptideBond(),
+                     C_N_CA_Angle(def_two.olc) + (int_a_c_one-7)*0.0087,
+                     static_cast<Real>(int_da_c_one)/255*2*M_PI-M_PI,
+                     reconstructed_c_one);
+    max_error = std::max(max_error, geom::Distance(reconstructed_c_one,
+                                                   ref_positions[c_one_idx]));
+
+    // derive parameters to reconstruct n_one
+    /////////////////////////////////////////
+    Real da_n_one = geom::DihedralAngle(reconstructed_n_two,
+                                        reconstructed_c_one,
+                                        positions[ca_one_idx],
+                                        ref_positions[n_one_idx]);
+    Real a_n_one = geom::Angle(reconstructed_c_one - positions[ca_one_idx],
+                               ref_positions[n_one_idx] - positions[ca_one_idx]);
+    uint8_t int_da_n_one = round((da_n_one + M_PI)/(2*M_PI)*255);
+    // store angle as diff to ideal angle derived from N_CA_C_Angle function
+    diff = a_n_one-N_CA_C_Angle(def_one.olc);
+    // quantization by 0.5 degrees => 0.0087 in radians
+    int_diff = round(diff/0.0087);
+    // make it fit in 4 bits
+    uint8_t int_a_n_one = std::min(8, std::max(-7, int_diff)) + 7;
+    
+    geom::Vec3 reconstructed_n_one;
+    ConstructAtomPos(reconstructed_n_two,
+                     reconstructed_c_one,
+                     positions[ca_one_idx], N_CA_Bond(def_one.olc),
+                     N_CA_C_Angle(def_one.olc) + (int_a_n_one-7)*0.0087,
+                     static_cast<Real>(int_da_n_one)/255*2*M_PI-M_PI,
+                     reconstructed_n_one);
+    max_error = std::max(max_error, geom::Distance(reconstructed_n_one,
+                                                   ref_positions[n_one_idx]));
+
+    // derive parameters to reconstruct cbetas
+    //////////////////////////////////////////
+    std::vector<uint8_t> cb_data;
+    geom::Vec3 reconstructed_cb_one;
+    geom::Vec3 reconstructed_cb_two;
+    geom::Vec3 reconstructed_cb_three;
+    if(cb_one_idx != -1) {
+      Real da_cb = geom::DihedralAngle(reconstructed_n_one,
+                                       reconstructed_c_one,
+                                       positions[ca_one_idx],
+                                       ref_positions[cb_one_idx]);
+      diff = da_cb - N_C_CA_CB_DiAngle(def_one.olc);
+      // quantization by 0.5 degrees => 0.0087 in radians
+      int_diff = round(diff/0.0087);
+      uint8_t int_da_cb = std::min(8, std::max(-7, int_diff)) + 7;
+
+      Real a_cb = geom::Angle(reconstructed_c_one - positions[ca_one_idx],
+                              ref_positions[cb_one_idx] - positions[ca_one_idx]);
+      diff = a_cb - C_CA_CB_Angle(def_one.olc);
+      // quantization by 0.5 degrees => 0.0087 in radians
+      int_diff = round(diff/0.0087);
+      uint8_t int_a_cb = std::min(8, std::max(-7, int_diff)) + 7;
+
+      ConstructAtomPos(reconstructed_n_one,
+                       reconstructed_c_one,
+                       positions[ca_one_idx], CA_CB_Bond(def_one.olc),
+                       C_CA_CB_Angle(def_one.olc) + (static_cast<int>(int_a_cb)-7)*0.0087,
+                       N_C_CA_CB_DiAngle(def_one.olc) + (int_da_cb-7) * 0.0087,
+                       reconstructed_cb_one);
+      max_error = std::max(max_error, geom::Distance(reconstructed_cb_one,
+                                                     ref_positions[cb_one_idx]));
+      cb_data.push_back(int_a_cb);
+      cb_data.back() += (int_da_cb << 4);
+    }
+
+    if(cb_two_idx != -1) {
+      Real da_cb = geom::DihedralAngle(reconstructed_n_two,
+                                       reconstructed_c_two,
+                                       positions[ca_two_idx],
+                                       ref_positions[cb_two_idx]);
+      diff = da_cb - N_C_CA_CB_DiAngle(def_two.olc);
+      // quantization by 0.5 degrees => 0.0087 in radians
+      int_diff = round(diff/0.0087);
+      uint8_t int_da_cb = std::min(8, std::max(-7, int_diff)) + 7;
+
+      Real a_cb = geom::Angle(reconstructed_c_two - positions[ca_two_idx],
+                              ref_positions[cb_two_idx] - positions[ca_two_idx]);
+      diff = a_cb - C_CA_CB_Angle(def_two.olc);
+      // quantization by 0.5 degrees => 0.0087 in radians
+      int_diff = round(diff/0.0087);
+      uint8_t int_a_cb = std::min(8, std::max(-7, int_diff)) + 7;
+
+      ConstructAtomPos(reconstructed_n_two,
+                       reconstructed_c_two,
+                       positions[ca_two_idx], CA_CB_Bond(def_two.olc),
+                       C_CA_CB_Angle(def_two.olc) + (int_a_cb-7)*0.0087,
+                       N_C_CA_CB_DiAngle(def_two.olc) + (int_da_cb-7) * 0.0087,
+                       reconstructed_cb_two);
+      max_error = std::max(max_error, geom::Distance(reconstructed_cb_two,
+                                                     ref_positions[cb_two_idx]));
+      cb_data.push_back(int_a_cb);
+      cb_data.back() += (int_da_cb << 4);
+    } 
+
+    if(cb_three_idx != -1) {
+      Real da_cb = geom::DihedralAngle(reconstructed_n_three,
+                                       reconstructed_c_three,
+                                       positions[ca_three_idx],
+                                       ref_positions[cb_three_idx]);
+      diff = da_cb - N_C_CA_CB_DiAngle(def_three.olc);
+      // quantization by 0.5 degrees => 0.0087 in radians
+      int_diff = round(diff/0.0087);
+      uint8_t int_da_cb = std::min(8, std::max(-7, int_diff)) + 7;
+
+      Real a_cb = geom::Angle(reconstructed_c_three - positions[ca_three_idx],
+                              ref_positions[cb_three_idx] - positions[ca_three_idx]);
+      diff = a_cb - C_CA_CB_Angle(def_three.olc);
+      // quantization by 0.5 degrees => 0.0087 in radians
+      int_diff = round(diff/0.0087);
+      uint8_t int_a_cb = std::min(8, std::max(-7, int_diff)) + 7;
+
+      ConstructAtomPos(reconstructed_n_three,
+                       reconstructed_c_three,
+                       positions[ca_three_idx], CA_CB_Bond(def_three.olc),
+                       C_CA_CB_Angle(def_three.olc) + (int_a_cb-7)*0.0087,
+                       N_C_CA_CB_DiAngle(def_three.olc) + (int_da_cb-7) * 0.0087,
+                       reconstructed_cb_three);
+      max_error = std::max(max_error, geom::Distance(reconstructed_cb_three,
+                                                     ref_positions[cb_three_idx]));
+      cb_data.push_back(int_a_cb);
+      cb_data.back() += (int_da_cb << 4);
+    } 
+
+    if(max_error < error_thresh) {
+      positions[n_one_idx] = reconstructed_n_one;
+      positions[c_one_idx] = reconstructed_c_one;
+      positions[n_two_idx] = reconstructed_n_two;
+      positions[c_two_idx] = reconstructed_c_two;
+      positions[n_three_idx] = reconstructed_n_three;
+      positions[c_three_idx] = reconstructed_c_three;
+
+      if(cb_one_idx != -1) {
+        positions[cb_one_idx] = reconstructed_cb_one;
+      }
+
+      if(cb_two_idx != -1) {
+        positions[cb_two_idx] = reconstructed_cb_two;
+      }
+
+      if(cb_three_idx != -1) {
+        positions[cb_three_idx] = reconstructed_cb_three;
+      }
+
+      FillInferredTriPeptideIndices(def_one, def_two, def_three, res_idx,
+                                    skip_indices);
+
+      // push back dihedrals to data
+      data.push_back(int_da_c_two);
+      data.push_back(int_da_n_two);
+      data.push_back(int_da_n_three);
+      data.push_back(int_da_c_three);
+      data.push_back(int_da_c_one);
+      data.push_back(int_da_n_one);
+
+      // push back angles to data
+      data.push_back(int_a_c_two);
+      data.push_back(int_a_n_two);
+
+      // angle diffs have some bit shifting magic
+      data.push_back(int_a_n_three + (int_a_c_three << 4));
+      data.push_back(int_a_c_one + (int_a_n_one << 4));
+
+      // add cb data
+      data.insert(data.end(), cb_data.begin(), cb_data.end());
+
+      return true;
+    }
+    return false;
+  }
+
+  bool EncodePepRotamer(const ost::io::ResidueDefinition& def, Real error_thresh,
+                        const std::vector<geom::Vec3>& ref_positions,
+                        int res_idx, int res_start_idx,
+                        std::vector<std::set<int> >& skip_indices,
+                        std::vector<geom::Vec3>& positions,
+                        std::vector<uint8_t>& chi_angles) {
+
+    int res_n_atoms = def.anames.size();
+    std::vector<geom::Vec3> res_ref_positions(ref_positions.begin() + res_start_idx,
+                                              ref_positions.begin() + res_start_idx + res_n_atoms);
+    std::vector<geom::Vec3> res_positions(positions.begin() + res_start_idx,
+                                          positions.begin() + res_start_idx + res_n_atoms);
+    std::vector<bool> angle_set(def.chi_definitions.size(), false);
+    std::vector<uint8_t> comp_angles(def.chi_definitions.size(), 0);
+
+    const std::vector<ost::io::SidechainAtomRule>& at_rules =
+    def.GetSidechainAtomRules();
+    for(auto it = at_rules.begin(); it != at_rules.end(); ++it) {
+      Real dihedral = it->base_dihedral;
+      if(it->dihedral_idx != 4) {
+        if(!angle_set[it->dihedral_idx]) {
+          const ost::io::ChiDefinition& chi_def = def.chi_definitions[it->dihedral_idx];
+          Real a = geom::DihedralAngle(res_positions[chi_def.idx_one],
+                                       res_positions[chi_def.idx_two],
+                                       res_positions[chi_def.idx_three],
+                                       res_ref_positions[chi_def.idx_four]);
+          comp_angles[it->dihedral_idx] = std::round((a + M_PI)/(2*M_PI)*255);
+          angle_set[it->dihedral_idx] = true;
+        }
+        uint8_t comp_angle = comp_angles[it->dihedral_idx];
+        dihedral += static_cast<Real>(comp_angle)/255*2*M_PI-M_PI;
+      }
+      ConstructAtomPos(res_positions[it->anchor_idx[0]],
+                       res_positions[it->anchor_idx[1]],
+                       res_positions[it->anchor_idx[2]],
+                       it->bond_length, it->angle, dihedral,
+                       res_positions[it->sidechain_atom_idx]);
+      if(geom::Distance(res_positions[it->sidechain_atom_idx],
+                        res_ref_positions[it->sidechain_atom_idx]) > error_thresh) {
+        return false;
+      }
+    }
+
+    chi_angles.insert(chi_angles.end(), comp_angles.begin(),
+                      comp_angles.end());
+    FillInferredRotIndices(def, res_idx, skip_indices);
+    for(auto it = at_rules.begin(); it != at_rules.end(); ++it) {
+      positions[res_start_idx + it->sidechain_atom_idx] =
+      res_positions[it->sidechain_atom_idx];
+    }
+    return true;
+  }
+
+  void DecodeTriPeptide(const ost::io::ResidueDefinition& def_one,
+                        const ost::io::ResidueDefinition& def_two,
+                        const ost::io::ResidueDefinition& def_three,
+                        int res_start_idx,
+                        uint8_t*& data,
+                        std::vector<geom::Vec3>& positions) {
+
+    int n_one_idx = def_one.GetIdx("N");
+    int ca_one_idx = def_one.GetIdx("CA");
+    int c_one_idx = def_one.GetIdx("C");
+    int n_two_idx = def_two.GetIdx("N");
+    int ca_two_idx = def_two.GetIdx("CA");
+    int c_two_idx = def_two.GetIdx("C");
+    int n_three_idx = def_three.GetIdx("N");
+    int ca_three_idx = def_three.GetIdx("CA");
+    int c_three_idx = def_three.GetIdx("C");
+    int cb_one_idx = def_one.GetIdx("CB");
+    int cb_two_idx = def_two.GetIdx("CB");
+    int cb_three_idx = def_three.GetIdx("CB");
+
+    int def_one_size = def_one.anames.size();
+    int def_two_size = def_two.anames.size();
+
+    n_one_idx += res_start_idx;
+    ca_one_idx += res_start_idx;
+    c_one_idx += res_start_idx;
+    n_two_idx += (res_start_idx + def_one_size);
+    ca_two_idx += (res_start_idx + def_one_size);
+    c_two_idx += (res_start_idx + def_one_size);
+    n_three_idx += (res_start_idx + def_one_size + def_two_size);
+    ca_three_idx += (res_start_idx + def_one_size + def_two_size);
+    c_three_idx += (res_start_idx + def_one_size + def_two_size);
+
+    if(cb_one_idx != -1) {
+      cb_one_idx += res_start_idx;
+    }
+
+    if(cb_two_idx != -1) {
+      cb_two_idx += (res_start_idx + def_one_size);
+    }
+
+    if(cb_three_idx != -1) {
+      cb_three_idx += (res_start_idx + def_one_size + def_two_size);
+    }
+
+    int int_da_c_two = data[0];
+    int int_da_n_two = data[1];
+    int int_da_n_three = data[2];
+    int int_da_c_three = data[3];
+    int int_da_c_one = data[4];
+    int int_da_n_one = data[5];
+
+    int int_a_c_two = data[6];
+    int int_a_n_two = data[7];
+
+    int int_a_n_three = data[8] & 15; // 15 => 0000 1111
+    int int_a_c_three = (data[8] & 240) >> 4; // 240 => 1111 0000
+
+    int int_a_c_one = data[9] & 15;
+    int int_a_n_one = (data[9] & 240) >> 4;
+
+    // update data ptr
+    data += 10;
+
+    ConstructAtomPos(positions[ca_one_idx],
+                     positions[ca_three_idx],
+                     positions[ca_two_idx], CA_C_Bond(def_two.olc),
+                     static_cast<Real>(int_a_c_two)/255*M_PI,
+                     static_cast<Real>(int_da_c_two)/255*2*M_PI-M_PI,
+                     positions[c_two_idx]);
+
+    ConstructAtomPos(positions[ca_one_idx],
+                     positions[ca_three_idx],
+                     positions[ca_two_idx], N_CA_Bond(def_two.olc),
+                     static_cast<Real>(int_a_n_two)/255*M_PI,
+                     static_cast<Real>(int_da_n_two)/255*2*M_PI-M_PI,
+                     positions[n_two_idx]);
+
+    ConstructAtomPos(positions[n_two_idx],
+                     positions[ca_two_idx],
+                     positions[c_two_idx], PeptideBond(),
+                     CA_C_N_Angle(def_two.olc) + (int_a_n_three-7)*0.0087,
+                     static_cast<Real>(int_da_n_three)/255*2*M_PI-M_PI,
+                     positions[n_three_idx]);
+
+    ConstructAtomPos(positions[c_two_idx],
+                     positions[n_three_idx],
+                     positions[ca_three_idx], CA_C_Bond(def_three.olc),
+                     N_CA_C_Angle(def_three.olc) + (int_a_c_three-7)*0.0087,
+                     static_cast<Real>(int_da_c_three)/255*2*M_PI-M_PI,
+                     positions[c_three_idx]);
+
+    ConstructAtomPos(positions[c_two_idx],
+                     positions[ca_two_idx],
+                     positions[n_two_idx], PeptideBond(),
+                     C_N_CA_Angle(def_two.olc) + (int_a_c_one-7)*0.0087,
+                     static_cast<Real>(int_da_c_one)/255*2*M_PI-M_PI,
+                     positions[c_one_idx]);
+
+    ConstructAtomPos(positions[n_two_idx],
+                     positions[c_one_idx],
+                     positions[ca_one_idx], N_CA_Bond(def_one.olc),
+                     N_CA_C_Angle(def_one.olc) + (int_a_n_one-7)*0.0087,
+                     static_cast<Real>(int_da_n_one)/255*2*M_PI-M_PI,
+                     positions[n_one_idx]);
+
+    if(cb_one_idx != -1) {
+      int int_a_cb = *data & 15;
+      int int_da_cb = (*data & 240) >> 4;
+      ++data;
+      ConstructAtomPos(positions[n_one_idx],
+                       positions[c_one_idx],
+                       positions[ca_one_idx], CA_CB_Bond(def_one.olc),
+                       C_CA_CB_Angle(def_one.olc) + (int_a_cb-7)*0.0087,
+                       N_C_CA_CB_DiAngle(def_one.olc) + (int_da_cb-7) * 0.0087,
+                       positions[cb_one_idx]); 
+    }
+
+    if(cb_two_idx != -1) {
+      int int_a_cb = *data & 15;
+      int int_da_cb = (*data & 240) >> 4;
+      ++data;
+      ConstructAtomPos(positions[n_two_idx],
+                       positions[c_two_idx],
+                       positions[ca_two_idx], CA_CB_Bond(def_two.olc),
+                       C_CA_CB_Angle(def_two.olc) + (int_a_cb-7)*0.0087,
+                       N_C_CA_CB_DiAngle(def_two.olc) + (int_da_cb-7) * 0.0087,
+                       positions[cb_two_idx]); 
+    }
+
+    if(cb_three_idx != -1) {
+      int int_a_cb = *data & 15;
+      int int_da_cb = (*data & 240) >> 4;
+      ++data;
+      ConstructAtomPos(positions[n_three_idx],
+                       positions[c_three_idx],
+                       positions[ca_three_idx], CA_CB_Bond(def_three.olc),
+                       C_CA_CB_Angle(def_three.olc) + (int_a_cb-7)*0.0087,
+                       N_C_CA_CB_DiAngle(def_three.olc) + (int_da_cb-7) * 0.0087,
+                       positions[cb_three_idx]); 
+    }
+  }
+
+  void DecodePepRotamer(const ost::io::ResidueDefinition& def,
+                        int res_start_idx, uint8_t*& data_ptr,
+                        std::vector<geom::Vec3>& positions) {
+    const std::vector<ost::io::SidechainAtomRule>& at_rules =
+    def.GetSidechainAtomRules();
+
+    std::vector<Real> dihedral_angles;
+    for(int i = 0; i < def.GetNChiAngles(); ++i) {
+      dihedral_angles.push_back(static_cast<Real>(*data_ptr)/255*2*M_PI-M_PI);
+      ++data_ptr;
+    }
+
+    for(auto it = at_rules.begin(); it != at_rules.end(); ++it) {
+      Real dihedral = it->base_dihedral;
+      if(it->dihedral_idx != 4) {
+        dihedral += dihedral_angles[it->dihedral_idx];
+      }
+      ConstructAtomPos(positions[res_start_idx+it->anchor_idx[0]],
+                       positions[res_start_idx+it->anchor_idx[1]],
+                       positions[res_start_idx+it->anchor_idx[2]],
+                       it->bond_length, it->angle, dihedral,
+                       positions[res_start_idx+it->sidechain_atom_idx]);
+    }
+  }
+
   // some hash function we need for an unordered_map
   // stolen from https://stackoverflow.com/questions/32685540/why-cant-i-compile-an-unordered-map-with-a-pair-as-key
   struct pair_hash {
@@ -697,23 +1464,6 @@ namespace{
     DumpPosVec(stream, z_pos, lossy);
   }
 
-  void DumpDihedrals(std::ostream& stream, const std::vector<Real>& dihedrals) {
-    std::vector<int> int_vec(dihedrals.size());
-    for(size_t i = 0; i < dihedrals.size(); ++i) {
-      int_vec[i] = round((dihedrals[i] + M_PI)/(2*M_PI)*255);
-    }
-    Dump(stream, int_vec);
-  }
-
-  void LoadDihedrals(std::istream& stream, std::vector<Real>& dihedrals) {
-    std::vector<int> int_vec;
-    Load(stream, int_vec);
-    dihedrals.resize(int_vec.size());
-    for(size_t i = 0; i < int_vec.size(); ++i) {
-      dihedrals[i] = static_cast<Real>(int_vec[i])/255*2*M_PI-M_PI;
-    }
-  }
-
   void LoadBFactors(std::istream& stream, std::vector<Real>& bfactors,
                     bool round_bfactors) {
 
@@ -1246,150 +1996,170 @@ void ChainData::ToStream(std::ostream& stream,
   }
 
   if(infer_pos) {
-    geom::Vec3List positions_to_dump;
-    std::vector<Real> pep_chi_angles;
-    std::vector<bool> pep_oxygen_compression;
-    std::vector<bool> pep_rotamer_compression;
-    positions_to_dump.reserve(positions.size());
-    int res_start_idx = 0;
+
     int n_res = res_def_indices.size();
+
+    // required info for peptide specific compression
+    std::vector<uint8_t> pep_chi_data;
+    std::vector<uint8_t> pep_bb_data;
+    std::vector<bool> pep_rotamer_compression;
+    std::vector<bool> pep_bb_compression;
+    std::vector<bool> pep_o_compression;
+
+    // all indices that can be inferred come in here and won't be dumped
+    std::vector<std::set<int> > skip_indices(n_res, std::set<int>());
+
+    // check if we have any peptide residue
+    bool pep_present = false;
     for(int res_idx = 0; res_idx < n_res; ++res_idx) {
       const ResidueDefinition& def = res_def[res_def_indices[res_idx]];
-      std::set<int> skip_indices;
-      int res_n_atoms = def.anames.size();
       if(def.chem_type == 'A') {
-        pep_oxygen_compression.push_back(false);
-        pep_rotamer_compression.push_back(false);
+        pep_present = true;
+        break;
+      }
+    }
 
-        // can reconstruct O if there is CA, C, no OXT, its not the last
-        // residue (res_idx < res_def_indices.size()-1), the next residue is
-        // an amino acid too and has N.
-        int ca_idx = def.GetIdx("CA");
-        int c_idx = def.GetIdx("C");
-        int o_idx = def.GetIdx("O");
-        int oxt_idx = def.GetIdx("OXT");
-        if(ca_idx != -1 && c_idx != -1 && oxt_idx == -1 && res_idx < n_res-1 &&
-           o_idx != -1) {
-          const ResidueDefinition next_def = res_def[res_def_indices[res_idx+1]];
-          int n_idx_next = next_def.GetIdx("N");
-          if(next_def.chem_type == 'A' && n_idx_next != -1) {
-            // compute error when anchor atoms have reduced accuracy
-            geom::Vec3 ca_pos = positions[res_start_idx + ca_idx];
-            geom::Vec3 c_pos = positions[res_start_idx + c_idx];
-            geom::Vec3 n_pos = positions[res_start_idx + res_n_atoms +
-                                         n_idx_next];
-            geom::Vec3 o_pos = positions[res_start_idx + o_idx];
-            if(lossy) {
-              // mimic lossy behaviour and reconstruct with reduced accuracy
-              // so we can still guarantee a hard threshold of 0.5A
-              ca_pos[0] = 0.1*std::round(ca_pos[0]*10);
-              ca_pos[1] = 0.1*std::round(ca_pos[1]*10);
-              ca_pos[2] = 0.1*std::round(ca_pos[2]*10);
-              c_pos[0] = 0.1*std::round(c_pos[0]*10);
-              c_pos[1] = 0.1*std::round(c_pos[1]*10);
-              c_pos[2] = 0.1*std::round(c_pos[2]*10);
-              n_pos[0] = 0.1*std::round(n_pos[0]*10);
-              n_pos[1] = 0.1*std::round(n_pos[1]*10);
-              n_pos[2] = 0.1*std::round(n_pos[2]*10);
-            }
-            geom::Vec3 reconstructed_o_pos;
-            ConstructOPos(ca_pos, c_pos, n_pos, reconstructed_o_pos);
-            if(geom::Length2(reconstructed_o_pos - o_pos) <= Real(0.25)) {
-              pep_oxygen_compression.back() = true;
-              skip_indices.insert(o_idx);
-            }
-          }
-        }
-        if(!def.GetRotamericAtoms().empty()) {
-          std::vector<geom::Vec3> res_pos(positions.begin() + res_start_idx,
-                                          positions.begin() + res_start_idx +
-                                          res_n_atoms);
-          std::vector<geom::Vec3> comp_res_pos;
-          if(lossy) {
-            // mimic lossy behaviour and reconstruct with reduced accuracy
-            // so we can still guarantee a hard threshold of 0.5A
-            for(auto it = res_pos.begin(); it != res_pos.end(); ++it) {
-              int x = std::round((*it)[0]*10);
-              int y = std::round((*it)[1]*10);
-              int z = std::round((*it)[2]*10);
-              comp_res_pos.push_back(geom::Vec3(0.1*x, 0.1*y, 0.1*z));
-            }
-          } else {
-            comp_res_pos = res_pos;
-          }
-
-          std::vector<Real> angles;
-          const std::vector<ChiDefinition>& chi_defs = def.GetChiDefinitions();
-          for(auto it = chi_defs.begin(); it != chi_defs.end(); ++it) {
-            angles.push_back(geom::DihedralAngle(res_pos[it->idx_one],
-                                                 res_pos[it->idx_two],
-                                                 res_pos[it->idx_three],
-                                                 res_pos[it->idx_four]));
-          }
-          // angles are compressed anyways, independent if lossy or not
-          std::vector<Real> comp_angles;
-          for(auto it = angles.begin(); it != angles.end(); ++it) {
-            int tmp = std::round((*it + M_PI)/(2*M_PI)*255);
-            comp_angles.push_back(static_cast<Real>(tmp)/255*2*M_PI-M_PI);
-          }
-
-          const std::vector<SidechainAtomRule>& at_rules =
-          def.GetSidechainAtomRules();
-          for(auto it = at_rules.begin(); it != at_rules.end(); ++it) {
-            Real dihedral = it->base_dihedral;
-            if(it->dihedral_idx != 4) {
-              dihedral += comp_angles[it->dihedral_idx];
-            }
-            ConstructAtomPos(comp_res_pos[it->anchor_idx[0]],
-                             comp_res_pos[it->anchor_idx[1]],
-                             comp_res_pos[it->anchor_idx[2]],
-                             it->bond_length, it->angle, dihedral,
-                             comp_res_pos[it->sidechain_atom_idx]);
-          }
-          Real max_d = 0.0;
-          for(size_t i = 0; i < res_pos.size(); ++i) {
-            max_d = std::max(max_d, geom::Length2(res_pos[i]-
-                                                  comp_res_pos[i]));
-          }
-          if(std::sqrt(max_d) <= Real(0.5)) {
-            pep_rotamer_compression.back() = true;
-            for(auto it = at_rules.begin(); it != at_rules.end(); ++it) {
-              skip_indices.insert(it->sidechain_atom_idx);
-            }
-            pep_chi_angles.insert(pep_chi_angles.end(), angles.begin(),
-                                  angles.end());
-          }
+    if(pep_present) {
+      // check for peptide specific compressions
+      // same as positions but possibly with reduced accuracy
+      std::vector<geom::Vec3> comp_positions = positions;
+      if(lossy) {
+        for(auto it = comp_positions.begin(); it != comp_positions.end(); ++it) {
+          (*it)[0] = 0.1*std::round((*it)[0]*10);
+          (*it)[1] = 0.1*std::round((*it)[1]*10);
+          (*it)[2] = 0.1*std::round((*it)[2]*10);
         }
       }
-      for(int a_idx = 0; a_idx < res_n_atoms; ++a_idx) {
-        // skips atoms in skip_indices
-        if(skip_indices.find(a_idx) == skip_indices.end()) {
-          positions_to_dump.push_back(positions[res_start_idx+a_idx]);
+
+      // check tripeptides that can reconstruct with error < 0.5A
+      int res_idx = 0;
+      int res_start_idx = 0;
+      while(res_idx < n_res-2) {
+
+        const ResidueDefinition& res_def_one = res_def[res_def_indices[res_idx]];
+        const ResidueDefinition& res_def_two = res_def[res_def_indices[res_idx+1]];
+        const ResidueDefinition& res_def_three = res_def[res_def_indices[res_idx+2]];
+        if(res_def_one.chem_type == 'A' && res_def_two.chem_type == 'A' &&
+           res_def_three.chem_type == 'A') {
+          pep_bb_compression.push_back(EncodeTriPeptide(res_def_one,
+                                                        res_def_two,
+                                                        res_def_three,
+                                                        0.5, positions,
+                                                        res_idx,
+                                                        res_start_idx,
+                                                        skip_indices,
+                                                        comp_positions,
+                                                        pep_bb_data));
+          if(pep_bb_compression.back()) {
+            res_idx += 3;
+            res_start_idx += res_def_one.anames.size();
+            res_start_idx += res_def_two.anames.size();
+            res_start_idx += res_def_three.anames.size();
+          } else {
+            ++res_idx;
+            res_start_idx += res_def_one.anames.size();
+          }
+        } else {
+          // just jump by one residue
+          ++res_idx;
+          res_start_idx += res_def_one.anames.size();
+        }
+      }
+
+      // check which residues fulfill 0.5A threshold when applying rotamer
+      // compression
+      res_start_idx = 0;
+      for(res_idx = 0; res_idx < n_res; ++res_idx) {
+        const ResidueDefinition& def = res_def[res_def_indices[res_idx]];
+        if(def.chem_type == 'A' && !def.GetRotamericAtoms().empty()) {
+          pep_rotamer_compression.push_back(EncodePepRotamer(def, 0.5,
+                                                             positions,
+                                                             res_idx,
+                                                             res_start_idx,
+                                                             skip_indices,
+                                                             comp_positions,
+                                                             pep_chi_data));
+        }
+        res_start_idx += def.anames.size();
+      }
+
+      // check which oxygens can be reconstructed within 0.5A
+      res_start_idx = 0;
+      for(res_idx = 0; res_idx < n_res-1; ++res_idx) {
+        const ResidueDefinition& res_def_one = res_def[res_def_indices[res_idx]];
+        const ResidueDefinition& res_def_two = res_def[res_def_indices[res_idx+1]];
+        int n_atoms = res_def_one.anames.size();
+        if(res_def_one.chem_type == 'A' and res_def_two.chem_type == 'A') {
+          pep_o_compression.push_back(false);
+          int ca_idx = res_def_one.GetIdx("CA");
+          int c_idx = res_def_one.GetIdx("C");
+          int o_idx = res_def_one.GetIdx("O");
+          int oxt_idx = res_def_one.GetIdx("OXT");
+          int n_next_idx = res_def_two.GetIdx("N");
+          if(ca_idx!=-1 && c_idx!=-1 && o_idx!=-1 && n_next_idx!=-1 &&
+             oxt_idx==-1) {
+            geom::Vec3 reconstructed_o;
+            ConstructOPos(comp_positions[res_start_idx + ca_idx],
+                          comp_positions[res_start_idx + c_idx],
+                          comp_positions[res_start_idx + n_atoms + n_next_idx],
+                          reconstructed_o);
+            if(geom::Distance(positions[res_start_idx + o_idx],
+                              reconstructed_o) < 0.5) {
+              pep_o_compression.back() = true;
+              skip_indices[res_idx].insert(o_idx);
+            }
+          }
+        }
+        res_start_idx += n_atoms;
+      }
+    } // done peptide compression
+
+    int8_t flags = 0;
+    if(!pep_chi_data.empty()) {
+      flags += 1;
+    }
+    if(!pep_bb_data.empty()) {
+      flags += 2;
+    }
+    if(!pep_o_compression.empty()) {
+      flags += 4;
+    }
+
+    stream.write(reinterpret_cast<char*>(&flags), sizeof(uint8_t));
+    if(!pep_chi_data.empty()) {
+      DumpIntVec(stream, pep_chi_data);
+      Dump(stream, pep_rotamer_compression);
+    }
+    if(!pep_bb_data.empty()) {
+      DumpIntVec(stream, pep_bb_data);
+      Dump(stream, pep_bb_compression);
+    }
+    if(!pep_o_compression.empty()) {
+      Dump(stream, pep_o_compression);
+    }
+
+    // construct vector containing all positions that cannot be inferred
+    geom::Vec3List positions_to_dump;
+    int res_start_idx = 0;
+    for(int res_idx = 0; res_idx < n_res; ++res_idx) {
+      const ResidueDefinition& def = res_def[res_def_indices[res_idx]];
+      int res_n_atoms = def.anames.size();
+
+      if(skip_indices[res_idx].empty()) {
+        positions_to_dump.insert(positions_to_dump.end(),
+                                 positions.begin() + res_start_idx,
+                                 positions.begin() + res_start_idx + res_n_atoms);
+      } else {
+        for(int at_idx = 0; at_idx < res_n_atoms; ++at_idx) {
+          if(skip_indices[res_idx].find(at_idx) == skip_indices[res_idx].end()) {
+            positions_to_dump.push_back(positions[res_start_idx + at_idx]);
+          }
         }
       }
       res_start_idx += res_n_atoms;
     }
-    int8_t flags = 0;
-    if(!pep_chi_angles.empty()) {
-      flags += 1;
-    }
-    if(!pep_oxygen_compression.empty()) {
-      flags += 2;
-    }
-    if(!pep_rotamer_compression.empty()) {
-      flags += 4;
-    }
-    stream.write(reinterpret_cast<char*>(&flags), sizeof(uint8_t));
-    if(!pep_chi_angles.empty()) {
-      DumpDihedrals(stream, pep_chi_angles);
-    }
-    if(!pep_oxygen_compression.empty()) {
-      Dump(stream, pep_oxygen_compression);
-    }
-    if(!pep_rotamer_compression.empty()) {
-      Dump(stream, pep_rotamer_compression);
-    }
     DumpPositions(stream, positions_to_dump, lossy);
+
   } else {
     DumpPositions(stream, positions, lossy);
   }
@@ -1428,101 +2198,168 @@ void ChainData::FromStream(std::istream& stream,
   }
   
   if(infer_pos) {
-    std::vector<Real> pep_chi_angles;
-    std::vector<bool> pep_oxygen_compression;
-    std::vector<bool> pep_rotamer_compression;
-    int8_t flags = 0;
-    stream.read(reinterpret_cast<char*>(&flags), sizeof(uint8_t));
-    if(flags & 1) {
-      LoadDihedrals(stream, pep_chi_angles);
-    }
-    if(flags & 2) {
-      Load(stream, pep_oxygen_compression);
-    }
-    if(flags & 4) {
-      Load(stream, pep_rotamer_compression);
-    }
-
-    LoadPositions(stream, positions, lossy);
 
     int n_res = res_def_indices.size();
     int n_at = 0;
     for(auto it = res_def_indices.begin(); it != res_def_indices.end(); ++it) {
       n_at += res_def[*it].anames.size();
     }
+
+    std::vector<uint8_t> pep_chi_data;
+    std::vector<uint8_t> pep_bb_data;
+    std::vector<bool> pep_bb_compression;
+    std::vector<bool> pep_rotamer_compression;
+    std::vector<bool> pep_o_compression;
+
+    int8_t flags = 0;
+    stream.read(reinterpret_cast<char*>(&flags), sizeof(uint8_t));
+    if(flags & 1) {
+      LoadIntVec(stream, pep_chi_data);
+      Load(stream, pep_rotamer_compression);
+    }
+    if(flags & 2) {
+      LoadIntVec(stream, pep_bb_data);
+      Load(stream, pep_bb_compression);
+    }
+    if(flags & 4) {
+      Load(stream, pep_o_compression);
+    }
+
+    // Check which atoms are inferred from the different compression strategies
+    std::vector<std::set<int> > inferred_indices(n_res);
+
+    if(!pep_bb_compression.empty()) {
+      int res_idx = 0;
+      int bb_comp_idx = 0;
+      while(res_idx < n_res-2) {
+        const ResidueDefinition& res_def_one = res_def[res_def_indices[res_idx]];
+        const ResidueDefinition& res_def_two = res_def[res_def_indices[res_idx+1]];
+        const ResidueDefinition& res_def_three = res_def[res_def_indices[res_idx+2]];
+        if(res_def_one.chem_type == 'A' && res_def_two.chem_type == 'A' &&
+           res_def_three.chem_type == 'A') {
+          if(pep_bb_compression[bb_comp_idx++]) {
+            FillInferredTriPeptideIndices(res_def_one, res_def_two, res_def_three,
+                                          res_idx, inferred_indices);
+            res_idx += 3;
+          } else {
+            res_idx += 1;
+          }
+        }
+      }
+    }
+
+    if(!pep_rotamer_compression.empty()) {
+      int rot_comp_idx = 0;
+      for(int res_idx = 0; res_idx < n_res; ++res_idx) {
+        const ResidueDefinition& def = res_def[res_def_indices[res_idx]];
+        if(def.chem_type == 'A' && !def.GetRotamericAtoms().empty() &&
+           pep_rotamer_compression[rot_comp_idx++]) {
+          FillInferredRotIndices(def, res_idx, inferred_indices);
+        }
+      }
+    }
+
+    if(!pep_o_compression.empty()) {
+      int o_comp_idx = 0;
+      for(int res_idx = 0; res_idx < n_res-1; ++res_idx) {
+        const ResidueDefinition& res_def_one = res_def[res_def_indices[res_idx]];
+        const ResidueDefinition& res_def_two = res_def[res_def_indices[res_idx+1]];
+        if(res_def_one.chem_type == 'A' && res_def_two.chem_type == 'A' &&
+           pep_o_compression[o_comp_idx++]) {
+          inferred_indices[res_idx].insert(res_def_one.GetIdx("O"));
+        }
+      }
+    }
+
+    // fill the positions we have
+    LoadPositions(stream, positions, lossy);
     geom::Vec3List full_positions(n_at);
-    std::vector<bool> infer_pep_oxygen(n_res, false);
-    std::vector<bool> infer_pep_rotamer(n_res, false);
 
     int pos_idx = 0;
     int full_pos_idx = 0;
-    int pep_oxygen_compression_idx = 0;
-    int pep_rotamer_compression_idx = 0;
     for(int res_idx = 0; res_idx < n_res; ++res_idx) {
       const ResidueDefinition& def = res_def[res_def_indices[res_idx]];
       int n_res_at = def.anames.size();
-      if(def.chem_type == 'A') {
-        std::set<int> inferred_indices;
-        if(pep_oxygen_compression[pep_oxygen_compression_idx++]) {
-          inferred_indices.insert(def.GetIdx("O"));
-          infer_pep_oxygen[res_idx] = true;
-        }
-        if(pep_rotamer_compression[pep_rotamer_compression_idx++]) {
-          inferred_indices.insert(def.rotameric_atoms.begin(),
-                                  def.rotameric_atoms.end());
-          infer_pep_rotamer[res_idx] = true;
-        }
+      if(inferred_indices[res_idx].empty()) {
         for(int i = 0; i < n_res_at; ++i) {
-          if(inferred_indices.find(i) == inferred_indices.end()) {
+          full_positions[full_pos_idx++] = positions[pos_idx++];
+        }
+      } else {
+        for(int i = 0; i < n_res_at; ++i) {
+          if(inferred_indices[res_idx].find(i) == inferred_indices[res_idx].end()) {
             full_positions[full_pos_idx++] = positions[pos_idx++];
           } else {
             ++full_pos_idx; // skip
           }
         }
-      } else {
-        // transfer all positions
-        for(int i = 0; i < n_res_at; ++i) {
-          full_positions[full_pos_idx++] = positions[pos_idx++];
+      }
+    }
+
+    // reconstruct the rest
+
+    if(!pep_bb_compression.empty()) {
+      int res_idx = 0;
+      int bb_comp_idx = 0;
+      int res_start_idx = 0;
+      uint8_t* data_ptr = &pep_bb_data[0]; // ptr is updated in Decode calls
+      while(res_idx < n_res-2) {
+        const ResidueDefinition& res_def_one = res_def[res_def_indices[res_idx]];
+        const ResidueDefinition& res_def_two = res_def[res_def_indices[res_idx+1]];
+        const ResidueDefinition& res_def_three = res_def[res_def_indices[res_idx+2]];
+        if(res_def_one.chem_type == 'A' && res_def_two.chem_type == 'A' &&
+           res_def_three.chem_type == 'A') {
+          if(pep_bb_compression[bb_comp_idx++]) {
+            DecodeTriPeptide(res_def_one, res_def_two, res_def_three,
+                             res_start_idx, data_ptr, full_positions);
+            res_idx += 3;
+            res_start_idx += res_def_one.anames.size();
+            res_start_idx += res_def_two.anames.size();
+            res_start_idx += res_def_three.anames.size();
+          } else {
+            res_idx += 1;
+            res_start_idx += res_def_one.anames.size();
+          }
         }
       }
     }
 
-    // infer
-    int start_idx = 0;
-    int pep_chi_angles_idx = 0;
-    for(int res_idx = 0; res_idx < n_res; ++res_idx) {
-      const ResidueDefinition& def = res_def[res_def_indices[res_idx]];
-      int n_res_atoms = def.anames.size();
-      if(infer_pep_oxygen[res_idx]) {
-        const ResidueDefinition& next_def = res_def[res_def_indices[res_idx+1]];
-        int ca_idx = start_idx + def.GetIdx("CA");
-        int c_idx = start_idx + def.GetIdx("C");
-        int o_idx = start_idx + def.GetIdx("O");
-        int n_next_idx = start_idx + n_res_atoms + next_def.GetIdx("N");
-        ConstructOPos(full_positions[ca_idx], full_positions[c_idx],
-                      full_positions[n_next_idx], full_positions[o_idx]);
-      }
-      if(infer_pep_rotamer[res_idx]) {
-        const std::vector<SidechainAtomRule>& at_rules =
-        def.GetSidechainAtomRules();
-        std::vector<Real> dihedral_angles;
-        for(int i = 0; i < def.GetNChiAngles(); ++i) {
-          dihedral_angles.push_back(pep_chi_angles[pep_chi_angles_idx++]);
-        }
-        for(auto it = at_rules.begin(); it != at_rules.end(); ++it) {
-          Real dihedral = it->base_dihedral;
-          if(it->dihedral_idx != 4) {
-            dihedral += dihedral_angles[it->dihedral_idx];
+    if(!pep_rotamer_compression.empty()) {
+      int res_start_idx = 0;
+      int rot_comp_idx = 0;
+      uint8_t* data_ptr = &pep_chi_data[0]; // ptr is updated in Decode calls
+      for(int res_idx = 0; res_idx < n_res; ++res_idx) {
+        const ResidueDefinition& def = res_def[res_def_indices[res_idx]];
+        if(def.chem_type == 'A' && !def.GetRotamericAtoms().empty()) {
+          if(pep_rotamer_compression[rot_comp_idx++]) {
+            DecodePepRotamer(def, res_start_idx, data_ptr, full_positions);
           }
-          ConstructAtomPos(full_positions[start_idx+it->anchor_idx[0]],
-                           full_positions[start_idx+it->anchor_idx[1]],
-                           full_positions[start_idx+it->anchor_idx[2]],
-                           it->bond_length, it->angle, dihedral,
-                           full_positions[start_idx+it->sidechain_atom_idx]);
         }
+        res_start_idx += def.anames.size();
       }
-      start_idx += n_res_atoms;
     }
+
+    if(!pep_o_compression.empty()) {
+      int res_start_idx = 0;
+      int o_comp_idx = 0;
+      for(int res_idx = 0; res_idx < n_res-1; ++res_idx) {
+        const ResidueDefinition& res_def_one = res_def[res_def_indices[res_idx]];
+        const ResidueDefinition& res_def_two = res_def[res_def_indices[res_idx+1]];
+        int n_atoms = res_def_one.anames.size();
+        if(res_def_one.chem_type == 'A' && res_def_two.chem_type == 'A' &&
+           pep_o_compression[o_comp_idx++]) {
+          int ca_idx = res_def_one.GetIdx("CA");
+          int c_idx = res_def_one.GetIdx("C");
+          int o_idx = res_def_one.GetIdx("O");
+          int n_next_idx = res_def_two.GetIdx("N");
+          ConstructOPos(full_positions[res_start_idx + ca_idx],
+                        full_positions[res_start_idx + c_idx],
+                        full_positions[res_start_idx + n_atoms + n_next_idx],
+                        full_positions[res_start_idx + o_idx]);
+        }
+        res_start_idx += n_atoms;
+      }
+    }
+
     std::swap(positions, full_positions);
   } else {
     LoadPositions(stream, positions, lossy);
@@ -1541,6 +2378,7 @@ void ChainData::FromStream(std::istream& stream,
 }
 
 DefaultPepLib::DefaultPepLib() {
+
   ResidueDefinition res_def;
   res_def = ResidueDefinition();
   res_def.name = "ALA";
@@ -1679,12 +2517,12 @@ DefaultPepLib::DefaultPepLib() {
   res_def._AddChiDefinition(1, 2, 4, 3);
   res_def._AddChiDefinition(2, 4, 3, 7);
   res_def._AddChiDefinition(4, 3, 7, 5);
-  res_def._AddAtomRule(4, 6, 1, 2, 1.5475, 2.0237, 0, 0.0);
-  res_def._AddAtomRule(3, 1, 2, 4, 1.5384, 1.9898, 1, 0.0);
-  res_def._AddAtomRule(7, 2, 4, 3, 1.5034, 1.8691, 2, 0.0);
-  res_def._AddAtomRule(5, 4, 3, 7, 1.3401, 2.1476, 3, 0.0);
-  res_def._AddAtomRule(8, 3, 7, 5, 1.3311, 2.0605, 4, 0.0);
-  res_def._AddAtomRule(9, 3, 7, 5, 1.3292, 2.1317, 4, M_PI);
+  res_def._AddAtomRule(4, 6, 1, 2, 1.52, 1.9867, 0, 0.0); // CG
+  res_def._AddAtomRule(3, 1, 2, 4, 1.52, 1.9511, 1, 0.0); // CD
+  res_def._AddAtomRule(7, 2, 4, 3, 1.46, 1.9492, 2, 0.0); // NE
+  res_def._AddAtomRule(5, 4, 3, 7, 1.33, 2.1780, 3, 0.0); // CZ
+  res_def._AddAtomRule(8, 3, 7, 5, 1.33, 2.1056, 4, 0.0); // NH1
+  res_def._AddAtomRule(9, 3, 7, 5, 1.33, 2.0879, 4, M_PI); // NH2
   res_def.rotameric_atoms.insert({4, 3, 7, 5, 8, 9});
   residue_definitions.push_back(res_def);
 
@@ -1812,9 +2650,9 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(2);
   res_def._AddChiDefinition(4, 1, 2, 3);
   res_def._AddChiDefinition(1, 2, 3, 7);
-  res_def._AddAtomRule(3, 4, 1, 2, 1.5319, 1.9949, 0, 0.0);
-  res_def._AddAtomRule(7, 1, 2, 3, 1.2323, 2.1391, 1, 0.0);
-  res_def._AddAtomRule(5, 1, 2, 3, 1.3521, 2.0272, 1, M_PI);
+  res_def._AddAtomRule(3, 4, 1, 2, 1.52, 1.9656, 0, 0.0); // CG
+  res_def._AddAtomRule(7, 1, 2, 3, 1.23, 2.1092, 1, 0.0); // OD1
+  res_def._AddAtomRule(5, 1, 2, 3, 1.33, 2.0330, 1, M_PI); // ND2
   res_def.rotameric_atoms.insert({3, 7, 5});
   residue_definitions.push_back(res_def);
 
@@ -1927,9 +2765,9 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(4, 1, 2, 3);
   res_def._AddChiDefinition(1, 2, 3, 6);
-  res_def._AddAtomRule(3, 4, 1, 2, 1.5218, 1.9652, 0, 0.0);
-  res_def._AddAtomRule(6, 1, 2, 3, 1.2565, 2.0593, 1, 0.0);
-  res_def._AddAtomRule(7, 1, 2, 3, 1.2541, 2.0543, 1, M_PI);
+  res_def._AddAtomRule(3, 4, 1, 2, 1.52, 1.9733, 0, 0.0); // CG
+  res_def._AddAtomRule(6, 1, 2, 3, 1.25, 2.0808, 1, 0.0); // OD1
+  res_def._AddAtomRule(7, 1, 2, 3, 1.25, 2.0633, 1, M_PI); // OD2
   res_def.rotameric_atoms.insert({3, 6, 7});
   residue_definitions.push_back(res_def);
 
@@ -2048,10 +2886,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def._AddChiDefinition(5, 1, 2, 4);
   res_def._AddChiDefinition(1, 2, 4, 3);
   res_def._AddChiDefinition(2, 4, 3, 8);
-  res_def._AddAtomRule(4, 5, 1, 2, 1.5534, 2.0162, 0, 0.0);
-  res_def._AddAtomRule(3, 1, 2, 4, 1.5320, 1.9635, 1, 0.0);
-  res_def._AddAtomRule(8, 2, 4, 3, 1.2294, 2.1209, 2, 0.0);
-  res_def._AddAtomRule(6, 2, 4, 3, 1.3530, 2.0392, 2, M_PI);
+  res_def._AddAtomRule(4, 5, 1, 2, 1.52, 1.9853, 0, 0.0); // CG
+  res_def._AddAtomRule(3, 1, 2, 4, 1.52, 1.9684, 1, 0.0); // CD
+  res_def._AddAtomRule(8, 2, 4, 3, 1.24, 2.1094, 2, 0.0); // OE1
+  res_def._AddAtomRule(6, 2, 4, 3, 1.33, 2.0333, 2, M_PI); // NE2
   res_def.rotameric_atoms.insert({4, 3, 8, 6});
   residue_definitions.push_back(res_def);
 
@@ -2175,10 +3013,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def._AddChiDefinition(5, 1, 2, 4);
   res_def._AddChiDefinition(1, 2, 4, 3);
   res_def._AddChiDefinition(2, 4, 3, 7);
-  res_def._AddAtomRule(4, 5, 1, 2, 1.5557, 2.0192, 0, 0.0);
-  res_def._AddAtomRule(3, 1, 2, 4, 1.5307, 2.0199, 1, 0.0);
-  res_def._AddAtomRule(7, 2, 4, 3, 1.2590, 2.0070, 2, 0.0);
-  res_def._AddAtomRule(8, 2, 4, 3, 1.2532, 2.0958, 2, M_PI);
+  res_def._AddAtomRule(4, 5, 1, 2, 1.52, 1.9865, 0, 0.0); // CG
+  res_def._AddAtomRule(3, 1, 2, 4, 1.52, 1.9776, 1, 0.0); // CD
+  res_def._AddAtomRule(7, 2, 4, 3, 1.25, 2.0773, 2, 0.0); // OE1
+  res_def._AddAtomRule(8, 2, 4, 3, 1.25, 2.0609, 2, M_PI); // OE2
   res_def.rotameric_atoms.insert({4, 3, 7, 8});
   residue_definitions.push_back(res_def);
 
@@ -2303,10 +3141,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def._AddChiDefinition(1, 2, 5, 3);
   res_def._AddChiDefinition(2, 5, 3, 4);
   res_def._AddChiDefinition(5, 3, 4, 7);
-  res_def._AddAtomRule(5, 6, 1, 2, 1.5435, 2.0204, 0, 0.0);
-  res_def._AddAtomRule(3, 1, 2, 5, 1.5397, 1.9771, 1, 0.0);
-  res_def._AddAtomRule(4, 2, 5, 3, 1.5350, 1.9605, 2, 0.0);
-  res_def._AddAtomRule(7, 5, 3, 4, 1.4604, 1.9279, 3, 0.0);
+  res_def._AddAtomRule(5, 6, 1, 2, 1.52, 1.9867, 0, 0.0); // CG
+  res_def._AddAtomRule(3, 1, 2, 5, 1.52, 1.9511, 1, 0.0); // CD
+  res_def._AddAtomRule(4, 2, 5, 3, 1.46, 1.9492, 2, 0.0); // CE
+  res_def._AddAtomRule(7, 5, 3, 4, 1.33, 2.1780, 3, 0.0); // NZ
   res_def.rotameric_atoms.insert({5, 3, 4, 7});
   residue_definitions.push_back(res_def);
 
@@ -2413,7 +3251,7 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(3, 1, 2, 5);
-  res_def._AddAtomRule(5, 3, 1, 2, 1.4341, 1.9626, 0, 0.0);
+  res_def._AddAtomRule(5, 3, 1, 2, 1.417, 1.9334, 0, 0.0); // OG
   res_def.rotameric_atoms.insert(5);
   residue_definitions.push_back(res_def);
 
@@ -2505,7 +3343,7 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(3, 1, 2, 5);
-  res_def._AddAtomRule(5, 3, 1, 2, 1.8359, 1.9874, 0, 0.0);
+  res_def._AddAtomRule(5, 3, 1, 2, 1.808, 1.9865, 0, 0.0); // SG
   res_def.rotameric_atoms.insert(5);
   residue_definitions.push_back(res_def);
 
@@ -2548,7 +3386,7 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(3, 1, 2, 6);
-  res_def._AddAtomRule(6, 3, 1, 2, 1.8359, 1.9874, 0, 0.0);
+  res_def._AddAtomRule(6, 3, 1, 2, 1.808, 1.9865, 0, 0.0); // SG
   res_def.rotameric_atoms.insert(6);
   residue_definitions.push_back(res_def);
 
@@ -2608,9 +3446,9 @@ DefaultPepLib::DefaultPepLib() {
   res_def._AddChiDefinition(5, 1, 2, 4);
   res_def._AddChiDefinition(1, 2, 4, 7);
   res_def._AddChiDefinition(2, 4, 7, 3);
-  res_def._AddAtomRule(4, 5, 1, 2, 1.5460, 2.0232, 0, 0.0);
-  res_def._AddAtomRule(7, 1, 2, 4, 1.8219, 1.9247, 1, 0.0);
-  res_def._AddAtomRule(3, 2, 4, 7, 1.8206, 1.7268, 2, 0.0);
+  res_def._AddAtomRule(4, 5, 1, 2, 1.52, 1.9841, 0, 0.0); // CG
+  res_def._AddAtomRule(7, 1, 2, 4, 1.81, 1.9668, 1, 0.0); // SD
+  res_def._AddAtomRule(3, 2, 4, 7, 1.79, 1.7560, 2, 0.0); // CE
   res_def.rotameric_atoms.insert({4, 7, 3});
   residue_definitions.push_back(res_def);
 
@@ -2665,9 +3503,9 @@ DefaultPepLib::DefaultPepLib() {
   res_def._AddChiDefinition(5, 1, 2, 4);
   res_def._AddChiDefinition(1, 2, 4, 8);
   res_def._AddChiDefinition(2, 4, 8, 3);
-  res_def._AddAtomRule(4, 5, 1, 2, 1.5460, 2.0232, 0, 0.0);
-  res_def._AddAtomRule(8, 1, 2, 4, 1.8219, 1.9247, 1, 0.0);
-  res_def._AddAtomRule(3, 2, 4, 8, 1.8206, 1.7268, 2, 0.0);
+  res_def._AddAtomRule(4, 5, 1, 2, 1.52, 1.9841, 0, 0.0); // CG
+  res_def._AddAtomRule(8, 1, 2, 4, 1.81, 1.9668, 1, 0.0); // SD
+  res_def._AddAtomRule(3, 2, 4, 8, 1.79, 1.7560, 2, 0.0); // CE
   res_def.rotameric_atoms.insert({4, 8, 3});
   residue_definitions.push_back(res_def);
 
@@ -2762,15 +3600,15 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(11, 1, 2, 7);
   res_def._AddChiDefinition(1, 2, 7, 3);
-  res_def._AddAtomRule(7, 11, 1, 2, 1.5233, 2.0096, 0, 0.0);
-  res_def._AddAtomRule(3, 1, 2, 7,  1.3679, 2.2546, 1, 0.0);
-  res_def._AddAtomRule(4, 1, 2, 7,  1.4407, 2.1633, 1, M_PI);
-  res_def._AddAtomRule(5, 3, 7, 4,  1.4126, 1.8614, 4, 0.0);
-  res_def._AddAtomRule(12, 7, 4, 5, 1.3746, 1.8827, 4, 0.0);
-  res_def._AddAtomRule(6, 3, 7, 4,  1.4011, 2.3133, 4, M_PI);
-  res_def._AddAtomRule(10, 5, 4, 6, 1.4017, 2.0623, 4, 0.0);
-  res_def._AddAtomRule(8, 4, 6, 10, 1.4019, 2.1113, 4, 0.0);
-  res_def._AddAtomRule(9, 6, 10, 8, 1.4030, 2.1096, 4, 0.0);
+  res_def._AddAtomRule(7, 11, 1, 2, 1.50, 1.9914, 0, 0.0); // CG
+  res_def._AddAtomRule(3, 1, 2, 7,  1.37, 2.2178, 1, 0.0); // CD1
+  res_def._AddAtomRule(4, 1, 2, 7,  1.43, 2.2106, 1, M_PI); // CD2
+  res_def._AddAtomRule(5, 3, 7, 4,  1.40, 1.8937, 4, 0.0); // CE2
+  res_def._AddAtomRule(12, 2, 7, 3, 1.38, 1.8937, 4, M_PI); // NE1 => changed atoms
+  res_def._AddAtomRule(6, 3, 7, 4,  1.40, 2.3358, 4, M_PI); // CE3
+  res_def._AddAtomRule(10, 5, 4, 6, 1.40, 2.0944, 4, 0.0); // CZ3
+  res_def._AddAtomRule(8, 4, 6, 10, 1.40, 2.0944, 4, 0.0); // CH2
+  res_def._AddAtomRule(9, 6, 10, 8, 1.40, 2.0944, 4, 0.0); // CZ2
   res_def.rotameric_atoms.insert({7, 3, 4, 5, 12, 6, 10, 8, 9});
   residue_definitions.push_back(res_def);
 
@@ -2942,13 +3780,13 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(9, 1, 2, 7);
   res_def._AddChiDefinition(1, 2, 7, 3);
-  res_def._AddAtomRule(7, 9, 1, 2, 1.5113, 1.9712, 0, 0.0);
-  res_def._AddAtomRule(3, 1, 2, 7, 1.4064, 2.1029, 1, 0.0);
-  res_def._AddAtomRule(4, 1, 2, 7, 1.4068, 2.1024, 1, M_PI);
-  res_def._AddAtomRule(5, 4, 7, 3, 1.4026, 2.1014, 4, 0.0);
-  res_def._AddAtomRule(6, 3, 7, 4, 1.4022, 2.1042, 4, 0.0);
-  res_def._AddAtomRule(8, 7, 3, 5, 1.3978, 2.0960, 4, 0.0);
-  res_def._AddAtomRule(11, 4, 6, 8, 1.4063, 2.0988, 4, M_PI);
+  res_def._AddAtomRule(7, 9, 1, 2, 1.51, 1.9862, 0, 0.0); // CG
+  res_def._AddAtomRule(3, 1, 2, 7, 1.39, 2.1115, 1, 0.0); // CD1
+  res_def._AddAtomRule(4, 1, 2, 7, 1.39, 2.1087, 1, M_PI); // CD2
+  res_def._AddAtomRule(5, 4, 7, 3, 1.39, 2.0944, 4, 0.0); // CE1
+  res_def._AddAtomRule(6, 3, 7, 4, 1.39, 2.0944, 4, 0.0); // CE2
+  res_def._AddAtomRule(8, 7, 3, 5, 1.39, 2.0944, 4, 0.0); // CZ
+  res_def._AddAtomRule(11, 3, 5, 8, 1.39, 2.0906, 4, M_PI); // OH
   res_def.rotameric_atoms.insert({7, 3, 4, 5, 6, 8, 11});
   residue_definitions.push_back(res_def);
 
@@ -3078,8 +3916,8 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(4, 1, 2, 6);
-  res_def._AddAtomRule(6, 4, 1, 2, 1.4252, 1.9576, 0, 0.0);
-  res_def._AddAtomRule(3, 6, 1, 2, 1.5324, 2.0230, 4, -2.1665);
+  res_def._AddAtomRule(6, 4, 1, 2, 1.43, 1.9056, 0, 0.0); // OG1
+  res_def._AddAtomRule(3, 4, 1, 2, 1.53, 1.9396, 0, -2.0944); // CG2
   res_def.rotameric_atoms.insert({6, 3});
   residue_definitions.push_back(res_def);
 
@@ -3181,8 +4019,13 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(5, 1, 2, 3);
-  res_def._AddAtomRule(3, 5, 1, 2, 1.5441, 1.9892, 0, 0.0);
-  res_def._AddAtomRule(4, 3, 1, 2, 1.5414, 1.9577, 4, 2.1640);
+  res_def._AddAtomRule(3, 5, 1, 2, 1.527, 1.9321, 0, 0.0); // CG1
+  //res_def._AddAtomRule(4, 3, 1, 2, 1.527, 1.9268, 4, 2.1640); // CG2
+  res_def._AddAtomRule(4, 3, 1, 2, 1.527, 1.9268, 4, 2.0857); // CG2
+
+
+
+
   res_def.rotameric_atoms.insert({3, 4});
   residue_definitions.push_back(res_def);
 
@@ -3290,9 +4133,10 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(6, 1, 2, 4);
   res_def._AddChiDefinition(1, 2, 4, 3);
-  res_def._AddAtomRule(4, 6, 1, 2, 1.5498, 1.9832, 0, 0.0);
-  res_def._AddAtomRule(5, 4, 1, 2, 1.5452, 1.9885, 4, -2.2696);
-  res_def._AddAtomRule(3, 1, 2, 4, 1.5381, 1.9912, 1, 0.0);
+  res_def._AddAtomRule(4, 6, 1, 2, 1.527, 1.9321, 0, 0.0); // CG1
+  //res_def._AddAtomRule(5, 4, 1, 2, 1.527, 1.9268, 4, -2.2696); // CG2
+  res_def._AddAtomRule(5, 4, 1, 2, 1.527, 1.9268, 4, -2.1174); // CG2
+  res_def._AddAtomRule(3, 1, 2, 4, 1.52, 1.9892, 1, 0.0); // CD1
   res_def.rotameric_atoms.insert({4, 5, 3});
   residue_definitions.push_back(res_def);
 
@@ -3405,9 +4249,12 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(6, 1, 2, 5);
   res_def._AddChiDefinition(1, 2, 5, 3);
-  res_def._AddAtomRule(5, 6, 1, 2, 1.5472, 2.0501, 0, 0.0);
-  res_def._AddAtomRule(3, 1, 2, 5, 1.5361, 1.9282, 1, 0.0);
-  res_def._AddAtomRule(4, 3, 2, 5, 1.5360, 1.9647, 4, 2.0944);
+  res_def._AddAtomRule(5, 6, 1, 2, 1.53, 2.0263, 0, 0.0); // CG
+  res_def._AddAtomRule(3, 1, 2, 5, 1.524, 1.9246, 1, 0.0); // CD1
+  //res_def._AddAtomRule(4, 3, 2, 5, 1.525, 1.9300, 4, 2.0944); // CD2
+  res_def._AddAtomRule(4, 3, 2, 5, 1.525, 1.9300, 4, 1.8895); // CD2
+
+
   res_def.rotameric_atoms.insert({5, 3, 4});
   residue_definitions.push_back(res_def);
 
@@ -3583,8 +4430,8 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(5, 1, 2, 4);
   res_def._AddChiDefinition(1, 2, 4, 3);
-  res_def._AddAtomRule(4, 5, 1, 2, 1.5322, 1.8219, 0, 0.0);
-  res_def._AddAtomRule(3, 1, 2, 4, 1.5317, 1.8014, 1, 0.0);
+  res_def._AddAtomRule(4, 5, 1, 2, 1.49, 1.8188, 0, 0.0); // CG
+  res_def._AddAtomRule(3, 1, 2, 4, 1.50, 1.8331, 1, 0.0); // CD
   res_def.rotameric_atoms.insert({4, 3});
   residue_definitions.push_back(res_def);
 
@@ -3708,11 +4555,11 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(6, 1, 2, 5);
   res_def._AddChiDefinition(1, 2, 5, 7);
-  res_def._AddAtomRule(5, 6, 1, 2, 1.5109, 2.0410, 0, 0.0);
-  res_def._AddAtomRule(7, 1, 2, 5, 1.3859, 2.0974, 1, 0.0);
-  res_def._AddAtomRule(3, 1, 2, 5, 1.3596, 2.2639, 1, M_PI);
-  res_def._AddAtomRule(4, 3, 5, 7, 1.3170, 1.8361, 4, 0.0);
-  res_def._AddAtomRule(8, 7, 5, 3, 1.3782, 1.8466, 4, 0.0);
+  res_def._AddAtomRule(5, 6, 1, 2, 1.49, 1.9851, 0, 0.0); // CG
+  res_def._AddAtomRule(7, 1, 2, 5, 1.38, 2.1441, 1, 0.0); // ND1
+  res_def._AddAtomRule(3, 1, 2, 5, 1.35, 2.2796, 1, M_PI); // CD2
+  res_def._AddAtomRule(4, 3, 5, 7, 1.32, 1.8937, 4, 0.0); // CE1
+  res_def._AddAtomRule(8, 7, 5, 3, 1.35, 1.8937, 4, 0.0); // NE2
   res_def.rotameric_atoms.insert({5, 7, 3, 4, 8});
   residue_definitions.push_back(res_def);
 
@@ -3856,12 +4703,12 @@ DefaultPepLib::DefaultPepLib() {
   res_def.bond_orders.push_back(1);
   res_def._AddChiDefinition(9, 1, 2, 7);
   res_def._AddChiDefinition(1, 2, 7, 3);
-  res_def._AddAtomRule(7, 9, 1, 2, 1.5109, 1.9680, 0, 0.0);
-  res_def._AddAtomRule(3, 1, 2, 7, 1.4059, 2.0100, 1, 0.0);
-  res_def._AddAtomRule(4, 1, 2, 7, 1.4062, 2.1077, 1, M_PI);
-  res_def._AddAtomRule(5, 4, 7, 3, 1.4006, 2.1054, 4, 0.0);
-  res_def._AddAtomRule(6, 3, 7, 4, 1.4002, 2.1052, 4, 0.0);
-  res_def._AddAtomRule(8, 7, 3, 5, 1.4004, 2.0932, 4, 0.0);
+  res_def._AddAtomRule(7, 9, 1, 2, 1.50, 1.9871, 0, 0.0); // CG
+  res_def._AddAtomRule(3, 1, 2, 7, 1.39, 2.0944, 1, 0.0); // CD1
+  res_def._AddAtomRule(4, 1, 2, 7, 1.39, 2.0944, 1, M_PI); // CD2
+  res_def._AddAtomRule(5, 4, 7, 3, 1.39, 2.0944, 4, 0.0); // CE1
+  res_def._AddAtomRule(6, 3, 7, 4, 1.39, 2.0944, 4, 0.0); // CE2
+  res_def._AddAtomRule(8, 7, 3, 5, 1.39, 2.0944, 4, 0.0); // CZ
   res_def.rotameric_atoms.insert({7, 3, 4, 5, 6, 8});
   residue_definitions.push_back(res_def);
 
