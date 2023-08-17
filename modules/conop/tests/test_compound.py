@@ -24,7 +24,7 @@ class TestCompound(unittest.TestCase):
         self.assertEqual(compound.inchi_key, "QNAYBMKLOCPYGJ-REOHCLBHSA-N")
         self.assertEqual(compound.smiles, "C[C@@H](C(=O)O)N"  )
 
-    def testFindCompoundBySMILES(self):
+    def testFindCompoundsBySMILES(self):
         """ Test FindCompound by="smiles"."""
         compounds = self.compound_lib.FindCompounds('O', by="smiles")
         # Make sure all the compounds have the right smiles
@@ -39,7 +39,7 @@ class TestCompound(unittest.TestCase):
         # lib, which should always be the case.
         self.assertFalse(compounds[0].obsolete)
 
-    def testFindCompoundByInChI(self):
+    def testFindCompoundsByInChI(self):
         """ Test FindCompound by="inchi_code|key"."""
         inchi_code = "InChI=1/H2O/h1H2"
         inchi_key = "XLYOFNOQVPJJNP-UHFFFAOYAF"
@@ -56,6 +56,23 @@ class TestCompound(unittest.TestCase):
             self.assertNotEqual(compound, None)
             self.assertEqual(compound.inchi, inchi_code)
             self.assertEqual(compound.inchi_key, inchi_key)
+
+    def testFindCompoundsNoResults(self):
+        """Check that FindCompounds returns an empty list if no result is
+        found. """
+        # Searching an InChI code by SMILES can never succeed and
+        # should return an empty list
+        compounds = self.compound_lib.FindCompounds("InChI=1/H2O/h1H2", by="smiles")
+        self.assertEqual(len(compounds), 0)
+
+    def testFindCompoundsInvalidKey(self):
+        """Ensure we don't search by invalid keys"""
+        with self.assertRaises(Exception, msg="smile"):
+            compounds = self.compound_lib.FindCompounds("O", by="smile")
+        # We also don't accept tlc - although this would technically be valid
+        with self.assertRaises(Exception, msg="tlc"):
+            compounds = self.compound_lib.FindCompounds("ALA", by="tlc")
+
      
 if __name__=='__main__':
     from ost import testutils
