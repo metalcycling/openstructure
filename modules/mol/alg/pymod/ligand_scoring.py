@@ -987,18 +987,10 @@ class LigandScorer:
                 trg_idx, mdl_idx][main_key1]
             out_details1[mdl_cname][mdl_resnum] = data1[
                 trg_idx, mdl_idx]
-            out_main1[mdl_cname][mdl_resnum] = data2[
-                trg_idx, mdl_idx][main_key2]
-            out_details1[mdl_cname][mdl_resnum] = data2[
-                trg_idx, mdl_idx]
             # Data2
             if mdl_cname not in out_main2:
                 out_main2[mdl_cname] = {}
                 out_details2[mdl_cname] = {}
-            out_main2[mdl_cname][mdl_resnum] = data1[
-                trg_idx, mdl_idx][main_key1]
-            out_details2[mdl_cname][mdl_resnum] = data1[
-                trg_idx, mdl_idx]
             out_main2[mdl_cname][mdl_resnum] = data2[
                 trg_idx, mdl_idx][main_key2]
             out_details2[mdl_cname][mdl_resnum] = data2[
