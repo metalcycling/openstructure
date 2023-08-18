@@ -286,10 +286,7 @@ namespace{
     // extracts data required to reconstruct positions
     // if max reconstruction error is below specified threshold,
     // the reconstructed positions are directly fed back into
-    // positions. res_idx, res_start_idx and skip_indices are updated.
-    // That means: in case of successful reconstruction res_idx is
-    // incremented by 3, 1 otherwise. res_start_idx is updated too to
-    // point to the start atom of res_idx
+    // positions. skip_indices are updated.
 
     Real max_error = 0.0;
 
@@ -633,23 +630,21 @@ namespace{
                                               ref_positions.begin() + res_start_idx + res_n_atoms);
     std::vector<geom::Vec3> res_positions(positions.begin() + res_start_idx,
                                           positions.begin() + res_start_idx + res_n_atoms);
-    std::vector<bool> angle_set(def.chi_definitions.size(), false);
-    std::vector<uint8_t> comp_angles(def.chi_definitions.size(), 0);
+    std::vector<uint8_t> comp_angles;
+    comp_angles.reserve(def.chi_definitions.size());
+    for(auto it = def.chi_definitions.begin(); it != def.chi_definitions.end(); ++it) {
+      Real a = geom::DihedralAngle(res_positions[it->idx_one],
+                                   res_positions[it->idx_two],
+                                   res_positions[it->idx_three],
+                                   res_ref_positions[it->idx_four]);
+      comp_angles.push_back(std::round((a + M_PI)/(2*M_PI)*255));
+    }
 
     const std::vector<ost::io::SidechainAtomRule>& at_rules =
     def.GetSidechainAtomRules();
     for(auto it = at_rules.begin(); it != at_rules.end(); ++it) {
       Real dihedral = it->base_dihedral;
       if(it->dihedral_idx != 4) {
-        if(!angle_set[it->dihedral_idx]) {
-          const ost::io::ChiDefinition& chi_def = def.chi_definitions[it->dihedral_idx];
-          Real a = geom::DihedralAngle(res_positions[chi_def.idx_one],
-                                       res_positions[chi_def.idx_two],
-                                       res_positions[chi_def.idx_three],
-                                       res_ref_positions[chi_def.idx_four]);
-          comp_angles[it->dihedral_idx] = std::round((a + M_PI)/(2*M_PI)*255);
-          angle_set[it->dihedral_idx] = true;
-        }
         uint8_t comp_angle = comp_angles[it->dihedral_idx];
         dihedral += static_cast<Real>(comp_angle)/255*2*M_PI-M_PI;
       }
@@ -2296,7 +2291,6 @@ void ChainData::FromStream(std::istream& stream,
     }
 
     // reconstruct the rest
-
     if(!pep_bb_compression.empty()) {
       int res_idx = 0;
       int bb_comp_idx = 0;
