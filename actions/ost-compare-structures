@@ -303,7 +303,62 @@ def _ParseArgs():
         default=False,
         action="store_true",
         help=("Compute QS-score, stored as key \"qs_global\", and the QS-best "
-              "variant, stored as key \"qs_best\"."))
+              "variant, stored as key \"qs_best\". Interfaces in the reference "
+              "with non-zero contribution to QS-score are available as key "
+              "\"qs_reference_interfaces\", the ones from the model as key "
+              "\"qs_model_interfaces\". \"qs_interfaces\" is a subset of "
+              "\"qs_reference_interfaces\" that contains interfaces that "
+              "can be mapped to the model. They are stored as lists in format "
+              "[ref_ch1, ref_ch2, mdl_ch1, mdl_ch2]. The respective "
+              "per-interface scores for \"qs_interfaces\" are available as "
+              "keys \"per_interface_qs_global\" and \"per_interface_qs_best\""))
+
+    parser.add_argument(
+        "--dockq",
+        dest="dockq",
+        default=False,
+        action="store_true",
+        help=("Compute DockQ scores and its components. Relevant interfaces "
+              "with at least one contact (any atom within 5A) of the reference "
+              "structure are available as key \"dockq_reference_interfaces\". "
+              "Only interfaces between peptide chains are considered here! "
+              "Key \"dockq_interfaces\" is a subset of "
+              "\"dockq_reference_interfaces\" that contains interfaces that "
+              "can be mapped to the model. They are stored as lists in format "
+              "[ref_ch1, ref_ch2, mdl_ch1, mdl_ch2]. The respective "
+              "DockQ scores for \"dockq_interfaces\" are available as key "
+              "\"dockq\". It's components are available as keys: "
+              "\"fnat\" (fraction of reference contacts which are also there "
+              "in model) \"irmsd\" (interface RMSD), \"lrmsd\" (ligand RMSD). "
+              "The DockQ score is strictly designed to score each interface "
+              "individually. We also provide two averaged versions to get one "
+              "full model score: \"dockq_ave\", \"dockq_wave\". The first is "
+              "simply the average of \"dockq_scores\", the latter is a "
+              "weighted average with weights derived from number of contacts "
+              "in the reference interfaces. These two scores only consider "
+              "interfaces that are present in both, the model and the "
+              "reference. \"dockq_ave_full\" and \"dockq_wave_full\" add zeros "
+              "in the average computation for each interface that is only "
+              "present in the reference but not in the model."))
+
+    parser.add_argument(
+        "--contact-scores",
+        dest="contact_scores",
+        default=False,
+        action="store_true",
+        help=("Computes interface contact based scores. A contact between two "
+              "residues of different chains is defined as having at least one "
+              "heavy atom within 5A. Contacts in reference structure are "
+              "available as key \"reference_contacts\". Each contact specifies "
+              "the interacting residues in format "
+              "\"<cname>.<rnum>.<ins_code>\". Model contacts are available as "
+              "key \"model_contacts\". The precision which is available as key "
+              "\"contact_precision\" reports the fraction of model contacts "
+              "that are also present in the reference. The recall which is "
+              "available as key \"contact_recall\" reports the fraction of "
+              "reference contacts that are correctly reproduced in the model. "
+              "The ICS score (Interface Contact Similarity) available as key "
+              "\"ics\" combines precision and recall using the F1-measure."))
 
     parser.add_argument(
         "--rigid-scores",
@@ -318,36 +373,6 @@ def _ParseArgs():
               "same with thresholds [0.5, 1.0, 2.0, 4.0], \"rmsd\": RMSD given "
               "these positions and transformation, \"transform\": the used 4x4 "
               "transformation matrix that superposes model onto reference."))
-
-    parser.add_argument(
-        "--interface-scores",
-        dest="interface_scores",
-        default=False,
-        action="store_true",
-        help=("Per interface scores for each interface that has at least one "
-              "contact in the reference, i.e. at least one pair of heavy atoms "
-              "within 5A. The respective interfaces are available from key "
-              "\"interfaces\" which is a list of tuples in form (ref_ch1, "
-              "ref_ch2, mdl_ch1, mdl_ch2). Per-interface scores are available "
-              "as lists referring to these interfaces and have the following "
-              "keys: \"nnat\" (number of contacts in reference), \"nmdl\" "
-              "(number of contacts in model), \"fnat\" (fraction of reference "
-              "contacts which are also there in model), \"fnonnat\" (fraction "
-              "of model contacts which are not there in target), \"irmsd\" "
-              "(interface RMSD), \"lrmsd\" (ligand RMSD), \"dockq_scores\" "
-              "(per-interface score computed from \"fnat\", \"irmsd\" and "
-              "\"lrmsd\"), \"interface_qs_global\" and \"interface_qs_best\" "
-              "(per-interface versions of the two QS-score variants). The "
-              "DockQ score is strictly designed to score each interface "
-              "individually. We also provide two averaged versions to get one "
-              "full model score: \"dockq_ave\", \"dockq_wave\". The first is "
-              "simply the average of \"dockq_scores\", the latter is a "
-              "weighted average with weights derived from \"nnat\". These two "
-              "scores only consider interfaces that are present in both, the "
-              "model and the reference. \"dockq_ave_full\" and "
-              "\"dockq_wave_full\" add zeros in the average computation for "
-              "each interface that is only present in the reference but not in "
-              "the model."))
 
     parser.add_argument(
         "--patch-scores",
@@ -596,6 +621,34 @@ def _Process(model, reference, args):
     if args.qs_score:
         out["qs_global"] = scorer.qs_global
         out["qs_best"] = scorer.qs_best
+        out["qs_reference_interfaces"] = scorer.qs_target_interfaces
+        out["qs_model_interfaces"] = scorer.qs_model_interfaces
+        out["qs_interfaces"] = scorer.qs_interfaces
+        out["per_interface_qs_global"] = scorer.per_interface_qs_global
+        out["per_interface_qs_best"] = scorer.per_interface_qs_best
+
+    if args.contact_scores:
+        out["reference_contacts"] = scorer.native_contacts
+        out["model_contacts"] = scorer.model_contacts
+        out["contact_precision"] = scorer.contact_precision
+        out["contact_recall"] = scorer.contact_recall
+        out["ics"] = scorer.ics
+
+    if args.dockq:
+        out["dockq_reference_interfaces"] = scorer.dockq_target_interfaces
+        out["dockq_interfaces"] = scorer.dockq_interfaces 
+        out["dockq"] = scorer.dockq_scores
+        out["fnat"] = scorer.fnat
+        out["irmsd"] = scorer.irmsd
+        out["lrmsd"] = scorer.lrmsd
+        out["dockq_ave"] = scorer.dockq_ave
+        out["dockq_wave"] = scorer.dockq_wave
+        out["dockq_ave_full"] = scorer.dockq_ave_full
+        out["dockq_wave_full"] = scorer.dockq_wave_full
+
+    if args.contact_scores:
+        out["reference_contacts"] = scorer.native_contacts
+        out["model_contacts"] = scorer.model_contacts
 
     if args.rigid_scores:
         out["oligo_gdtts"] = scorer.gdtts
@@ -603,22 +656,6 @@ def _Process(model, reference, args):
         out["rmsd"] = scorer.rmsd
         data = scorer.transform.data
         out["transform"] = [data[i:i + 4] for i in range(0, len(data), 4)]
-
-    if args.interface_scores:
-        out["interfaces"] = scorer.interfaces
-        out["nnat"] = scorer.native_contacts
-        out["nmdl"] = scorer.model_contacts
-        out["fnat"] = scorer.fnat
-        out["fnonnat"] = scorer.fnonnat
-        out["irmsd"] = scorer.irmsd
-        out["lrmsd"] = scorer.lrmsd
-        out["dockq_scores"] = scorer.dockq_scores
-        out["interface_qs_global"] = scorer.interface_qs_global
-        out["interface_qs_best"] = scorer.interface_qs_best
-        out["dockq_ave"] = scorer.dockq_ave
-        out["dockq_wave"] = scorer.dockq_wave
-        out["dockq_ave_full"] = scorer.dockq_ave_full
-        out["dockq_wave_full"] = scorer.dockq_wave_full
 
     if args.patch_scores:
         out["model_interface_residues"] = \

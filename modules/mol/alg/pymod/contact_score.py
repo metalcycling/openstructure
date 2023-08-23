@@ -54,6 +54,7 @@ class ContactEntity:
         self._interacting_chains = None
         self._sequence = dict()
         self._contacts = None
+        self._hr_contacts = None
 
     @property
     def view(self):
@@ -122,6 +123,18 @@ class ContactEntity:
         if self._contacts is None:
             self._SetupContacts()
         return self._contacts
+
+    @property
+    def hr_contacts(self):
+        """ Human readable interchain contacts
+
+        Human readable version of :attr:`~contacts`. Simple list with tuples
+        containing two strings specifying the residues in contact. Format:
+        <cname>.<rnum>.<ins_code>
+        """
+        if self._hr_contacts is None:
+            self._SetupContacts()
+        return self._hr_contacts
     
     def GetChain(self, chain_name):
         """ Get chain by name
@@ -152,6 +165,7 @@ class ContactEntity:
         # this function is incredibly inefficient... if performance is an issue,
         # go ahead and optimize
         self._contacts = dict()
+        self._hr_contacts = list()
 
         # set indices relative to full view 
         for ch in self.view.chains:
@@ -178,6 +192,12 @@ class ContactEntity:
                                     self._contacts[cname_key] = set()
                                 self._contacts[cname_key].add((r1.GetIntProp("contact_idx"),
                                                                r2.GetIntProp("contact_idx")))
+                                rnum1 = r1.GetNumber()
+                                hr1 = f"{cname}.{rnum1.num}.{rnum1.ins_code}"
+                                rnum2 = r2.GetNumber()
+                                hr2 = f"{cname2}.{rnum2.num}.{rnum2.ins_code}"
+                                self._hr_contacts.append((hr1.strip("\u0000"),
+                                                          hr2.strip("\u0000")))
 
 class ContactScorerResult:
     """
