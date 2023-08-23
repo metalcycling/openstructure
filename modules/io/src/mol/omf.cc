@@ -877,52 +877,6 @@ namespace{
     }
   }
 
-  // generates as many chain names as you want (potentially multiple characters)
-  struct ChainNameGenerator{
-    ChainNameGenerator() { 
-      chain_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
-      n_chain_names = chain_names.size();
-      indices.push_back(-1);
-    }
-
-    String Get() {
-      int idx = indices.size() - 1;
-      indices[idx] += 1;
-      bool more_digits = false;
-      while(idx >= 0) {
-        if(indices[idx] >= n_chain_names) {
-          indices[idx] = 0;
-          if(idx>0) {
-            indices[idx-1] += 1;
-            --idx;
-          } else {
-            more_digits = true;
-            break;
-          }
-        } else {
-          break;
-        }
-      }
-      if(more_digits) {
-        indices.insert(indices.begin(), 0);
-      }
-      String ch_name(indices.size(), 'X');
-      for(uint i = 0; i < indices.size(); ++i) {
-        ch_name[i] = chain_names[indices[i]];
-      }
-      return ch_name;
-    }
-
-    void Reset() {
-      indices.clear();
-      indices.push_back(-1);
-    }
-
-    String chain_names;
-    int n_chain_names;
-    std::vector<int> indices;
-  };
-
   // delta/runlength encodings/decodings
   void DeltaEncoding(const std::vector<int>& in, std::vector<int>& out) {
     out.clear();
@@ -1299,17 +1253,6 @@ namespace{
     }
   }
 
-  // dump and load vectors with BioUnitDefinition
-  void Load(std::istream& stream,
-            std::vector<ost::io::BioUnitDefinition>& vec) {
-    uint32_t size;
-    stream.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-    vec.resize(size);
-    for(uint i = 0; i < size; ++i) {
-      vec[i].FromStream(stream);
-    }
-  }
-
   void Dump(std::ostream& stream,
             const std::vector<bool>& vec) {
     uint32_t size = vec.size();
@@ -1334,34 +1277,6 @@ namespace{
     vec.resize(size);
     for(uint i = 0; i < size; ++i) {
       vec[i] = static_cast<bool>(bit_vector[i/8] & (1 << (i%8)));
-    }
-  }
-
-  void Dump(std::ostream& stream,
-            const std::vector<ost::io::BioUnitDefinition>& vec) {
-    uint32_t size = vec.size();
-    stream.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-    for(uint i = 0; i < size; ++i) {
-      vec[i].ToStream(stream);
-    }
-  }
-
-  // dump and load vectors with Mat4
-  void Load(std::istream& stream, std::vector<geom::Mat4>& vec) {
-    uint32_t size;
-    stream.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-    vec.resize(size);
-    for(uint i = 0; i < size; ++i) {
-      stream.read(reinterpret_cast<char*>(vec[i].Data()),16*sizeof(Real));
-    }
-  }
-
-  void Dump(std::ostream& stream, const std::vector<geom::Mat4>& vec) {
-    uint32_t size = vec.size();
-    stream.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-    for(uint i = 0; i < size; ++i) {
-      stream.write(reinterpret_cast<const char*>(vec[i].Data()),
-                   16*sizeof(Real));
     }
   }
 
@@ -1843,61 +1758,6 @@ void ResidueDefinition::_AddAtomRule(int a_idx, int anch_one_idx,
   rule.dihedral_idx = dihedral_idx;
   rule.base_dihedral = base_dihedral;
   sidechain_atom_rules.push_back(rule);
-}
-
-BioUnitDefinition::BioUnitDefinition(const ost::io::MMCifInfoBioUnit& bu) {
-
-  au_chains = bu.GetChainList();
-
-  const std::vector<std::pair<int, int> >& bu_ch_intvl =
-  bu.GetChainIntervalList();
-  for(auto it = bu_ch_intvl.begin(); it != bu_ch_intvl.end(); ++it) {
-    chain_intvl.push_back(it->first);      
-    chain_intvl.push_back(it->second);      
-  }
-
-  const std::vector<std::vector<MMCifInfoTransOpPtr> >& bu_op_list =
-  bu.GetOperations();
-  for(auto i = bu_op_list.begin(); i != bu_op_list.end(); ++i) {
-    std::vector<geom::Mat4> mat_list;
-    for(auto j = i->begin(); j != i->end(); ++j) {
-      geom::Mat4 m;
-      m.PasteRotation((*j)->GetMatrix());
-      m.PasteTranslation((*j)->GetVector());
-      mat_list.push_back(m);
-    }
-    operations.push_back(mat_list);
-  }
-
-  const std::vector<std::pair<int, int> >& bu_op_intvl =
-  bu.GetOperationsIntervalList();
-  for(auto it = bu_op_intvl.begin(); it != bu_op_intvl.end(); ++it) {
-    op_intvl.push_back(it->first);      
-    op_intvl.push_back(it->second);      
-  }
-}
-
-void BioUnitDefinition::ToStream(std::ostream& stream) const {
-  Dump(stream, au_chains);
-  Dump(stream, chain_intvl);
-  uint32_t size = operations.size();
-  stream.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-  for(auto it = operations.begin(); it != operations.end(); ++it) {
-    Dump(stream, *it);
-  }
-  Dump(stream, op_intvl);
-}
-
-void BioUnitDefinition::FromStream(std::istream& stream) {
-  Load(stream, au_chains);
-  Load(stream, chain_intvl);
-  uint32_t size = 0;
-  stream.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-  operations.resize(size);
-  for(uint i = 0; i < size; ++i) {
-    Load(stream, operations[i]);
-  }
-  Load(stream, op_intvl);
 }
 
 ChainData::ChainData(const ost::mol::ChainHandle& chain,
@@ -4934,18 +4794,6 @@ OMFPtr OMF::FromEntity(const ost::mol::EntityHandle& ent,
   return omf;
 }
 
-OMFPtr OMF::FromMMCIF(const ost::mol::EntityHandle& ent,
-                      const MMCifInfo& info,
-                      uint8_t options) {
-
-  OMFPtr p = OMF::FromEntity(ent, options);
-  const std::vector<MMCifInfoBioUnit>& biounits = info.GetBioUnits();
-  for(auto it = biounits.begin(); it != biounits.end(); ++it) {
-    p->biounit_definitions_.push_back(BioUnitDefinition(*it));
-  }
-  return p;
-}
-
 OMFPtr OMF::FromFile(const String& fn) {
   std::ifstream in_stream(fn.c_str(), std::ios::binary);
   if (!in_stream) {
@@ -5014,67 +4862,6 @@ ost::mol::EntityHandle OMF::GetAUChain(const String& name) const{
   return ent;
 }
 
-ost::mol::EntityHandle OMF::GetBU(int bu_idx) const{
-  if(bu_idx < 0 || bu_idx >= static_cast<int>(biounit_definitions_.size())) {
-    throw ost::Error("Invalid biounit idx");
-  }
-
-  const BioUnitDefinition& bu = biounit_definitions_[bu_idx];
-  ost::mol::EntityHandle ent = mol::CreateEntity();
-  std::stringstream ss;
-  ss << name_ << " " << bu_idx;
-  ent.SetName(ss.str());
-  ost::mol::XCSEditor ed = ent.EditXCS(mol::BUFFERED_EDIT);
-
-  std::vector<String> au_chain_names;
-  std::vector<geom::Mat4> transforms;
-
-  // The code below is pure magic and heavily inspired by
-  // the biounit buildup in modules/io/pymod/__init__.py
-  int n_intervals = bu.chain_intvl.size() / 2;
-  for(int intvl_idx = 0; intvl_idx < n_intervals; ++intvl_idx) {
-    std::vector<geom::Mat4> rts;
-    int op_start = bu.op_intvl[2*intvl_idx];
-    int op_end = bu.op_intvl[2*intvl_idx+1];
-    int n_intv_ops = op_end - op_start;
-    if(n_intv_ops) {
-      for(auto it = bu.operations[op_start].begin(); 
-          it != bu.operations[op_start].end(); ++it) {
-        rts.push_back(*it);
-      }
-      ++op_start;
-      while(op_start < op_end) {
-        std::vector<geom::Mat4> tmp_rts;
-        for(auto i = bu.operations[op_start].begin(); 
-            i != bu.operations[op_start].end(); ++i) {
-          for(auto j = rts.begin(); j != rts.end(); ++j) {
-            tmp_rts.push_back((*j)*(*i));
-          }
-        }
-        rts = tmp_rts;
-        ++op_start;
-      }
-    }
-    for(int ch_idx = bu.chain_intvl[2*intvl_idx]; 
-        ch_idx < bu.chain_intvl[2*intvl_idx+1]; ++ch_idx) {
-      for(auto it = rts.begin(); it != rts.end(); ++it) {
-        au_chain_names.push_back(bu.au_chains[ch_idx]);
-        transforms.push_back(*it);
-      }
-    }
-  }
-
-  ChainNameGenerator gen;
-  for(uint bu_ch_idx = 0; bu_ch_idx < au_chain_names.size(); ++bu_ch_idx) {
-    String bu_ch_name = gen.Get();
-    ost::mol::ChainHandle added_chain = ed.InsertChain(bu_ch_name);
-    this->FillChain(added_chain, ed, chain_data_.at(au_chain_names[bu_ch_idx]),
-                    transforms[bu_ch_idx]);
-  }
-
-  return ent;
-}
-
 void OMF::ToStream(std::ostream& stream) const {
 
   uint32_t magic_number = 42;
@@ -5099,7 +4886,6 @@ void OMF::ToStream(std::ostream& stream) const {
     Dump(stream, residue_definitions_);
   }
 
-  Dump(stream, biounit_definitions_);
   Dump(stream, chain_data_, residue_definitions_, OptionSet(LOSSY),
        OptionSet(AVG_BFACTORS), OptionSet(ROUND_BFACTORS), OptionSet(SKIP_SS),
        OptionSet(INFER_POS));
@@ -5143,7 +4929,6 @@ void OMF::FromStream(std::istream& stream) {
     Load(stream, residue_definitions_);
   }
 
-  Load(stream, biounit_definitions_);
   Load(stream, chain_data_, residue_definitions_, version_, OptionSet(LOSSY),
        OptionSet(AVG_BFACTORS), OptionSet(ROUND_BFACTORS), OptionSet(SKIP_SS),
        OptionSet(INFER_POS));

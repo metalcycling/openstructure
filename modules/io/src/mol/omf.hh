@@ -33,11 +33,9 @@ namespace ost { namespace io {
 const int OMF_VERSION = 2;
 
 class ChainData;
-class BioUnitData;
 class OMF;
 typedef boost::shared_ptr<OMF> OMFPtr;
 typedef boost::shared_ptr<ChainData> ChainDataPtr;
-typedef boost::shared_ptr<BioUnitData> BioUnitDataPtr;
 
 struct SidechainAtomRule {
   int sidechain_atom_idx;
@@ -120,23 +118,6 @@ struct ResidueDefinition {
   std::vector<SidechainAtomRule> sidechain_atom_rules;
 };
 
-
-struct BioUnitDefinition {
-  BioUnitDefinition() { }
-
-  BioUnitDefinition(const ost::io::MMCifInfoBioUnit& bu);
-
-  void ToStream(std::ostream& stream) const;
-
-  void FromStream(std::istream& stream);
-
-  std::vector<String> au_chains;
-  std::vector<int> chain_intvl;
-  std::vector<std::vector<geom::Mat4> > operations;
-  std::vector<int> op_intvl;
-};
-
-
 struct ChainData {
 
   ChainData(): ch_name(""), chain_type(ost::mol::CHAINTYPE_UNKNOWN) { }
@@ -210,10 +191,6 @@ public:
   static OMFPtr FromEntity(const ost::mol::EntityHandle& ent,
                            uint8_t options = 0);
 
-  static OMFPtr FromMMCIF(const ost::mol::EntityHandle& ent,
-                          const MMCifInfo& info,
-                          uint8_t options = 0);
-
   static OMFPtr FromFile(const String& fn);
 
   static OMFPtr FromString(const String& s);
@@ -224,7 +201,15 @@ public:
 
   ost::mol::EntityHandle GetAU() const;
 
+  ost::mol::EntityHandle GetEntity() const {
+    return this->GetAU();
+  }
+
   ost::mol::EntityHandle GetAUChain(const String& name) const;
+
+  ost::mol::EntityHandle GetEntityChain(const String& name) const {
+    return this->GetAUChain(name);
+  }
 
   ost::mol::EntityHandle GetBU(int bu_idx) const;
 
@@ -261,7 +246,6 @@ private:
 
   String name_;
   std::vector<ResidueDefinition> residue_definitions_;
-  std::vector<BioUnitDefinition> biounit_definitions_;
   std::map<String, ChainDataPtr> chain_data_;
 
   // bond features - only for bonds that are inter-chain
