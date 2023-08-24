@@ -30,7 +30,7 @@
 
 namespace ost { namespace io {
 
-const int OMF_VERSION = 2;
+const int OMF_VERSION = 3;
 
 class ChainData;
 class OMF;

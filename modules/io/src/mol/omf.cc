@@ -2031,11 +2031,10 @@ void ChainData::FromStream(std::istream& stream,
                            bool round_bfactors, bool skip_ss, bool infer_pos) {
   
   Load(stream, ch_name);
-  if(version >= 2) {
-    int8_t type;
-    stream.read(reinterpret_cast<char*>(&type), sizeof(int8_t));
-    chain_type = ost::mol::ChainType(type);
-  }
+  int8_t type;
+  stream.read(reinterpret_cast<char*>(&type), sizeof(int8_t));
+  chain_type = ost::mol::ChainType(type);
+
   LoadResDefIndices(stream, res_def_indices);
   LoadRnums(stream, rnums);
   LoadInsertionCodes(stream, insertion_codes);
@@ -2223,11 +2222,7 @@ void ChainData::FromStream(std::istream& stream,
   if(skip_ss) {
     sec_structures.assign(res_def_indices.size(), 'C');
   } else {
-    if(version >= 2) {
-      LoadSecStructures(stream, sec_structures);
-    } else {
-      LoadIntVec(stream, sec_structures);
-    }
+    LoadSecStructures(stream, sec_structures);
   }
 }
 
@@ -4904,18 +4899,16 @@ void OMF::FromStream(std::istream& stream) {
 
   uint32_t version;
   stream.read(reinterpret_cast<char*>(&version), sizeof(uint32_t));
-  if(version != 1 && version != 2) {
+  if(version < 3) {
     std::stringstream ss;
-    ss << "OST version only supports OMF version 1 and 2. Got "<<version;
+    ss << "Old OMF versions are deprecated. Can only load versions >= 3, ";
+    ss << "got "<<version;
     throw ost::Error(ss.str());
   }
 
   version_ = version;
-
-  if(version_ > 1) {
-    stream.read(reinterpret_cast<char*>(&options_), sizeof(uint8_t));
-    LoadName(stream, name_);
-  }
+  stream.read(reinterpret_cast<char*>(&options_), sizeof(uint8_t));
+  LoadName(stream, name_);
 
   if(OptionSet(DEFAULT_PEPLIB)) {
     // load residue definitions from default lib and append custom definitions
