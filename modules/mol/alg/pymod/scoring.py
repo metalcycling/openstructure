@@ -707,7 +707,7 @@ class Scorer:
         Contact as defined in :attr:`~native_contacts`
 
         :type: :class:`list` of :class:`tuple` with 2 elements each
-               (trg_ch1, trg_ch2)
+               (mdl_ch1, mdl_ch2)
         """
         if self._contact_model_interfaces is None:
             self._contact_model_interfaces = self.contact_scorer.cent2.interacting_chains
