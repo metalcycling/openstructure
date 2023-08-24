@@ -240,9 +240,8 @@ private:
 
   void FromStream(std::istream& stream);
 
-  void FillChain(ost::mol::ChainHandle& chain, ost::mol::XCSEditor& ed,
-                 const ChainDataPtr data, 
-                 geom::Mat4 transform = geom::Mat4()) const;
+  void FillChain(const ChainDataPtr data, ost::mol::XCSEditor& ed,
+                 ost::mol::ChainHandle& chain) const;
 
   String name_;
   std::vector<ResidueDefinition> residue_definitions_;

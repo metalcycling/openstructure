@@ -4827,7 +4827,7 @@ ost::mol::EntityHandle OMF::GetAU() const{
 
   for(auto it = chain_data_.begin(); it!=chain_data_.end(); ++it) {
     ost::mol::ChainHandle ch = ed.InsertChain(it->first); 
-    this->FillChain(ch, ed, it->second);
+    this->FillChain(it->second, ed, ch);
   }
 
   // deal with inter-chain bonds
@@ -4853,7 +4853,7 @@ ost::mol::EntityHandle OMF::GetAUChain(const String& name) const{
   ent.SetName(ss.str());
   ost::mol::XCSEditor ed = ent.EditXCS(mol::BUFFERED_EDIT);
   ost::mol::ChainHandle ch = ed.InsertChain(name);  
-  this->FillChain(ch, ed, chain_data_.at(name));
+  this->FillChain(chain_data_.at(name), ed, ch);
   return ent;
 }
 
@@ -4934,26 +4934,11 @@ void OMF::FromStream(std::istream& stream) {
   }
 }
 
-void OMF::FillChain(ost::mol::ChainHandle& chain, ost::mol::XCSEditor& ed,
-                    const ChainDataPtr data, geom::Mat4 t) const {
+void OMF::FillChain(const ChainDataPtr data, ost::mol::XCSEditor& ed,
+                    ost::mol::ChainHandle& chain) const {
 
   ed.SetChainType(chain, data->chain_type);
-  geom::Vec3List* positions = &data->positions;
-  geom::Vec3List transformed_positions; // only filled if non-identity transform
-  if(t != geom::Mat4()) {
-    transformed_positions.resize(positions->size());
-    Real a,b,c;
-    for (uint i = 0; i < transformed_positions.size(); ++i) {
-      const geom::Vec3& p = data->positions[i];
-      a = t(0,0)*p[0]+t(0,1)*p[1]+t(0,2)*p[2]+t(0,3);
-      b = t(1,0)*p[0]+t(1,1)*p[1]+t(1,2)*p[2]+t(1,3);
-      c = t(2,0)*p[0]+t(2,1)*p[1]+t(2,2)*p[2]+t(2,3);
-      transformed_positions[i][0] = a;
-      transformed_positions[i][1] = b;
-      transformed_positions[i][2] = c;
-    }
-    positions = &transformed_positions; // bend around
-  }
+  const geom::Vec3List& positions = data->positions;
 
   int at_idx = 0;
   for(uint res_idx = 0; res_idx < data->res_def_indices.size(); ++res_idx) {
@@ -4968,7 +4953,7 @@ void OMF::FillChain(ost::mol::ChainHandle& chain, ost::mol::XCSEditor& ed,
     res.SetSecStructure(ost::mol::SecStructure(data->sec_structures[res_idx]));
 
     for(uint i = 0; i < res_def.anames.size(); ++i) {
-      ed.InsertAtom(res, res_def.anames[i], (*positions)[at_idx], 
+      ed.InsertAtom(res, res_def.anames[i], positions[at_idx], 
                     res_def.elements[i], data->occupancies[at_idx], 
                     data->bfactors[at_idx], res_def.is_hetatm[i]);
       ++at_idx;
