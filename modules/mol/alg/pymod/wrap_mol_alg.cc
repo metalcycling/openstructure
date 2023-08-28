@@ -50,6 +50,7 @@ void export_sec_struct();
 void export_sec_struct_segments();
 void export_find_membrane();
 void export_entity_to_density();
+void export_biounit();
 
 namespace {
   
@@ -321,6 +322,7 @@ BOOST_PYTHON_MODULE(_ost_mol_alg)
   export_sec_struct_segments();
   export_find_membrane();
   export_entity_to_density();
+  export_biounit();
   
   def("LocalDistDiffTest", lddt_a, (arg("sequence_separation")=0,arg("local_lddt_property_string")=""));
   def("LocalDistDiffTest", lddt_c, (arg("local_lddt_property_string")=""));

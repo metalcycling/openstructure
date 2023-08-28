@@ -11,6 +11,7 @@ set(OST_MOL_ALG_PYMOD_SOURCES
   export_molck.cc
   export_membrane.cc
   export_entity_to_density.cc
+  export_biounit.cc
 )
 
 set(OST_MOL_ALG_PYMOD_MODULES
