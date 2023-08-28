@@ -258,7 +258,7 @@ class ContactScorerResult:
         return 2*p*r/(p+r)
 
 class ContactScorer:
-    """ Helper object to comput Contact scores
+    """ Helper object to compute Contact scores
 
     Tightly integrated into the mechanisms from the chain_mapping module.
     The prefered way to derive an object of type :class:`ContactScorer` is
