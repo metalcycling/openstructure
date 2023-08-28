@@ -342,23 +342,45 @@ def _ParseArgs():
               "present in the reference but not in the model."))
 
     parser.add_argument(
-        "--contact-scores",
-        dest="contact_scores",
+        "--ics",
+        dest="ics",
         default=False,
         action="store_true",
-        help=("Computes interface contact based scores. A contact between two "
-              "residues of different chains is defined as having at least one "
-              "heavy atom within 5A. Contacts in reference structure are "
-              "available as key \"reference_contacts\". Each contact specifies "
-              "the interacting residues in format "
-              "\"<cname>.<rnum>.<ins_code>\". Model contacts are available as "
-              "key \"model_contacts\". The precision which is available as key "
-              "\"contact_precision\" reports the fraction of model contacts "
-              "that are also present in the reference. The recall which is "
-              "available as key \"contact_recall\" reports the fraction of "
-              "reference contacts that are correctly reproduced in the model. "
+        help=("Computes interface contact similarity (ICS) related scores. "
+              "A contact between two residues of different chains is defined "
+              "as having at least one heavy atom within 5A. Contacts in "
+              "reference structure are available as key "
+              "\"reference_contacts\". Each contact specifies the interacting "
+              "residues in format \"<cname>.<rnum>.<ins_code>\". Model "
+              "contacts are available as key \"model_contacts\". The precision "
+              "which is available as key \"ics_precision\" reports the "
+              "fraction of model contacts that are also present in the "
+              "reference. The recall which is available as key \"ics_recall\" "
+              "reports the fraction of reference contacts that are correctly "
+              "reproduced in the model. "
               "The ICS score (Interface Contact Similarity) available as key "
               "\"ics\" combines precision and recall using the F1-measure."))
+
+    parser.add_argument(
+        "--ips",
+        dest="ips",
+        default=False,
+        action="store_true",
+        help=("Computes interface patch similarity (IPS) related scores. "
+              "They focus on interface residues. They are defined as having "
+              "at least one contact to a residue from any other chain. "
+              "In short: if they show up in the contact lists used to compute "
+              "ICS. If ips is enabled, these contacts get reported too and are "
+              "available as keys \"reference_contacts\" and \"model_contacts\"."
+              "The precision which is available as key \"ips_precision\" "
+              "reports the fraction of model interface residues, that are also "
+              "interface residues in the reference. "
+              "The recall which is available as key \"ips_recall\" "
+              "reports the fraction of reference interface residues that are "
+              "also interface residues in the model. "
+              "The IPS score (Interface Patch Similarity) available as key "
+              "\"ips\" is the Jaccard coefficient between interface residues "
+              "in reference and model."))
 
     parser.add_argument(
         "--rigid-scores",
@@ -627,12 +649,19 @@ def _Process(model, reference, args):
         out["per_interface_qs_global"] = scorer.per_interface_qs_global
         out["per_interface_qs_best"] = scorer.per_interface_qs_best
 
-    if args.contact_scores:
+    if args.ics or args.ips:
         out["reference_contacts"] = scorer.native_contacts
         out["model_contacts"] = scorer.model_contacts
-        out["contact_precision"] = scorer.contact_precision
-        out["contact_recall"] = scorer.contact_recall
+
+    if args.ics:
+        out["ics_precision"] = scorer.ics_precision
+        out["ics_recall"] = scorer.ics_recall
         out["ics"] = scorer.ics
+
+    if args.ips:
+        out["ips_precision"] = scorer.ips_precision
+        out["ips_recall"] = scorer.ips_recall
+        out["ips"] = scorer.ips
 
     if args.dockq:
         out["dockq_reference_interfaces"] = scorer.dockq_target_interfaces
@@ -645,10 +674,6 @@ def _Process(model, reference, args):
         out["dockq_wave"] = scorer.dockq_wave
         out["dockq_ave_full"] = scorer.dockq_ave_full
         out["dockq_wave_full"] = scorer.dockq_wave_full
-
-    if args.contact_scores:
-        out["reference_contacts"] = scorer.native_contacts
-        out["model_contacts"] = scorer.model_contacts
 
     if args.rigid_scores:
         out["oligo_gdtts"] = scorer.gdtts

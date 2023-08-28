@@ -56,10 +56,15 @@ class TestContactScore(unittest.TestCase):
         mapper = ChainMapper(target)
         res = mapper.GetRigidMapping(model, strategy="greedy_iterative_rmsd")
         contact_scorer = ContactScorer.FromMappingResult(res)
-        score_result = contact_scorer.Score(res.mapping)
+        score_result = contact_scorer.ScoreICS(res.mapping)
         self.assertAlmostEqual(score_result.precision, 0.583, places=2)
         self.assertAlmostEqual(score_result.recall, 0.288, places=2)
         self.assertAlmostEqual(score_result.ics, 0.386, places=2)
+
+        score_result = contact_scorer.ScoreIPS(res.mapping)
+        self.assertAlmostEqual(score_result.precision, 0.779, places=2)
+        self.assertAlmostEqual(score_result.recall, 0.493, places=2)
+        self.assertAlmostEqual(score_result.ips, 0.432, places=2)
 
 if __name__ == "__main__":
     from ost import testutils

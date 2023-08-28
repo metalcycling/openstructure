@@ -255,22 +255,38 @@ Details on the usage (output of ``ost compare-structures --help``):
                           and "dockq_wave_full" add zeros in the average
                           computation for each interface that is only present in
                           the reference but not in the model.
-    --contact-scores      Computes interface contact based scores. A contact
-                          between two residues of different chains is defined as
-                          having at least one heavy atom within 5A. Contacts in
-                          reference structure are available as key
-                          "reference_contacts". Each contact specifies the
-                          interacting residues in format
+    --ics                 Computes interface contact similarity (ICS) related
+                          scores. A contact between two residues of different
+                          chains is defined as having at least one heavy atom
+                          within 5A. Contacts in reference structure are
+                          available as key "reference_contacts". Each contact
+                          specifies the interacting residues in format
                           "<cname>.<rnum>.<ins_code>". Model contacts are
                           available as key "model_contacts". The precision which
-                          is available as key "contact_precision" reports the
+                          is available as key "ics_precision" reports the
                           fraction of model contacts that are also present in
                           the reference. The recall which is available as key
-                          "contact_recall" reports the fraction of reference
+                          "ics_recall" reports the fraction of reference
                           contacts that are correctly reproduced in the model.
                           The ICS score (Interface Contact Similarity) available
                           as key "ics" combines precision and recall using the
                           F1-measure.
+    --ips                 Computes interface patch similarity (IPS) related
+                          scores. They focus on interface residues. They are
+                          defined as having at least one contact to a residue
+                          from any other chain. In short: if they show up in the
+                          contact lists used to compute ICS. If ips is enabled,
+                          these contacts get reported too and are available as
+                          keys "reference_contacts" and "model_contacts".The
+                          precision which is available as key "ips_precision"
+                          reports the fraction of model interface residues, that
+                          are also interface residues in the reference. The
+                          recall which is available as key "ips_recall" reports
+                          the fraction of reference interface residues that are
+                          also interface residues in the model. The IPS score
+                          (Interface Patch Similarity) available as key "ips" is
+                          the Jaccard coefficient between interface residues in
+                          reference and model.
     --rigid-scores        Computes rigid superposition based scores. They're
                           based on a Kabsch superposition of all mapped CA
                           positions (C3' for nucleotides). Makes the following

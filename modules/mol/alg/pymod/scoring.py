@@ -248,9 +248,12 @@ class Scorer:
         self._contact_model_interfaces = None
         self._native_contacts = None
         self._model_contacts = None
-        self._contact_precision = None
-        self._contact_recall = None
+        self._ics_precision = None
+        self._ics_recall = None
         self._ics = None
+        self._ips_precision = None
+        self._ips_recall = None
+        self._ips = None
 
         self._dockq_target_interfaces = None
         self._dockq_interfaces = None
@@ -714,37 +717,72 @@ class Scorer:
         return self._contact_model_interfaces
 
     @property
-    def contact_precision(self):
+    def ics_precision(self):
         """ Fraction of model contacts that are also present in target
 
         :type: :class:`float`
         """
-        if self._contact_precision is None:
-            self._compute_contact_scores()
-        return self._contact_precision
+        if self._ics_precision is None:
+            self._compute_ics_scores()
+        return self._ics_precision
     
     @property
-    def contact_recall(self):
+    def ics_recall(self):
         """ Fraction of target contacts that are correctly reproduced in model
 
         :type: :class:`float`
         """
-        if self._contact_recall is None:
-            self._compute_contact_scores()
-        return self._contact_recall
+        if self._ics_recall is None:
+            self._compute_ics_scores()
+        return self._ics_recall
 
     @property
     def ics(self):
         """ ICS (Interface Contact Similarity) score
 
-        Combination of :attr:`~contact_precision` and :attr:`~contact_recall`
+        Combination of :attr:`~ics_precision` and :attr:`~ics_recall`
         using the F1-measure
 
         :type: :class:`float`
         """
         if self._ics is None:
-            self._compute_contact_scores()
+            self._compute_ics_scores()
         return self._ics
+
+    @property
+    def ips_precision(self):
+        """ Fraction of model interface residues that are also interface
+        residues in target
+
+        :type: :class:`float`
+        """
+        if self._ips_precision is None:
+            self._compute_ips_scores()
+        return self._ips_precision
+    
+    @property
+    def ips_recall(self):
+        """ Fraction of target interface residues that are also interface
+        residues in model
+
+        :type: :class:`float`
+        """
+        if self._ips_recall is None:
+            self._compute_ips_scores()
+        return self._ips_recall
+
+    @property
+    def ips(self):
+        """ IPS (Interface Patch Similarity) score
+
+        Jaccard coefficient of interface residues in target and their mapped
+        counterparts in model
+
+        :type: :class:`float`
+        """
+        if self._ips is None:
+            self._compute_ips_scores()
+        return self._ips
 
     @property
     def dockq_target_interfaces(self):
@@ -1299,14 +1337,19 @@ class Scorer:
             self._per_interface_qs_best.append(qs_res.QS_best)
             self._per_interface_qs_global.append(qs_res.QS_global)
 
-    def _compute_contact_scores(self):
-        contact_scorer_res = self.contact_scorer.Score(self.mapping.mapping)
-        self._contact_precision = contact_scorer_res.precision
-        self._contact_recall = contact_scorer_res.recall
+    def _compute_ics_scores(self):
+        contact_scorer_res = self.contact_scorer.ScoreICS(self.mapping.mapping)
+        self._ics_precision = contact_scorer_res.precision
+        self._ics_recall = contact_scorer_res.recall
         self._ics = contact_scorer_res.ics
 
-    def _compute_dockq_scores(self):
+    def _compute_ips_scores(self):
+        contact_scorer_res = self.contact_scorer.ScoreIPS(self.mapping.mapping)
+        self._ips_precision = contact_scorer_res.precision
+        self._ips_recall = contact_scorer_res.recall
+        self._ips = contact_scorer_res.ips
 
+    def _compute_dockq_scores(self):
         # lists with values in contact_target_interfaces
         self._dockq_scores = list()
         self._fnat = list()
