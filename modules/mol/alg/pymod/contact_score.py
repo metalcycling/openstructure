@@ -226,12 +226,8 @@ class ContactEntity:
                                                           hr2.strip("\u0000")))
 
     def _SetupInterfaceResidues(self):
-        self._interface_residues = dict()
+        self._interface_residues = {cname: set() for cname in self.chain_names}
         for k,v in self.contacts.items():
-            if k[0] not in self._interface_residues:
-                self._interface_residues[k[0]] = set()
-            if k[1] not in self._interface_residues:
-                self._interface_residues[k[1]] = set()
             for item in v:
                 self._interface_residues[k[0]].add(item[0])
                 self._interface_residues[k[1]].add(item[1])
@@ -278,7 +274,10 @@ class ContactScorerResultICS:
 
         :type: :class:`int`
         """
-        return self._n_intersection / self._n_mdl_contacts
+        if self._n_mdl_contacts != 0:
+            return self._n_intersection / self._n_mdl_contacts
+        else:
+            return 0.0
 
     @property
     def recall(self):
@@ -288,7 +287,10 @@ class ContactScorerResultICS:
 
         :type: :class:`int`
         """
-        return self._n_intersection / self._n_trg_contacts
+        if self._n_trg_contacts != 0:
+            return self._n_intersection / self._n_trg_contacts
+        else:
+            return 0.0
 
     @property
     def ics(self):
@@ -300,7 +302,12 @@ class ContactScorerResultICS:
         """
         p = self.precision
         r = self.recall
-        return 2*p*r/(p+r)
+        nominator = p*r
+        denominator = p + r
+        if denominator != 0.0:
+            return 2*nominator/denominator
+        else:
+            return 0.0
 
 class ContactScorerResultIPS:
     """
@@ -337,7 +344,10 @@ class ContactScorerResultIPS:
 
         :type: :class:`int`
         """
-        return self._n_intersection / self._n_mdl_int_res
+        if self._n_mdl_int_res != 0:
+            return self._n_intersection / self._n_mdl_int_res
+        else:
+            return 0.0
 
     @property
     def recall(self):
@@ -348,7 +358,10 @@ class ContactScorerResultIPS:
 
         :type: :class:`int`
         """
-        return self._n_intersection / self._n_trg_int_res
+        if self._n_trg_int_res != 0:
+            return self._n_intersection / self._n_trg_int_res
+        else:
+            return 0.0
 
     @property
     def ips(self):
