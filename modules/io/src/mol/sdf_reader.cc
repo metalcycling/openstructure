@@ -182,12 +182,22 @@ void SDFReader::ParseHeader(const String& line, int line_num,
       break;
     case 4:  // counts line
     {
-      if (line.length() < 39) {
-        String msg="Bad counts line %d: Not correct number of characters on "
-                   "the line: %i (should be at least 39)";
+      String version_str;
+      if (line.length() < 6) {
+        String msg="Bad counts line %d: too short (%i characters, "
+                   "should be at least 6 or 39)";
         throw IOException(str(format(msg) % line_num % line.length()));
       }
-      String version_str=line.substr(34, 5);
+      else if (line.length() < 39) {
+        String msg="Bad counts line %d: too short (%i characters,  "
+                   "should be at least 39). "
+                   "Proceeding assuming V2000 format.";
+        LOG_WARNING(str(format(msg) % line_num % line.length()));
+        version_str="V2000";
+      }
+      else {
+        version_str=line.substr(34, 5);
+      }
       if (version_str == "V2000" || version_str == "V3000") {
         version_=version_str;
       }
