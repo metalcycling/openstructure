@@ -83,6 +83,8 @@ namespace {
         else if (abs(chg) > 3) {
           String msg = "SDF format only supports charges from -3 to +3, not %g";
           throw IOException(str(format(msg) % chg));
+          // This is not entirely true. We could implement "M  CHG" lines with
+          // support from -15 to +15. Or switch to V3000.
         }
         else {
           Real chg_sdf = 4 - chg;
