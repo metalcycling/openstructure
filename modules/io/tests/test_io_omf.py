@@ -127,7 +127,7 @@ class TestOMF(unittest.TestCase):
     def test_default_peplib(self):
         omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
-        omf_def_pep = io.OMF.FromEntity(self.ent, io.OMFOption.DEFAULT_PEPLIB)
+        omf_def_pep = io.OMF.FromEntity(self.ent, options = io.OMFOption.DEFAULT_PEPLIB)
         omf_def_pep_bytes = omf_def_pep.ToBytes()
         loaded_omf_def_pep = io.OMF.FromBytes(omf_def_pep_bytes)
         loaded_ent = loaded_omf_def_pep.GetAU()
@@ -135,24 +135,10 @@ class TestOMF(unittest.TestCase):
         self.assertTrue(len(omf_def_pep_bytes) < len(omf_bytes))
         self.assertTrue(compare_ent(self.ent, loaded_ent))
 
-    def test_lossy(self):
-        omf = io.OMF.FromEntity(self.ent)
-        omf_bytes = omf.ToBytes()
-        omf_lossy = io.OMF.FromEntity(self.ent, io.OMFOption.LOSSY)
-        omf_lossy_bytes = omf_lossy.ToBytes()
-        loaded_omf_lossy = io.OMF.FromBytes(omf_lossy_bytes)
-        loaded_ent = loaded_omf_lossy.GetAU()
-
-        self.assertTrue(len(omf_lossy_bytes) < len(omf_bytes))
-        self.assertFalse(compare_ent(self.ent, loaded_ent))
-        max_dist = math.sqrt(3*0.05*0.05)
-        self.assertTrue(compare_ent(self.ent, loaded_ent,
-                                    at_dist_thresh=max_dist))
-
     def test_avg_bfactors(self):
         omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
-        omf_avg_bfac = io.OMF.FromEntity(self.ent, io.OMFOption.AVG_BFACTORS)
+        omf_avg_bfac = io.OMF.FromEntity(self.ent, options = io.OMFOption.AVG_BFACTORS)
         omf_avg_bfac_bytes = omf_avg_bfac.ToBytes()
         loaded_omf_avg_bfac = io.OMF.FromBytes(omf_avg_bfac_bytes)
         loaded_ent = loaded_omf_avg_bfac.GetAU()
@@ -173,7 +159,7 @@ class TestOMF(unittest.TestCase):
     def test_round_bfactors(self):
         omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
-        omf_round_bfac = io.OMF.FromEntity(self.ent, io.OMFOption.ROUND_BFACTORS)
+        omf_round_bfac = io.OMF.FromEntity(self.ent, options = io.OMFOption.ROUND_BFACTORS)
         omf_round_bfac_bytes = omf_round_bfac.ToBytes()
         loaded_omf_round_bfac = io.OMF.FromBytes(omf_round_bfac_bytes)
         loaded_ent = loaded_omf_round_bfac.GetAU()
@@ -186,7 +172,7 @@ class TestOMF(unittest.TestCase):
     def test_skip_ss(self):
         omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
-        omf_skip_ss = io.OMF.FromEntity(self.ent, io.OMFOption.SKIP_SS)
+        omf_skip_ss = io.OMF.FromEntity(self.ent, options = io.OMFOption.SKIP_SS)
         omf_skip_ss_bytes = omf_skip_ss.ToBytes()
         loaded_omf_skip_ss = io.OMF.FromBytes(omf_skip_ss_bytes)
         loaded_ent = loaded_omf_skip_ss.GetAU()
@@ -199,7 +185,7 @@ class TestOMF(unittest.TestCase):
         omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
         omf_infer_pep_bonds = io.OMF.FromEntity(self.ent,
-                                                io.OMFOption.INFER_PEP_BONDS)
+                                                options = io.OMFOption.INFER_PEP_BONDS)
         omf_infer_pep_bonds_bytes = omf_infer_pep_bonds.ToBytes()
         loaded_omf_infer_pep_bonds = io.OMF.FromBytes(omf_infer_pep_bonds_bytes)
         loaded_ent = loaded_omf_infer_pep_bonds.GetAU()

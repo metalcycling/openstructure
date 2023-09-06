@@ -56,20 +56,19 @@ void export_omf_io() {
 
   enum_<OMF::OMFOption>("OMFOption")
     .value("DEFAULT_PEPLIB", OMF::DEFAULT_PEPLIB)
-    .value("LOSSY", OMF::LOSSY)
     .value("AVG_BFACTORS", OMF::AVG_BFACTORS)
     .value("ROUND_BFACTORS", OMF::ROUND_BFACTORS)
     .value("SKIP_SS", OMF::SKIP_SS)
     .value("INFER_PEP_BONDS", OMF::INFER_PEP_BONDS)
-    .value("INFER_POS", OMF::INFER_POS)
   ;
 
   class_<OMF, OMFPtr>("OMF",no_init)
-    .def("FromEntity", &OMF::FromEntity, (arg("ent"), arg("options")=0)).staticmethod("FromEntity")
+    .def("FromEntity", &OMF::FromEntity, (arg("ent"), arg("max_error")=0.0, arg("options")=0)).staticmethod("FromEntity")
     .def("FromFile", &OMF::FromFile).staticmethod("FromFile")
     .def("FromBytes", &wrap_from_bytes).staticmethod("FromBytes")
     .def("ToFile", &OMF::ToFile)
     .def("ToBytes", &wrap_to_bytes)
+    .def("GetMaxError", &OMF::GetMaxError)
     .def("GetAU", &OMF::GetAU)
     .def("GetEntity", &OMF::GetEntity)
     .def("GetAUChain", &OMF::GetAUChain)
