@@ -197,6 +197,21 @@ void SDFWriter::Write(const mol::EntityHandle& ent) {
 }
 
 bool SDFWriter::VisitChain(const mol::ChainView& chain) {
+  // Santiy check: only 999 atoms / bonds supported in SDF V2000
+  // If more are needed we need to implement V3000
+  if (chain.GetAtomCount() > 999) {
+    std::stringstream msg_at;
+    msg_at << "Can't write SDF file. Too many atoms (";
+    msg_at << chain.GetAtomCount() <<")";
+    throw IOException(msg_at.str());
+  }
+  if (chain.GetBondCount() > 999) {
+    std::stringstream msg_bo;
+    msg_bo << "Can't write SDF file. Too many bonds (";
+    msg_bo << chain.GetBondCount() <<")";
+    throw IOException(msg_bo.str());
+  }
+
   // print end of molecule line
   if(counter_ != 0) {
     ostr_ << "$$$$" << std::endl;
