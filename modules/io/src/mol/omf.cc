@@ -26,21 +26,21 @@ namespace{
     // stores arbitrary unsigned integers up to 9 bits
     // no range checks performed
   public:
-    BitStorage(): data_(2, 0), writing_bit_pos_(0), reading_bit_pos_(0) { }
+    BitStorage(): buffer_(2, 0), writing_bit_pos_(0), reading_bit_pos_(0) { }
 
     void Push(uint32_t v, int n_bits) {
       int byte_pos = writing_bit_pos_ / 8;
       v = v << (32 - n_bits - writing_bit_pos_ % 8); // shift the relevant bits to left
-      uint32_t tmp = data_[byte_pos];
+      uint32_t tmp = buffer_[byte_pos];
       tmp = tmp << 24; // buffer content at byte_pos occupies first 8 bits
       tmp = tmp | v;
-      data_[byte_pos] = (tmp >> 24) & 0xFF;
-      data_[byte_pos+1] = (tmp >> 16) & 0xFF;
+      buffer_[byte_pos] = (tmp >> 24) & 0xFF;
+      buffer_[byte_pos+1] = (tmp >> 16) & 0xFF;
       writing_bit_pos_ += n_bits;
 
       // make sure we have one empty byte in the end
       int new_byte_pos = writing_bit_pos_ / 8;
-      if(new_byte_pos > byte_pos) data_.push_back(0);
+      if(new_byte_pos > byte_pos) buffer_.push_back(0);
     }
 
     uint32_t Read(int n_bits) {
@@ -48,8 +48,8 @@ namespace{
       int right_shift = reading_bit_pos_ % 8;
       reading_mask = reading_mask >> right_shift;
       int byte_pos = reading_bit_pos_ / 8;
-      uint32_t tmp = static_cast<uint32_t>(data_[byte_pos]) << 24;
-      tmp = tmp | (static_cast<uint32_t>(data_[byte_pos+1]) << 16);
+      uint32_t tmp = static_cast<uint32_t>(buffer_[byte_pos]) << 24;
+      tmp = tmp | (static_cast<uint32_t>(buffer_[byte_pos+1]) << 16);
       reading_bit_pos_ += n_bits;
       return (tmp & reading_mask) >> (32 - n_bits - right_shift);
     }
@@ -61,20 +61,20 @@ namespace{
     void Dump(std::ostream& stream) const {
       stream.write(reinterpret_cast<const char*>(&writing_bit_pos_), sizeof(int));
       int n_bytes = std::ceil(static_cast<Real>(writing_bit_pos_) / 8);
-      stream.write(reinterpret_cast<const char*>(&data_[0]), n_bytes);
+      stream.write(reinterpret_cast<const char*>(&buffer_[0]), n_bytes);
     }
 
     static BitStorage Load(std::istream& stream) {
       BitStorage storage;
       stream.read(reinterpret_cast<char*>(&storage.writing_bit_pos_), sizeof(int));
       int n_bytes = std::ceil(static_cast<Real>(storage.writing_bit_pos_) / 8);
-      storage.data_.resize(n_bytes + 3, 0);
-      stream.read(reinterpret_cast<char*>(&storage.data_[0]), n_bytes);
+      storage.buffer_.resize(n_bytes + 1, 0);
+      stream.read(reinterpret_cast<char*>(&storage.buffer_[0]), n_bytes);
       return storage;
     }
 
   private:
-    std::vector<uint8_t> data_;
+    std::vector<uint8_t> buffer_;
     int writing_bit_pos_;
     int reading_bit_pos_;
   };
@@ -83,7 +83,7 @@ namespace{
                      const geom::Vec3& n_next_pos, geom::Vec3& o_pos) {
     geom::Vec3 o_vec = geom::Normalize(geom::Normalize(c_pos - ca_pos) +
                                        geom::Normalize(c_pos - n_next_pos));
-    o_pos = c_pos + 1.230*o_vec;
+    o_pos = c_pos + 1.2339*o_vec;
   }
 
   void ConstructAtomPos(const geom::Vec3& A, const geom::Vec3& B,
@@ -664,8 +664,8 @@ namespace{
                                         ref_positions[c_two_idx]);
     Real a_c_two = geom::Angle(positions[ca_three_idx] - positions[ca_two_idx],
                                ref_positions[c_two_idx] - positions[ca_two_idx]);
-    uint32_t int_da_c_two = round((da_c_two + M_PI)/(2*M_PI)*255);
-    uint8_t int_a_c_two = round((a_c_two)/(M_PI)*255);
+    int int_da_c_two = round((da_c_two + M_PI)/(2*M_PI)*255);
+    int int_a_c_two = round((a_c_two)/(M_PI)*255);
     geom::Vec3 reconstructed_c_two;
     ConstructAtomPos(positions[ca_one_idx], positions[ca_three_idx],
                      positions[ca_two_idx], CA_C_Bond(def_two.olc),
@@ -683,8 +683,8 @@ namespace{
                                         ref_positions[n_two_idx]);
     Real a_n_two = geom::Angle(positions[ca_three_idx] - positions[ca_two_idx],
                                ref_positions[n_two_idx] - positions[ca_two_idx]);
-    uint16_t int_da_n_two = round((da_n_two + M_PI)/(2*M_PI)*255);
-    uint8_t int_a_n_two = round((a_n_two)/(M_PI)*255);
+    int int_da_n_two = round((da_n_two + M_PI)/(2*M_PI)*255);
+    int int_a_n_two = round((a_n_two)/(M_PI)*255);
     geom::Vec3 reconstructed_n_two;
     ConstructAtomPos(positions[ca_one_idx], positions[ca_three_idx],
                      positions[ca_two_idx], N_CA_Bond(def_two.olc),
@@ -702,13 +702,13 @@ namespace{
                                           ref_positions[n_three_idx]);
     Real a_n_three = geom::Angle(positions[ca_two_idx] - reconstructed_c_two,
                                  ref_positions[n_three_idx] - reconstructed_c_two);
-    uint16_t int_da_n_three = round((da_n_three + M_PI)/(2*M_PI)*255);
+    int int_da_n_three = round((da_n_three + M_PI)/(2*M_PI)*255);
     // store angle as diff to ideal angle
     Real diff = a_n_three-CA_C_N_Angle(def_two.olc);
     // quantization by 0.5 degrees => 0.0087 in radians
     int int_diff = round(diff/0.0087);
     // make it fit in 4 bits
-    uint8_t int_a_n_three = std::min(8, std::max(-7, int_diff)) + 7;
+    int int_a_n_three = std::min(8, std::max(-7, int_diff)) + 7;
     
     geom::Vec3 reconstructed_n_three;
     ConstructAtomPos(reconstructed_n_two,
@@ -728,13 +728,13 @@ namespace{
                                           ref_positions[c_three_idx]);
     Real a_c_three = geom::Angle(reconstructed_n_three - positions[ca_three_idx],
                                  ref_positions[c_three_idx] - positions[ca_three_idx]);
-    uint16_t int_da_c_three = round((da_c_three + M_PI)/(2*M_PI)*255);
+    int int_da_c_three = round((da_c_three + M_PI)/(2*M_PI)*255);
     // store angle as diff to ideal angle derived from N_CA_C_Angle function
     diff = a_c_three-N_CA_C_Angle(def_three.olc);
     // quantization by 0.5 degrees => 0.0087 in radians
     int_diff = round(diff/0.0087);
     // make it fit in 4 bits
-    uint8_t int_a_c_three = std::min(8, std::max(-7, int_diff)) + 7;
+    int int_a_c_three = std::min(8, std::max(-7, int_diff)) + 7;
     
     geom::Vec3 reconstructed_c_three;
     ConstructAtomPos(reconstructed_c_two,
@@ -754,13 +754,13 @@ namespace{
                                         ref_positions[c_one_idx]);
     Real a_c_one = geom::Angle(positions[ca_two_idx] - reconstructed_n_two,
                                ref_positions[c_one_idx] - reconstructed_n_two);
-    uint16_t int_da_c_one = round((da_c_one + M_PI)/(2*M_PI)*255);
+    int int_da_c_one = round((da_c_one + M_PI)/(2*M_PI)*255);
     // store angle as diff to ideal peptide angle
     diff = a_c_one-C_N_CA_Angle(def_two.olc);
     // quantization by 0.5 degrees => 0.0087 in radians
     int_diff = round(diff/0.0087);
     // make it fit in 4 bits
-    uint8_t int_a_c_one = std::min(8, std::max(-7, int_diff)) + 7;
+    int int_a_c_one = std::min(8, std::max(-7, int_diff)) + 7;
     
     geom::Vec3 reconstructed_c_one;
     ConstructAtomPos(reconstructed_c_two,
@@ -780,13 +780,13 @@ namespace{
                                         ref_positions[n_one_idx]);
     Real a_n_one = geom::Angle(reconstructed_c_one - positions[ca_one_idx],
                                ref_positions[n_one_idx] - positions[ca_one_idx]);
-    uint16_t int_da_n_one = round((da_n_one + M_PI)/(2*M_PI)*255);
+    int int_da_n_one = round((da_n_one + M_PI)/(2*M_PI)*255);
     // store angle as diff to ideal angle derived from N_CA_C_Angle function
     diff = a_n_one-N_CA_C_Angle(def_one.olc);
     // quantization by 0.5 degrees => 0.0087 in radians
     int_diff = round(diff/0.0087);
     // make it fit in 4 bits
-    uint8_t int_a_n_one = std::min(8, std::max(-7, int_diff)) + 7;
+    int int_a_n_one = std::min(8, std::max(-7, int_diff)) + 7;
     
     geom::Vec3 reconstructed_n_one;
     ConstructAtomPos(reconstructed_n_two,
@@ -800,7 +800,7 @@ namespace{
 
     // derive parameters to reconstruct cbetas
     //////////////////////////////////////////
-    std::vector<uint8_t> cb_data;
+    std::vector<int> cb_data;
     geom::Vec3 reconstructed_cb_one;
     geom::Vec3 reconstructed_cb_two;
     geom::Vec3 reconstructed_cb_three;
@@ -812,14 +812,14 @@ namespace{
       diff = da_cb - N_C_CA_CB_DiAngle(def_one.olc);
       // quantization by 0.5 degrees => 0.0087 in radians
       int_diff = round(diff/0.0087);
-      uint8_t int_da_cb = std::min(8, std::max(-7, int_diff)) + 7;
+      int int_da_cb = std::min(8, std::max(-7, int_diff)) + 7;
 
       Real a_cb = geom::Angle(reconstructed_c_one - positions[ca_one_idx],
                               ref_positions[cb_one_idx] - positions[ca_one_idx]);
       diff = a_cb - C_CA_CB_Angle(def_one.olc);
       // quantization by 0.5 degrees => 0.0087 in radians
       int_diff = round(diff/0.0087);
-      uint8_t int_a_cb = std::min(8, std::max(-7, int_diff)) + 7;
+      int int_a_cb = std::min(8, std::max(-7, int_diff)) + 7;
 
       ConstructAtomPos(reconstructed_n_one,
                        reconstructed_c_one,
@@ -841,14 +841,14 @@ namespace{
       diff = da_cb - N_C_CA_CB_DiAngle(def_two.olc);
       // quantization by 0.5 degrees => 0.0087 in radians
       int_diff = round(diff/0.0087);
-      uint8_t int_da_cb = std::min(8, std::max(-7, int_diff)) + 7;
+      int int_da_cb = std::min(8, std::max(-7, int_diff)) + 7;
 
       Real a_cb = geom::Angle(reconstructed_c_two - positions[ca_two_idx],
                               ref_positions[cb_two_idx] - positions[ca_two_idx]);
       diff = a_cb - C_CA_CB_Angle(def_two.olc);
       // quantization by 0.5 degrees => 0.0087 in radians
       int_diff = round(diff/0.0087);
-      uint8_t int_a_cb = std::min(8, std::max(-7, int_diff)) + 7;
+      int int_a_cb = std::min(8, std::max(-7, int_diff)) + 7;
 
       ConstructAtomPos(reconstructed_n_two,
                        reconstructed_c_two,
@@ -870,14 +870,14 @@ namespace{
       diff = da_cb - N_C_CA_CB_DiAngle(def_three.olc);
       // quantization by 0.5 degrees => 0.0087 in radians
       int_diff = round(diff/0.0087);
-      uint8_t int_da_cb = std::min(8, std::max(-7, int_diff)) + 7;
+      int int_da_cb = std::min(8, std::max(-7, int_diff)) + 7;
 
       Real a_cb = geom::Angle(reconstructed_c_three - positions[ca_three_idx],
                               ref_positions[cb_three_idx] - positions[ca_three_idx]);
       diff = a_cb - C_CA_CB_Angle(def_three.olc);
       // quantization by 0.5 degrees => 0.0087 in radians
       int_diff = round(diff/0.0087);
-      uint8_t int_a_cb = std::min(8, std::max(-7, int_diff)) + 7;
+      int int_a_cb = std::min(8, std::max(-7, int_diff)) + 7;
 
       ConstructAtomPos(reconstructed_n_three,
                        reconstructed_c_three,
@@ -960,11 +960,10 @@ namespace{
     // deliberately delay angle computations
     // may lead to tiny corrections for second, third... angle
     // for errors that were introduced for earlier ones
-    std::vector<uint32_t> comp_dihedrals(def.chi_definitions.size(), 0.0);
+    std::vector<int> comp_dihedrals(def.chi_definitions.size(), 0.0);
     std::vector<bool> dihedral_set(def.chi_definitions.size(), false);
-    std::vector<uint32_t> angle_diffs;
+    std::vector<int> angle_diffs;
 
-    Real max_error = 0.0;
     for(auto it = at_rules.begin(); it != at_rules.end(); ++it) {
       Real bond = it->bond_length;
       Real angle = it->angle;
@@ -1006,8 +1005,6 @@ namespace{
                        bond, angle, dihedral,
                        res_positions[it->sidechain_atom_idx]);
 
-      max_error = std::max(max_error, geom::Distance(res_positions[it->sidechain_atom_idx],
-                        res_ref_positions[it->sidechain_atom_idx]));
       if(geom::Distance(res_positions[it->sidechain_atom_idx],
                         res_ref_positions[it->sidechain_atom_idx]) > error_thresh) {
         return false;
@@ -1175,8 +1172,7 @@ namespace{
 
     std::vector<Real> dihedral_angles;
     for(int i = 0; i < def.GetNChiAngles(); ++i) {
-      uint32_t asdf = data.Read(8);
-      dihedral_angles.push_back(static_cast<Real>(asdf)/255*2*M_PI-M_PI);
+      dihedral_angles.push_back(static_cast<Real>(data.Read(8))/255*2*M_PI-M_PI);
     }
 
     for(auto it = at_rules.begin(); it != at_rules.end(); ++it) {
