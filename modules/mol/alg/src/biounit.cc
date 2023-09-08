@@ -237,8 +237,14 @@ ost::mol::EntityHandle CreateBU(const ost::mol::EntityHandle& asu,
   ent.SetName(asu.GetName());
   ost::mol::XCSEditor ed = ent.EditXCS(mol::BUFFERED_EDIT);
 
-  // For chain naming. First occurence: 1.<au_cname>, Second: 2.<au_cname> etc.
+  // For chain naming. First copy with transformation: 2.<au_cname>, second
+  // 3.<au_cname> etc.
   std::map<String, int> chain_counter;
+
+  // The name 1.<au_cname> is reserved for that particular AU chain with
+  // identity transform, i.e. the copy of the actual AU chain. We need to keep
+  // track of this as there can only be one.
+  std::set<String> au_chain_copies;
 
   const std::vector<std::vector<String> >& au_chains = bu_info.GetAUChains();
   const std::vector<std::vector<geom::Mat4> >& transforms =
@@ -259,17 +265,44 @@ ost::mol::EntityHandle CreateBU(const ost::mol::EntityHandle& asu,
     // process all transformations
     for(uint t_idx = 0; t_idx < transforms[chain_intvl].size(); ++t_idx) {
       const geom::Mat4& m = transforms[chain_intvl][t_idx];
+
+      // check if m is identity matrix => no transformation applied
+      bool is_identity = true;
+      geom::Mat4 identity_matrix = geom::Mat4::Identity();
+      const Real* m_data = m.Data();
+      const Real* identity_data = identity_matrix.Data();
+      for(int i = 0; i < 16; ++i) {
+        if(std::abs(m_data[i] - identity_data[i]) > 1e-5) {
+          is_identity = false;
+          break;
+        }
+      }
+
       // key: au_at.GetHashCode, value: bu_at
       // required for bond buildup in the end
       std::map<long, AtomHandle> atom_mapper;
       for(uint c_idx = 0; c_idx < au_chains[chain_intvl].size(); ++c_idx) {
         String au_cname = au_chains[chain_intvl][c_idx];
-        if(chain_counter.find(au_cname) == chain_counter.end()) {
-          chain_counter[au_cname] = 1;
-        }
+
         std::stringstream bu_cname_ss;
-        bu_cname_ss << chain_counter[au_cname] << '.' << au_cname;
-        chain_counter[au_cname] += 1;
+        if(is_identity) {
+          if(au_chain_copies.find(au_cname) != au_chain_copies.end()) {
+            std::stringstream err;
+            err<<"Try to insert copy of AU chain "<<au_cname<<" with identity ";
+            err<<"transform, i.e. copy the raw coordinates. This has already ";
+            err<<"been done for this AU chain and there can only be one.";
+            throw ost::Error(err.str());
+          }
+          bu_cname_ss << "1." << au_cname; // 1.<au_cname> reserved for AU chain
+                                           // without transformation
+          au_chain_copies.insert(au_cname);
+        } else {
+          if(chain_counter.find(au_cname) == chain_counter.end()) {
+            chain_counter[au_cname] = 2;
+          }
+          bu_cname_ss << chain_counter[au_cname] << '.' << au_cname;
+          chain_counter[au_cname] += 1;
+        }
         ost::mol::ChainHandle asu_ch = asu.FindChain(au_cname);
         if(!asu_ch.IsValid()) {
           std::stringstream ss;
