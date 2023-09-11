@@ -632,7 +632,7 @@ CompoundPtrList CompoundLib::FindCompounds(const String& query,
       // next row
       ret=sqlite3_step(stmt);
     }
-    assert(SQLITE_DONE==sqlite3_step(stmt));
+    assert(SQLITE_DONE==ret);
   } else {
     LOG_ERROR("ERROR: " << sqlite3_errmsg(db_->ptr));
     sqlite3_finalize(stmt);
