@@ -1470,8 +1470,7 @@ from a :class:`ost.io.MMCifInfoBioUnit` or the derived
   assymetric unit as they follow a standardised naming scheme:
   <*idx*>.<*asu_cname*>, where *asu_cname* is the chain name in the assymetric
   unit and *idx* is the nth occurence of that chain in the biounit with 
-  one based indexing. There is a quirk though to be more consistent with the
-  biounits that you download from RCSB. An index of 1, for example 1.A,
+  one based indexing. There is a quirk though. An index of 1, for example 1.A,
   is reserved for the original AU chain with identity transform (read: no
   transform) applied. If a certain AU chain only occurs with an actual
   transform applied, numbering starts at 2.
