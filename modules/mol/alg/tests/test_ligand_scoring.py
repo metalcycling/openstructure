@@ -196,8 +196,10 @@ class TestLigandScoring(unittest.TestCase):
         # Test that it works with views and only consider atoms in the view
         # Skip PA, PB and O[1-3]A and O[1-3]B in target and model
         # We assume atom index are fixed and won't change
-        trg_g3d1_sub = trg_g3d1.Select("aindex>6019").residues[0]
-        mdl_g3d_sub = mdl_g3d.Select("aindex>1447").residues[0]
+        trg_g3d1_sub_ent = trg_g3d1.Select("aindex>6019")
+        trg_g3d1_sub = trg_g3d1_sub_ent.residues[0]
+        mdl_g3d_sub_ent = mdl_g3d.Select("aindex>1447")
+        mdl_g3d_sub = mdl_g3d_sub_ent.residues[0]
 
         sym = ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1_sub)
         assert len(sym) == 6
