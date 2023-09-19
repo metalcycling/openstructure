@@ -596,6 +596,26 @@ class TestLigandScoring(unittest.TestCase):
                               unassigned=True, rmsd_assignment=True)
 
 
+    def test_substructure_match(self):
+        """Test that substructure_match=True works."""
+        trg = _LoadMMCIF("1r8q.cif.gz")
+        mdl = _LoadMMCIF("P84080_model_02.cif.gz")
+
+        trg_g3d1 = trg.FindResidue("F", 1)
+        mdl_g3d = mdl.FindResidue("L_2", 1)
+
+        # Skip PA, PB and O[1-3]A and O[1-3]B in target and model
+        # ie 8 / 32 atoms => coverage 0.75
+        # We assume atom index are fixed and won't change
+        trg_g3d1_sub_ent = trg_g3d1.Select("aindex>6019")
+        trg_g3d1_sub = trg_g3d1_sub_ent.residues[0]
+
+        # Substructure matches
+        sc = LigandScorer(mdl.Select("protein=True"), trg.Select("protein=True"),
+                          model_ligands=[mdl_g3d], target_ligands=[trg_g3d1_sub],
+                          substructure_match=True)
+        assert sc.rmsd_details["L_2"][1]["coverage"] == 0.75
+
 if __name__ == "__main__":
     from ost import testutils
     if testutils.DefaultCompoundLibIsSet():

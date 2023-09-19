@@ -317,11 +317,13 @@ class LigandScorer:
         self._unassigned_model_ligand_short = None
         self._unassigned_target_ligand_descriptions = None
         self._unassigned_model_ligand_descriptions = None
-        # Keep track of symmetries/isomorphisms
+        # Keep track of symmetries/isomorphisms (regardless of scoring)
         # 0.0: no isomorphism
         # 1.0: isomorphic
-        # np.nan: not assessed yet
+        # np.nan: not assessed yet - that's why we can't use a boolean
         self._assignment_isomorphisms = None
+        # Keep track of match coverage (only in case there was a score)
+        self._assignment_match_coverage = None
 
         if custom_mapping is not None:
             self._set_custom_mapping(custom_mapping)
@@ -620,6 +622,8 @@ class LigandScorer:
             (len(self.target_ligands), len(self.model_ligands)), dtype=dict)
         self._assignment_isomorphisms = np.full(
             (len(self.target_ligands), len(self.model_ligands)), fill_value=np.nan)
+        self._assignment_match_coverage = np.full(
+            (len(self.target_ligands), len(self.model_ligands)), fill_value=np.nan)
 
         for target_i, target_ligand in enumerate(self.target_ligands):
             LogVerbose("Analyzing target ligand %s" % target_ligand)
@@ -649,7 +653,6 @@ class LigandScorer:
                             by_atom_index=True)
                         LogVerbose("Ligands %s and %s symmetry match" % (
                             str(model_ligand), str(target_ligand)))
-                        self._assignment_isomorphisms[target_i, model_i] = 1
                     except NoSymmetryError:
                         # Ligands are different - skip
                         LogVerbose("No symmetry between %s and %s" % (
@@ -661,6 +664,9 @@ class LigandScorer:
                         continue
                     substructure_match = len(symmetries[0][0]) != len(
                         model_ligand.atoms)
+                    coverage = len(symmetries[0][0]) / len(model_ligand.atoms)
+                    self._assignment_match_coverage = coverage
+                    self._assignment_isomorphisms[target_i, model_i] = 1
 
                     rmsd = SCRMSD(model_ligand, target_ligand,
                                   transformation=binding_site.transform,
@@ -682,6 +688,7 @@ class LigandScorer:
                             "chain_mapping": binding_site.GetFlatChainMapping(),
                             "transform": binding_site.transform,
                             "substructure_match": substructure_match,
+                            "coverage": coverage,
                             "inconsistent_residues": binding_site.inconsistent_residues,
                         }
                         if self.unassigned:
@@ -746,6 +753,7 @@ class LigandScorer:
                                 "chain_mapping": binding_site.GetFlatChainMapping(),
                                 "transform": binding_site.transform,
                                 "substructure_match": substructure_match,
+                                "coverage": coverage,
                                 "inconsistent_residues": binding_site.inconsistent_residues,
                             }
                             if self.unassigned:
@@ -1130,6 +1138,9 @@ class LigandScorer:
           (substructure) match. A value of `True` indicates that the target
           ligand covers only part of the model, while `False` indicates a
           perfect match.
+        * `coverage`: the fraction of model atoms covered by the assigned
+          target ligand, in the interval (0, 1]. If `substructure_match`
+          is `False`, this will always be 1.
         * `inconsistent_residues`: a list of tuples of mapped residues views
           (:class:`~ost.mol.ResidueView`) with residue names that differ
           between the reference and the model, respectively.
