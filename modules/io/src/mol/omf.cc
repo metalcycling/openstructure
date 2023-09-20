@@ -1678,58 +1678,152 @@ namespace{
     Dump(stream, run_length_encoded);
   }
 
-  void LoadPosVec(std::istream& stream, std::vector<Real>& vec, bool lossy) {
-    std::vector<int> delta_encoded;
-    Load(stream, delta_encoded);
-    std::vector<int> int_vec;
-    DeltaDecoding(delta_encoded, int_vec);
-    if(lossy) {
-      IntToRealVec(int_vec, vec, 0.1);  
-    } else {
-      IntToRealVec(int_vec, vec, 0.001);  
-    }
-  }
-
   void LoadPositions(std::istream& stream, geom::Vec3List& positions,
                      bool lossy) {
+
+    int8_t n_pos;
+    stream.read(reinterpret_cast<char*>(&n_pos), sizeof(int8_t));
+
     std::vector<Real> x_pos;
     std::vector<Real> y_pos;
     std::vector<Real> z_pos;
-    LoadPosVec(stream, x_pos, lossy);
-    LoadPosVec(stream, y_pos, lossy);
-    LoadPosVec(stream, z_pos, lossy);
+
+    if(n_pos >= 6) {
+      int first_x;
+      int first_y;
+      int first_z;
+      stream.read(reinterpret_cast<char*>(&first_x), sizeof(int));
+      stream.read(reinterpret_cast<char*>(&first_y), sizeof(int));
+      stream.read(reinterpret_cast<char*>(&first_z), sizeof(int));
+      std::vector<int> loaded_x;
+      std::vector<int> loaded_y;
+      std::vector<int> loaded_z;
+      Load(stream, loaded_x);
+      Load(stream, loaded_y);
+      Load(stream, loaded_z);
+      std::vector<int> delta_encoded_x;
+      std::vector<int> delta_encoded_y;
+      std::vector<int> delta_encoded_z;
+      delta_encoded_x.push_back(first_x);
+      delta_encoded_y.push_back(first_y);
+      delta_encoded_z.push_back(first_z);
+      delta_encoded_x.insert(delta_encoded_x.end(),
+                             loaded_x.begin(), loaded_x.end());
+      delta_encoded_y.insert(delta_encoded_y.end(),
+                             loaded_y.begin(), loaded_y.end());
+      delta_encoded_z.insert(delta_encoded_z.end(),
+                             loaded_z.begin(), loaded_z.end());
+      std::vector<int> int_x;
+      std::vector<int> int_y;
+      std::vector<int> int_z;
+      DeltaDecoding(delta_encoded_x, int_x);
+      DeltaDecoding(delta_encoded_y, int_y);
+      DeltaDecoding(delta_encoded_z, int_z);
+      if(lossy) {
+        IntToRealVec(int_x, x_pos, 0.1);  
+        IntToRealVec(int_y, y_pos, 0.1);  
+        IntToRealVec(int_z, z_pos, 0.1);  
+      } else {
+        IntToRealVec(int_x, x_pos, 0.001);  
+        IntToRealVec(int_y, y_pos, 0.001);  
+        IntToRealVec(int_z, z_pos, 0.001);  
+      }
+    } else {
+      std::vector<int> int_vec;
+      Load(stream, int_vec);
+      std::vector<Real> real_vec;
+      if(lossy) {
+        IntToRealVec(int_vec, real_vec, 0.1);
+      } else {
+        IntToRealVec(int_vec, real_vec, 0.001);
+      }
+      x_pos.resize(n_pos);
+      y_pos.resize(n_pos);
+      z_pos.resize(n_pos);
+      for(int i = 0; i < n_pos; ++i) {
+        x_pos[i] = real_vec[i*3];
+        y_pos[i] = real_vec[i*3+1];
+        z_pos[i] = real_vec[i*3+2];
+      }
+    }     
+
     positions.resize(x_pos.size());
     for(uint i = 0; i < positions.size(); ++i) {
       positions[i] = geom::Vec3(x_pos[i], y_pos[i], z_pos[i]);
     }
   }
 
-  void DumpPosVec(std::ostream& stream, const std::vector<Real>& vec,
-                  bool lossy) {
-    std::vector<int> int_vec;
-    if(lossy) {
-      RealToIntVec(vec, int_vec, 10);  
-    } else {
-      RealToIntVec(vec, int_vec, 1000);
-    }
-    std::vector<int> delta_compressed;
-    DeltaEncoding(int_vec, delta_compressed);
-    Dump(stream, delta_compressed);    
-  }
-
   void DumpPositions(std::ostream& stream, const geom::Vec3List& positions,
                      bool lossy) {
-    std::vector<Real> x_pos(positions.size());
-    std::vector<Real> y_pos(positions.size());
-    std::vector<Real> z_pos(positions.size());
+
+    int n_pos = positions.size();
+
+    std::vector<Real> x_pos(n_pos);
+    std::vector<Real> y_pos(n_pos);
+    std::vector<Real> z_pos(n_pos);
     for(uint i = 0; i < positions.size(); ++i) {
       x_pos[i] = positions[i][0];
       y_pos[i] = positions[i][1];
       z_pos[i] = positions[i][2];
     }
-    DumpPosVec(stream, x_pos, lossy);
-    DumpPosVec(stream, y_pos, lossy);
-    DumpPosVec(stream, z_pos, lossy);
+
+    std::vector<int> int_x;
+    std::vector<int> int_y;
+    std::vector<int> int_z;
+
+    if(lossy) {
+      RealToIntVec(x_pos, int_x, 10);  
+      RealToIntVec(y_pos, int_y, 10);  
+      RealToIntVec(z_pos, int_z, 10);  
+    } else {
+      RealToIntVec(x_pos, int_x, 1000);  
+      RealToIntVec(y_pos, int_y, 1000);  
+      RealToIntVec(z_pos, int_z, 1000);  
+    }
+
+    // delta compression is only worth it for a certain amount of
+    // positions...
+    if(n_pos > 5) {
+      // perform delta compression with one quirk: the first values of
+      // the delta compressed vectors get dumped explicitely as they
+      // may overflow when dumping with small integer sizes and cause
+      // excessive integer packing
+      int8_t N = 6;
+      stream.write(reinterpret_cast<char*>(&N), sizeof(int8_t));
+      std::vector<int> x_delta_compressed;
+      std::vector<int> y_delta_compressed;
+      std::vector<int> z_delta_compressed;
+      DeltaEncoding(int_x, x_delta_compressed);
+      DeltaEncoding(int_y, y_delta_compressed);
+      DeltaEncoding(int_z, z_delta_compressed);
+      int first_x = x_delta_compressed[0];
+      int first_y = y_delta_compressed[0];
+      int first_z = z_delta_compressed[0];
+      std::vector<int> x_to_dump(x_delta_compressed.begin() + 1,
+                                 x_delta_compressed.end());
+      std::vector<int> y_to_dump(y_delta_compressed.begin() + 1,
+                                 y_delta_compressed.end());
+      std::vector<int> z_to_dump(z_delta_compressed.begin() + 1,
+                                 z_delta_compressed.end());
+      stream.write(reinterpret_cast<char*>(&first_x), sizeof(int));
+      stream.write(reinterpret_cast<char*>(&first_y), sizeof(int));
+      stream.write(reinterpret_cast<char*>(&first_z), sizeof(int));
+      Dump(stream, x_to_dump);
+      Dump(stream, y_to_dump);
+      Dump(stream, z_to_dump);
+    } else {
+      // feed everything in one int vector without any compression and
+      // dump it
+      int8_t N = n_pos;
+      stream.write(reinterpret_cast<char*>(&N), sizeof(int8_t));
+      std::vector<int> pos_vec(N * 3);
+      for(int i = 0; i < N; ++i) {
+        pos_vec[i*3] = int_x[i];
+        pos_vec[i*3+1] = int_y[i];
+        pos_vec[i*3+2] = int_z[i];
+      }
+      Dump(stream, pos_vec);
+    }
   }
 
   void LoadBFactors(std::istream& stream, std::vector<Real>& bfactors,
