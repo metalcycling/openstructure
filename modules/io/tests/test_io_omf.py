@@ -193,6 +193,15 @@ class TestOMF(unittest.TestCase):
         self.assertTrue(len(omf_infer_pep_bonds_bytes) < len(omf_bytes))
         self.assertTrue(compare_ent(self.ent, loaded_ent))
 
+    def test_lower_precition(self):
+        omf = io.OMF.FromEntity(self.ent, max_error=0.5)
+        omf_bytes = omf.ToBytes()
+        loaded_omf = io.OMF.FromBytes(omf_bytes)
+        loaded_ent = loaded_omf.GetAU()
+        self.assertFalse(compare_ent(self.ent, loaded_ent))
+        self.assertTrue(compare_ent(self.ent, loaded_ent, at_dist_thresh=0.5))
+
+
 if __name__== '__main__':
     from ost import testutils
     if testutils.DefaultCompoundLibIsSet():
