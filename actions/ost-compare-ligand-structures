@@ -235,7 +235,7 @@ def _ParseArgs():
     parser.add_argument(
         "--lddt-lp-radius",
         dest="lddt_lp_radius",
-        default=4.0,
+        default=10.0,
         help=("lDDT inclusion radius for lDDT-LP."))
 
     parser.add_argument(
