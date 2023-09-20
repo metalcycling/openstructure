@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+import numpy.ma as np_ma
 import networkx
 
 from ost import mol
@@ -63,6 +64,23 @@ class LigandScorer:
     for lDDT-PLI, the assignment is based on the highest lDDT-PLI, and ties
     broken by lowest RMSD. Setting `rmsd_assignment=True` forces a single
     ligand assignment, based on RMSD only. Ties are broken arbitrarily.
+
+    By default, only exact matches between target and model ligands are
+    considered. This is a problem when the target only contains a subset
+    of the expected atoms (for instance if atoms are missing in an
+    experimental structure, which often happens in the PDB). With
+    `substructure_match=True`, complete model ligands can be scored against
+    partial target ligands. One problem with this approach is that it is
+    very easy to find good matches to small, irrelevant ligands like EDO, CO2
+    or GOL. To counter that, the assignment algorithm first assigns full
+    matches (and ignores all partial matches, even if they would result in a
+    better score). Once all full matches are assigned, it assigns the remaining
+    matches by decreasing coverage (fraction of atoms of the model ligand atoms
+    covered in the target) with a window of `coverage_delta` (by default 0.05),
+    starting from the highest coverage in the ligands which are still to be
+    assigned. As a result, for instance, with a delta of 0.05, a low-score
+    match with coverage 0.96 would be preferred to a high-score match with
+    coverage 0.90.
 
     Assumptions:
 
@@ -193,6 +211,8 @@ class LigandScorer:
     :type chain_mapper:  :class:`ost.mol.alg.chain_mapping.ChainMapper`
     :param substructure_match: Set this to True to allow partial target ligand.
     :type substructure_match: :class:`bool`
+    :param coverage_delta: the coverage delta for partial ligand assignment.
+    :type coverage_delta: :class:`float`
     :param radius: Inclusion radius for the binding site. Residues with
                    atoms within this distance of the ligand will be considered
                    for inclusion in the binding site.
@@ -238,6 +258,7 @@ class LigandScorer:
                  resnum_alignments=False, check_resnames=True,
                  rename_ligand_chain=False,
                  chain_mapper=None, substructure_match=False,
+                 coverage_delta=0.05,
                  radius=4.0, lddt_pli_radius=6.0, lddt_lp_radius=10.0,
                  binding_sites_topn=100000, global_chain_mapping=False,
                  rmsd_assignment=False, n_max_naive=12,
@@ -292,6 +313,7 @@ class LigandScorer:
         self.rmsd_assignment = rmsd_assignment
         self.n_max_naive = n_max_naive
         self.unassigned = unassigned
+        self.coverage_delta = coverage_delta
 
         # scoring matrices
         self._rmsd_matrix = None
@@ -622,8 +644,8 @@ class LigandScorer:
             (len(self.target_ligands), len(self.model_ligands)), dtype=dict)
         self._assignment_isomorphisms = np.full(
             (len(self.target_ligands), len(self.model_ligands)), fill_value=np.nan)
-        self._assignment_match_coverage = np.full(
-            (len(self.target_ligands), len(self.model_ligands)), fill_value=np.nan)
+        self._assignment_match_coverage = np.zeros(
+            (len(self.target_ligands), len(self.model_ligands)))
 
         for target_i, target_ligand in enumerate(self.target_ligands):
             LogVerbose("Analyzing target ligand %s" % target_ligand)
@@ -665,7 +687,7 @@ class LigandScorer:
                     substructure_match = len(symmetries[0][0]) != len(
                         model_ligand.atoms)
                     coverage = len(symmetries[0][0]) / len(model_ligand.atoms)
-                    self._assignment_match_coverage = coverage
+                    self._assignment_match_coverage[target_i, model_i] = coverage
                     self._assignment_isomorphisms[target_i, model_i] = 1
 
                     rmsd = SCRMSD(model_ligand, target_ligand,
@@ -765,7 +787,7 @@ class LigandScorer:
         self._lddt_pli_full_matrix = lddt_pli_full_matrix
 
     @staticmethod
-    def _find_ligand_assignment(mat1, mat2=None):
+    def _find_ligand_assignment(mat1, mat2=None, coverage=None, coverage_delta=None):
         """ Find the ligand assignment based on mat1. If mat2 is provided, it
         will be used to break ties in mat1. If mat2 is not provided, ties will
         be resolved by taking the first match arbitrarily.
@@ -780,45 +802,73 @@ class LigandScorer:
             mat2[~np.isnan(mat2)] = np.inf
         else:
             mat2 = np.copy(mat2)
+        if coverage is None:
+            coverage = np.copy(mat1)
+            coverage[:] = 1  # Assume full coverage by default
+        else:
+            coverage = np.copy(coverage)
+
         assignments = []
         if 0 in mat1.shape:
             # No model or target ligand
             LogDebug("No model or target ligand, returning no assignment.")
             return assignments
-        min_mat1 = LigandScorer._nanmin_nowarn(mat1)
-        while not np.isnan(min_mat1):
-            best_mat1 = np.argwhere(mat1 == min_mat1)
-            # Multiple "best" - use mat2 to disambiguate
-            if len(best_mat1) > 1:
-                # Get the values of mat2 at these positions
-                best_mat2_match = [mat2[tuple(x)] for x in best_mat1]
-                # Find the index of the best mat2
-                # Note: argmin returns the first value which is min.
-                best_mat2_idx = np.array(best_mat2_match).argmin()
-                # Now get the original indices
-                max_i_trg, max_i_mdl = best_mat1[best_mat2_idx]
-            else:
-                max_i_trg, max_i_mdl = best_mat1[0]
 
-            # Disable row and column
-            mat1[max_i_trg, :] = np.nan
-            mat1[:, max_i_mdl] = np.nan
-            mat2[max_i_trg, :] = np.nan
-            mat2[:, max_i_mdl] = np.nan
+        # First only consider full coverage matches.
+        min_coverage = np.max(coverage)
+        # If there's no full coverage, allow a small delta
+        if min_coverage < 1:
+            min_coverage = min_coverage - coverage_delta
+        while min_coverage > 0 - coverage_delta:
+            LogInfo("Looking for matches with coverage >= %s" % min_coverage)
+            min_mat1 = LigandScorer._nanmin_nowarn(mat1, coverage < min_coverage)
+            while not np.isnan(min_mat1):
+                best_mat1 = np.argwhere((mat1 == min_mat1) & (coverage >= min_coverage))
+                # Multiple "best" - use mat2 to disambiguate
+                if len(best_mat1) > 1:
+                    # Get the values of mat2 at these positions
+                    best_mat2_match = [mat2[tuple(x)] for x in best_mat1]
+                    # Find the index of the best mat2
+                    # Note: argmin returns the first value which is min.
+                    best_mat2_idx = np.array(best_mat2_match).argmin()
+                    # Now get the original indices
+                    max_i_trg, max_i_mdl = best_mat1[best_mat2_idx]
+                else:
+                    max_i_trg, max_i_mdl = best_mat1[0]
 
-            # Save
-            assignments.append((max_i_trg, max_i_mdl))
+                # Disable row and column
+                mat1[max_i_trg, :] = np.nan
+                mat1[:, max_i_mdl] = np.nan
+                mat2[max_i_trg, :] = np.nan
+                mat2[:, max_i_mdl] = np.nan
+                coverage[max_i_trg, :] = -np.inf
+                coverage[:, max_i_mdl] = -np.inf
 
-            # Recompute min
-            min_mat1 = LigandScorer._nanmin_nowarn(mat1)
+                # Save
+                assignments.append((max_i_trg, max_i_mdl))
+
+                # Recompute min
+                min_mat1 = LigandScorer._nanmin_nowarn(mat1, coverage < min_coverage)
+            # Recompute min_coverage
+            min_coverage = np.max(coverage)
+            if min_coverage < 1:
+                min_coverage = min_coverage - coverage_delta
         return assignments
 
     @staticmethod
-    def _nanmin_nowarn(array):
+    def _nanmin_nowarn(array, mask):
         """Compute np.nanmin but ignore the RuntimeWarning."""
+        masked_array = np_ma.masked_array(array, mask=mask)
         with warnings.catch_warnings():  # RuntimeWarning: All-NaN slice encountered
             warnings.simplefilter("ignore")
-            return np.nanmin(array)
+            min = np.nanmin(masked_array, )
+            if np_ma.is_masked(min):
+                return np.nan  # Everything was masked
+            else:
+                return min
+
+
+
 
     @staticmethod
     def _reverse_lddt(lddt):
@@ -876,7 +926,9 @@ class LigandScorer:
         :return: a tuple with 2 dictionaries of matrices containing the main
                  data, and details, respectively.
         """
-        assignments = self._find_ligand_assignment(mat1, mat2)
+        assignments = self._find_ligand_assignment(mat1, mat2,
+                                                   self._assignment_match_coverage,
+                                                   self.coverage_delta)
         out_main = {}
         out_details = {}
         assigned_trg = [False] * len(self.target_ligands)
@@ -973,7 +1025,9 @@ class LigandScorer:
         :return: a tuple with 4 dictionaries of matrices containing the main
                  data1, details1, main data2 and details2, respectively.
         """
-        assignments = self._find_ligand_assignment(mat)
+        assignments = self._find_ligand_assignment(mat,
+                                                   coverage=self._assignment_match_coverage,
+                                                   coverage_delta=self.coverage_delta)
         out_main1 = {}
         out_details1 = {}
         out_main2 = {}
@@ -1091,6 +1145,23 @@ class LigandScorer:
                     self._lddt_pli_matrix[i, j] = self._lddt_pli_full_matrix[
                         i, j]["lddt_pli"]
         return self._lddt_pli_matrix
+
+    @property
+    def coverage_matrix(self):
+        """ Get the matrix of model ligand atom coverage in the target.
+
+        Target ligands are in rows, model ligands in columns.
+
+        A value of 0 indicates that there was no isomorphism between the model
+        and target ligands. If `substructure_match=False`, only full match
+        isomorphisms are considered, and therefore only values of 1.0 and 0.0
+        are reported.
+
+        :rtype: :class:`~numpy.ndarray`
+        """
+        if self._assignment_match_coverage is None:
+            self._compute_scores()
+        return self._assignment_match_coverage
 
     @property
     def rmsd(self):

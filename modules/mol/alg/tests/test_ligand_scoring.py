@@ -616,6 +616,55 @@ class TestLigandScoring(unittest.TestCase):
                           substructure_match=True)
         assert sc.rmsd_details["L_2"][1]["coverage"] == 0.75
 
+    def test_6jyf(self):
+        """6JYF initially caused issues in the CASP15-CAMEO/LIGATE paper where
+         the ligand RET was wrongly assigned to short copies of OLA that float
+          around and yielded higher scores.
+          Here we test that this is resolved correctly."""
+        mdl = _LoadPDB("6jyf_mdl.pdb")
+        trg = _LoadMMCIF("6jyf_trg.cif")
+        mdl_lig = _LoadEntity("6jyf_RET_pred.sdf")
+        mdl_lig_full = _LoadEntity("6jyf_RET_pred_complete.sdf")
+
+        # Problem is easily fixed by just prioritizing full coverage
+        sc = LigandScorer(mdl, trg, model_ligands=[mdl_lig],
+                          substructure_match=True)
+        assert sc.rmsd_details['00001_'][1]["coverage"] == 1.0
+        assert sc.rmsd_details['00001_'][1]["target_ligand"].name == "RET"
+        self.assertAlmostEqual(sc.rmsd['00001_'][1], 15.56022, 4)
+        assert np.array_equal(sc.coverage_matrix,
+                              np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0.5, 0.3, 0.45, 0, 0, 0.55]]).transpose())
+
+        # We need to make sure that it also works if the match is partial.
+        # For that we load the complete ligand incl. the O missing in target
+        # with a coverage of around 95% only.
+        sc = LigandScorer(mdl, trg, model_ligands=[mdl_lig_full],
+                          substructure_match=True)
+        assert sc.rmsd_details['00001_'][1]["coverage"] > 0.95
+        assert sc.rmsd_details['00001_'][1]["target_ligand"].name == "RET"
+        self.assertAlmostEqual(sc.rmsd['00001_'][1], 15.56022, 4)
+
+        # Next, we check that coverage_delta has an effect. With a large
+        # delta of 0.5 we will assign to OLA which has a higher RMSD
+        # but a coverage of 0.52 only.
+        sc = LigandScorer(mdl, trg, model_ligands=[mdl_lig_full],
+                          substructure_match=True,
+                          coverage_delta=0.5)
+        assert sc.rmsd_details['00001_'][1]["coverage"] > 0.5
+        assert sc.rmsd_details['00001_'][1]["target_ligand"].name == "OLA"
+        self.assertAlmostEqual(sc.rmsd['00001_'][1], 6.13006878, 4)
+
+        # Finally, we check that we still assign to the full match even with
+        # a large coverage delta
+        sc = LigandScorer(mdl, trg, model_ligands=[mdl_lig],
+                          substructure_match=True,
+                          coverage_delta=0.5)
+        assert sc.rmsd_details['00001_'][1]["coverage"] == 1.0
+        assert sc.rmsd_details['00001_'][1]["target_ligand"].name == "RET"
+        self.assertAlmostEqual(sc.rmsd['00001_'][1], 15.56022, 4)
+
+
+
 if __name__ == "__main__":
     from ost import testutils
     if testutils.DefaultCompoundLibIsSet():
