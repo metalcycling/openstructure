@@ -12,6 +12,7 @@ from scipy.special import factorial
 from scipy.special import binom # as of Python 3.8, the math module implements
                                 # comb, i.e. n choose k
 
+import ost
 from ost import seq
 from ost import mol
 from ost import geom
@@ -1465,6 +1466,7 @@ class ChainMapper:
                                        no_intrachain = only_interchain)
 
             if lDDT is None:
+                ost.LogVerbose("No valid contacts in the reference")
                 lDDT = 0.0 # that means, that we have not a single valid contact
                            # in lDDT. For the code below to work, we just set it
                            # to a terrible score => 0.0
