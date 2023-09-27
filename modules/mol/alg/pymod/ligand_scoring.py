@@ -72,15 +72,13 @@ class LigandScorer:
     `substructure_match=True`, complete model ligands can be scored against
     partial target ligands. One problem with this approach is that it is
     very easy to find good matches to small, irrelevant ligands like EDO, CO2
-    or GOL. To counter that, the assignment algorithm first assigns full
-    matches (and ignores all partial matches, even if they would result in a
-    better score). Once all full matches are assigned, it assigns the remaining
-    matches by decreasing coverage (fraction of atoms of the model ligand atoms
-    covered in the target) with a window of `coverage_delta` (by default 0.05),
-    starting from the highest coverage in the ligands which are still to be
-    assigned. As a result, for instance, with a delta of 0.05, a low-score
-    match with coverage 0.96 would be preferred to a high-score match with
-    coverage 0.90.
+    or GOL. To counter that, the assignment algorithm considers the coverage,
+    expressed as the fraction of atoms of the model ligand atoms covered in the
+    target. Higher coverage matches are prioritized, but a match with a better
+    score will be preferred if it falls within a window of `coverage_delta`
+    (by default 0.05) of a worse-scoring match. As a result, for instance,
+    with a delta of 0.05, a low-score match with coverage 0.96 would be
+    preferred to a high-score match with coverage 0.90.
 
     Assumptions:
 
@@ -814,27 +812,39 @@ class LigandScorer:
             LogDebug("No model or target ligand, returning no assignment.")
             return assignments
 
-        # First only consider full coverage matches.
+        def _get_best_match(mat1_val, coverage_val):
+            """ Extract the row/column indices of the prediction matching the
+                given values."""
+            mat1_match_idx = np.argwhere((mat1 == mat1_val) & (coverage >= coverage_val))
+            # Multiple "best" - use mat2 to disambiguate
+            if len(mat1_match_idx) > 1:
+                # Get the values of mat2 at these positions
+                best_mat2_match = [mat2[tuple(x)] for x in mat1_match_idx]
+                # Find the index of the best mat2
+                # Note: argmin returns the first value which is min.
+                best_mat2_idx = np.array(best_mat2_match).argmin()
+                # Now get the original indices
+                return mat1_match_idx[best_mat2_idx]
+            else:
+                return mat1_match_idx[0]
+
+        # First only consider top coverage matches.
         min_coverage = np.max(coverage)
-        # If there's no full coverage, allow a small delta
-        if min_coverage < 1:
-            min_coverage = min_coverage - coverage_delta
-        while min_coverage > 0 - coverage_delta:
-            LogInfo("Looking for matches with coverage >= %s" % min_coverage)
+        while min_coverage > 0:
+            LogVerbose("Looking for matches with coverage >= %s" % min_coverage)
             min_mat1 = LigandScorer._nanmin_nowarn(mat1, coverage < min_coverage)
             while not np.isnan(min_mat1):
-                best_mat1 = np.argwhere((mat1 == min_mat1) & (coverage >= min_coverage))
-                # Multiple "best" - use mat2 to disambiguate
-                if len(best_mat1) > 1:
-                    # Get the values of mat2 at these positions
-                    best_mat2_match = [mat2[tuple(x)] for x in best_mat1]
-                    # Find the index of the best mat2
-                    # Note: argmin returns the first value which is min.
-                    best_mat2_idx = np.array(best_mat2_match).argmin()
-                    # Now get the original indices
-                    max_i_trg, max_i_mdl = best_mat1[best_mat2_idx]
-                else:
-                    max_i_trg, max_i_mdl = best_mat1[0]
+                max_i_trg, max_i_mdl = _get_best_match(min_mat1, min_coverage)
+
+                # Would we have a match for this model ligand with higher score
+                # but lower coverage?
+                alternative_matches = (mat1[:, max_i_mdl] < min_mat1) & (
+                        coverage[:, max_i_mdl] > (min_coverage - coverage_delta))
+                if np.any(alternative_matches):
+                    # Get the scores of these matches
+                    LogVerbose("Found match with lower coverage but better score")
+                    min_mat1 = np.min(mat1[alternative_matches])
+                    max_i_trg, max_i_mdl = _get_best_match(min_mat1, min_coverage - coverage_delta)
 
                 # Disable row and column
                 mat1[max_i_trg, :] = np.nan
@@ -851,8 +861,6 @@ class LigandScorer:
                 min_mat1 = LigandScorer._nanmin_nowarn(mat1, coverage < min_coverage)
             # Recompute min_coverage
             min_coverage = np.max(coverage)
-            if min_coverage < 1:
-                min_coverage = min_coverage - coverage_delta
         return assignments
 
     @staticmethod

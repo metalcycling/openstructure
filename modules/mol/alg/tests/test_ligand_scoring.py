@@ -654,14 +654,6 @@ class TestLigandScoring(unittest.TestCase):
         self.assertEqual(sc.rmsd_details['00001_'][1]["target_ligand"].name, "OLA")
         self.assertAlmostEqual(sc.rmsd['00001_'][1], 6.13006878, 4)
 
-        # Finally, we check that we still assign to the full match even with
-        # a large coverage delta
-        sc = LigandScorer(mdl, trg, model_ligands=[mdl_lig],
-                          substructure_match=True,
-                          coverage_delta=0.5)
-        self.assertEqual(sc.rmsd_details['00001_'][1]["coverage"], 1.0)
-        self.assertEqual(sc.rmsd_details['00001_'][1]["target_ligand"].name, "RET")
-        self.assertAlmostEqual(sc.rmsd['00001_'][1], 15.56022, 4)
 
 
 
