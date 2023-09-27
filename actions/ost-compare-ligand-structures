@@ -169,12 +169,19 @@ def _ParseArgs():
         help=("Allow incomplete target ligands."))
 
     parser.add_argument(
+        "-cd",
+        "--coverage-delta",
+        dest="coverage_delta",
+        default=False,
+        action="store_true",
+        help=("Allow incomplete target ligands."))
+
+    parser.add_argument(
         "-gcm",
         "--global-chain-mapping",
         dest="global_chain_mapping",
-        default=False,
-        action="store_true",
-        help=("Use a global chain mapping."))
+        default=0.2,
+        help=("Coverage delta for partial ligand assignment."))
 
     parser.add_argument(
         "-c",
@@ -363,6 +370,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         check_resnames=args.enforce_consistency,
         rename_ligand_chain=True,
         substructure_match=args.substructure_match,
+        coverage_delta=args.coverage_delta,
         global_chain_mapping=args.global_chain_mapping,
         rmsd_assignment=args.rmsd_assignment,
         unassigned=args.unassigned,
