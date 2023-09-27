@@ -76,8 +76,8 @@ class LigandScorer:
     expressed as the fraction of atoms of the model ligand atoms covered in the
     target. Higher coverage matches are prioritized, but a match with a better
     score will be preferred if it falls within a window of `coverage_delta`
-    (by default 0.05) of a worse-scoring match. As a result, for instance,
-    with a delta of 0.05, a low-score match with coverage 0.96 would be
+    (by default 0.2) of a worse-scoring match. As a result, for instance,
+    with a delta of 0.2, a low-score match with coverage 0.96 would be
     preferred to a high-score match with coverage 0.90.
 
     Assumptions:
@@ -256,7 +256,7 @@ class LigandScorer:
                  resnum_alignments=False, check_resnames=True,
                  rename_ligand_chain=False,
                  chain_mapper=None, substructure_match=False,
-                 coverage_delta=0.05,
+                 coverage_delta=0.2,
                  radius=4.0, lddt_pli_radius=6.0, lddt_lp_radius=10.0,
                  binding_sites_topn=100000, global_chain_mapping=False,
                  rmsd_assignment=False, n_max_naive=12,
