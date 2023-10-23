@@ -516,7 +516,7 @@ class ContactScorer:
 
         return self.ICSFromFlatMapping(flat_mapping)
 
-    def ScoreInterface(self, trg_ch1, trg_ch2, mdl_ch1, mdl_ch2):
+    def ScoreICSInterface(self, trg_ch1, trg_ch2, mdl_ch1, mdl_ch2):
         """ Computes ICS scores only considering one interface
 
         This only works for interfaces that are computed in :func:`Score`, i.e.

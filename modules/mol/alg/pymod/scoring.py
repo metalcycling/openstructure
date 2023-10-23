@@ -251,6 +251,9 @@ class Scorer:
         self._ics_precision = None
         self._ics_recall = None
         self._ics = None
+        self._per_interface_ics_precision = None
+        self._per_interface_ics_recall = None
+        self._per_interface_ics = None
         self._ips_precision = None
         self._ips_recall = None
         self._ips = None
@@ -748,6 +751,48 @@ class Scorer:
         if self._ics is None:
             self._compute_ics_scores()
         return self._ics
+
+    @property
+    def per_interface_ics_precision(self):
+        """ Per-interface ICS precision
+
+        :attr:`~ics_precision` for each interface in
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+        if self._per_interface_ics_precision is None:
+            self._compute_ics_scores()
+        return self._per_interface_ics_precision
+
+
+    @property
+    def per_interface_ics_recall(self):
+        """ Per-interface ICS recall
+
+        :attr:`~ics_recall` for each interface in
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+        if self._per_interface_ics_recall is None:
+            self._compute_ics_scores()
+        return self._per_interface_ics_recall
+
+    @property
+    def per_interface_ics(self):
+        """ Per-interface ICS (Interface Contact Similarity) score
+
+        :attr:`~ics` for each interface in 
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`float`
+        """
+
+        if self._per_interface_ics is None:
+            self._compute_ics_scores()
+        return self._per_interface_ics
+    
 
     @property
     def ips_precision(self):
@@ -1342,6 +1387,25 @@ class Scorer:
         self._ics_precision = contact_scorer_res.precision
         self._ics_recall = contact_scorer_res.recall
         self._ics = contact_scorer_res.ics
+        self._per_interface_ics_precision = list()
+        self._per_interface_ics_recall = list()
+        self._per_interface_ics = list()
+        flat_mapping = self.mapping.GetFlatMapping()
+        for trg_int in self.contact_target_interfaces:
+            trg_ch1 = trg_int[0]
+            trg_ch2 = trg_int[1]
+            if trg_ch1 in flat_mapping and trg_ch2 in flat_mapping:
+                mdl_ch1 = flat_mapping[trg_ch1]
+                mdl_ch2 = flat_mapping[trg_ch2]
+                res = self.contact_scorer.ScoreICSInterface(trg_ch1, trg_ch2,
+                                                            mdl_ch1, mdl_ch2)
+                self._per_interface_ics_precision.append(res.precision)
+                self._per_interface_ics_recall.append(res.recall)
+                self._per_interface_ics.append(res.ics)
+            else:
+                self._per_interface_ics_precision.append(None)
+                self._per_interface_ics_recall.append(None)
+                self._per_interface_ics.append(None)
 
     def _compute_ips_scores(self):
         contact_scorer_res = self.contact_scorer.ScoreIPS(self.mapping.mapping)

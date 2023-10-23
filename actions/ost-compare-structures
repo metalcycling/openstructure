@@ -359,7 +359,13 @@ def _ParseArgs():
               "reports the fraction of reference contacts that are correctly "
               "reproduced in the model. "
               "The ICS score (Interface Contact Similarity) available as key "
-              "\"ics\" combines precision and recall using the F1-measure."))
+              "\"ics\" combines precision and recall using the F1-measure. "
+              "All these measures are also available on a per-interface basis "
+              "for each interface in the reference structure that are defined "
+              "as chain pairs with at least one contact (available as key "
+              " \"contact_reference_interfaces\"). The respective metrics are "
+              "available as keys \"per_interface_ics_precision\", "
+              "\"per_interface_ics_recall\" and \"per_interface_ics\"."))
 
     parser.add_argument(
         "--ips",
@@ -657,6 +663,10 @@ def _Process(model, reference, args):
         out["ics_precision"] = scorer.ics_precision
         out["ics_recall"] = scorer.ics_recall
         out["ics"] = scorer.ics
+        out["contact_reference_interfaces"] = scorer.contact_target_interfaces
+        out["per_interface_ics_precision"] = scorer.per_interface_ics_precision
+        out["per_interface_ics_recall"] = scorer.per_interface_ics_recall
+        out["per_interface_ics"] = scorer.per_interface_ics
 
     if args.ips:
         out["ips_precision"] = scorer.ips_precision

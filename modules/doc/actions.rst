@@ -270,7 +270,14 @@ Details on the usage (output of ``ost compare-structures --help``):
                           contacts that are correctly reproduced in the model.
                           The ICS score (Interface Contact Similarity) available
                           as key "ics" combines precision and recall using the
-                          F1-measure.
+                          F1-measure. All these measures are also available on a
+                          per-interface basis for each interface in the
+                          reference structure that are defined as chain pairs
+                          with at least one contact (available as key
+                          "contact_reference_interfaces"). The respective
+                          metrics are available as keys
+                          "per_interface_ics_precision",
+                          "per_interface_ics_recall" and "per_interface_ics".
     --ips                 Computes interface patch similarity (IPS) related
                           scores. They focus on interface residues. They are
                           defined as having at least one contact to a residue
