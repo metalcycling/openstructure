@@ -257,6 +257,9 @@ class Scorer:
         self._ips_precision = None
         self._ips_recall = None
         self._ips = None
+        self._per_interface_ics_precision = None
+        self._per_interface_ics_recall = None
+        self._per_interface_ics = None
 
         self._dockq_target_interfaces = None
         self._dockq_interfaces = None
@@ -828,6 +831,47 @@ class Scorer:
         if self._ips is None:
             self._compute_ips_scores()
         return self._ips
+
+    @property
+    def per_interface_ips_precision(self):
+        """ Per-interface IPS precision
+
+        :attr:`~ips_precision` for each interface in
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+        if self._per_interface_ips_precision is None:
+            self._compute_ips_scores()
+        return self._per_interface_ips_precision
+
+
+    @property
+    def per_interface_ips_recall(self):
+        """ Per-interface IPS recall
+
+        :attr:`~ips_recall` for each interface in
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+        if self._per_interface_ics_recall is None:
+            self._compute_ips_scores()
+        return self._per_interface_ips_recall
+
+    @property
+    def per_interface_ips(self):
+        """ Per-interface IPS (Interface Patch Similarity) score
+
+        :attr:`~ips` for each interface in 
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+
+        if self._per_interface_ips is None:
+            self._compute_ips_scores()
+        return self._per_interface_ips
 
     @property
     def dockq_target_interfaces(self):
@@ -1412,6 +1456,26 @@ class Scorer:
         self._ips_precision = contact_scorer_res.precision
         self._ips_recall = contact_scorer_res.recall
         self._ips = contact_scorer_res.ips
+
+        self._per_interface_ips_precision = list()
+        self._per_interface_ips_recall = list()
+        self._per_interface_ips = list()
+        flat_mapping = self.mapping.GetFlatMapping()
+        for trg_int in self.contact_target_interfaces:
+            trg_ch1 = trg_int[0]
+            trg_ch2 = trg_int[1]
+            if trg_ch1 in flat_mapping and trg_ch2 in flat_mapping:
+                mdl_ch1 = flat_mapping[trg_ch1]
+                mdl_ch2 = flat_mapping[trg_ch2]
+                res = self.contact_scorer.ScoreIPSInterface(trg_ch1, trg_ch2,
+                                                            mdl_ch1, mdl_ch2)
+                self._per_interface_ips_precision.append(res.precision)
+                self._per_interface_ips_recall.append(res.recall)
+                self._per_interface_ips.append(res.ips)
+            else:
+                self._per_interface_ips_precision.append(None)
+                self._per_interface_ips_recall.append(None)
+                self._per_interface_ips.append(None)
 
     def _compute_dockq_scores(self):
         # lists with values in contact_target_interfaces

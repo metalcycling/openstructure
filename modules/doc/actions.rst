@@ -293,7 +293,14 @@ Details on the usage (output of ``ost compare-structures --help``):
                           also interface residues in the model. The IPS score
                           (Interface Patch Similarity) available as key "ips" is
                           the Jaccard coefficient between interface residues in
-                          reference and model.
+                          reference and model. All these measures are also
+                          available on a per-interface basis for each interface
+                          in the reference structure that are defined as chain
+                          pairs with at least one contact (available as key
+                          "contact_reference_interfaces"). The respective
+                          metrics are available as keys
+                          "per_interface_ips_precision",
+                          "per_interface_ips_recall" and "per_interface_ips".
     --rigid-scores        Computes rigid superposition based scores. They're
                           based on a Kabsch superposition of all mapped CA
                           positions (C3' for nucleotides). Makes the following

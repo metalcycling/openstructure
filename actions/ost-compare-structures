@@ -386,7 +386,14 @@ def _ParseArgs():
               "also interface residues in the model. "
               "The IPS score (Interface Patch Similarity) available as key "
               "\"ips\" is the Jaccard coefficient between interface residues "
-              "in reference and model."))
+              "in reference and model. "
+              "All these measures are also available on a per-interface basis "
+              "for each interface in the reference structure that are defined "
+              "as chain pairs with at least one contact (available as key "
+              " \"contact_reference_interfaces\"). The respective metrics are "
+              "available as keys \"per_interface_ips_precision\", "
+              "\"per_interface_ips_recall\" and \"per_interface_ips\"."))
+
 
     parser.add_argument(
         "--rigid-scores",
@@ -658,12 +665,12 @@ def _Process(model, reference, args):
     if args.ics or args.ips:
         out["reference_contacts"] = scorer.native_contacts
         out["model_contacts"] = scorer.model_contacts
+        out["contact_reference_interfaces"] = scorer.contact_target_interfaces
 
     if args.ics:
         out["ics_precision"] = scorer.ics_precision
         out["ics_recall"] = scorer.ics_recall
         out["ics"] = scorer.ics
-        out["contact_reference_interfaces"] = scorer.contact_target_interfaces
         out["per_interface_ics_precision"] = scorer.per_interface_ics_precision
         out["per_interface_ics_recall"] = scorer.per_interface_ics_recall
         out["per_interface_ics"] = scorer.per_interface_ics
@@ -672,6 +679,9 @@ def _Process(model, reference, args):
         out["ips_precision"] = scorer.ips_precision
         out["ips_recall"] = scorer.ips_recall
         out["ips"] = scorer.ips
+        out["per_interface_ips_precision"] = scorer.per_interface_ips_precision
+        out["per_interface_ips_recall"] = scorer.per_interface_ips_recall
+        out["per_interface_ips"] = scorer.per_interface_ips
 
     if args.dockq:
         out["dockq_reference_interfaces"] = scorer.dockq_target_interfaces
