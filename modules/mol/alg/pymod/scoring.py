@@ -289,6 +289,8 @@ class Scorer:
         self._fnonnat = None
         self._irmsd = None
         self._lrmsd = None
+        self._nnat = None
+        self._nmdl = None
         self._dockq_scores = None
         self._dockq_ave = None
         self._dockq_wave = None
@@ -954,6 +956,26 @@ class Scorer:
         return self._fnat
 
     @property
+    def nnat(self):
+        """ N native contacts for interfaces in :attr:`~dockq_interfaces` 
+
+        :class:`list` of :class:`int`
+        """
+        if self._nnat is None:
+            self._compute_dockq_scores()
+        return self._nnat
+
+    @property
+    def nmdl(self):
+        """ N model contacts for interfaces in :attr:`~dockq_interfaces` 
+
+        :class:`list` of :class:`int`
+        """
+        if self._nmdl is None:
+            self._compute_dockq_scores()
+        return self._nmdl
+
+    @property
     def fnonnat(self):
         """ fnonnat scores for interfaces in :attr:`~dockq_interfaces` 
 
@@ -1506,9 +1528,8 @@ class Scorer:
         self._fnonnat = list()
         self._irmsd = list()
         self._lrmsd = list()
-
-        # keep track of native counts for weights in dockq_wave/dockq_wave_full
-        native_counts = list()
+        self._nnat = list()
+        self._nmdl = list()
 
         dockq_alns = dict()
         for aln in self.aln:
@@ -1531,7 +1552,8 @@ class Scorer:
             self._irmsd.append(res["irmsd"])
             self._lrmsd.append(res["lrmsd"])
             self._dockq_scores.append(res["DockQ"])
-            native_counts.append(res["nnat"])
+            self._nnat.append(res["nnat"])
+            self._nmdl.append(res["nmdl"])
 
         # keep track of native counts in target interfaces which are
         # not covered in model in order to compute
@@ -1554,7 +1576,7 @@ class Scorer:
         # - average weighted by native_contacts
         # - the two above including nonmapped_contact_interfaces => set DockQ to 0.0
         scores = np.array([self._dockq_scores])
-        weights = np.array([native_counts])
+        weights = np.array([self._nnat])
         if len(scores) > 0:
             self._dockq_ave = np.mean(scores)
         else:

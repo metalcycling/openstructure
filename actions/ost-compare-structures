@@ -700,6 +700,8 @@ def _Process(model, reference, args):
         out["fnat"] = scorer.fnat
         out["irmsd"] = scorer.irmsd
         out["lrmsd"] = scorer.lrmsd
+        out["nnat"] = scorer.nnat
+        out["nmdl"] = scorer.nmdl
         out["dockq_ave"] = scorer.dockq_ave
         out["dockq_wave"] = scorer.dockq_wave
         out["dockq_ave_full"] = scorer.dockq_ave_full
