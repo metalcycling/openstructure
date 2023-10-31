@@ -298,6 +298,15 @@ def _ParseArgs():
               "an OpenStructure internal copy of USalign code is used."))
 
     parser.add_argument(
+        "--override-usalign-mapping",
+        dest="oum",
+        default=False,
+        action="store_true",
+        help=("Override USalign mapping and inject our own mapping. Only works "
+              "if external usalign executable is provided that is reasonably "
+              "new and contains that feature."))
+    
+    parser.add_argument(
         "--qs-score",
         dest="qs_score",
         default=False,
@@ -612,7 +621,8 @@ def _Process(model, reference, args):
                             custom_mapping = mapping,
                             usalign_exec = args.usalign_exec,
                             lddt_no_stereochecks = args.lddt_no_stereochecks,
-                            n_max_naive = args.n_max_naive)
+                            n_max_naive = args.n_max_naive,
+                            oum = args.oum)
 
     ir = _GetInconsistentResidues(scorer.aln)
     if len(ir) > 0 and args.enforce_consistency:

@@ -134,11 +134,18 @@ class Scorer:
                         mapping solution space is enumerated to find the
                         the optimum. A heuristic is used otherwise.
     :type n_max_naive: :class:`int`
+    :param oum: Override USalign Mapping. Inject mapping of :class:`Scorer`
+                object into USalign to compute TM-score. Experimental feature
+                with limitations. Only works if external *usalign_exec* is
+                provided that is reasonably new and contains the respective
+                feature.
+    :type oum: :class:`bool`
     """
     def __init__(self, model, target, resnum_alignments=False,
                  molck_settings = None, cad_score_exec = None,
                  custom_mapping=None, usalign_exec = None,
-                 lddt_no_stereochecks=False, n_max_naive=12):
+                 lddt_no_stereochecks=False, n_max_naive=12,
+                 oum=False):
 
         if isinstance(model, mol.EntityView):
             model = mol.CreateEntityFromView(model, False)
@@ -202,11 +209,26 @@ class Scorer:
                                        "must be strictly increasing if "
                                        "resnum_alignments are enabled")
 
+        if usalign_exec is not None:
+            if not os.path.exists(usalign_exec):
+                raise RuntimeError(f"USalign exec ({usalign_exec}) "
+                                   f"not found")
+            if not os.access(usalign_exec, os.X_OK):
+                raise RuntimeError(f"USalign exec ({usalign_exec}) "
+                                   f"is not executable")
+
+        # this limitation can be removed as soon as custom chain mappings can
+        # be injected in the OpenStructure internal USalign code
+        if oum and (usalign_exec is None):
+            raise RuntimeError("Must provide external USalign exec if oum "
+                               "enabled")
+
         self.resnum_alignments = resnum_alignments
         self.cad_score_exec = cad_score_exec
         self.usalign_exec = usalign_exec
         self.lddt_no_stereochecks = lddt_no_stereochecks
         self.n_max_naive = n_max_naive
+        self.oum = oum
 
         # lazily evaluated attributes
         self._stereochecked_model = None
@@ -1998,14 +2020,14 @@ class Scorer:
     def _compute_tmscore(self):
         res = None
         if self.usalign_exec is not None:
-            if not os.path.exists(self.usalign_exec):
-                raise RuntimeError(f"USalign exec ({self.usalign_exec}) "
-                                   f"not found")
-            if not os.access(self.usalign_exec, os.X_OK):
-                raise RuntimeError(f"USalign exec ({self.usalign_exec}) "
-                                   f"is not executable")
-            res = tmtools.USAlign(self.model, self.target,
-                                  usalign = self.usalign_exec)
+            if self.oum:
+                flat_mapping = self.mapping.GetFlatMapping()
+                res = tmtools.USAlign(self.model, self.target,
+                                      usalign = self.usalign_exec,
+                                      custom_chain_mapping = flat_mapping)
+            else:
+                res = tmtools.USAlign(self.model, self.target,
+                                      usalign = self.usalign_exec)
         else:
             res = bindings.WrappedMMAlign(self.model, self.target)
 
