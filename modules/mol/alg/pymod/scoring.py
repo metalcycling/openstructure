@@ -147,15 +147,18 @@ class Scorer:
                  lddt_no_stereochecks=False, n_max_naive=12,
                  oum=False):
 
-        if isinstance(model, mol.EntityView):
-            model = mol.CreateEntityFromView(model, False)
-        else:
-            model = model.Copy()
+        self._target_orig = target
+        self._model_orig = model
 
-        if isinstance(target, mol.EntityView):
-            target = mol.CreateEntityFromView(target, False)
+        if isinstance(self._model_orig, mol.EntityView):
+            self._model = mol.CreateEntityFromView(self._model_orig, False)
         else:
-            target = target.Copy()
+            self._model = self._model_orig.Copy()
+
+        if isinstance(self._target_orig, mol.EntityView):
+            self._target = mol.CreateEntityFromView(self._target_orig, False)
+        else:
+            self._target = self._target_orig.Copy()
 
         if molck_settings is None:
             molck_settings = MolckSettings(rm_unk_atoms=True,
@@ -166,8 +169,8 @@ class Scorer:
                                            colored=False,
                                            map_nonstd_res=True,
                                            assign_elem=True)
-        Molck(model, conop.GetDefaultLib(), molck_settings)
-        Molck(target, conop.GetDefaultLib(), molck_settings)
+        Molck(self._model, conop.GetDefaultLib(), molck_settings)
+        Molck(self._target, conop.GetDefaultLib(), molck_settings)
         self._model = model.Select("peptide=True or nucleotide=True")
         self._target = target.Select("peptide=True or nucleotide=True")
 
@@ -245,6 +248,7 @@ class Scorer:
         self._target_interface_residues = None
         self._aln = None
         self._stereochecked_aln = None
+        self._pepnuc_aln = None
 
         # lazily constructed scorer objects
         self._lddt_scorer = None
@@ -327,12 +331,28 @@ class Scorer:
         return self._model
 
     @property
+    def model_orig(self):
+        """ The original model passed at object construction
+
+        :type: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+        """
+        return self._model_orig
+
+    @property
     def target(self):
         """ Target with Molck cleanup
 
         :type: :class:`ost.mol.EntityHandle`
         """
         return self._target
+
+    @property
+    def target_orig(self):
+        """ The original target passed at object construction
+
+        :type: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+        """
+        return self._target_orig
 
     @property
     def aln(self):
@@ -353,11 +373,25 @@ class Scorer:
 
         The alignments may differ, as stereochecks potentially remove residues
 
-        :type: :class:``
+        :type: :class:`list` of :class:`ost.seq.AlignmentHandle`
         """
         if self._stereochecked_aln is None:
             self._compute_stereochecked_aln()
         return self._stereochecked_aln
+
+    @property
+    def pepnuc_aln(self):
+        """ Alignments of :attr:`model_orig`/:attr:`target_orig` chains
+
+        Selects for peptide and nucleotide residues before sequence
+        extraction. Includes residues that would be removed by molck in
+        structure preprocessing.
+
+        :type: :class:`list` of :class:`ost.seq.AlignmentHandle`
+        """
+        if self._pepnuc_aln is None:
+            self._compute_pepnuc_aln()
+        return self._pepnuc_aln
 
     @property
     def stereochecked_model(self):
@@ -638,11 +672,15 @@ class Scorer:
         """ Interfaces in :attr:`~target` with non-zero contribution to
         :attr:`~qs_global`/:attr:`~qs_best`
 
+        Chain names are lexicographically sorted.
+
         :type: :class:`list` of :class:`tuple` with 2 elements each:
                (trg_ch1, trg_ch2)
         """
         if self._qs_target_interfaces is None:
             self._qs_target_interfaces = self.qs_scorer.qsent1.interacting_chains
+            self._qs_target_interfaces = \
+            [(min(x[0],x[1]), max(x[0],x[1])) for x in self._qs_target_interfaces]
         return self._qs_target_interfaces
 
     @property
@@ -650,17 +688,24 @@ class Scorer:
         """ Interfaces in :attr:`~model` with non-zero contribution to
         :attr:`~qs_global`/:attr:`~qs_best`
 
+        Chain names are lexicographically sorted.
+
         :type: :class:`list` of :class:`tuple` with 2 elements each:
                (mdl_ch1, mdl_ch2)
         """
         if self._qs_model_interfaces is None:
             self._qs_model_interfaces = self.qs_scorer.qsent2.interacting_chains
+            self._qs_model_interfaces = \
+            [(min(x[0],x[1]), max(x[0],x[1])) for x in self._qs_model_interfaces]
+
         return self._qs_model_interfaces
 
     @property
     def qs_interfaces(self):
         """ Interfaces in :attr:`~qs_target_interfaces` that can be mapped
         to :attr:`~model`.
+
+        Target chain names are lexicographically sorted.
 
         :type: :class:`list` of :class:`tuple` with 4 elements each:
                (trg_ch1, trg_ch2, mdl_ch1, mdl_ch2)
@@ -724,26 +769,32 @@ class Scorer:
     def contact_target_interfaces(self):
         """ Interfaces in :class:`target` which have at least one contact
 
-        Contact as defined in :attr:`~native_contacts`
+        Contact as defined in :attr:`~native_contacts`,
+        chain names are lexicographically sorted.
 
         :type: :class:`list` of :class:`tuple` with 2 elements each
                (trg_ch1, trg_ch2)
         """
         if self._contact_target_interfaces is None:
-            self._contact_target_interfaces = self.contact_scorer.cent1.interacting_chains
+            tmp = self.contact_scorer.cent1.interacting_chains
+            tmp = [(min(x[0],x[1]), max(x[0],x[1])) for x in tmp]
+            self._contact_target_interfaces = tmp
         return self._contact_target_interfaces
 
     @property
     def contact_model_interfaces(self):
         """ Interfaces in :class:`model` which have at least one contact
 
-        Contact as defined in :attr:`~native_contacts`
+        Contact as defined in :attr:`~native_contacts`,
+        chain names are lexicographically sorted.
 
         :type: :class:`list` of :class:`tuple` with 2 elements each
                (mdl_ch1, mdl_ch2)
         """
         if self._contact_model_interfaces is None:
-            self._contact_model_interfaces = self.contact_scorer.cent2.interacting_chains
+            tmp = self.contact_scorer.cent2.interacting_chains
+            tmp = [(min(x[0],x[1]), max(x[0],x[1])) for x in tmp]
+            self._contact_model_interfaces = tmp
         return self._contact_model_interfaces
 
     @property
@@ -902,7 +953,7 @@ class Scorer:
         """ Interfaces in :attr:`target` that are relevant for DockQ
 
         In principle a subset of :attr:`~contact_target_interfaces` that only
-        contains peptide sequences.
+        contains peptide sequences. Chain names are lexicographically sorted.
 
         :type: :class:`list` of :class:`tuple` with 2 elements each:
                (trg_ch1, trg_ch2)
@@ -919,6 +970,8 @@ class Scorer:
     def dockq_interfaces(self):
         """ Interfaces in :attr:`dockq_target_interfaces` that can be mapped
         to model
+
+        Target chain names are lexicographically sorted
 
         :type: :class:`list` of :class:`tuple` with 4 elements each:
                (trg_ch1, trg_ch2, mdl_ch1, mdl_ch2)
@@ -1321,6 +1374,12 @@ class Scorer:
                 alns[-1].AttachView(0, trg_seqs[trg_ch].GetAttachedView())
                 alns[-1].AttachView(1, mdl_seqs[mdl_ch].GetAttachedView())
         return alns
+
+    def _compute_pepnuc_aln(self):
+        query = "peptide=true or nucleotide=true"
+        pep_nuc_target = self.target_orig.Select(query)
+        pep_nuc_model = self.model_orig.Select(query)
+        self._pepnuc_aln = self._aln_helper(pep_nuc_target, pep_nuc_model)
 
     def _compute_aln(self):
         self._aln = self._aln_helper(self.target, self.model)

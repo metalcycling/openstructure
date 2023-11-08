@@ -463,6 +463,31 @@ def _ParseArgs():
               "that number, the chain mapping will naively enumerate all "
               "possible mappings. A heuristic is used otherwise."))
 
+    parser.add_argument(
+        "--dump-aligned-residues",
+        dest="dump_aligned_residues",
+        default=False,
+        action="store_true",
+        help=("Dump additional info on aligned model and reference residues."))
+
+    parser.add_argument(
+        "--dump-pepnuc-alns",
+        dest="dump_pepnuc_alns",
+        default=False,
+        action="store_true",
+        help=("Dump alignments of mapped chains but with sequences that did "
+              "not undergo Molck preprocessing in the scorer. Sequences are "
+              "extracted from model/target after undergoing selection for "
+              "peptide and nucleotide residues."))
+
+    parser.add_argument(
+        "--dump-pepnuc-aligned-residues",
+        dest="dump_pepnuc_aligned_residues",
+        default=False,
+        action="store_true",
+        help=("Dump additional info on model and reference residues that occur "
+              "in pepnuc alignments."))
+ 
     return parser.parse_args()
 
 def _Rename(ent):
@@ -558,7 +583,7 @@ def _AlnToFastaStr(aln):
     """
     s1 = aln.GetSequence(0)
     s2 = aln.GetSequence(1)
-    return f">reference:{s1.name}\n{str(s1)}\nmodel:{s2.name}\n{str(s2)}"
+    return f">reference:{s1.name}\n{str(s1)}\n>model:{s2.name}\n{str(s2)}"
 
 def _GetInconsistentResidues(alns):
     lst = list()
@@ -609,6 +634,41 @@ def _PatchScoresToJSONList(interface_dict, score_dict):
         json_list += score_dict[ch]
     return json_list
 
+def _GetAlignedResidues(aln):
+    aligned_residues = list()
+    for a in aln:
+        mdl_lst = list()
+        ref_lst = list()
+        for c in a:
+            mdl_r = c.GetResidue(1)
+            ref_r = c.GetResidue(0)
+            if mdl_r.IsValid():
+                olc = mdl_r.one_letter_code
+                num = mdl_r.GetNumber().num
+                ins_code = mdl_r.GetNumber().ins_code.strip("\u0000")
+                mdl_lst.append({"olc": olc,
+                                "num": f"{num}.{ins_code}"})
+            else:
+                mdl_lst.append(None)
+
+            if ref_r.IsValid():
+                olc = ref_r.one_letter_code
+                num = ref_r.GetNumber().num
+                ins_code = ref_r.GetNumber().ins_code.strip("\u0000")
+                ref_lst.append({"olc": olc,
+                                "num": f"{num}.{ins_code}"})
+            else:
+                ref_lst.append(None)
+
+        mdl_dct = {"chain": a.GetSequence(1).GetName(),
+                   "residues": mdl_lst}
+        ref_dct = {"chain": a.GetSequence(0).GetName(),
+                   "residues": ref_lst}
+
+        aligned_residues.append({"model": mdl_dct,
+                                 "reference": ref_dct})
+    return aligned_residues
+
 def _Process(model, reference, args):
 
     mapping = None
@@ -636,6 +696,15 @@ def _Process(model, reference, args):
     out["chain_mapping"] = scorer.mapping.GetFlatMapping()
     out["aln"] = [_AlnToFastaStr(aln) for aln in scorer.aln]
     out["inconsistent_residues"] = ir
+
+    if args.dump_aligned_residues:
+        out["aligned_residues"] = _GetAlignedResidues(scorer.aln)
+
+    if args.dump_pepnuc_alns:
+        out["pepnuc_aln"] = [_AlnToFastaStr(aln) for aln in scorer.pepnuc_aln]
+    
+    if args.dump_pepnuc_aligned_residues:
+        out["pepnuc_aligned_residues"] = _GetAlignedResidues(scorer.pepnuc_aln)
 
     if args.lddt:
         out["lddt"] = scorer.lddt
