@@ -129,10 +129,13 @@ class Scorer:
     :param lddt_no_stereochecks: Whether to compute lDDT without stereochemistry
                                 checks
     :type lddt_no_stereochecks: :class:`bool`
-    :param n_max_naive: Parameter for chain mapping. If *model* and *target*
-                        have less or equal that number of chains, the full
+    :param n_max_naive: Parameter for chain mapping. If the number of possible
+                        mappings is <= *n_max_naive*, the full
                         mapping solution space is enumerated to find the
-                        the optimum. A heuristic is used otherwise.
+                        the optimum. A heuristic is used otherwise. The default
+                        of 40320 corresponds to an octamer (8! = 40320).
+                        A structure with stoichiometry A6B2 would be
+                        6!*2! = 1440 etc.
     :type n_max_naive: :class:`int`
     :param oum: Override USalign Mapping. Inject mapping of :class:`Scorer`
                 object into USalign to compute TM-score. Experimental feature
@@ -144,7 +147,7 @@ class Scorer:
     def __init__(self, model, target, resnum_alignments=False,
                  molck_settings = None, cad_score_exec = None,
                  custom_mapping=None, usalign_exec = None,
-                 lddt_no_stereochecks=False, n_max_naive=12,
+                 lddt_no_stereochecks=False, n_max_naive=40320,
                  oum=False):
 
         self._target_orig = target

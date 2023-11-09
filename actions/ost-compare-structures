@@ -457,11 +457,15 @@ def _ParseArgs():
         "--n-max-naive",
         dest="n_max_naive",
         required=False,
-        default=12,
+        default=40320,
         type=int,
-        help=("If number of chains in model and reference are below or equal "
-              "that number, the chain mapping will naively enumerate all "
-              "possible mappings. A heuristic is used otherwise."))
+        help=("Parameter for chain mapping. If the number of possible "
+              "mappings is <= *n_max_naive*, the full "
+              "mapping solution space is enumerated to find the "
+              "the mapping with optimal QS-score. A heuristic is used "
+              "otherwise. The default of 40320 corresponds to an octamer "
+              "(8! = 40320). A structure with stoichiometry A6B2 would be "
+              "6!*2! = 1440 etc."))
 
     parser.add_argument(
         "--dump-aligned-residues",

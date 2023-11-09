@@ -333,12 +333,24 @@ Details on the usage (output of ``ost compare-structures --help``):
     --lddt-no-stereochecks
                           Disable stereochecks for lDDT computation
     --n-max-naive N_MAX_NAIVE
-                          If number of chains in model and reference are below
-                          or equal that number, the chain mapping will naively
-                          enumerate all possible mappings. A heuristic is used
-                          otherwise.
-
-
+                          Parameter for chain mapping. If the number of possible
+                          mappings is <= *n_max_naive*, the full mapping
+                          solution space is enumerated to find the the mapping
+                          with optimal QS-score. A heuristic is used otherwise.
+                          The default of 40320 corresponds to an octamer (8! =
+                          40320). A structure with stoichiometry A6B2 would be
+                          6!*2! = 1440 etc.
+    --dump-aligned-residues
+                          Dump additional info on aligned model and reference
+                          residues.
+    --dump-pepnuc-alns    Dump alignments of mapped chains but with sequences
+                          that did not undergo Molck preprocessing in the
+                          scorer. Sequences are extracted from model/target
+                          after undergoing selection for peptide and nucleotide
+                          residues.
+    --dump-pepnuc-aligned-residues
+                          Dump additional info on model and reference residues
+                          that occur in pepnuc alignments.
 
 
 .. _ost compare ligand structures:
