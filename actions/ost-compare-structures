@@ -494,6 +494,13 @@ def _ParseArgs():
  
     return parser.parse_args()
 
+def _RoundOrNone(num, decimals = 3):
+    """ Helper to create valid JSON output
+    """
+    if num is None:
+        return None
+    return round(num, decimals)
+
 def _Rename(ent):
     """Revert chain names to original names.
 
@@ -614,7 +621,7 @@ def _LocalScoresToJSONDict(score_dict):
     for ch, ch_scores in score_dict.items():
         for num, s in ch_scores.items():
             ins_code = num.ins_code.strip("\u0000")
-            json_dict[f"{ch}.{num.num}.{ins_code}"] = s
+            json_dict[f"{ch}.{num.num}.{ins_code}"] = _RoundOrNone(s)
     return json_dict
 
 def _InterfaceResiduesToJSONList(interface_dict):
@@ -635,7 +642,8 @@ def _PatchScoresToJSONList(interface_dict, score_dict):
     """
     json_list = list()
     for ch, ch_nums in interface_dict.items():
-        json_list += score_dict[ch]
+        for item in score_dict[ch]:
+            json_list.append(_RoundOrNone(item))
     return json_list
 
 def _GetAlignedResidues(aln):
@@ -711,7 +719,7 @@ def _Process(model, reference, args):
         out["pepnuc_aligned_residues"] = _GetAlignedResidues(scorer.pepnuc_aln)
 
     if args.lddt:
-        out["lddt"] = scorer.lddt
+        out["lddt"] = _RoundOrNone(scorer.lddt)
 
     if args.local_lddt:
         out["local_lddt"] = _LocalScoresToJSONDict(scorer.local_lddt)
@@ -725,7 +733,7 @@ def _Process(model, reference, args):
         out["reference_bad_angles"] = [x.ToJSON() for x in scorer.target_bad_angles]
 
     if args.bb_lddt:
-        out["bb_lddt"] = scorer.bb_lddt
+        out["bb_lddt"] = _RoundOrNone(scorer.bb_lddt)
 
     if args.bb_local_lddt:
         out["bb_local_lddt"] = _LocalScoresToJSONDict(scorer.bb_local_lddt)
@@ -737,13 +745,15 @@ def _Process(model, reference, args):
         out["local_cad_score"] = _LocalScoresToJSONDict(scorer.local_cad_score)
 
     if args.qs_score:
-        out["qs_global"] = scorer.qs_global
-        out["qs_best"] = scorer.qs_best
+        out["qs_global"] = _RoundOrNone(scorer.qs_global)
+        out["qs_best"] = _RoundOrNone(scorer.qs_best)
         out["qs_reference_interfaces"] = scorer.qs_target_interfaces
         out["qs_model_interfaces"] = scorer.qs_model_interfaces
         out["qs_interfaces"] = scorer.qs_interfaces
-        out["per_interface_qs_global"] = scorer.per_interface_qs_global
-        out["per_interface_qs_best"] = scorer.per_interface_qs_best
+        out["per_interface_qs_global"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_qs_global]
+        out["per_interface_qs_best"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_qs_best]
 
     if args.ics or args.ips:
         out["reference_contacts"] = scorer.native_contacts
@@ -751,39 +761,45 @@ def _Process(model, reference, args):
         out["contact_reference_interfaces"] = scorer.contact_target_interfaces
 
     if args.ics:
-        out["ics_precision"] = scorer.ics_precision
-        out["ics_recall"] = scorer.ics_recall
-        out["ics"] = scorer.ics
-        out["per_interface_ics_precision"] = scorer.per_interface_ics_precision
-        out["per_interface_ics_recall"] = scorer.per_interface_ics_recall
-        out["per_interface_ics"] = scorer.per_interface_ics
+        out["ics_precision"] = _RoundOrNone(scorer.ics_precision)
+        out["ics_recall"] = _RoundOrNone(scorer.ics_recall)
+        out["ics"] = _RoundOrNone(scorer.ics)
+        out["per_interface_ics_precision"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ics_precision]
+        out["per_interface_ics_recall"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ics_recall]
+        out["per_interface_ics"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ics]
 
     if args.ips:
-        out["ips_precision"] = scorer.ips_precision
-        out["ips_recall"] = scorer.ips_recall
-        out["ips"] = scorer.ips
-        out["per_interface_ips_precision"] = scorer.per_interface_ips_precision
-        out["per_interface_ips_recall"] = scorer.per_interface_ips_recall
-        out["per_interface_ips"] = scorer.per_interface_ips
+        out["ips_precision"] = _RoundOrNone(scorer.ips_precision)
+        out["ips_recall"] = _RoundOrNone(scorer.ips_recall)
+        out["ips"] = _RoundOrNone(scorer.ips)
+        out["per_interface_ips_precision"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ips_precision]
+        out["per_interface_ips_recall"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ips_recall]
+        out["per_interface_ips"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ips]
 
     if args.dockq:
         out["dockq_reference_interfaces"] = scorer.dockq_target_interfaces
         out["dockq_interfaces"] = scorer.dockq_interfaces 
-        out["dockq"] = scorer.dockq_scores
-        out["fnat"] = scorer.fnat
-        out["irmsd"] = scorer.irmsd
-        out["lrmsd"] = scorer.lrmsd
+        out["dockq"] = [_RoundOrNone(x) for x in scorer.dockq_scores]
+        out["fnat"] = [_RoundOrNone(x) for x in scorer.fnat]
+        out["irmsd"] = [_RoundOrNone(x) for x in scorer.irmsd]
+        out["lrmsd"] = [_RoundOrNone(x) for x in scorer.lrmsd]
         out["nnat"] = scorer.nnat
         out["nmdl"] = scorer.nmdl
-        out["dockq_ave"] = scorer.dockq_ave
-        out["dockq_wave"] = scorer.dockq_wave
-        out["dockq_ave_full"] = scorer.dockq_ave_full
-        out["dockq_wave_full"] = scorer.dockq_wave_full
+        out["dockq_ave"] = _RoundOrNone(scorer.dockq_ave)
+        out["dockq_wave"] = _RoundOrNone(scorer.dockq_wave)
+        out["dockq_ave_full"] = _RoundOrNone(scorer.dockq_ave_full)
+        out["dockq_wave_full"] = _RoundOrNone(scorer.dockq_wave_full)
 
     if args.rigid_scores:
-        out["oligo_gdtts"] = scorer.gdtts
-        out["oligo_gdtha"] = scorer.gdtha
-        out["rmsd"] = scorer.rmsd
+        out["oligo_gdtts"] = _RoundOrNone(scorer.gdtts)
+        out["oligo_gdtha"] = _RoundOrNone(scorer.gdtha)
+        out["rmsd"] = _RoundOrNone(scorer.rmsd)
         data = scorer.transform.data
         out["transform"] = [data[i:i + 4] for i in range(0, len(data), 4)]
 
@@ -794,11 +810,12 @@ def _Process(model, reference, args):
         _InterfaceResiduesToJSONList(scorer.target_interface_residues)
         out["patch_qs"] = _PatchScoresToJSONList(scorer.model_interface_residues,
                                                  scorer.patch_qs)
+
         out["patch_dockq"] = _PatchScoresToJSONList(scorer.model_interface_residues,
                                                     scorer.patch_dockq)
 
     if args.tm_score:
-        out["tm_score"] = scorer.tm_score
+        out["tm_score"] = _RoundOrNone(scorer.tm_score)
         out["usalign_mapping"] = scorer.usalign_mapping
 
     if args.dump_structures:
