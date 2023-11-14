@@ -430,6 +430,8 @@ MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
                              const std::vector<bool>& rna2,
                              bool fast) {
 
+  std::map<int,int> chainmap;
+
   // input checks
   if(pos_one.empty() || pos_two.empty()) {
     throw ost::Error("Cannot compute MMAlign on empty chains!");
@@ -722,6 +724,11 @@ MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
                 TMave_mat[i][j]=-1;
                 continue;
             }
+            if (chainmap.size() && chainmap[i]!=j)
+            {
+                TMave_mat[i][j]=-1;
+                continue;
+            }
 
             ylen=ylen_vec[j];
             if (ylen<3)
@@ -755,8 +762,8 @@ MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
             
             if (byresi_opt)
             {
-                int total_aln=extract_aln_from_resi(sequence,
-                    seqx,seqy,resi_vec1,resi_vec2,xlen_vec,ylen_vec, i, j);
+                int total_aln=extract_aln_from_resi(sequence, seqx,seqy,
+                    resi_vec1,resi_vec2,xlen_vec,ylen_vec, i, j, byresi_opt);
                 seqxA_mat[i][j]=sequence[0];
                 seqyA_mat[i][j]=sequence[1];
                 if (total_aln>xlen+ylen-3)
@@ -827,7 +834,7 @@ MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
     /* refine alignment for large oligomers */
     int aln_chain_num=count_assign_pair(assign1_list,chain1_num);
     bool is_oligomer=(aln_chain_num>=3);
-    if (aln_chain_num==2) // dimer alignment
+    if (aln_chain_num==2 && chainmap.size()==0) // dimer alignment
     {
         int na_chain_num1,na_chain_num2,aa_chain_num1,aa_chain_num2;
         count_na_aa_chain_num(na_chain_num1,aa_chain_num1,mol_vec1);
@@ -849,7 +856,7 @@ MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
         else is_oligomer=true; /* align oligomers to dimer */
     }
 
-    if (aln_chain_num>=3 || is_oligomer) // oligomer alignment
+    if ((aln_chain_num>=3 || is_oligomer) && chainmap.size()==0) // oligomer alignment
     {
         /* extract centroid coordinates */
         double **xcentroids;
@@ -997,8 +1004,7 @@ MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
     ylen_vec.clear();       // length of complex2
     vector<string> ().swap(resi_vec1);  // residue index for chain1
     vector<string> ().swap(resi_vec2);  // residue index for chain2
-
-
+    map<int,int> ().swap(chainmap);
   return res;
 }
 
