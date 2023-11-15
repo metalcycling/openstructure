@@ -428,9 +428,10 @@ MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
                              const ost::seq::SequenceList& seq2,
                              const std::vector<bool>& rna1,
                              const std::vector<bool>& rna2,
-                             bool fast) {
+                             bool fast,
+                             const std::map<int, int>& mapping) {
 
-  std::map<int,int> chainmap;
+  std::map<int, int> chainmap(mapping);
 
   // input checks
   if(pos_one.empty() || pos_two.empty()) {
@@ -1081,7 +1082,8 @@ TMAlignResult WrappedTMAlign(const ost::mol::ChainView& chain1,
 
 MMAlignResult WrappedMMAlign(const ost::mol::EntityView& ent1,
                              const ost::mol::EntityView& ent2,
-                             bool fast) {
+                             bool fast,
+                             const std::map<String, String>& mapping) {
   ost::mol::ChainViewList chains1 = ent1.GetChainList();
   int n1 = chains1.size();
   std::vector<geom::Vec3List> pos1(n1);
@@ -1108,7 +1110,70 @@ MMAlignResult WrappedMMAlign(const ost::mol::EntityView& ent1,
     s2.AddSequence(s);
   }
 
-  return WrappedMMAlign(pos1, pos2, s1, s2, rna1, rna2, fast);
+  std::map<int,int> int_mapping;
+  if(!mapping.empty()) {
+    // OpenStructure mapping is a dict with target chains as key and
+    // model chains as values. Target is ent2 and model is ent1.
+    // USalign needs the mapping the other way around,
+    // i.e. the chain idx of ent1 as key and chain idx of ent2 as value
+    std::set<int> mapped_trg_chains;
+    std::set<int> mapped_mdl_chains;
+    for(auto it = mapping.begin(); it != mapping.end(); ++it) {
+      String trg_cname = it->first;
+      String mdl_cname = it->second;
+      int trg_idx = -1;
+      int mdl_idx = -1;
+
+      for(int i = 0; i < n1; ++i) {
+        if(s1[i].GetName() == mdl_cname) {
+          mdl_idx = i;
+          break;
+        }
+      }
+
+      for(int i = 0; i < n2; ++i) {
+        if(s2[i].GetName() == trg_cname) {
+          trg_idx = i;
+          break;
+        }
+      }
+
+      if(mdl_idx == -1) {
+        std::stringstream ss;
+        ss << "Specified \""<<mdl_cname<<"\" as mdl chain name in custom ";
+        ss << "mapping. Mdl has no mappable chain with this name.";
+        throw ost::Error(ss.str());
+      }
+
+      if(mapped_mdl_chains.find(mdl_idx) != mapped_mdl_chains.end()) {
+        std::stringstream ss;
+        ss << "\""<<mdl_cname<<"\" appears more than once as mdl chain in ";
+        ss << "custom mapping";
+        throw ost::Error(ss.str());
+      }
+
+      if(trg_idx == -1) {
+        std::stringstream ss;
+        ss << "Specified \""<<trg_cname<<"\" as trg chain name in custom ";
+        ss << "mapping. Trg has no mappable chain with this name.";
+        throw ost::Error(ss.str());
+      }
+
+      if(mapped_trg_chains.find(trg_idx) != mapped_trg_chains.end()) {
+        std::stringstream ss;
+        ss << "\""<<trg_cname<<"\" appears more than once as trg chain in ";
+        ss << "custom mapping";
+        throw ost::Error(ss.str());
+      }
+
+      int_mapping[mdl_idx] = trg_idx;
+      mapped_trg_chains.insert(trg_idx);
+      mapped_mdl_chains.insert(mdl_idx);
+    }
+  }
+
+  return WrappedMMAlign(pos1, pos2, s1, s2, rna1, rna2, fast,
+                        int_mapping);
 }
 
 }} //ns

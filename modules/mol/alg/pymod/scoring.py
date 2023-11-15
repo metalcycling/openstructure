@@ -139,9 +139,7 @@ class Scorer:
     :type n_max_naive: :class:`int`
     :param oum: Override USalign Mapping. Inject mapping of :class:`Scorer`
                 object into USalign to compute TM-score. Experimental feature
-                with limitations. Only works if external *usalign_exec* is
-                provided that is reasonably new and contains the respective
-                feature.
+                with limitations.
     :type oum: :class:`bool`
     """
     def __init__(self, model, target, resnum_alignments=False,
@@ -222,12 +220,6 @@ class Scorer:
             if not os.access(usalign_exec, os.X_OK):
                 raise RuntimeError(f"USalign exec ({usalign_exec}) "
                                    f"is not executable")
-
-        # this limitation can be removed as soon as custom chain mappings can
-        # be injected in the OpenStructure internal USalign code
-        if oum and (usalign_exec is None):
-            raise RuntimeError("Must provide external USalign exec if oum "
-                               "enabled")
 
         self.resnum_alignments = resnum_alignments
         self.cad_score_exec = cad_score_exec
@@ -2103,7 +2095,14 @@ class Scorer:
 
     def _compute_tmscore(self):
         res = None
-        if self.usalign_exec is not None:
+        if self.usalign_exec is None:
+            if self.oum:
+                flat_mapping = self.mapping.GetFlatMapping()
+                res = res = bindings.WrappedMMAlign(self.model, self.target,
+                                                    mapping=flat_mapping)
+            else:
+                res = bindings.WrappedMMAlign(self.model, self.target)
+        else:
             if self.oum:
                 flat_mapping = self.mapping.GetFlatMapping()
                 res = tmtools.USAlign(self.model, self.target,
@@ -2112,8 +2111,6 @@ class Scorer:
             else:
                 res = tmtools.USAlign(self.model, self.target,
                                       usalign = self.usalign_exec)
-        else:
-            res = bindings.WrappedMMAlign(self.model, self.target)
 
         self._tm_score = res.tm_score
         self._usalign_mapping = dict()
