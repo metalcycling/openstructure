@@ -329,6 +329,7 @@ add_subdirectory(modules)
 add_subdirectory(scripts)
 add_subdirectory(tools)
 add_subdirectory(actions)
+add_subdirectory(doxygen)
 # deployment has to come last, to ensure that all install commands are run before deployment
 # magic is done
 add_subdirectory(deployment)
