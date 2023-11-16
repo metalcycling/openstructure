@@ -15,6 +15,7 @@ Changes in Release 2.6.0
  * New FindCompounds method of CompoundLib to query compounds by SMILES
    string, InChI code, InChI key or formula.
  * The compound library now reads the "InChI=" part of InChI codes.
+ * Implemented ICS/IPS scores to assess oligomeric complexes.
  * Several bug fixes and improvements.
 
 Changes in Release 2.5.0
