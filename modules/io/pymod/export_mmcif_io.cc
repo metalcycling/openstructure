@@ -26,6 +26,7 @@ using namespace boost::python;
 #include <ost/io/mol/io_profile.hh>
 #include <ost/io/mol/mmcif_reader.hh>
 #include <ost/io/mol/mmcif_info.hh>
+#include <ost/io/mol/mmcif_writer.hh>
 #include <ost/io/mmcif_str.hh>
 using namespace ost;
 using namespace ost::io;
@@ -73,6 +74,11 @@ void export_mmcif_io()
                   &MMCifReader::SetReadSeqRes)
     .add_property("info", make_function(&MMCifReader::GetInfo,
                                    return_value_policy<copy_const_reference>()))
+    ;
+
+  class_<MMCifWriter, boost::noncopyable>("MMCifWriter", init<const String&, const IOProfile&>())
+    .def("Process_atom_site", &MMCifWriter::Process_atom_site)
+    .def("Write", &MMCifWriter::Write)
     ;
 
   enum_<MMCifInfoCitation::MMCifInfoCType>("MMCifInfoCType")
