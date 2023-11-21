@@ -327,10 +327,10 @@ void Processor::ReorderAtoms(mol::ResidueHandle residue,
   mol::impl::AtomImplList::iterator i=impl->GetAtomList().begin();
   for (; i!=impl->GetAtomList().end(); ++i) {
     mol::impl::AtomImplPtr atom=*i;
-    atom->SetState(std::numeric_limits<unsigned int>::max());
+    atom->SetState(std::numeric_limits<int>::max());
     int index=compound->GetAtomSpecIndex(atom->GetName());
     if (index==-1) {
-      atom->SetState(std::numeric_limits<unsigned int>::max());
+      atom->SetState(std::numeric_limits<int>::max());
       continue;
     }
     atom->SetState((compound->GetAtomSpecs())[index].ordinal);
@@ -350,7 +350,7 @@ bool Processor::HasUnknownAtoms(mol::ResidueHandle res,
   mol::AtomHandleList atoms=res.GetAtomList();
   for (mol::AtomHandleList::iterator 
        i=atoms.begin(), e=atoms.end(); i!=e; ++i) {
-    if ((*i).Impl()->GetState()==std::numeric_limits<unsigned int>::max()) {
+    if ((*i).Impl()->GetState()==std::numeric_limits<int>::max()) {
       if (((*i).GetElement()=="H" || (*i).GetElement()=="D") && 
           !strict_hydrogens) {
         continue;
