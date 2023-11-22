@@ -79,6 +79,13 @@ struct DLLEXPORT ChemClass {
   operator char() const {
     return chem_class_;
   }
+
+  bool IsSaccharide() const {
+    return (chem_class_==ChemClass::SACCHARIDE ||
+            chem_class_==ChemClass::L_SACCHARIDE ||
+            chem_class_==ChemClass::D_SACCHARIDE);
+  }
+
 private:
   char chem_class_;
 };
