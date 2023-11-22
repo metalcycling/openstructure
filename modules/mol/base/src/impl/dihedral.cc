@@ -125,29 +125,26 @@ void Dihedral::SetAngleICS(Real angle, bool update_other) {
   // not all connectors are living in the same coordinate system. We first
   // have to bring all of them into the local coordinate system of a3.
   if (a2->GetPrimaryConnector() && a2->GetPrimaryConnector()->GetFirst()==a1) {
-    // equivalent to geom::Transpose(conn2->GetLocalRot()) * geom::Vec3(0,0,-1)
-    v1=geom::Vec3(0, 0,-1)*conn2->GetLocalRot();
-    ConnectorImplP c=GetConnector(a4, a3);
-    v2=c->GetDir();
-    Real phi1 = 0.0;
-    if(std::abs(v1[1]) + std::abs(v1[0]) > Real(1e-6)) phi1=atan2(v1[1], v1[0]);
-    geom::Vec3 n2=vec_for_angle(v2, angle+phi1);
-    c->SetDir(n2);
-    // check if we have to update the other connectors
-    const ConnectorImplList& sc=a3->GetSecondaryConnectors();
-    if (update_other && sc.size()>1) {
-      Real phi2=(angle-phi1);
-      if(std::abs(v2[1]) + std::abs(v2[0]) > Real(1e-6)) phi2-=atan2(v2[1], v2[0]);
-      for (ConnectorImplList::const_iterator i=sc.begin(); i!=sc.end(); ++i) {
-        if (*i==c)
-          continue;
-        v3=(*i)->GetDir();
-        Real phi3=phi2;
-        if(std::abs(v3[1]) + std::abs(v3[0]) > Real(1e-6)) phi3+=atan2(v3[1], v3[0]);
-        geom::Vec3 n=vec_for_angle(v3, phi3);
-        (*i)->SetDir(n);
+      v1=geom::Vec3(0, 0,-1)*conn2->GetLocalRot();
+      v2=geom::Vec3(0, 0, 1);
+      ConnectorImplP c=GetConnector(a4, a3);
+      v3=c->GetDir();
+      Real phi1=atan2(v1[1], v1[0]);
+      geom::Vec3 n3=vec_for_angle(v3, angle+phi1);
+      c->SetDir(n3);
+      // check if we have to update the other connectors
+      const ConnectorImplList& sc=a3->GetSecondaryConnectors();
+      if (update_other && sc.size()>1) {
+        Real phi2=(angle-phi1)-atan2(v3[1], v3[0]);
+        for (ConnectorImplList::const_iterator i=sc.begin(); i!=sc.end(); ++i) {
+          if (*i==c)
+            continue;
+          geom::Vec3 v=(*i)->GetDir();
+          Real phi4=phi2+atan2(v[1], v[0]);
+          geom::Vec3 n=vec_for_angle(v, phi4);
+          (*i)->SetDir(n);
+        }
       }
-    }
   }
 }
 
