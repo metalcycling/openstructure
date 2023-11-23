@@ -14,13 +14,16 @@ class TestCompLib(unittest.TestCase):
         chemdict_tool_path = os.path.join(prefix_path, "bin", "chemdict_tool")
         if not os.path.exists(chemdict_tool_path):
             raise RuntimeError("Expect chemdict_tool:", chemdict_tool_path)
-        tmp_dir = tempfile.TemporaryDirectory()
+        cls.tmp_dir = tempfile.TemporaryDirectory()
         compounds_path = os.path.join("testfiles", "test_compounds.cif")
-        complib_path = os.path.join(tmp_dir.name, "test_complib.dat")
+        complib_path = os.path.join(cls.tmp_dir.name, "test_complib.dat")
         cmd = [chemdict_tool_path, "create", compounds_path, complib_path]
         subprocess.run(cmd)
         cls.complib = conop.CompoundLib.Load(complib_path)
-        tmp_dir.cleanup()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp_dir.cleanup()
 
     def test_three_vs_five_letter_code(self):
         complib = self.complib
