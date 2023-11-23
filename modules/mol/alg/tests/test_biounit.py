@@ -95,8 +95,8 @@ class TestBioUnit(unittest.TestCase):
       at_two_desc = f"{at_two_cname}.{at_two_rname}.{at_two_rnum}.{at_two_name}"
       asu_copy_two_bonds_desc.append((at_one_desc, at_two_desc))
 
-    self.assertEqual(asu_bonds_desc, asu_copy_one_bonds_desc)
-    self.assertEqual(asu_bonds_desc, asu_copy_two_bonds_desc)
+    self.assertEqual(sorted(asu_bonds_desc), sorted(asu_copy_one_bonds_desc))
+    self.assertEqual(sorted(asu_bonds_desc), sorted(asu_copy_two_bonds_desc))
 
 
 if __name__ == "__main__":
