@@ -22,7 +22,6 @@
 #include <ost/io/mol/mmcif_writer.hh>
 
 
-
 namespace {
 
   // generates as many chain names as you want (potentially multiple characters)
@@ -83,6 +82,64 @@ namespace {
                     char chem_class,
                     const ost::mol::ResidueHandleList& res_list,
                     std::vector<EntityInfo>& entity_infos) {
+
+
+    // deal with water
+    if(chem_class == ost::mol::ChemClass::WATER) {
+      for(size_t i = 0; i < entity_infos.size(); ++i) {
+        if(entity_infos[i].chem_class == ost::mol::ChemClass::WATER) {
+          entity_infos[i].asym_ids.push_back(asym_chain_name);
+          return i;
+        }
+      }
+      int entity_idx = entity_infos.size();
+      entity_infos.push_back(EntityInfo());
+      entity_infos.back().chem_class = ost::mol::ChemClass::WATER;
+      entity_infos.back().asym_ids.push_back(asym_chain_name);
+      entity_infos.back().mon_ids.push_back("HOH");
+      return entity_idx; 
+    }
+
+    // deal with NON_POLYMER
+    if(chem_class == ost::mol::ChemClass::NON_POLYMER) {
+      for(size_t i = 0; i < entity_infos.size(); ++i) {
+        if(entity_infos[i].chem_class == ost::mol::ChemClass::NON_POLYMER &&
+           res_list[0].GetName() == entity_infos[i].mon_ids[0]) {
+          entity_infos[i].asym_ids.push_back(asym_chain_name);
+          return i;
+        }
+      }
+      int entity_idx = entity_infos.size();
+      entity_infos.push_back(EntityInfo());
+      entity_infos.back().chem_class = ost::mol::ChemClass::NON_POLYMER;
+      entity_infos.back().asym_ids.push_back(asym_chain_name);
+      entity_infos.back().mon_ids.push_back(res_list[0].GetName());
+      return entity_idx;
+    }
+
+    // deal with UNKNOWN
+    if(chem_class == ost::mol::ChemClass::UNKNOWN) {
+      for(size_t i = 0; i < entity_infos.size(); ++i) {
+        if(entity_infos[i].chem_class == ost::mol::ChemClass::UNKNOWN &&
+           res_list[0].GetName() == entity_infos[i].mon_ids[0]) {
+          entity_infos[i].asym_ids.push_back(asym_chain_name);
+          return i;
+        }
+      }
+      int entity_idx = entity_infos.size();
+      entity_infos.push_back(EntityInfo());
+      entity_infos.back().chem_class = ost::mol::ChemClass::UNKNOWN;
+      entity_infos.back().asym_ids.push_back(asym_chain_name);
+      entity_infos.back().mon_ids.push_back(res_list[0].GetName());
+      return entity_idx;
+    }
+
+    // with the current code, the following chem classes are considered
+    // polymers: PEPTIDE_LINKING, D_PEPTIDE_LINKING, L_PEPTIDE_LINKING
+    // RNA_LINKING, DNA_LINKING, L_SACCHARIDE, D_SACCHARIDE, SACCHARIDE
+    // They're also considered polymers even if only one residue is there
+    // Needs checking...
+
     std::vector<String> mon_ids;
     for(auto res : res_list) {
       mon_ids.push_back(res.GetName());
@@ -131,6 +188,7 @@ namespace {
     desc.Add("auth_seq_id");
     desc.Add("auth_asym_id");
     desc.Add("id");
+    desc.Add("pdbx_PDB_ins_code");
     ost::io::StarLoop* sl = new ost::io::StarLoop(desc);
     return sl;
   }
@@ -211,6 +269,8 @@ namespace {
         at_data.push_back(ost::io::StarLoopDataItemDO(auth_asym_id));
         // id
         at_data.push_back(ost::io::StarLoopDataItemDO(atom_site_ptr->GetN()));
+        // pdbx_PDB_ins_code
+        at_data.push_back(ost::io::StarLoopDataItemDO(""));
         atom_site_ptr->AddData(at_data);
       }
       ++label_seq_id;
@@ -232,8 +292,11 @@ namespace {
       } else if(chem_class == ost::mol::ChemClass::NON_POLYMER) {
         ent_data.push_back(ost::io::StarLoopDataItemDO("non-polymer"));        
       } else if(chem_class.IsSaccharide()) {
-        // I doubt that this is correct
+        // NOT SURE WHETHER THIS MAKES ANY SENSE!
         ent_data.push_back(ost::io::StarLoopDataItemDO("branched"));
+      } else if(chem_class == ost::mol::ChemClass::UNKNOWN) {
+        // NOT SURE WHETHER THIS MAKES ANY SENSE!
+        ent_data.push_back(ost::io::StarLoopDataItemDO("non-polymer"));
       } else {
         throw ost::io::IOException("Entity type issue");
       }
@@ -556,7 +619,7 @@ void MMCifWriter::Process_atom_site(const ost::mol::EntityHandle& ent) {
   }
 
   // process UNKNOWN
-  for(auto res: N_chains) {
+  for(auto res: U_chains) {
     ost::mol::ResidueHandleList res_list;
     res_list.push_back(res);
     String chain_name = chain_name_gen.Get();
