@@ -25,21 +25,21 @@ test:centos7.3:
     - ln -s /export/soft/modules/centos7/generic/all /scicore/soft/modules
     - source /export/soft/lua_lmod/centos7/lmod/lmod/init/bash
     - module use /scicore/soft/modules/all
-    - module load foss/2018b
-    - module load CMake/3.12.1-GCCcore-7.3.0
-    - module load Python/3.6.6-foss-2018b
-    - module load Eigen/3.3.1
-    - module load Boost/1.68.0-foss-2018b-Python-3.6.6
-    - module load LibTIFF/.4.0.9-GCCcore-7.3.0
-    - module load libpng/.1.6.34-GCCcore-7.3.0
-    - module load HH-suite/3.2.0-foss-2018b-Boost-1.68.0-Python-3.6.6
-    - module load Perl/5.28.0-GCCcore-7.3.0
-    - module load OpenMM/7.1.1-foss-2018b-Python-3.6.6
-    - module load SQLite/3.24.0-GCCcore-7.3.0
-    - module load dssp/2.2.1-foss-2018b-Boost-1.68.0-Python-3.6.6 
+    - module load foss/2021a
+    - module load CMake/3.23.1-GCCcore-10.3.0
+    - module load Python/3.9.5-GCCcore-10.3.0
+    - module load Eigen/3.4.0-GCCcore-10.3.0
+    - module load Boost.Python/1.76.0-GCC-10.3.0
+    - module load LibTIFF/.4.2.0-GCCcore-10.3.0
+    - module load libpng/.1.6.37-GCCcore-10.3.0
+    - module load HH-suite/3.2.0-gompi-2021a
+    - *module load Perl/5.28.0-GCCcore-7.3.0
+    - module load OpenMM/7.7.0-foss-2021a
+    - module load SQLite/3.35.4-GCCcore-10.3.0
+    - module load dssp/2.2.1-foss-2021a
     - module load msms/2.6.1-linux-x86_64 
-    - module load ClustalW2/2.1-foss-2018b
-    - module load networkx/2.5.1-foss-2018b-Python-3.6.6
+    - module load ClustalW2/2.1-foss-2021a
+    - module load networkx/2.5.1-foss-2021a
     - echo "... done running centos7.3 'before_script'."
   script:
   - echo "Testing on CentOS 7..."

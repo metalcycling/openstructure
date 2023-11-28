@@ -27,21 +27,21 @@ Installing the Dependencies
 
 OpenStructure requires a C++11 enabled compiler (e.g. recent gcc/clang) and uses 
 a bunch of open-source libraries. If you haven't already installed them, please 
-install them now! Where appropriate, the minimally required version is given in 
+install them now! Where appropriate, the preferred version is given in 
 parentheses.
 
-* `CMake <http://cmake.org>`_ (3.12.1)
-* `Python3 <http://python.org>`_ (3.6)
-* `Boost <http://boost.org>`_ (1.68)
+* `CMake <http://cmake.org>`_ (3.23.1)
+* `Python3 <http://python.org>`_ (3.9.5)
+* `Boost <http://boost.org>`_ (1.76.0)
 * `zlib <https://zlib.net/>`_ (usually comes with Boost or system)
-* `Eigen3 <http://eigen.tuxfamily.org>`_ (3.3.1)
-* `SQLite3 <https://www3.sqlite.org>`_ (3.24.0)
-* `FFTW3 <http://fftw.org>`_. By default, OpenStructure is compiled with single
+* `Eigen3 <http://eigen.tuxfamily.org>`_ (3.4.0)
+* `SQLite3 <https://www3.sqlite.org>`_ (3.35.4)
+* `FFTW3 <http://fftw.org>`_ (3.3.9). By default, OpenStructure is compiled with single
   precision and thus also requires FFTW to be compiled with single precision.
   Most platforms offer this as a second package. If you are compiling manually,
   use the `--enable-single` option.
-* `libtiff <http://www.libtiff.org>`_
-* `libpng <http://www.libpng.org>`_ (also needed for GUI)
+* `libtiff <http://www.libtiff.org>`_ (4.2.0)
+* `libpng <http://www.libpng.org>`_ (1.6.37, also needed for GUI)
 
 If you would like to use the info module, also install:
 
@@ -55,7 +55,7 @@ If you would like to use the graphical user interface (GUI), also install:
 
 If you would like to use the :mod:`molecular mechanics <ost.mol.mm>` module:
 
-* `OpenMM <https://simtk.org/home/openmm>`_ (7.1)
+* `OpenMM <https://simtk.org/home/openmm>`_ (7.7.0)
 
 We do not provide backwards compatibility to Python 2.7. The last
 release supporting Python 2.7 is 1.11.0.
