@@ -54,7 +54,6 @@ test:centos7.3:
              -DENABLE_INFO=OFF
              -DENABLE_GFX=OFF
              -DENABLE_GUI=OFF
-             -DUSE_NUMPY=1
              -DUSE_RPATH=1
              -DPython_ROOT_DIR=$EBROOTPYTHON
              -DEIGEN3_INCLUDE_DIR=$EBROOTEIGEN/include
