@@ -33,7 +33,7 @@ test:centos7.3:
     - module load LibTIFF/.4.2.0-GCCcore-10.3.0
     - module load libpng/.1.6.37-GCCcore-10.3.0
     - module load HH-suite/3.2.0-gompi-2021a
-    - *module load Perl/5.28.0-GCCcore-7.3.0
+    - module load Perl/5.32.1-GCCcore-10.3.0
     - module load OpenMM/7.7.0-foss-2021a
     - module load SQLite/3.35.4-GCCcore-10.3.0
     - module load dssp/2.2.1-foss-2021a
