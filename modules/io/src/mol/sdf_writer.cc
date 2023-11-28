@@ -83,6 +83,8 @@ namespace {
         else if (abs(chg) > 3) {
           String msg = "SDF format only supports charges from -3 to +3, not %g";
           throw IOException(str(format(msg) % chg));
+          // This is not entirely true. We could implement "M  CHG" lines with
+          // support from -15 to +15. Or switch to V3000.
         }
         else {
           Real chg_sdf = 4 - chg;
@@ -197,6 +199,21 @@ void SDFWriter::Write(const mol::EntityHandle& ent) {
 }
 
 bool SDFWriter::VisitChain(const mol::ChainView& chain) {
+  // Santiy check: only 999 atoms / bonds supported in SDF V2000
+  // If more are needed we need to implement V3000
+  if (chain.GetAtomCount() > 999) {
+    std::stringstream msg_at;
+    msg_at << "Can't write SDF file. Too many atoms (";
+    msg_at << chain.GetAtomCount() <<")";
+    throw IOException(msg_at.str());
+  }
+  if (chain.GetBondCount() > 999) {
+    std::stringstream msg_bo;
+    msg_bo << "Can't write SDF file. Too many bonds (";
+    msg_bo << chain.GetBondCount() <<")";
+    throw IOException(msg_bo.str());
+  }
+
   // print end of molecule line
   if(counter_ != 0) {
     ostr_ << "$$$$" << std::endl;

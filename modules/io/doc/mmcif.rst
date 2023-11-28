@@ -847,7 +847,8 @@ of the annotation available.
 
     Since this function is at the moment mainly used to create biounits from
     mmCIF files to be saved as PDBs, the function assumes that the
-    :class:`~ost.mol.ChainType` properties are set correctly. 
+    :class:`~ost.mol.ChainType` properties are set correctly. For a more
+    mmCIF-style of doing things read this: :ref:`Biounits <Biounits>`
 
     :param asu:  Asymmetric unit to work on. Should be created from a mmCIF
                  file.
@@ -1332,6 +1333,20 @@ of the annotation available.
   .. method:: SetBondOrder
 
     See :attr:`bond_order`
+
+Biounits
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _Biounits:
+
+Biological assemblies, i.e. biounits, are an integral part of mmCIF files and
+their construction is fully defined in :class:`MMCifInfoBioUnit`.
+:func:`MMCifInfoBioUnit.PDBize` provides one possibility to construct such biounits
+with compatibility with the PDB format in mind. That is single character chain
+names, dumping all ligands in one chain etc. For a more mmCIF-style way of
+constructing biounits, check out :func:`ost.mol.alg.CreateBU` in the
+*ost.mol.alg* module.
+
 
 .. |exptl.method| replace:: ``exptl.method``
 .. _exptl.method: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_exptl.method.html

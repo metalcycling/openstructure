@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+import numpy.ma as np_ma
 import networkx
 
 from ost import mol
@@ -55,7 +56,7 @@ class LigandScorer:
     Note that this global chain mapping currently ignores non polymer entities
     such as small ligands, and may result in overly pessimistic scores.
 
-    By defaults, target-model ligand assignments are computed independently
+    By default, target-model ligand assignments are computed independently
     for the RMSD and lDDT-PLI scores. For RMSD, each model ligand is uniquely
     assigned to a target ligand, starting from the "best" possible mapping
     (lowest RMSD) and using each target and model ligand in a single
@@ -63,6 +64,21 @@ class LigandScorer:
     for lDDT-PLI, the assignment is based on the highest lDDT-PLI, and ties
     broken by lowest RMSD. Setting `rmsd_assignment=True` forces a single
     ligand assignment, based on RMSD only. Ties are broken arbitrarily.
+
+    By default, only exact matches between target and model ligands are
+    considered. This is a problem when the target only contains a subset
+    of the expected atoms (for instance if atoms are missing in an
+    experimental structure, which often happens in the PDB). With
+    `substructure_match=True`, complete model ligands can be scored against
+    partial target ligands. One problem with this approach is that it is
+    very easy to find good matches to small, irrelevant ligands like EDO, CO2
+    or GOL. To counter that, the assignment algorithm considers the coverage,
+    expressed as the fraction of atoms of the model ligand atoms covered in the
+    target. Higher coverage matches are prioritized, but a match with a better
+    score will be preferred if it falls within a window of `coverage_delta`
+    (by default 0.2) of a worse-scoring match. As a result, for instance,
+    with a delta of 0.2, a low-score match with coverage 0.96 would be
+    preferred to a high-score match with coverage 0.90.
 
     Assumptions:
 
@@ -78,7 +94,7 @@ class LigandScorer:
     scoring. :ref:`Molck <molck>` should be used with extra
     care, as many of the options (such as `rm_non_std` or `map_nonstd_res`) can
     cause ligands to be removed from the structure. If cleanup with Molck is
-    needed, ligands should be kept and passed separately. Non-ligand residues
+    needed, ligands should be kept aside and passed separately. Non-ligand residues
     should be valid compounds with atom names following the naming conventions
     of the component dictionary. Non-standard residues are acceptable, and if
     the model contains a standard residue at that position, only atoms with
@@ -193,6 +209,8 @@ class LigandScorer:
     :type chain_mapper:  :class:`ost.mol.alg.chain_mapping.ChainMapper`
     :param substructure_match: Set this to True to allow partial target ligand.
     :type substructure_match: :class:`bool`
+    :param coverage_delta: the coverage delta for partial ligand assignment.
+    :type coverage_delta: :class:`float`
     :param radius: Inclusion radius for the binding site. Residues with
                    atoms within this distance of the ligand will be considered
                    for inclusion in the binding site.
@@ -238,6 +256,7 @@ class LigandScorer:
                  resnum_alignments=False, check_resnames=True,
                  rename_ligand_chain=False,
                  chain_mapper=None, substructure_match=False,
+                 coverage_delta=0.2,
                  radius=4.0, lddt_pli_radius=6.0, lddt_lp_radius=10.0,
                  binding_sites_topn=100000, global_chain_mapping=False,
                  rmsd_assignment=False, n_max_naive=12,
@@ -292,6 +311,7 @@ class LigandScorer:
         self.rmsd_assignment = rmsd_assignment
         self.n_max_naive = n_max_naive
         self.unassigned = unassigned
+        self.coverage_delta = coverage_delta
 
         # scoring matrices
         self._rmsd_matrix = None
@@ -313,11 +333,17 @@ class LigandScorer:
         self._unassigned_target_ligands = None
         self._unassigned_model_ligands = None
         self._unassigned_target_ligands_reason = {}
-        # Keep track of symmetries/isomorphisms
+        self._unassigned_target_ligand_short = None
+        self._unassigned_model_ligand_short = None
+        self._unassigned_target_ligand_descriptions = None
+        self._unassigned_model_ligand_descriptions = None
+        # Keep track of symmetries/isomorphisms (regardless of scoring)
         # 0.0: no isomorphism
         # 1.0: isomorphic
-        # np.nan: not assessed yet
+        # np.nan: not assessed yet - that's why we can't use a boolean
         self._assignment_isomorphisms = None
+        # Keep track of match coverage (only in case there was a score)
+        self._assignment_match_coverage = None
 
         if custom_mapping is not None:
             self._set_custom_mapping(custom_mapping)
@@ -451,8 +477,8 @@ class LigandScorer:
             new_res = None
             if res.entity.handle == old_entity.handle:
                 # Residue is part of the old_entity handle.
-                # However it may not be in the copied one, for instance it may have been a view
-                # We try to grab it grab it first, othewise we copyp it
+                # However, it may not be in the copied one, for instance it may have been a view
+                # We try to grab it first, otherwise we copy it
                 new_res = new_entity.FindResidue(res.chain.name, res.number)
             if new_res and new_res.valid:
                 LogVerbose("Ligand residue %s already in entity" % res.handle.qualified_name)
@@ -616,6 +642,8 @@ class LigandScorer:
             (len(self.target_ligands), len(self.model_ligands)), dtype=dict)
         self._assignment_isomorphisms = np.full(
             (len(self.target_ligands), len(self.model_ligands)), fill_value=np.nan)
+        self._assignment_match_coverage = np.zeros(
+            (len(self.target_ligands), len(self.model_ligands)))
 
         for target_i, target_ligand in enumerate(self.target_ligands):
             LogVerbose("Analyzing target ligand %s" % target_ligand)
@@ -645,7 +673,6 @@ class LigandScorer:
                             by_atom_index=True)
                         LogVerbose("Ligands %s and %s symmetry match" % (
                             str(model_ligand), str(target_ligand)))
-                        self._assignment_isomorphisms[target_i, model_i] = 1
                     except NoSymmetryError:
                         # Ligands are different - skip
                         LogVerbose("No symmetry between %s and %s" % (
@@ -657,6 +684,9 @@ class LigandScorer:
                         continue
                     substructure_match = len(symmetries[0][0]) != len(
                         model_ligand.atoms)
+                    coverage = len(symmetries[0][0]) / len(model_ligand.atoms)
+                    self._assignment_match_coverage[target_i, model_i] = coverage
+                    self._assignment_isomorphisms[target_i, model_i] = 1
 
                     rmsd = SCRMSD(model_ligand, target_ligand,
                                   transformation=binding_site.transform,
@@ -678,6 +708,7 @@ class LigandScorer:
                             "chain_mapping": binding_site.GetFlatChainMapping(),
                             "transform": binding_site.transform,
                             "substructure_match": substructure_match,
+                            "coverage": coverage,
                             "inconsistent_residues": binding_site.inconsistent_residues,
                         }
                         if self.unassigned:
@@ -742,6 +773,7 @@ class LigandScorer:
                                 "chain_mapping": binding_site.GetFlatChainMapping(),
                                 "transform": binding_site.transform,
                                 "substructure_match": substructure_match,
+                                "coverage": coverage,
                                 "inconsistent_residues": binding_site.inconsistent_residues,
                             }
                             if self.unassigned:
@@ -753,7 +785,7 @@ class LigandScorer:
         self._lddt_pli_full_matrix = lddt_pli_full_matrix
 
     @staticmethod
-    def _find_ligand_assignment(mat1, mat2=None):
+    def _find_ligand_assignment(mat1, mat2=None, coverage=None, coverage_delta=None):
         """ Find the ligand assignment based on mat1. If mat2 is provided, it
         will be used to break ties in mat1. If mat2 is not provided, ties will
         be resolved by taking the first match arbitrarily.
@@ -768,45 +800,83 @@ class LigandScorer:
             mat2[~np.isnan(mat2)] = np.inf
         else:
             mat2 = np.copy(mat2)
+        if coverage is None:
+            coverage = np.copy(mat1)
+            coverage[:] = 1  # Assume full coverage by default
+        else:
+            coverage = np.copy(coverage)
+
         assignments = []
         if 0 in mat1.shape:
             # No model or target ligand
             LogDebug("No model or target ligand, returning no assignment.")
             return assignments
-        min_mat1 = LigandScorer._nanmin_nowarn(mat1)
-        while not np.isnan(min_mat1):
-            best_mat1 = np.argwhere(mat1 == min_mat1)
+
+        def _get_best_match(mat1_val, coverage_val):
+            """ Extract the row/column indices of the prediction matching the
+                given values."""
+            mat1_match_idx = np.argwhere((mat1 == mat1_val) & (coverage >= coverage_val))
             # Multiple "best" - use mat2 to disambiguate
-            if len(best_mat1) > 1:
+            if len(mat1_match_idx) > 1:
                 # Get the values of mat2 at these positions
-                best_mat2_match = [mat2[tuple(x)] for x in best_mat1]
+                best_mat2_match = [mat2[tuple(x)] for x in mat1_match_idx]
                 # Find the index of the best mat2
                 # Note: argmin returns the first value which is min.
                 best_mat2_idx = np.array(best_mat2_match).argmin()
                 # Now get the original indices
-                max_i_trg, max_i_mdl = best_mat1[best_mat2_idx]
+                return mat1_match_idx[best_mat2_idx]
             else:
-                max_i_trg, max_i_mdl = best_mat1[0]
+                return mat1_match_idx[0]
 
-            # Disable row and column
-            mat1[max_i_trg, :] = np.nan
-            mat1[:, max_i_mdl] = np.nan
-            mat2[max_i_trg, :] = np.nan
-            mat2[:, max_i_mdl] = np.nan
+        # First only consider top coverage matches.
+        min_coverage = np.max(coverage)
+        while min_coverage > 0:
+            LogVerbose("Looking for matches with coverage >= %s" % min_coverage)
+            min_mat1 = LigandScorer._nanmin_nowarn(mat1, coverage < min_coverage)
+            while not np.isnan(min_mat1):
+                max_i_trg, max_i_mdl = _get_best_match(min_mat1, min_coverage)
 
-            # Save
-            assignments.append((max_i_trg, max_i_mdl))
+                # Would we have a match for this model ligand with higher score
+                # but lower coverage?
+                alternative_matches = (mat1[:, max_i_mdl] < min_mat1) & (
+                        coverage[:, max_i_mdl] > (min_coverage - coverage_delta))
+                if np.any(alternative_matches):
+                    # Get the scores of these matches
+                    LogVerbose("Found match with lower coverage but better score")
+                    min_mat1 = np.min(mat1[alternative_matches])
+                    max_i_trg, max_i_mdl = _get_best_match(min_mat1, min_coverage - coverage_delta)
 
-            # Recompute min
-            min_mat1 = LigandScorer._nanmin_nowarn(mat1)
+                # Disable row and column
+                mat1[max_i_trg, :] = np.nan
+                mat1[:, max_i_mdl] = np.nan
+                mat2[max_i_trg, :] = np.nan
+                mat2[:, max_i_mdl] = np.nan
+                coverage[max_i_trg, :] = -np.inf
+                coverage[:, max_i_mdl] = -np.inf
+
+                # Save
+                assignments.append((max_i_trg, max_i_mdl))
+
+                # Recompute min
+                min_mat1 = LigandScorer._nanmin_nowarn(mat1, coverage < min_coverage)
+            # Recompute min_coverage
+            min_coverage = np.max(coverage)
         return assignments
 
     @staticmethod
-    def _nanmin_nowarn(array):
+    def _nanmin_nowarn(array, mask):
         """Compute np.nanmin but ignore the RuntimeWarning."""
+        masked_array = np_ma.masked_array(array, mask=mask)
         with warnings.catch_warnings():  # RuntimeWarning: All-NaN slice encountered
             warnings.simplefilter("ignore")
-            return np.nanmin(array)
+            min = np.nanmin(masked_array, )
+            if np_ma.is_masked(min):
+                return np.nan  # Everything was masked
+            else:
+                return min
+
+
+
 
     @staticmethod
     def _reverse_lddt(lddt):
@@ -864,7 +934,9 @@ class LigandScorer:
         :return: a tuple with 2 dictionaries of matrices containing the main
                  data, and details, respectively.
         """
-        assignments = self._find_ligand_assignment(mat1, mat2)
+        assignments = self._find_ligand_assignment(mat1, mat2,
+                                                   self._assignment_match_coverage,
+                                                   self.coverage_delta)
         out_main = {}
         out_details = {}
         assigned_trg = [False] * len(self.target_ligands)
@@ -961,7 +1033,9 @@ class LigandScorer:
         :return: a tuple with 4 dictionaries of matrices containing the main
                  data1, details1, main data2 and details2, respectively.
         """
-        assignments = self._find_ligand_assignment(mat)
+        assignments = self._find_ligand_assignment(mat,
+                                                   coverage=self._assignment_match_coverage,
+                                                   coverage_delta=self.coverage_delta)
         out_main1 = {}
         out_details1 = {}
         out_main2 = {}
@@ -983,18 +1057,10 @@ class LigandScorer:
                 trg_idx, mdl_idx][main_key1]
             out_details1[mdl_cname][mdl_resnum] = data1[
                 trg_idx, mdl_idx]
-            out_main1[mdl_cname][mdl_resnum] = data2[
-                trg_idx, mdl_idx][main_key2]
-            out_details1[mdl_cname][mdl_resnum] = data2[
-                trg_idx, mdl_idx]
             # Data2
             if mdl_cname not in out_main2:
                 out_main2[mdl_cname] = {}
                 out_details2[mdl_cname] = {}
-            out_main2[mdl_cname][mdl_resnum] = data1[
-                trg_idx, mdl_idx][main_key1]
-            out_details2[mdl_cname][mdl_resnum] = data1[
-                trg_idx, mdl_idx]
             out_main2[mdl_cname][mdl_resnum] = data2[
                 trg_idx, mdl_idx][main_key2]
             out_details2[mdl_cname][mdl_resnum] = data2[
@@ -1089,6 +1155,23 @@ class LigandScorer:
         return self._lddt_pli_matrix
 
     @property
+    def coverage_matrix(self):
+        """ Get the matrix of model ligand atom coverage in the target.
+
+        Target ligands are in rows, model ligands in columns.
+
+        A value of 0 indicates that there was no isomorphism between the model
+        and target ligands. If `substructure_match=False`, only full match
+        isomorphisms are considered, and therefore only values of 1.0 and 0.0
+        are reported.
+
+        :rtype: :class:`~numpy.ndarray`
+        """
+        if self._assignment_match_coverage is None:
+            self._compute_scores()
+        return self._assignment_match_coverage
+
+    @property
     def rmsd(self):
         """Get a dictionary of RMSD score values, keyed by model ligand
         (chain name, :class:`~ost.mol.ResNum`).
@@ -1134,6 +1217,9 @@ class LigandScorer:
           (substructure) match. A value of `True` indicates that the target
           ligand covers only part of the model, while `False` indicates a
           perfect match.
+        * `coverage`: the fraction of model atoms covered by the assigned
+          target ligand, in the interval (0, 1]. If `substructure_match`
+          is `False`, this will always be 1.
         * `inconsistent_residues`: a list of tuples of mapped residues views
           (:class:`~ost.mol.ResidueView`) with residue names that differ
           between the reference and the model, respectively.
@@ -1145,7 +1231,7 @@ class LigandScorer:
           `unassigned=True`: `False`
 
         If the scoring object was instantiated with `unassigned=True`, in
-        addition the unmapped ligands will be reported with a score of `None`
+        addition the unassigned ligands will be reported with a score of `None`
         and the following information:
 
         * `unassigned`: `True`,
@@ -1253,68 +1339,118 @@ class LigandScorer:
         """Get a dictionary of target ligands not assigned to any model ligand,
         keyed by target ligand (chain name, :class:`~ost.mol.ResNum`).
 
-        Assignment is the same as for the lDDT-PLI score (and is controlled
+        The assignment for the lDDT-PLI score is used (and is controlled
         by the `rmsd_assignment` argument).
 
-        Each sub-dictionary contains a tuple with information about the reason
-        for the absence of assignment, in short and long format.
+        Each item contains a string from a controlled dictionary
+        about the reason for the absence of assignment.
+        A human-readable description can be obtained from the
+        :attr:`unassigned_target_ligand_descriptions` property.
 
         Currently, the following reasons are reported:
 
-        * `no_ligand`: no ligand in the model.
-        * `disconnected`: ligand graph is disconnected.
-        * `binding_site`: no residue in proximity of the target ligand.
+        * `no_ligand`: there was no ligand in the model.
+        * `disconnected`: the ligand graph was disconnected.
+        * `binding_site`: no residues were in proximity of the ligand.
         * `model_representation`: no representation of the reference binding
-          site was found in the model
-        * `identity`: ligand was not found in the model (by isomorphism)
-        * `stoichiometry`: ligand was assigned to an other model ligand
-          (different stoichiometry)
+          site was found in the model. (I.e. the binding site was not modeled.
+          Remember: the binding site is defined in the target structure,
+          the position of the model ligand itself is ignored at this point.)
+        * `identity`: the ligand was not found in the model (by graph
+          isomorphism). Check your ligand connectivity, and enable the
+          `substructure_match` option if the target ligand is incomplete.
+        * `stoichiometry`: there was a possible assignment in the model, but
+          the model ligand was already assigned to a different target ligand.
+          This indicates different stoichiometries.
 
         Some of these reasons can be overlapping, but a single reason will be
         reported.
 
         :rtype: :class:`dict`
         """
-        if self._unassigned_target_ligands is None:
+        if self._unassigned_target_ligand_short is None:
             if self.rmsd_assignment:
                 self._assign_ligands_rmsd_only()
             else:
                 self._assign_ligands_lddt_pli()
-        return self._unassigned_target_ligands
+            self._unassigned_target_ligand_short = {}
+            self._unassigned_target_ligand_descriptions = {}
+            for cname, res in self._unassigned_target_ligands.items():
+                self._unassigned_target_ligand_short[cname] = {}
+                for resnum, val in res.items():
+                    self._unassigned_target_ligand_short[cname][resnum] = val[0]
+                    self._unassigned_target_ligand_descriptions[val[0]] = val[1]
+        return self._unassigned_target_ligand_short
+
+    @property
+    def unassigned_target_ligand_descriptions(self):
+        """Get a human-readable description of why target ligands were
+        unassigned, as a dictionary keyed by the controlled dictionary
+        from :attr:`unassigned_target_ligands`.
+        """
+        if self._unassigned_target_ligand_descriptions is None:
+            _ = self.unassigned_target_ligands  # assigned there
+        return self._unassigned_target_ligand_descriptions
 
     @property
     def unassigned_model_ligands(self):
         """Get a dictionary of model ligands not assigned to any target ligand,
         keyed by model ligand (chain name, :class:`~ost.mol.ResNum`).
 
-        Assignment is the same as for the lDDT-PLI score (and is controlled
+        The assignment for the lDDT-PLI score is used (and is controlled
         by the `rmsd_assignment` argument).
 
-        Each sub-dictionary contains a tuple with information about the reason
-        for the absence of assignment, in short and long format.
-
+        Each item contains a string from a controlled dictionary
+        about the reason for the absence of assignment.
+        A human-readable description can be obtained from the
+        :attr:`unassigned_model_ligand_descriptions` property.
         Currently, the following reasons are reported:
 
-        * `no_ligand`: no ligand in the target.
-        * `disconnected`: ligand graph is disconnected.
-        * `binding_site`: no residue in proximity of the target ligand.
-        * `model_representation`: no representation of the reference binding
-          site was found in the model
-        * `identity`: ligand was not found in the target (by isomorphism)
-        * `stoichiometry`: ligand was assigned to an other target ligand
-          (different stoichiometry)
+        * `no_ligand`: there was no ligand in the target.
+        * `disconnected`: the ligand graph is disconnected.
+        * `binding_site`: a potential assignment was found in the target, but
+          there were no polymer residues in proximity of the ligand in the
+          target.
+        * `model_representation`: a potential assignment was found in the target,
+          but no representation of the binding site was found in the model.
+          (I.e. the binding site was not modeled. Remember: the binding site
+          is defined in the target structure, the position of the model ligand
+          itself is ignored at this point.)
+        * `identity`: the ligand was not found in the target (by graph
+          isomorphism). Check your ligand connectivity, and enable the
+          `substructure_match` option if the target ligand is incomplete.
+        * `stoichiometry`: there was a possible assignment in the target, but
+          the model target was already assigned to a different model ligand.
+          This indicates different stoichiometries.
 
         Some of these reasons can be overlapping, but a single reason will be
         reported.
 
         :rtype: :class:`dict`
         """
-        if self._unassigned_model_ligands is None:
+        if self._unassigned_model_ligand_short is None:
             if self.rmsd_assignment:
                 self._assign_ligands_rmsd_only()
             else:
                 self._assign_ligands_lddt_pli()
-        return self._unassigned_model_ligands
+            self._unassigned_model_ligand_short = {}
+            self._unassigned_model_ligand_descriptions = {}
+            for cname, res in self._unassigned_model_ligands.items():
+                self._unassigned_model_ligand_short[cname] = {}
+                for resnum, val in res.items():
+                    self._unassigned_model_ligand_short[cname][resnum] = val[0]
+                    self._unassigned_model_ligand_descriptions[val[0]] = val[1]
+        return self._unassigned_model_ligand_short
+
+    @property
+    def unassigned_model_ligand_descriptions(self):
+        """Get a human-readable description of why model ligands were
+        unassigned, as a dictionary keyed by the controlled dictionary
+        from :attr:`unassigned_model_ligands`.
+        """
+        if self._unassigned_model_ligand_descriptions is None:
+            _ = self.unassigned_model_ligands  # assigned there
+        return self._unassigned_model_ligand_descriptions
 
 
     def _set_custom_mapping(self, mapping):
@@ -1461,9 +1597,10 @@ class LigandScorer:
                     trg_ligand = self.target_ligands[trg_lig_idx]
                     return self._unassigned_target_ligands_reason[trg_ligand]
                 else:
-                    # Ligand was assigned to an other
-                    return ("stoichiometry", "Ligand was assigned to an other "
-                            "target ligand (different stoichiometry)")
+                    # Ligand was already assigned
+                    return ("stoichiometry",
+                            "Ligand was already assigned to an other "
+                            "model ligand (different stoichiometry)")
 
         # Could not be assigned to any ligand - must be different
         if self.substructure_match:
@@ -1521,8 +1658,9 @@ class LigandScorer:
                 self._assignment_isomorphisms[ligand_idx,model_lig_idx] = assigned
             if assigned:
                 # Could have been assigned but was assigned to a different ligand
-                return ("stoichiometry", "Ligand was assigned to an other "
-                        "model ligand (different stoichiometry)")
+                return ("stoichiometry",
+                        "Ligand was already assigned to an other "
+                        "target ligand (different stoichiometry)")
 
         # Could not be assigned to any ligand - must be different
         if self.substructure_match:

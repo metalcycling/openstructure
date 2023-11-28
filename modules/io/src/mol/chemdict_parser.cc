@@ -141,7 +141,17 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
         compound_->SetChemClass(mol::ChemClass(mol::ChemClass::WATER));
         compound_->SetOneLetterCode('.');
       }
-    } else if (item.GetName()==StringRef("one_letter_code", 15)) {
+    } else if (item.GetName()==StringRef("pdbx_release_status", 19)) {
+      String release_status = item.GetValue().str();
+      if (release_status == "OBS") {
+        compound_->SetObsolete(true);
+      }
+    } else if (item.GetName()==StringRef("pdbx_replaced_by", 16)) {
+      String replaced_by = item.GetValue().str();
+      if (replaced_by != "?") {
+        compound_->SetReplacedBy(replaced_by);
+      }
+    }  else if (item.GetName()==StringRef("one_letter_code", 15)) {
       if (item.GetValue().length()==1) {
         compound_->SetOneLetterCode(item.GetValue()[0]);   
       }

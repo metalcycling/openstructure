@@ -104,7 +104,9 @@ MMAlignResult WrappedMMAlign(const std::vector<geom::Vec3List>& pos_one,
                              const ost::seq::SequenceList& seq2,
                              const std::vector<bool>& rna1,
                              const std::vector<bool>& rna2,
-                             bool fast = false);
+                             bool fast = false,
+                             const std::map<int, int>& mapping =
+                             std::map<int,int>());
 
 TMAlignResult WrappedTMAlign(const ost::mol::ChainView& ent1,
                              const ost::mol::ChainView& ent2,
@@ -112,7 +114,9 @@ TMAlignResult WrappedTMAlign(const ost::mol::ChainView& ent1,
 
 MMAlignResult WrappedMMAlign(const ost::mol::EntityView& ent1,
                              const ost::mol::EntityView& ent2,
-                             bool fast = false);
+                             bool fast = false,
+                             const std::map<String, String>& mapping =
+                             std::map<String, String>());
 }} //ns
 
 #endif

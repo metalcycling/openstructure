@@ -21,6 +21,7 @@
 
 #include <map>
 #include <boost/shared_ptr.hpp>
+#include <sqlite3.h>
 
 #include "module_config.hh"
 #include "compound.hh"
@@ -31,6 +32,7 @@ namespace ost { namespace conop {
 class CompoundLib;
 
 typedef boost::shared_ptr<CompoundLib> CompoundLibPtr;
+typedef std::vector<CompoundPtr> CompoundPtrList;
 
 class DLLEXPORT_OST_CONOP CompoundLib : public CompoundLibBase {
 public:
@@ -39,6 +41,9 @@ public:
   ~CompoundLib();
   
   virtual CompoundPtr FindCompound(const String& id, 
+                                   Compound::Dialect dialect) const;
+  virtual CompoundPtrList FindCompounds(const String& query,
+                                   const String& by,
                                    Compound::Dialect dialect) const;
   void AddCompound(const CompoundPtr& compound);
   CompoundLibPtr Copy(const String& filename) const;
@@ -50,12 +55,17 @@ private:
     CompoundLib();
 
     void LoadAtomsFromDB(CompoundPtr comp, int pk) const;
-    void LoadBondsFromDB(CompoundPtr comp, int pk) const;    
+    void LoadBondsFromDB(CompoundPtr comp, int pk) const;
+    String BuildFindCompoundQuery(const String& id,
+                                   Compound::Dialect dialect,
+                                   const String& by) const;
+    CompoundPtr LoadCompoundFromDB(sqlite3_stmt* stmt) const;
 private:
   struct Database;
   Database* db_;
   mutable CompoundMap       compound_cache_;
   bool                      smiles_available_; //whether smiles are available in db - introduced in 2.6.0
+  bool                      obsolete_available_; //whether obsolete info is available in db - introduced in 2.6.0
   bool                      charges_available_; //whether atom charges are available in db - introduced in 2.6.0
   Date                      creation_date_;
   String                    ost_version_used_;

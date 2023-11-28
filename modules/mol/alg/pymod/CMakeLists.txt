@@ -11,6 +11,7 @@ set(OST_MOL_ALG_PYMOD_SOURCES
   export_molck.cc
   export_membrane.cc
   export_entity_to_density.cc
+  export_biounit.cc
 )
 
 set(OST_MOL_ALG_PYMOD_MODULES
@@ -29,6 +30,7 @@ set(OST_MOL_ALG_PYMOD_MODULES
   stereochemistry.py
   ligand_scoring.py
   dockq.py
+  contact_score.py
 )
 
 if (NOT ENABLE_STATIC)

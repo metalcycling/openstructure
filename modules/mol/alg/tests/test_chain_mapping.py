@@ -289,17 +289,20 @@ class TestChainMapper(unittest.TestCase):
     greedy_rigid_res = mapper.GetRigidMapping(mdl, strategy="greedy_iterative_rmsd")
     self.assertEqual(greedy_rigid_res.mapping, [['X', 'Y'],[None],['Z']])
 
+    # the default chain mapping
+    default_res = mapper.GetMapping(mdl)
+
     # test flat mapping functionality of MappingResult
-    flat_map = greedy_rigid_res.GetFlatMapping()
+    flat_map = default_res.GetFlatMapping()
     self.assertEqual(len(flat_map), 3)
-    self.assertEqual(flat_map[greedy_rigid_res.chem_groups[0][0]], 'X')
-    self.assertEqual(flat_map[greedy_rigid_res.chem_groups[0][1]], 'Y')
-    self.assertEqual(flat_map[greedy_rigid_res.chem_groups[2][0]], 'Z')
-    flat_map = greedy_rigid_res.GetFlatMapping(mdl_as_key=True)
+    self.assertEqual(flat_map[default_res.chem_groups[0][0]], 'X')
+    self.assertEqual(flat_map[default_res.chem_groups[0][1]], 'Y')
+    self.assertEqual(flat_map[default_res.chem_groups[2][0]], 'Z')
+    flat_map = default_res.GetFlatMapping(mdl_as_key=True)
     self.assertEqual(len(flat_map), 3)
-    self.assertEqual(greedy_rigid_res.chem_groups[0][0], flat_map['X'])
-    self.assertEqual(greedy_rigid_res.chem_groups[0][1], flat_map['Y'])
-    self.assertEqual(greedy_rigid_res.chem_groups[2][0], flat_map['Z'])
+    self.assertEqual(default_res.chem_groups[0][0], flat_map['X'])
+    self.assertEqual(default_res.chem_groups[0][1], flat_map['Y'])
+    self.assertEqual(default_res.chem_groups[2][0], flat_map['Z'])
 
     # test Align function of ChainMapper
     _, mdl_polypep_seqs, mdl_polynuc_seqs = mapper.ProcessStructure(mdl)

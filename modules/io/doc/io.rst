@@ -106,45 +106,35 @@ behaviour.
 .. class:: ost.io.OMF
 
   Experimental data format capable of storing minimally required information 
-  of a :class:`ost.mol.EntityHandle` in a heavily compressed manner 
+  of a :class:`ost.mol.EntityHandle` in a compressed manner 
   (OMF - OpenStructure Minimal Format). Shares lots of ideas with the mmtf or
-  binaryCIF formats but comes with no dependencies attached.
+  binaryCIF formats but comes with no dependencies attached. User can provide
+  an upper error bound of atom coordinates in A which has an effect on
+  compression ratio. 
 
-  .. staticmethod:: FromEntity(ent, options=0)
+  .. staticmethod:: FromEntity(ent, max_error = 0.0, options=0)
 
     Generates :class:`ost.io.OMF` object starting from an 
-    :class:`ost.mol.EntityHandle`. *ent* is is assigned as assymetric unit,
-    no biounits are defined (i.e. :func:`GetBU` raises an error in any case`).
+    :class:`ost.mol.EntityHandle`.
 
-    :param ent: Structural data
+    :param ent: Structure data
     :type ent: :class:`ost.mol.EntityHandle`
+    :param max_error: Maximum error in A of stored atom coordinates - affects
+                      compression ratio
+    :type max_error: :class:`float`
     :param options: Control file compression
     :type options: :class:`ost.io.OMFOption`
     :returns: The created :class:`ost.io.OMF` object
 
-  .. staticmethod:: FromFile(filepath, options=0)
+  .. staticmethod:: FromFile(filepath)
 
     Generates :class:`ost.io.OMF` object from a file stored with 
-    :func:`ToFile`.
+    :func:`ToFile` or a byte string created from :func:`ToBytes`
+    that has been dumped to disk.
 
     :param filepath: The file
     :type filepath: :class:`str`
-    :param options: Control file compression
-    :type options: :class:`ost.io.OMFOption`
     :returns: The created :class:`ost.io.OMF` object    
-
-  .. staticmethod:: FromMMCIF(ent, info)
-
-    Generates :class:`ost.io.OMF` object starting from an 
-    :class:`ost.mol.EntityHandle` with an associated :class:`MMCifInfo`
-    (you get this stuff with :func:`ost.io.LoadMMCIF`). *ent* is assigned
-    as assymetric unit and the biounits are fetched from *info*. 
-
-    :param ent: Structural data
-    :type ent: :class:`ost.mol.EntityHandle`
-    :param info: Biounits are fetched from here
-    :type info: :class:`MMCifInfo`
-    :returns: The created :class:`ost.io.OMF` object
 
   .. staticmethod:: FromBytes(bytes_string)
 
@@ -167,11 +157,21 @@ behaviour.
     
     :returns: The :class:`bytes` string
 
+  .. method:: GetMaxError()
+
+    Get maximum error parameter
+
+    :returns: The max error in A of the stored coordinates
+
   .. method:: GetAU()
 
     Getter for assymetric unit
 
     :returns: The assymetric unit as :class:`ost.mol.EntityHandle`
+
+  .. method:: GetEntity()
+
+    Same as :func:`GetAU`
 
   .. method:: GetAUChain(chain_name)
 
@@ -182,15 +182,20 @@ behaviour.
     :returns: :class:`ost.mol.EntityHandle` of the AU only containing the 
               specified chain
 
-  .. method:: GetBU(bu_idx)
+  .. method:: GetEntityChain(chain_name)
 
-    Getter for Biounit
+    Same as :func:`GetAUChain`
 
-    :param bu_idx: The index from the biounit as it has been read from *info* in
-                   :func:`FromMMCIF`.
-    :type bu_idx: :class:`int`
-    :returns: The Biounit as :class:`ost.mol.EntityHandle`
-    :raises: :class:`RuntimeError` if *bu_idx* doesn't exist
+  .. method:: GetName()
+
+    :returns: The entity name, accessible as
+              :class:`ost.mol.EntityHandle.GetName` from the entity that has
+              been used to create :class:`OMF` object
+
+  .. method:: GetChainNames()
+
+    :returns: :class:`list` with chain names of the stored structure
+
 
 .. class:: ost.io.OMFOption
 
@@ -198,15 +203,14 @@ behaviour.
 
   .. code-block:: python
 
-    omf_opts = io.OMFOption.LOSSY | io.OMFOption.AVG_BFACTORS
+    omf_opts = io.OMFOption.DEFAULT_PEPLIB | io.OMFOption.AVG_BFACTORS
 
   * DEFAULT_PEPLIB: Compound information (connectivity, chem type etc.) for each
     unique residue in a structure is stored in a library. This option defines a
     default library of such compounds with proteinogenic amino acids. This
     reduces the size of the library that needs to be written for each OMF file.
-  * LOSSY: Default accuracy for coordinates is 3 decimals. Enabling this option,
-    reduces accuracy to 1 decimal and results in smaller file sizes.
-    This gives a hard upper limit for errors of 0.087A
+    IMPORTANT: This option has an impact on compression ratio as internal
+    coordinate parameters are only available through the default peptide library
   * AVG_BFACTORS: Protein models often have the same bfactor for all atoms of
     a residue. One example is AFDB. Enabling this option results in only one
     bfactor being stored per residue, thus reducing file size.
@@ -217,14 +221,6 @@ behaviour.
     However, inter-residue connectivity needs to be stored separately. If this
     option is enabled, stereochemically reasonable peptide bonds are inferred
     at loading and there is no need to save them.
-  * INFER_POS: Some positions can be inferred from other positions or stored
-    in an abstract manner. Enabling this option leads to inferred backbone
-    oxygen positions, as well as representation of amino acid sidechains as
-    rotamers. Rotamer information is stored in the default peptide library.
-    Using this option without DEFAULT_PEPLIB thus raises an error.
-    This option gives a hard upper limit for errors of 0.5A. 
-
-
 
 
 Loading Molecular Structures From Remote Repositories

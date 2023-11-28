@@ -41,16 +41,17 @@ Details on the usage (output of ``ost compare-structures --help``):
                                 [--cad-score] [--local-cad-score]
                                 [--cad-exec CAD_EXEC]
                                 [--usalign-exec USALIGN_EXEC] [--qs-score]
-                                [--rigid-scores] [--interface-scores]
+                                [--dockq] [--contact-scores] [--rigid-scores]
                                 [--patch-scores] [--tm-score]
                                 [--lddt-no-stereochecks]
-  
+                                [--n-max-naive N_MAX_NAIVE]
+
   Evaluate model against reference 
-  
+
   Example: ost compare-structures -m model.pdb -r reference.cif
-  
+
   Loads the structures and performs basic cleanup:
-  
+
    * Assign elements according to the PDB Chemical Component Dictionary
    * Map nonstandard residues to their parent residues as defined by the PDB
      Chemical Component Dictionary, e.g. phospho-serine => serine
@@ -59,12 +60,12 @@ Details on the usage (output of ``ost compare-structures --help``):
    * Remove unknown atoms, i.e. atoms that are not expected according to the PDB
      Chemical Component Dictionary
    * Select for peptide/nucleotide residues
-  
+
   The cleaned structures are optionally dumped using -d/--dump-structures
-  
+
   Output is written in JSON format (default: out.json). In case of no additional
   options, this is a dictionary with 8 keys describing model/reference comparison:
-  
+
    * "reference_chains": Chain names of reference
    * "model_chains": Chain names of model
    * "chem_groups": Groups of polypeptides/polynucleotides from reference that
@@ -89,10 +90,10 @@ Details on the usage (output of ``ost compare-structures --help``):
    * "status": SUCCESS if everything ran through. In case of failure, the only
      content of the JSON output will be "status" set to FAILURE and an
      additional key: "traceback".
-  
+
   The following additional keys store relevant input parameters to reproduce
   results:
-  
+
    * "model"
    * "reference"
    * "fault_tolerant"
@@ -103,22 +104,22 @@ Details on the usage (output of ``ost compare-structures --help``):
    * "cad_exec"
    * "usalign_exec"
    * "lddt_no_stereochecks"
-  
+
   The pairwise sequence alignments are computed with Needleman-Wunsch using
   BLOSUM62 (NUC44 for nucleotides). Many benchmarking scenarios preprocess the
   structures to ensure matching residue numbers (CASP/CAMEO). In these cases,
   enabling -rna/--residue-number-alignment is recommended.
-  
+
   Each score is opt-in and can be enabled with optional arguments.
-  
+
   Example to compute global and per-residue lDDT values as well as QS-score:
-  
+
   ost compare-structures -m model.pdb -r reference.cif --lddt --local-lddt --qs-score
-  
+
   Example to inject custom chain mapping
-  
+
   ost compare-structures -m model.pdb -r reference.cif -c A:B B:A
-  
+
   optional arguments:
     -h, --help            show this help message and exit
     -m MODEL, --model MODEL
@@ -218,7 +219,88 @@ Details on the usage (output of ``ost compare-structures --help``):
                           given, an OpenStructure internal copy of USalign code
                           is used.
     --qs-score            Compute QS-score, stored as key "qs_global", and the
-                          QS-best variant, stored as key "qs_best".
+                          QS-best variant, stored as key "qs_best". Interfaces
+                          in the reference with non-zero contribution to QS-
+                          score are available as key "qs_reference_interfaces",
+                          the ones from the model as key "qs_model_interfaces".
+                          "qs_interfaces" is a subset of
+                          "qs_reference_interfaces" that contains interfaces
+                          that can be mapped to the model. They are stored as
+                          lists in format [ref_ch1, ref_ch2, mdl_ch1, mdl_ch2].
+                          The respective per-interface scores for
+                          "qs_interfaces" are available as keys
+                          "per_interface_qs_global" and "per_interface_qs_best"
+    --dockq               Compute DockQ scores and its components. Relevant
+                          interfaces with at least one contact (any atom within
+                          5A) of the reference structure are available as key
+                          "dockq_reference_interfaces". Only interfaces between
+                          peptide chains are considered here! Key
+                          "dockq_interfaces" is a subset of
+                          "dockq_reference_interfaces" that contains interfaces
+                          that can be mapped to the model. They are stored as
+                          lists in format [ref_ch1, ref_ch2, mdl_ch1, mdl_ch2].
+                          The respective DockQ scores for "dockq_interfaces" are
+                          available as key "dockq". It's components are
+                          available as keys: "fnat" (fraction of reference
+                          contacts which are also there in model) "irmsd"
+                          (interface RMSD), "lrmsd" (ligand RMSD). The DockQ
+                          score is strictly designed to score each interface
+                          individually. We also provide two averaged versions to
+                          get one full model score: "dockq_ave", "dockq_wave".
+                          The first is simply the average of "dockq_scores", the
+                          latter is a weighted average with weights derived from
+                          number of contacts in the reference interfaces. These
+                          two scores only consider interfaces that are present
+                          in both, the model and the reference. "dockq_ave_full"
+                          and "dockq_wave_full" add zeros in the average
+                          computation for each interface that is only present in
+                          the reference but not in the model.
+    --ics                 Computes interface contact similarity (ICS) related
+                          scores. A contact between two residues of different
+                          chains is defined as having at least one heavy atom
+                          within 5A. Contacts in reference structure are
+                          available as key "reference_contacts". Each contact
+                          specifies the interacting residues in format
+                          "<cname>.<rnum>.<ins_code>". Model contacts are
+                          available as key "model_contacts". The precision which
+                          is available as key "ics_precision" reports the
+                          fraction of model contacts that are also present in
+                          the reference. The recall which is available as key
+                          "ics_recall" reports the fraction of reference
+                          contacts that are correctly reproduced in the model.
+                          The ICS score (Interface Contact Similarity) available
+                          as key "ics" combines precision and recall using the
+                          F1-measure. All these measures are also available on a
+                          per-interface basis for each interface in the
+                          reference structure that are defined as chain pairs
+                          with at least one contact (available as key
+                          "contact_reference_interfaces"). The respective
+                          metrics are available as keys
+                          "per_interface_ics_precision",
+                          "per_interface_ics_recall" and "per_interface_ics".
+    --ips                 Computes interface patch similarity (IPS) related
+                          scores. They focus on interface residues. They are
+                          defined as having at least one contact to a residue
+                          from any other chain. In short: if they show up in the
+                          contact lists used to compute ICS. If ips is enabled,
+                          these contacts get reported too and are available as
+                          keys "reference_contacts" and "model_contacts".The
+                          precision which is available as key "ips_precision"
+                          reports the fraction of model interface residues, that
+                          are also interface residues in the reference. The
+                          recall which is available as key "ips_recall" reports
+                          the fraction of reference interface residues that are
+                          also interface residues in the model. The IPS score
+                          (Interface Patch Similarity) available as key "ips" is
+                          the Jaccard coefficient between interface residues in
+                          reference and model. All these measures are also
+                          available on a per-interface basis for each interface
+                          in the reference structure that are defined as chain
+                          pairs with at least one contact (available as key
+                          "contact_reference_interfaces"). The respective
+                          metrics are available as keys
+                          "per_interface_ips_precision",
+                          "per_interface_ips_recall" and "per_interface_ips".
     --rigid-scores        Computes rigid superposition based scores. They're
                           based on a Kabsch superposition of all mapped CA
                           positions (C3' for nucleotides). Makes the following
@@ -229,33 +311,6 @@ Details on the usage (output of ``ost compare-structures --help``):
                           these positions and transformation, "transform": the
                           used 4x4 transformation matrix that superposes model
                           onto reference.
-    --interface-scores    Per interface scores for each interface that has at
-                          least one contact in the reference, i.e. at least one
-                          pair of heavy atoms within 5A. The respective
-                          interfaces are available from key "interfaces" which
-                          is a list of tuples in form (ref_ch1, ref_ch2,
-                          mdl_ch1, mdl_ch2). Per-interface scores are available
-                          as lists referring to these interfaces and have the
-                          following keys: "nnat" (number of contacts in
-                          reference), "nmdl" (number of contacts in model),
-                          "fnat" (fraction of reference contacts which are also
-                          there in model), "fnonnat" (fraction of model contacts
-                          which are not there in target), "irmsd" (interface
-                          RMSD), "lrmsd" (ligand RMSD), "dockq_scores" (per-
-                          interface score computed from "fnat", "irmsd" and
-                          "lrmsd"), "interface_qs_global" and
-                          "interface_qs_best" (per-interface versions of the two
-                          QS-score variants). The DockQ score is strictly
-                          designed to score each interface individually. We also
-                          provide two averaged versions to get one full model
-                          score: "dockq_ave", "dockq_wave". The first is simply
-                          the average of "dockq_scores", the latter is a
-                          weighted average with weights derived from "nnat".
-                          These two scores only consider interfaces that are
-                          present in both, the model and the reference.
-                          "dockq_ave_full" and "dockq_wave_full" add zeros in
-                          the average computation for each interface that is
-                          only present in the reference but not in the model.
     --patch-scores        Local interface quality score used in CASP15. Scores
                           each model residue that is considered in the interface
                           (CB pos within 8A of any CB pos from another chain (CA
@@ -277,7 +332,25 @@ Details on the usage (output of ``ost compare-structures --help``):
                           "usalign_mapping"
     --lddt-no-stereochecks
                           Disable stereochecks for lDDT computation
-
+    --n-max-naive N_MAX_NAIVE
+                          Parameter for chain mapping. If the number of possible
+                          mappings is <= *n_max_naive*, the full mapping
+                          solution space is enumerated to find the the mapping
+                          with optimal QS-score. A heuristic is used otherwise.
+                          The default of 40320 corresponds to an octamer (8! =
+                          40320). A structure with stoichiometry A6B2 would be
+                          6!*2! = 1440 etc.
+    --dump-aligned-residues
+                          Dump additional info on aligned model and reference
+                          residues.
+    --dump-pepnuc-alns    Dump alignments of mapped chains but with sequences
+                          that did not undergo Molck preprocessing in the
+                          scorer. Sequences are extracted from model/target
+                          after undergoing selection for peptide and nucleotide
+                          residues.
+    --dump-pepnuc-aligned-residues
+                          Dump additional info on model and reference residues
+                          that occur in pepnuc alignments.
 
 
 .. _ost compare ligand structures:

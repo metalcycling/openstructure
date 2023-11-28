@@ -298,12 +298,111 @@ def _ParseArgs():
               "an OpenStructure internal copy of USalign code is used."))
 
     parser.add_argument(
+        "--override-usalign-mapping",
+        dest="oum",
+        default=False,
+        action="store_true",
+        help=("Override USalign mapping and inject our own mapping. Only works "
+              "if external usalign executable is provided that is reasonably "
+              "new and contains that feature."))
+    
+    parser.add_argument(
         "--qs-score",
         dest="qs_score",
         default=False,
         action="store_true",
         help=("Compute QS-score, stored as key \"qs_global\", and the QS-best "
-              "variant, stored as key \"qs_best\"."))
+              "variant, stored as key \"qs_best\". Interfaces in the reference "
+              "with non-zero contribution to QS-score are available as key "
+              "\"qs_reference_interfaces\", the ones from the model as key "
+              "\"qs_model_interfaces\". \"qs_interfaces\" is a subset of "
+              "\"qs_reference_interfaces\" that contains interfaces that "
+              "can be mapped to the model. They are stored as lists in format "
+              "[ref_ch1, ref_ch2, mdl_ch1, mdl_ch2]. The respective "
+              "per-interface scores for \"qs_interfaces\" are available as "
+              "keys \"per_interface_qs_global\" and \"per_interface_qs_best\""))
+
+    parser.add_argument(
+        "--dockq",
+        dest="dockq",
+        default=False,
+        action="store_true",
+        help=("Compute DockQ scores and its components. Relevant interfaces "
+              "with at least one contact (any atom within 5A) of the reference "
+              "structure are available as key \"dockq_reference_interfaces\". "
+              "Only interfaces between peptide chains are considered here! "
+              "Key \"dockq_interfaces\" is a subset of "
+              "\"dockq_reference_interfaces\" that contains interfaces that "
+              "can be mapped to the model. They are stored as lists in format "
+              "[ref_ch1, ref_ch2, mdl_ch1, mdl_ch2]. The respective "
+              "DockQ scores for \"dockq_interfaces\" are available as key "
+              "\"dockq\". It's components are available as keys: "
+              "\"fnat\" (fraction of reference contacts which are also there "
+              "in model) \"irmsd\" (interface RMSD), \"lrmsd\" (ligand RMSD). "
+              "The DockQ score is strictly designed to score each interface "
+              "individually. We also provide two averaged versions to get one "
+              "full model score: \"dockq_ave\", \"dockq_wave\". The first is "
+              "simply the average of \"dockq_scores\", the latter is a "
+              "weighted average with weights derived from number of contacts "
+              "in the reference interfaces. These two scores only consider "
+              "interfaces that are present in both, the model and the "
+              "reference. \"dockq_ave_full\" and \"dockq_wave_full\" add zeros "
+              "in the average computation for each interface that is only "
+              "present in the reference but not in the model."))
+
+    parser.add_argument(
+        "--ics",
+        dest="ics",
+        default=False,
+        action="store_true",
+        help=("Computes interface contact similarity (ICS) related scores. "
+              "A contact between two residues of different chains is defined "
+              "as having at least one heavy atom within 5A. Contacts in "
+              "reference structure are available as key "
+              "\"reference_contacts\". Each contact specifies the interacting "
+              "residues in format \"<cname>.<rnum>.<ins_code>\". Model "
+              "contacts are available as key \"model_contacts\". The precision "
+              "which is available as key \"ics_precision\" reports the "
+              "fraction of model contacts that are also present in the "
+              "reference. The recall which is available as key \"ics_recall\" "
+              "reports the fraction of reference contacts that are correctly "
+              "reproduced in the model. "
+              "The ICS score (Interface Contact Similarity) available as key "
+              "\"ics\" combines precision and recall using the F1-measure. "
+              "All these measures are also available on a per-interface basis "
+              "for each interface in the reference structure that are defined "
+              "as chain pairs with at least one contact (available as key "
+              " \"contact_reference_interfaces\"). The respective metrics are "
+              "available as keys \"per_interface_ics_precision\", "
+              "\"per_interface_ics_recall\" and \"per_interface_ics\"."))
+
+    parser.add_argument(
+        "--ips",
+        dest="ips",
+        default=False,
+        action="store_true",
+        help=("Computes interface patch similarity (IPS) related scores. "
+              "They focus on interface residues. They are defined as having "
+              "at least one contact to a residue from any other chain. "
+              "In short: if they show up in the contact lists used to compute "
+              "ICS. If ips is enabled, these contacts get reported too and are "
+              "available as keys \"reference_contacts\" and \"model_contacts\"."
+              "The precision which is available as key \"ips_precision\" "
+              "reports the fraction of model interface residues, that are also "
+              "interface residues in the reference. "
+              "The recall which is available as key \"ips_recall\" "
+              "reports the fraction of reference interface residues that are "
+              "also interface residues in the model. "
+              "The IPS score (Interface Patch Similarity) available as key "
+              "\"ips\" is the Jaccard coefficient between interface residues "
+              "in reference and model. "
+              "All these measures are also available on a per-interface basis "
+              "for each interface in the reference structure that are defined "
+              "as chain pairs with at least one contact (available as key "
+              " \"contact_reference_interfaces\"). The respective metrics are "
+              "available as keys \"per_interface_ips_precision\", "
+              "\"per_interface_ips_recall\" and \"per_interface_ips\"."))
+
 
     parser.add_argument(
         "--rigid-scores",
@@ -318,36 +417,6 @@ def _ParseArgs():
               "same with thresholds [0.5, 1.0, 2.0, 4.0], \"rmsd\": RMSD given "
               "these positions and transformation, \"transform\": the used 4x4 "
               "transformation matrix that superposes model onto reference."))
-
-    parser.add_argument(
-        "--interface-scores",
-        dest="interface_scores",
-        default=False,
-        action="store_true",
-        help=("Per interface scores for each interface that has at least one "
-              "contact in the reference, i.e. at least one pair of heavy atoms "
-              "within 5A. The respective interfaces are available from key "
-              "\"interfaces\" which is a list of tuples in form (ref_ch1, "
-              "ref_ch2, mdl_ch1, mdl_ch2). Per-interface scores are available "
-              "as lists referring to these interfaces and have the following "
-              "keys: \"nnat\" (number of contacts in reference), \"nmdl\" "
-              "(number of contacts in model), \"fnat\" (fraction of reference "
-              "contacts which are also there in model), \"fnonnat\" (fraction "
-              "of model contacts which are not there in target), \"irmsd\" "
-              "(interface RMSD), \"lrmsd\" (ligand RMSD), \"dockq_scores\" "
-              "(per-interface score computed from \"fnat\", \"irmsd\" and "
-              "\"lrmsd\"), \"interface_qs_global\" and \"interface_qs_best\" "
-              "(per-interface versions of the two QS-score variants). The "
-              "DockQ score is strictly designed to score each interface "
-              "individually. We also provide two averaged versions to get one "
-              "full model score: \"dockq_ave\", \"dockq_wave\". The first is "
-              "simply the average of \"dockq_scores\", the latter is a "
-              "weighted average with weights derived from \"nnat\". These two "
-              "scores only consider interfaces that are present in both, the "
-              "model and the reference. \"dockq_ave_full\" and "
-              "\"dockq_wave_full\" add zeros in the average computation for "
-              "each interface that is only present in the reference but not in "
-              "the model."))
 
     parser.add_argument(
         "--patch-scores",
@@ -388,13 +457,49 @@ def _ParseArgs():
         "--n-max-naive",
         dest="n_max_naive",
         required=False,
-        default=12,
+        default=40320,
         type=int,
-        help=("If number of chains in model and reference are below or equal "
-              "that number, the chain mapping will naively enumerate all "
-              "possible mappings. A heuristic is used otherwise."))
+        help=("Parameter for chain mapping. If the number of possible "
+              "mappings is <= *n_max_naive*, the full "
+              "mapping solution space is enumerated to find the "
+              "the mapping with optimal QS-score. A heuristic is used "
+              "otherwise. The default of 40320 corresponds to an octamer "
+              "(8! = 40320). A structure with stoichiometry A6B2 would be "
+              "6!*2! = 1440 etc."))
 
+    parser.add_argument(
+        "--dump-aligned-residues",
+        dest="dump_aligned_residues",
+        default=False,
+        action="store_true",
+        help=("Dump additional info on aligned model and reference residues."))
+
+    parser.add_argument(
+        "--dump-pepnuc-alns",
+        dest="dump_pepnuc_alns",
+        default=False,
+        action="store_true",
+        help=("Dump alignments of mapped chains but with sequences that did "
+              "not undergo Molck preprocessing in the scorer. Sequences are "
+              "extracted from model/target after undergoing selection for "
+              "peptide and nucleotide residues."))
+
+    parser.add_argument(
+        "--dump-pepnuc-aligned-residues",
+        dest="dump_pepnuc_aligned_residues",
+        default=False,
+        action="store_true",
+        help=("Dump additional info on model and reference residues that occur "
+              "in pepnuc alignments."))
+ 
     return parser.parse_args()
+
+def _RoundOrNone(num, decimals = 3):
+    """ Helper to create valid JSON output
+    """
+    if num is None:
+        return None
+    return round(num, decimals)
 
 def _Rename(ent):
     """Revert chain names to original names.
@@ -489,7 +594,7 @@ def _AlnToFastaStr(aln):
     """
     s1 = aln.GetSequence(0)
     s2 = aln.GetSequence(1)
-    return f">reference:{s1.name}\n{str(s1)}\nmodel:{s2.name}\n{str(s2)}"
+    return f">reference:{s1.name}\n{str(s1)}\n>model:{s2.name}\n{str(s2)}"
 
 def _GetInconsistentResidues(alns):
     lst = list()
@@ -516,7 +621,7 @@ def _LocalScoresToJSONDict(score_dict):
     for ch, ch_scores in score_dict.items():
         for num, s in ch_scores.items():
             ins_code = num.ins_code.strip("\u0000")
-            json_dict[f"{ch}.{num.num}.{ins_code}"] = s
+            json_dict[f"{ch}.{num.num}.{ins_code}"] = _RoundOrNone(s)
     return json_dict
 
 def _InterfaceResiduesToJSONList(interface_dict):
@@ -537,8 +642,44 @@ def _PatchScoresToJSONList(interface_dict, score_dict):
     """
     json_list = list()
     for ch, ch_nums in interface_dict.items():
-        json_list += score_dict[ch]
+        for item in score_dict[ch]:
+            json_list.append(_RoundOrNone(item))
     return json_list
+
+def _GetAlignedResidues(aln):
+    aligned_residues = list()
+    for a in aln:
+        mdl_lst = list()
+        ref_lst = list()
+        for c in a:
+            mdl_r = c.GetResidue(1)
+            ref_r = c.GetResidue(0)
+            if mdl_r.IsValid():
+                olc = mdl_r.one_letter_code
+                num = mdl_r.GetNumber().num
+                ins_code = mdl_r.GetNumber().ins_code.strip("\u0000")
+                mdl_lst.append({"olc": olc,
+                                "num": f"{num}.{ins_code}"})
+            else:
+                mdl_lst.append(None)
+
+            if ref_r.IsValid():
+                olc = ref_r.one_letter_code
+                num = ref_r.GetNumber().num
+                ins_code = ref_r.GetNumber().ins_code.strip("\u0000")
+                ref_lst.append({"olc": olc,
+                                "num": f"{num}.{ins_code}"})
+            else:
+                ref_lst.append(None)
+
+        mdl_dct = {"chain": a.GetSequence(1).GetName(),
+                   "residues": mdl_lst}
+        ref_dct = {"chain": a.GetSequence(0).GetName(),
+                   "residues": ref_lst}
+
+        aligned_residues.append({"model": mdl_dct,
+                                 "reference": ref_dct})
+    return aligned_residues
 
 def _Process(model, reference, args):
 
@@ -552,7 +693,8 @@ def _Process(model, reference, args):
                             custom_mapping = mapping,
                             usalign_exec = args.usalign_exec,
                             lddt_no_stereochecks = args.lddt_no_stereochecks,
-                            n_max_naive = args.n_max_naive)
+                            n_max_naive = args.n_max_naive,
+                            oum = args.oum)
 
     ir = _GetInconsistentResidues(scorer.aln)
     if len(ir) > 0 and args.enforce_consistency:
@@ -567,8 +709,17 @@ def _Process(model, reference, args):
     out["aln"] = [_AlnToFastaStr(aln) for aln in scorer.aln]
     out["inconsistent_residues"] = ir
 
+    if args.dump_aligned_residues:
+        out["aligned_residues"] = _GetAlignedResidues(scorer.aln)
+
+    if args.dump_pepnuc_alns:
+        out["pepnuc_aln"] = [_AlnToFastaStr(aln) for aln in scorer.pepnuc_aln]
+    
+    if args.dump_pepnuc_aligned_residues:
+        out["pepnuc_aligned_residues"] = _GetAlignedResidues(scorer.pepnuc_aln)
+
     if args.lddt:
-        out["lddt"] = scorer.lddt
+        out["lddt"] = _RoundOrNone(scorer.lddt)
 
     if args.local_lddt:
         out["local_lddt"] = _LocalScoresToJSONDict(scorer.local_lddt)
@@ -582,7 +733,7 @@ def _Process(model, reference, args):
         out["reference_bad_angles"] = [x.ToJSON() for x in scorer.target_bad_angles]
 
     if args.bb_lddt:
-        out["bb_lddt"] = scorer.bb_lddt
+        out["bb_lddt"] = _RoundOrNone(scorer.bb_lddt)
 
     if args.bb_local_lddt:
         out["bb_local_lddt"] = _LocalScoresToJSONDict(scorer.bb_local_lddt)
@@ -594,31 +745,63 @@ def _Process(model, reference, args):
         out["local_cad_score"] = _LocalScoresToJSONDict(scorer.local_cad_score)
 
     if args.qs_score:
-        out["qs_global"] = scorer.qs_global
-        out["qs_best"] = scorer.qs_best
+        out["qs_global"] = _RoundOrNone(scorer.qs_global)
+        out["qs_best"] = _RoundOrNone(scorer.qs_best)
+        out["qs_reference_interfaces"] = scorer.qs_target_interfaces
+        out["qs_model_interfaces"] = scorer.qs_model_interfaces
+        out["qs_interfaces"] = scorer.qs_interfaces
+        out["per_interface_qs_global"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_qs_global]
+        out["per_interface_qs_best"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_qs_best]
+
+    if args.ics or args.ips:
+        out["reference_contacts"] = scorer.native_contacts
+        out["model_contacts"] = scorer.model_contacts
+        out["contact_reference_interfaces"] = scorer.contact_target_interfaces
+
+    if args.ics:
+        out["ics_precision"] = _RoundOrNone(scorer.ics_precision)
+        out["ics_recall"] = _RoundOrNone(scorer.ics_recall)
+        out["ics"] = _RoundOrNone(scorer.ics)
+        out["per_interface_ics_precision"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ics_precision]
+        out["per_interface_ics_recall"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ics_recall]
+        out["per_interface_ics"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ics]
+
+    if args.ips:
+        out["ips_precision"] = _RoundOrNone(scorer.ips_precision)
+        out["ips_recall"] = _RoundOrNone(scorer.ips_recall)
+        out["ips"] = _RoundOrNone(scorer.ips)
+        out["per_interface_ips_precision"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ips_precision]
+        out["per_interface_ips_recall"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ips_recall]
+        out["per_interface_ips"] = \
+        [_RoundOrNone(x) for x in scorer.per_interface_ips]
+
+    if args.dockq:
+        out["dockq_reference_interfaces"] = scorer.dockq_target_interfaces
+        out["dockq_interfaces"] = scorer.dockq_interfaces 
+        out["dockq"] = [_RoundOrNone(x) for x in scorer.dockq_scores]
+        out["fnat"] = [_RoundOrNone(x) for x in scorer.fnat]
+        out["irmsd"] = [_RoundOrNone(x) for x in scorer.irmsd]
+        out["lrmsd"] = [_RoundOrNone(x) for x in scorer.lrmsd]
+        out["nnat"] = scorer.nnat
+        out["nmdl"] = scorer.nmdl
+        out["dockq_ave"] = _RoundOrNone(scorer.dockq_ave)
+        out["dockq_wave"] = _RoundOrNone(scorer.dockq_wave)
+        out["dockq_ave_full"] = _RoundOrNone(scorer.dockq_ave_full)
+        out["dockq_wave_full"] = _RoundOrNone(scorer.dockq_wave_full)
 
     if args.rigid_scores:
-        out["oligo_gdtts"] = scorer.gdtts
-        out["oligo_gdtha"] = scorer.gdtha
-        out["rmsd"] = scorer.rmsd
+        out["oligo_gdtts"] = _RoundOrNone(scorer.gdtts)
+        out["oligo_gdtha"] = _RoundOrNone(scorer.gdtha)
+        out["rmsd"] = _RoundOrNone(scorer.rmsd)
         data = scorer.transform.data
         out["transform"] = [data[i:i + 4] for i in range(0, len(data), 4)]
-
-    if args.interface_scores:
-        out["interfaces"] = scorer.interfaces
-        out["nnat"] = scorer.native_contacts
-        out["nmdl"] = scorer.model_contacts
-        out["fnat"] = scorer.fnat
-        out["fnonnat"] = scorer.fnonnat
-        out["irmsd"] = scorer.irmsd
-        out["lrmsd"] = scorer.lrmsd
-        out["dockq_scores"] = scorer.dockq_scores
-        out["interface_qs_global"] = scorer.interface_qs_global
-        out["interface_qs_best"] = scorer.interface_qs_best
-        out["dockq_ave"] = scorer.dockq_ave
-        out["dockq_wave"] = scorer.dockq_wave
-        out["dockq_ave_full"] = scorer.dockq_ave_full
-        out["dockq_wave_full"] = scorer.dockq_wave_full
 
     if args.patch_scores:
         out["model_interface_residues"] = \
@@ -627,11 +810,12 @@ def _Process(model, reference, args):
         _InterfaceResiduesToJSONList(scorer.target_interface_residues)
         out["patch_qs"] = _PatchScoresToJSONList(scorer.model_interface_residues,
                                                  scorer.patch_qs)
+
         out["patch_dockq"] = _PatchScoresToJSONList(scorer.model_interface_residues,
                                                     scorer.patch_dockq)
 
     if args.tm_score:
-        out["tm_score"] = scorer.tm_score
+        out["tm_score"] = _RoundOrNone(scorer.tm_score)
         out["usalign_mapping"] = scorer.usalign_mapping
 
     if args.dump_structures:

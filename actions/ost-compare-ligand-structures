@@ -169,12 +169,19 @@ def _ParseArgs():
         help=("Allow incomplete target ligands."))
 
     parser.add_argument(
+        "-cd",
+        "--coverage-delta",
+        dest="coverage_delta",
+        default=False,
+        action="store_true",
+        help=("Allow incomplete target ligands."))
+
+    parser.add_argument(
         "-gcm",
         "--global-chain-mapping",
         dest="global_chain_mapping",
-        default=False,
-        action="store_true",
-        help=("Use a global chain mapping."))
+        default=0.2,
+        help=("Coverage delta for partial ligand assignment."))
 
     parser.add_argument(
         "-c",
@@ -235,7 +242,7 @@ def _ParseArgs():
     parser.add_argument(
         "--lddt-lp-radius",
         dest="lddt_lp_radius",
-        default=4.0,
+        default=10.0,
         help=("lDDT inclusion radius for lDDT-LP."))
 
     parser.add_argument(
@@ -363,6 +370,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         check_resnames=args.enforce_consistency,
         rename_ligand_chain=True,
         substructure_match=args.substructure_match,
+        coverage_delta=args.coverage_delta,
         global_chain_mapping=args.global_chain_mapping,
         rmsd_assignment=args.rmsd_assignment,
         unassigned=args.unassigned,
@@ -379,8 +387,6 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
         # Replace model ligand by path
         if len(model_ligands) == len(scorer.model_ligands):
             # Map ligand => path
-            model_ligands_map = {k.hash_code: v for k, v in zip(
-                scorer.model_ligands, args.model_ligands)}
             out["model_ligands"] = args.model_ligands
         elif len(model_ligands) < len(scorer.model_ligands):
             # Multi-ligand SDF files were given
@@ -396,16 +402,16 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                                "(%d) than given (%d)" % (
                 len(scorer.model_ligands), len(model_ligands)))
     else:
-        model_ligands_map = {l.hash_code: _QualifiedResidueNotation(l)
-                             for l in scorer.model_ligands}
-        out["model_ligands"] = list(model_ligands_map.values())
+        # Map ligand => qualified residue
+        out["model_ligands"] = [_QualifiedResidueNotation(l) for l in scorer.model_ligands]
+
+    model_ligands_map = {k.hash_code: v for k, v in zip(
+        scorer.model_ligands, out["model_ligands"])}
 
     if reference_ligands is not None:
         # Replace reference ligand by path
         if len(reference_ligands) == len(scorer.target_ligands):
             # Map ligand => path
-            reference_ligands_map = {k.hash_code: v for k, v in zip(
-                scorer.target_ligands, args.reference_ligands)}
             out["reference_ligands"] = args.reference_ligands
         elif len(reference_ligands) < len(scorer.target_ligands):
             # Multi-ligand SDF files were given
@@ -422,9 +428,12 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 len(scorer.target_ligands), len(reference_ligands)))
 
     else:
-        reference_ligands_map = {l.hash_code: _QualifiedResidueNotation(l)
-                             for l in scorer.target_ligands}
-        out["reference_ligands"] = list(reference_ligands_map.values())
+        # Map ligand => qualified residue
+        out["reference_ligands"] = [_QualifiedResidueNotation(l) for l in scorer.target_ligands]
+
+    reference_ligands_map = {k.hash_code: v for k, v in zip(
+        scorer.target_ligands, out["reference_ligands"])}
+        
 
     if not (args.lddt_pli or args.rmsd):
         ost.LogWarning("No score selected, output will be empty.")
@@ -441,6 +450,8 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
                 trg_lig = scorer.target.FindResidue(chain, resnum)
                 out["unassigned_reference_ligands"][reference_ligands_map[
                     trg_lig.hash_code]] = unassigned
+        out["unassigned_model_ligand_descriptions"] = scorer.unassigned_model_ligand_descriptions
+        out["unassigned_reference_ligand_descriptions"] = scorer.unassigned_target_ligand_descriptions
 
 
     if args.lddt_pli:

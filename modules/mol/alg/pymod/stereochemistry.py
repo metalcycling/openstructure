@@ -365,7 +365,7 @@ class ClashInfo:
         self.dist = dist
         self.tolerated_dist = tolerated_dist
 
-    def ToJSON(self):
+    def ToJSON(self, decimals = 3):
         """ Return JSON serializable dict
 
         Atoms are represented by a string in format:
@@ -373,8 +373,8 @@ class ClashInfo:
         """
         return {"a1": _AtomToQualifiedName(self.a1),
                 "a2": _AtomToQualifiedName(self.a2),
-                "dist": self.dist,
-                "tolerated_dist": self.tolerated_dist}
+                "dist": round(self.dist, decimals),
+                "tolerated_dist": round(self.tolerated_dist, decimals)}
 
 
 class BondViolationInfo:
@@ -395,7 +395,7 @@ class BondViolationInfo:
         self.exp_length = exp_length
         self.std = std
 
-    def ToJSON(self):
+    def ToJSON(self, decimals = 3):
         """ Return JSON serializable dict
 
         Atoms are represented by a string in format:
@@ -403,9 +403,9 @@ class BondViolationInfo:
         """
         return {"a1": _AtomToQualifiedName(self.a1),
                 "a2": _AtomToQualifiedName(self.a2),
-                "length": self.length,
-                "exp_length": self.exp_length,
-                "std": self.std}
+                "length": round(self.length, decimals),
+                "exp_length": round(self.exp_length, decimals),
+                "std": round(self.std, decimals)}
 
 
 class AngleViolationInfo:
@@ -428,7 +428,7 @@ class AngleViolationInfo:
         self.exp_angle = exp_angle
         self.std = std
 
-    def ToJSON(self):
+    def ToJSON(self, decimals = 3):
         """ Return JSON serializable dict
 
         Atoms are represented by a string in format:
@@ -437,9 +437,9 @@ class AngleViolationInfo:
         return {"a1": _AtomToQualifiedName(self.a1),
                 "a2": _AtomToQualifiedName(self.a2),
                 "a3": _AtomToQualifiedName(self.a3),
-                "angle": self.angle,
-                "exp_angle": self.exp_angle,
-                "std": self.std}
+                "angle": round(self.angle, decimals),
+                "exp_angle": round(self.exp_angle, decimals),
+                "std": round(self.std, decimals)}
 
 
 def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,

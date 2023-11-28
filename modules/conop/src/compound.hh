@@ -153,6 +153,8 @@ public:
     inchi_(),
     inchi_key_(),
     smiles_(),
+    replaced_by_(),
+    obsolete_(),
     atom_specs_(),
     bond_specs_(),
     chem_class_(),
@@ -204,6 +206,22 @@ public:
 
   mol::ChemClass GetChemClass() const {
     return chem_class_;
+  }
+
+  void SetObsolete(bool obsolete) {
+    obsolete_=obsolete;
+  }
+
+  bool GetObsolete() const {
+    return obsolete_;
+  }
+
+  void SetReplacedBy(const String& replaced_by) {
+    replaced_by_=replaced_by;
+  }
+
+  const String& GetReplacedBy() const {
+    return replaced_by_;
   }
 
   void SetChemType(mol::ChemType chem_type) {
@@ -290,6 +308,8 @@ private:
   String                       inchi_;
   String                       inchi_key_;
   String                       smiles_;
+  String                       replaced_by_;
+  bool                         obsolete_;
   AtomSpecList                 atom_specs_;
   BondSpecList                 bond_specs_;
   mol::ChemClass               chem_class_;

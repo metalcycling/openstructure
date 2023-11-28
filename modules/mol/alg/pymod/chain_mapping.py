@@ -12,6 +12,7 @@ from scipy.special import factorial
 from scipy.special import binom # as of Python 3.8, the math module implements
                                 # comb, i.e. n choose k
 
+import ost
 from ost import seq
 from ost import mol
 from ost import geom
@@ -1227,24 +1228,24 @@ class ChainMapper:
         return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
                              final_mapping, alns)
 
-    def GetMapping(self, model, n_max_naive = 12):
+    def GetMapping(self, model, n_max_naive = 40320):
         """ Convenience function to get mapping with currently preferred method
 
-        If number of chains in model and target are <= *n_max_naive*, a naive
-        QS-score mapping is performed. For anything else, a QS-score mapping
-        with the greedy_full strategy is performed
-        (greedy_prune_contact_map = True).
+        If number of possible chain mappings is <= *n_max_naive*, a naive
+        QS-score mapping is performed and optimal QS-score is guaranteed.
+        For anything else, a QS-score mapping with the greedy_full strategy is
+        performed (greedy_prune_contact_map = True). The default for
+        *n_max_naive* of 40320 corresponds to an octamer (8!=40320). A
+        structure with stoichiometry A6B2 would be 6!*2!=1440 etc.
         """
-        n_trg_chains = len(self.target.chains)
-        res = self.GetChemMapping(model)
-        n_mdl_chains = len(res[2].chains)
-        if n_trg_chains <= n_max_naive and n_mdl_chains <= n_max_naive:
+        chem_mapping_res = self.GetChemMapping(model)
+        if _NMappingsWithin(self.chem_groups, chem_mapping_res[0], n_max_naive):
             return self.GetQSScoreMapping(model, strategy="naive",
-                                          chem_mapping_result=res)
+                                          chem_mapping_result=chem_mapping_res)
         else:
             return self.GetQSScoreMapping(model, strategy="greedy_full",
                                           greedy_prune_contact_map=True,
-                                          chem_mapping_result=res)
+                                          chem_mapping_result=chem_mapping_res)
 
     def GetRepr(self, substructure, model, topn=1, inclusion_radius=15.0,
                 thresholds=[0.5, 1.0, 2.0, 4.0], bb_only=False,
@@ -1465,6 +1466,7 @@ class ChainMapper:
                                        no_intrachain = only_interchain)
 
             if lDDT is None:
+                ost.LogVerbose("No valid contacts in the reference")
                 lDDT = 0.0 # that means, that we have not a single valid contact
                            # in lDDT. For the code below to work, we just set it
                            # to a terrible score => 0.0

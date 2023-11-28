@@ -12,6 +12,7 @@ from ost.mol.alg import stereochemistry
 from ost.mol.alg import dockq
 from ost.mol.alg.lddt import lDDTScorer
 from ost.mol.alg.qsscore import QSScorer
+from ost.mol.alg.contact_score import ContactScorer
 from ost.mol.alg import Molck, MolckSettings
 from ost import bindings
 from ost.bindings import cadscore
@@ -128,26 +129,37 @@ class Scorer:
     :param lddt_no_stereochecks: Whether to compute lDDT without stereochemistry
                                 checks
     :type lddt_no_stereochecks: :class:`bool`
-    :param n_max_naive: Parameter for chain mapping. If *model* and *target*
-                        have less or equal that number of chains, the full
+    :param n_max_naive: Parameter for chain mapping. If the number of possible
+                        mappings is <= *n_max_naive*, the full
                         mapping solution space is enumerated to find the
-                        the optimum. A heuristic is used otherwise.
+                        the optimum. A heuristic is used otherwise. The default
+                        of 40320 corresponds to an octamer (8! = 40320).
+                        A structure with stoichiometry A6B2 would be
+                        6!*2! = 1440 etc.
     :type n_max_naive: :class:`int`
+    :param oum: Override USalign Mapping. Inject mapping of :class:`Scorer`
+                object into USalign to compute TM-score. Experimental feature
+                with limitations.
+    :type oum: :class:`bool`
     """
     def __init__(self, model, target, resnum_alignments=False,
                  molck_settings = None, cad_score_exec = None,
                  custom_mapping=None, usalign_exec = None,
-                 lddt_no_stereochecks=False, n_max_naive=12):
+                 lddt_no_stereochecks=False, n_max_naive=40320,
+                 oum=False):
 
-        if isinstance(model, mol.EntityView):
-            model = mol.CreateEntityFromView(model, False)
-        else:
-            model = model.Copy()
+        self._target_orig = target
+        self._model_orig = model
 
-        if isinstance(target, mol.EntityView):
-            target = mol.CreateEntityFromView(target, False)
+        if isinstance(self._model_orig, mol.EntityView):
+            self._model = mol.CreateEntityFromView(self._model_orig, False)
         else:
-            target = target.Copy()
+            self._model = self._model_orig.Copy()
+
+        if isinstance(self._target_orig, mol.EntityView):
+            self._target = mol.CreateEntityFromView(self._target_orig, False)
+        else:
+            self._target = self._target_orig.Copy()
 
         if molck_settings is None:
             molck_settings = MolckSettings(rm_unk_atoms=True,
@@ -158,8 +170,8 @@ class Scorer:
                                            colored=False,
                                            map_nonstd_res=True,
                                            assign_elem=True)
-        Molck(model, conop.GetDefaultLib(), molck_settings)
-        Molck(target, conop.GetDefaultLib(), molck_settings)
+        Molck(self._model, conop.GetDefaultLib(), molck_settings)
+        Molck(self._target, conop.GetDefaultLib(), molck_settings)
         self._model = model.Select("peptide=True or nucleotide=True")
         self._target = target.Select("peptide=True or nucleotide=True")
 
@@ -201,11 +213,20 @@ class Scorer:
                                        "must be strictly increasing if "
                                        "resnum_alignments are enabled")
 
+        if usalign_exec is not None:
+            if not os.path.exists(usalign_exec):
+                raise RuntimeError(f"USalign exec ({usalign_exec}) "
+                                   f"not found")
+            if not os.access(usalign_exec, os.X_OK):
+                raise RuntimeError(f"USalign exec ({usalign_exec}) "
+                                   f"is not executable")
+
         self.resnum_alignments = resnum_alignments
         self.cad_score_exec = cad_score_exec
         self.usalign_exec = usalign_exec
         self.lddt_no_stereochecks = lddt_no_stereochecks
         self.n_max_naive = n_max_naive
+        self.oum = oum
 
         # lazily evaluated attributes
         self._stereochecked_model = None
@@ -222,11 +243,13 @@ class Scorer:
         self._target_interface_residues = None
         self._aln = None
         self._stereochecked_aln = None
+        self._pepnuc_aln = None
 
         # lazily constructed scorer objects
         self._lddt_scorer = None
         self._bb_lddt_scorer = None
         self._qs_scorer = None
+        self._contact_scorer = None
 
         # lazily computed scores
         self._lddt = None
@@ -236,18 +259,37 @@ class Scorer:
 
         self._qs_global = None
         self._qs_best = None
-        self._interface_qs_global = None
-        self._interface_qs_best = None
+        self._qs_target_interfaces = None
+        self._qs_model_interfaces = None
+        self._qs_interfaces = None
+        self._per_interface_qs_global = None
+        self._per_interface_qs_best = None
 
-        self._interfaces = None
+        self._contact_target_interfaces = None
+        self._contact_model_interfaces = None
         self._native_contacts = None
         self._model_contacts = None
+        self._ics_precision = None
+        self._ics_recall = None
+        self._ics = None
+        self._per_interface_ics_precision = None
+        self._per_interface_ics_recall = None
+        self._per_interface_ics = None
+        self._ips_precision = None
+        self._ips_recall = None
+        self._ips = None
+        self._per_interface_ics_precision = None
+        self._per_interface_ics_recall = None
+        self._per_interface_ics = None
+
+        self._dockq_target_interfaces = None
+        self._dockq_interfaces = None
         self._fnat = None
         self._fnonnat = None
         self._irmsd = None
         self._lrmsd = None
-        self._nonmapped_interfaces = None
-        self._nonmapped_interfaces_contacts = None
+        self._nnat = None
+        self._nmdl = None
         self._dockq_scores = None
         self._dockq_ave = None
         self._dockq_wave = None
@@ -284,12 +326,28 @@ class Scorer:
         return self._model
 
     @property
+    def model_orig(self):
+        """ The original model passed at object construction
+
+        :type: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+        """
+        return self._model_orig
+
+    @property
     def target(self):
         """ Target with Molck cleanup
 
         :type: :class:`ost.mol.EntityHandle`
         """
         return self._target
+
+    @property
+    def target_orig(self):
+        """ The original target passed at object construction
+
+        :type: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+        """
+        return self._target_orig
 
     @property
     def aln(self):
@@ -310,11 +368,25 @@ class Scorer:
 
         The alignments may differ, as stereochecks potentially remove residues
 
-        :type: :class:``
+        :type: :class:`list` of :class:`ost.seq.AlignmentHandle`
         """
         if self._stereochecked_aln is None:
             self._compute_stereochecked_aln()
         return self._stereochecked_aln
+
+    @property
+    def pepnuc_aln(self):
+        """ Alignments of :attr:`model_orig`/:attr:`target_orig` chains
+
+        Selects for peptide and nucleotide residues before sequence
+        extraction. Includes residues that would be removed by molck in
+        structure preprocessing.
+
+        :type: :class:`list` of :class:`ost.seq.AlignmentHandle`
+        """
+        if self._pepnuc_aln is None:
+            self._compute_pepnuc_aln()
+        return self._pepnuc_aln
 
     @property
     def stereochecked_model(self):
@@ -497,6 +569,13 @@ class Scorer:
         return self._qs_scorer
 
     @property
+    def contact_scorer(self):
+        if self._contact_scorer is None:
+            self._contact_scorer = ContactScorer.FromMappingResult(self.mapping)
+        return self._contact_scorer
+    
+
+    @property
     def lddt(self):
         """ Global lDDT score in range [0.0, 1.0]
 
@@ -584,101 +663,381 @@ class Scorer:
         return self._qs_best
 
     @property
-    def interfaces(self):
-        """ Interfaces with nonzero :attr:`native_contacts`
+    def qs_target_interfaces(self):
+        """ Interfaces in :attr:`~target` with non-zero contribution to
+        :attr:`~qs_global`/:attr:`~qs_best`
+
+        Chain names are lexicographically sorted.
+
+        :type: :class:`list` of :class:`tuple` with 2 elements each:
+               (trg_ch1, trg_ch2)
+        """
+        if self._qs_target_interfaces is None:
+            self._qs_target_interfaces = self.qs_scorer.qsent1.interacting_chains
+            self._qs_target_interfaces = \
+            [(min(x[0],x[1]), max(x[0],x[1])) for x in self._qs_target_interfaces]
+        return self._qs_target_interfaces
+
+    @property
+    def qs_model_interfaces(self):
+        """ Interfaces in :attr:`~model` with non-zero contribution to
+        :attr:`~qs_global`/:attr:`~qs_best`
+
+        Chain names are lexicographically sorted.
+
+        :type: :class:`list` of :class:`tuple` with 2 elements each:
+               (mdl_ch1, mdl_ch2)
+        """
+        if self._qs_model_interfaces is None:
+            self._qs_model_interfaces = self.qs_scorer.qsent2.interacting_chains
+            self._qs_model_interfaces = \
+            [(min(x[0],x[1]), max(x[0],x[1])) for x in self._qs_model_interfaces]
+
+        return self._qs_model_interfaces
+
+    @property
+    def qs_interfaces(self):
+        """ Interfaces in :attr:`~qs_target_interfaces` that can be mapped
+        to :attr:`~model`.
+
+        Target chain names are lexicographically sorted.
 
         :type: :class:`list` of :class:`tuple` with 4 elements each:
                (trg_ch1, trg_ch2, mdl_ch1, mdl_ch2)
         """
-        if self._interfaces is None:
-            self._compute_per_interface_scores()
-        return self._interfaces
-
+        if self._qs_interfaces is None:
+            self._qs_interfaces = list()
+            flat_mapping = self.mapping.GetFlatMapping()
+            for i in self.qs_target_interfaces:
+                if i[0] in flat_mapping and i[1] in flat_mapping:
+                    self._qs_interfaces.append((i[0], i[1],
+                                                flat_mapping[i[0]],
+                                                flat_mapping[i[1]]))
+        return self._qs_interfaces
+    
     @property
-    def interface_qs_global(self):
-        """ QS-score for each interface in :attr:`interfaces`
+    def per_interface_qs_global(self):
+        """ QS-score for each interface in :attr:`qs_interfaces`
 
         :type: :class:`list` of :class:`float`
         """
-        if self._interface_qs_global is None:
-            self._compute_per_interface_scores()
-        return self._interface_qs_global
+        if self._per_interface_qs_global is None:
+            self._compute_per_interface_qs_scores()
+        return self._per_interface_qs_global
     
     @property
-    def interface_qs_best(self):
-        """ QS-score for each interface in :attr:`interfaces`
+    def per_interface_qs_best(self):
+        """ QS-score for each interface in :attr:`qs_interfaces`
 
         Only computed on aligned residues
 
         :type: :class:`list` of :class:`float`
         """
-        if self._interface_qs_best is None:
-            self._compute_per_interface_scores()
-        return self._interface_qs_best
+        if self._per_interface_qs_best is None:
+            self._compute_per_interface_qs_scores()
+        return self._per_interface_qs_best
     
     @property
     def native_contacts(self):
-        """ N native contacts for interfaces in :attr:`~interfaces`
+        """ Native contacts
 
         A contact is a pair or residues from distinct chains that have
-        a minimal heavy atom distance < 5A
+        a minimal heavy atom distance < 5A. Contacts are specified as
+        :class:`tuple` with two strings in format:
+        <cname>.<rnum>.<ins_code>
 
-        :type: :class:`list` of :class:`int`
+        :type: :class:`list` of :class:`tuple`
         """
         if self._native_contacts is None:
-            self._compute_per_interface_scores()
+            self._native_contacts = self.contact_scorer.cent1.hr_contacts
         return self._native_contacts
 
     @property
     def model_contacts(self):
-        """ N model contacts for interfaces in :attr:`~interfaces`
-
-        A contact is a pair or residues from distinct chains that have
-        a minimal heavy atom distance < 5A
-
-        :type: :class:`list` of :class:`int`
+        """ Same for model
         """
         if self._model_contacts is None:
-            self._compute_per_interface_scores()
+            self._model_contacts = self.contact_scorer.cent2.hr_contacts
         return self._model_contacts
 
     @property
+    def contact_target_interfaces(self):
+        """ Interfaces in :class:`target` which have at least one contact
+
+        Contact as defined in :attr:`~native_contacts`,
+        chain names are lexicographically sorted.
+
+        :type: :class:`list` of :class:`tuple` with 2 elements each
+               (trg_ch1, trg_ch2)
+        """
+        if self._contact_target_interfaces is None:
+            tmp = self.contact_scorer.cent1.interacting_chains
+            tmp = [(min(x[0],x[1]), max(x[0],x[1])) for x in tmp]
+            self._contact_target_interfaces = tmp
+        return self._contact_target_interfaces
+
+    @property
+    def contact_model_interfaces(self):
+        """ Interfaces in :class:`model` which have at least one contact
+
+        Contact as defined in :attr:`~native_contacts`,
+        chain names are lexicographically sorted.
+
+        :type: :class:`list` of :class:`tuple` with 2 elements each
+               (mdl_ch1, mdl_ch2)
+        """
+        if self._contact_model_interfaces is None:
+            tmp = self.contact_scorer.cent2.interacting_chains
+            tmp = [(min(x[0],x[1]), max(x[0],x[1])) for x in tmp]
+            self._contact_model_interfaces = tmp
+        return self._contact_model_interfaces
+
+    @property
+    def ics_precision(self):
+        """ Fraction of model contacts that are also present in target
+
+        :type: :class:`float`
+        """
+        if self._ics_precision is None:
+            self._compute_ics_scores()
+        return self._ics_precision
+    
+    @property
+    def ics_recall(self):
+        """ Fraction of target contacts that are correctly reproduced in model
+
+        :type: :class:`float`
+        """
+        if self._ics_recall is None:
+            self._compute_ics_scores()
+        return self._ics_recall
+
+    @property
+    def ics(self):
+        """ ICS (Interface Contact Similarity) score
+
+        Combination of :attr:`~ics_precision` and :attr:`~ics_recall`
+        using the F1-measure
+
+        :type: :class:`float`
+        """
+        if self._ics is None:
+            self._compute_ics_scores()
+        return self._ics
+
+    @property
+    def per_interface_ics_precision(self):
+        """ Per-interface ICS precision
+
+        :attr:`~ics_precision` for each interface in
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+        if self._per_interface_ics_precision is None:
+            self._compute_ics_scores()
+        return self._per_interface_ics_precision
+
+
+    @property
+    def per_interface_ics_recall(self):
+        """ Per-interface ICS recall
+
+        :attr:`~ics_recall` for each interface in
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+        if self._per_interface_ics_recall is None:
+            self._compute_ics_scores()
+        return self._per_interface_ics_recall
+
+    @property
+    def per_interface_ics(self):
+        """ Per-interface ICS (Interface Contact Similarity) score
+
+        :attr:`~ics` for each interface in 
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`float`
+        """
+
+        if self._per_interface_ics is None:
+            self._compute_ics_scores()
+        return self._per_interface_ics
+    
+
+    @property
+    def ips_precision(self):
+        """ Fraction of model interface residues that are also interface
+        residues in target
+
+        :type: :class:`float`
+        """
+        if self._ips_precision is None:
+            self._compute_ips_scores()
+        return self._ips_precision
+    
+    @property
+    def ips_recall(self):
+        """ Fraction of target interface residues that are also interface
+        residues in model
+
+        :type: :class:`float`
+        """
+        if self._ips_recall is None:
+            self._compute_ips_scores()
+        return self._ips_recall
+
+    @property
+    def ips(self):
+        """ IPS (Interface Patch Similarity) score
+
+        Jaccard coefficient of interface residues in target and their mapped
+        counterparts in model
+
+        :type: :class:`float`
+        """
+        if self._ips is None:
+            self._compute_ips_scores()
+        return self._ips
+
+    @property
+    def per_interface_ips_precision(self):
+        """ Per-interface IPS precision
+
+        :attr:`~ips_precision` for each interface in
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+        if self._per_interface_ips_precision is None:
+            self._compute_ips_scores()
+        return self._per_interface_ips_precision
+
+
+    @property
+    def per_interface_ips_recall(self):
+        """ Per-interface IPS recall
+
+        :attr:`~ips_recall` for each interface in
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+        if self._per_interface_ics_recall is None:
+            self._compute_ips_scores()
+        return self._per_interface_ips_recall
+
+    @property
+    def per_interface_ips(self):
+        """ Per-interface IPS (Interface Patch Similarity) score
+
+        :attr:`~ips` for each interface in 
+        :attr:`~contact_target_interfaces`
+
+        :type: :class:`list` of :class:`float`
+        """
+
+        if self._per_interface_ips is None:
+            self._compute_ips_scores()
+        return self._per_interface_ips
+
+    @property
+    def dockq_target_interfaces(self):
+        """ Interfaces in :attr:`target` that are relevant for DockQ
+
+        In principle a subset of :attr:`~contact_target_interfaces` that only
+        contains peptide sequences. Chain names are lexicographically sorted.
+
+        :type: :class:`list` of :class:`tuple` with 2 elements each:
+               (trg_ch1, trg_ch2)
+        """
+        if self._dockq_target_interfaces is None:
+            self._dockq_target_interfaces = list()
+            pep_seqs = set([s.GetName() for s in self.chain_mapper.polypep_seqs])
+            for interface in self.contact_target_interfaces:
+                if interface[0] in pep_seqs and interface[1] in pep_seqs:
+                    self._dockq_target_interfaces.append(interface)
+        return self._dockq_target_interfaces
+
+    @property
+    def dockq_interfaces(self):
+        """ Interfaces in :attr:`dockq_target_interfaces` that can be mapped
+        to model
+
+        Target chain names are lexicographically sorted
+
+        :type: :class:`list` of :class:`tuple` with 4 elements each:
+               (trg_ch1, trg_ch2, mdl_ch1, mdl_ch2)
+        """
+        if self._dockq_interfaces is None:
+            self._dockq_interfaces = list()
+            flat_mapping = self.mapping.GetFlatMapping()
+            for i in self.dockq_target_interfaces:
+                if i[0] in flat_mapping and i[1] in flat_mapping:
+                    self._dockq_interfaces.append((i[0], i[1],
+                                                   flat_mapping[i[0]],
+                                                   flat_mapping[i[1]]))
+        return self._dockq_interfaces
+    
+    @property
     def dockq_scores(self):
-        """ DockQ scores for interfaces in :attr:`~interfaces` 
+        """ DockQ scores for interfaces in :attr:`~dockq_interfaces` 
 
         :class:`list` of :class:`float`
         """
         if self._dockq_scores is None:
-            self._compute_per_interface_scores()
+            self._compute_dockq_scores()
         return self._dockq_scores
 
     @property
     def fnat(self):
-        """ fnat scores for interfaces in :attr:`~interfaces` 
+        """ fnat scores for interfaces in :attr:`~dockq_interfaces` 
 
         fnat: Fraction of native contacts that are also present in model
 
         :class:`list` of :class:`float`
         """
         if self._fnat is None:
-            self._compute_per_interface_scores()
+            self._compute_dockq_scores()
         return self._fnat
 
     @property
+    def nnat(self):
+        """ N native contacts for interfaces in :attr:`~dockq_interfaces` 
+
+        :class:`list` of :class:`int`
+        """
+        if self._nnat is None:
+            self._compute_dockq_scores()
+        return self._nnat
+
+    @property
+    def nmdl(self):
+        """ N model contacts for interfaces in :attr:`~dockq_interfaces` 
+
+        :class:`list` of :class:`int`
+        """
+        if self._nmdl is None:
+            self._compute_dockq_scores()
+        return self._nmdl
+
+    @property
     def fnonnat(self):
-        """ fnonnat scores for interfaces in :attr:`~interfaces` 
+        """ fnonnat scores for interfaces in :attr:`~dockq_interfaces` 
 
         fnat: Fraction of model contacts that are not present in target
 
         :class:`list` of :class:`float`
         """
         if self._fnonnat is None:
-            self._compute_per_interface_scores()
+            self._compute_dockq_scores()
         return self._fnonnat
 
     @property
     def irmsd(self):
-        """ irmsd scores for interfaces in :attr:`~interfaces` 
+        """ irmsd scores for interfaces in :attr:`~dockq_interfaces` 
 
         irmsd: RMSD of interface (RMSD computed on N, CA, C, O atoms) which
         consists of each residue that has at least one heavy atom within 10A of
@@ -687,12 +1046,12 @@ class Scorer:
         :class:`list` of :class:`float`
         """
         if self._irmsd is None:
-            self._compute_per_interface_scores()
+            self._compute_dockq_scores()
         return self._irmsd
 
     @property
     def lrmsd(self):
-        """ lrmsd scores for interfaces in :attr:`~interfaces` 
+        """ lrmsd scores for interfaces in :attr:`~dockq_interfaces` 
 
         lrmsd: The interfaces are superposed based on the receptor (rigid
         min RMSD superposition) and RMSD for the ligand is reported.
@@ -703,31 +1062,8 @@ class Scorer:
         :class:`list` of :class:`float`
         """
         if self._lrmsd is None:
-            self._compute_per_interface_scores()
+            self._compute_dockq_scores()
         return self._lrmsd
-
-    @property
-    def nonmapped_interfaces(self):
-        """ Interfaces present in target that are not mapped
-
-        At least one of the chains is not present in target
-
-        :type: :class:`list` of :class:`tuple` with two elements each:
-               (trg_ch1, trg_ch2)
-        """
-        if self._nonmapped_interfaces is None:
-            self._compute_per_interface_scores()
-        return self._nonmapped_interfaces
-
-    @property
-    def nonmapped_interfaces_contacts(self):
-        """ Number of native contacts in :attr:`~nonmapped_interfaces`
-
-        :type: :class:`list` of :class:`int`
-        """
-        if self._nonmapped_interfaces_contacts is None:
-            self._compute_per_interface_scores()
-        return self._nonmapped_interfaces_contacts
         
     @property
     def dockq_ave(self):
@@ -740,42 +1076,42 @@ class Scorer:
         :type: :class:`float`
         """
         if self._dockq_ave is None:
-            self._compute_per_interface_scores()
+            self._compute_dockq_scores()
         return self._dockq_ave
     
     @property
     def dockq_wave(self):
-        """ Same as :attr:`dockq_ave`, weighted by :attr:`native_contacts`
+        """ Same as :attr:`dockq_ave`, weighted by native contacts
 
         :type: :class:`float`
         """
         if self._dockq_wave is None:
-            self._compute_per_interface_scores()
+            self._compute_dockq_scores()
         return self._dockq_wave
         
     @property
     def dockq_ave_full(self):
         """ Same as :attr:`~dockq_ave` but penalizing for missing interfaces
 
-        Interfaces in :attr:`nonmapped_interfaces` are added as 0.0
+        Interfaces that are not covered in model are added as 0.0
         in average computation.
 
         :type: :class:`float`
         """
         if self._dockq_ave_full is None:
-            self._compute_per_interface_scores()
+            self._compute_dockq_scores()
         return self._dockq_ave_full
     
     @property
     def dockq_wave_full(self):
         """ Same as :attr:`~dockq_ave_full`, but weighted
 
-        Interfaces in :attr:`nonmapped_interfaces` are added as 0.0 in
+        Interfaces that are not covered in model are added as 0.0 in
         average computations and the respective weights are derived from
-        :attr:`~nonmapped_interfaces_contacts` 
+        number of contacts in respective target interface. 
         """
         if self._dockq_wave_full is None:
-            self._compute_per_interface_scores()
+            self._compute_dockq_scores()
         return self._dockq_wave_full
 
     @property
@@ -1034,6 +1370,12 @@ class Scorer:
                 alns[-1].AttachView(1, mdl_seqs[mdl_ch].GetAttachedView())
         return alns
 
+    def _compute_pepnuc_aln(self):
+        query = "peptide=true or nucleotide=true"
+        pep_nuc_target = self.target_orig.Select(query)
+        pep_nuc_model = self.model_orig.Select(query)
+        self._pepnuc_aln = self._aln_helper(pep_nuc_target, pep_nuc_model)
+
     def _compute_aln(self):
         self._aln = self._aln_helper(self.target, self.model)
 
@@ -1168,88 +1510,134 @@ class Scorer:
         self._qs_global = qs_score_result.QS_global
         self._qs_best = qs_score_result.QS_best
 
-    def _compute_per_interface_scores(self):
-        # list of [trg_ch1, trg_ch2, mdl_ch1, mdl_ch2]
-        self._interfaces = list()
-        # lists with respective values for these interfaces
-        self._native_contacts = list()
-        self._model_contacts = list()
-        self._interface_qs_global = list()
-        self._interface_qs_best = list()
+    def _compute_per_interface_qs_scores(self):
+        self._per_interface_qs_global = list()
+        self._per_interface_qs_best = list()
+
+        for interface in self.qs_interfaces:
+            trg_ch1 = interface[0]
+            trg_ch2 = interface[1]
+            mdl_ch1 = interface[2]
+            mdl_ch2 = interface[3]
+            qs_res = self.qs_scorer.ScoreInterface(trg_ch1, trg_ch2,
+                                                   mdl_ch1, mdl_ch2)
+            self._per_interface_qs_best.append(qs_res.QS_best)
+            self._per_interface_qs_global.append(qs_res.QS_global)
+
+    def _compute_ics_scores(self):
+        contact_scorer_res = self.contact_scorer.ScoreICS(self.mapping.mapping)
+        self._ics_precision = contact_scorer_res.precision
+        self._ics_recall = contact_scorer_res.recall
+        self._ics = contact_scorer_res.ics
+        self._per_interface_ics_precision = list()
+        self._per_interface_ics_recall = list()
+        self._per_interface_ics = list()
+        flat_mapping = self.mapping.GetFlatMapping()
+        for trg_int in self.contact_target_interfaces:
+            trg_ch1 = trg_int[0]
+            trg_ch2 = trg_int[1]
+            if trg_ch1 in flat_mapping and trg_ch2 in flat_mapping:
+                mdl_ch1 = flat_mapping[trg_ch1]
+                mdl_ch2 = flat_mapping[trg_ch2]
+                res = self.contact_scorer.ScoreICSInterface(trg_ch1, trg_ch2,
+                                                            mdl_ch1, mdl_ch2)
+                self._per_interface_ics_precision.append(res.precision)
+                self._per_interface_ics_recall.append(res.recall)
+                self._per_interface_ics.append(res.ics)
+            else:
+                self._per_interface_ics_precision.append(None)
+                self._per_interface_ics_recall.append(None)
+                self._per_interface_ics.append(None)
+
+    def _compute_ips_scores(self):
+        contact_scorer_res = self.contact_scorer.ScoreIPS(self.mapping.mapping)
+        self._ips_precision = contact_scorer_res.precision
+        self._ips_recall = contact_scorer_res.recall
+        self._ips = contact_scorer_res.ips
+
+        self._per_interface_ips_precision = list()
+        self._per_interface_ips_recall = list()
+        self._per_interface_ips = list()
+        flat_mapping = self.mapping.GetFlatMapping()
+        for trg_int in self.contact_target_interfaces:
+            trg_ch1 = trg_int[0]
+            trg_ch2 = trg_int[1]
+            if trg_ch1 in flat_mapping and trg_ch2 in flat_mapping:
+                mdl_ch1 = flat_mapping[trg_ch1]
+                mdl_ch2 = flat_mapping[trg_ch2]
+                res = self.contact_scorer.ScoreIPSInterface(trg_ch1, trg_ch2,
+                                                            mdl_ch1, mdl_ch2)
+                self._per_interface_ips_precision.append(res.precision)
+                self._per_interface_ips_recall.append(res.recall)
+                self._per_interface_ips.append(res.ips)
+            else:
+                self._per_interface_ips_precision.append(None)
+                self._per_interface_ips_recall.append(None)
+                self._per_interface_ips.append(None)
+
+    def _compute_dockq_scores(self):
+        # lists with values in contact_target_interfaces
         self._dockq_scores = list()
         self._fnat = list()
         self._fnonnat = list()
         self._irmsd = list()
         self._lrmsd = list()
-
-        # list of interfaces which are present in target but not mapped, i.e.
-        # not present in mdl
-        self._nonmapped_interfaces = list()
-        self._nonmapped_interfaces_contacts = list()
-
-        nonmapped_interface_counts = list()
-
-        flat_mapping = self.mapping.GetFlatMapping()
-        pep_seqs = set([s.GetName() for s in self.chain_mapper.polypep_seqs])
+        self._nnat = list()
+        self._nmdl = list()
 
         dockq_alns = dict()
         for aln in self.aln:
-            trg_ch = aln.GetSequence(0).name
-            if trg_ch in pep_seqs:
-                mdl_ch = aln.GetSequence(1).name
-                dockq_alns[(trg_ch, mdl_ch)] = aln
+            trg_s = aln.GetSequence(0)
+            mdl_s = aln.GetSequence(1)
+            dockq_alns[(trg_s.GetName(), mdl_s.GetName())] = aln
 
-        for trg_int in self.qs_scorer.qsent1.interacting_chains:
-            trg_ch1 = trg_int[0]
-            trg_ch2 = trg_int[1]
-            if trg_ch1 in pep_seqs and trg_ch2 in pep_seqs:
-                if trg_ch1 in flat_mapping and trg_ch2 in flat_mapping:
-                    mdl_ch1 = flat_mapping[trg_ch1]
-                    mdl_ch2 = flat_mapping[trg_ch2]
-                    aln1 = dockq_alns[(trg_ch1, mdl_ch1)]
-                    aln2 = dockq_alns[(trg_ch2, mdl_ch2)]
-                    res = dockq.DockQ(self.model, self.target, mdl_ch1, mdl_ch2,
-                                      trg_ch1, trg_ch2, ch1_aln=aln1,
-                                      ch2_aln=aln2)
-                    if res["nnat"] > 0:
-                        self._interfaces.append((trg_ch1, trg_ch2,
-                                                 mdl_ch1, mdl_ch2))
-                        self._native_contacts.append(res["nnat"])
-                        self._model_contacts.append(res["nmdl"])
-                        self._fnat.append(res["fnat"])
-                        self._fnonnat.append(res["fnonnat"])
-                        self._irmsd.append(res["irmsd"])
-                        self._lrmsd.append(res["lrmsd"])
-                        self._dockq_scores.append(res["DockQ"])
-                        qs_res = self.qs_scorer.ScoreInterface(trg_ch1, trg_ch2,
-                                                               mdl_ch1, mdl_ch2)
-                        self._interface_qs_best.append(qs_res.QS_best)
-                        self._interface_qs_global.append(qs_res.QS_global)
-                else:
-                    # interface which is not covered by mdl... let's run DockQ
-                    # with trg as trg/mdl in order to get the native contacts
-                    # out
-                    # no need to pass alns as the residue numbers match for sure
-                    res = dockq.DockQ(self.target, self.target,
-                                      trg_ch1, trg_ch2, trg_ch1, trg_ch2)
-                    nnat = res["nnat"]
-                    if nnat > 0:
-                        self._nonmapped_interfaces.append((trg_ch1, trg_ch2))
-                        self._nonmapped_interfaces_contacts.append(nnat)
+        for interface in self.dockq_interfaces:
+            trg_ch1 = interface[0]
+            trg_ch2 = interface[1]
+            mdl_ch1 = interface[2]
+            mdl_ch2 = interface[3]
+            aln1 = dockq_alns[(trg_ch1, mdl_ch1)]
+            aln2 = dockq_alns[(trg_ch2, mdl_ch2)]
+            res = dockq.DockQ(self.model, self.target, mdl_ch1, mdl_ch2,
+                              trg_ch1, trg_ch2, ch1_aln=aln1,
+                              ch2_aln=aln2)
+            self._fnat.append(res["fnat"])
+            self._fnonnat.append(res["fnonnat"])
+            self._irmsd.append(res["irmsd"])
+            self._lrmsd.append(res["lrmsd"])
+            self._dockq_scores.append(res["DockQ"])
+            self._nnat.append(res["nnat"])
+            self._nmdl.append(res["nmdl"])
 
+        # keep track of native counts in target interfaces which are
+        # not covered in model in order to compute
+        # dockq_ave_full/dockq_wave_full in the end
+        not_covered_counts = list()
+        proc_trg_interfaces = set([(x[0], x[1]) for x in self.dockq_interfaces])
+        for interface in self.dockq_target_interfaces:
+            if interface not in proc_trg_interfaces:
+                # let's run DockQ with trg as trg/mdl in order to get the native
+                # contacts out - no need to pass alns as the residue numbers
+                # match for sure
+                trg_ch1 = interface[0]
+                trg_ch2 = interface[1]
+                res = dockq.DockQ(self.target, self.target,
+                                  trg_ch1, trg_ch2, trg_ch1, trg_ch2)
+                not_covered_counts.apend(res["nnat"])
+  
         # there are 4 types of combined scores
         # - simple average
         # - average weighted by native_contacts
-        # - the two above including nonmapped_interfaces => set DockQ to 0.0
-        scores = np.array(self._dockq_scores)
-        weights = np.array(self._native_contacts)
+        # - the two above including nonmapped_contact_interfaces => set DockQ to 0.0
+        scores = np.array([self._dockq_scores])
+        weights = np.array([self._nnat])
         if len(scores) > 0:
             self._dockq_ave = np.mean(scores)
         else:
             self._dockq_ave = 0.0
         self._dockq_wave = np.sum(np.multiply(weights/np.sum(weights), scores))
-        scores = np.append(scores, [0.0]*len(self._nonmapped_interfaces))
-        weights = np.append(weights, self._nonmapped_interfaces_contacts)
+        scores = np.append(scores, [0.0]*len(not_covered_counts))
+        weights = np.append(weights, not_covered_counts)
         if len(scores) > 0:
             self._dockq_ave_full = np.mean(scores)
         else:
@@ -1707,17 +2095,22 @@ class Scorer:
 
     def _compute_tmscore(self):
         res = None
-        if self.usalign_exec is not None:
-            if not os.path.exists(self.usalign_exec):
-                raise RuntimeError(f"USalign exec ({self.usalign_exec}) "
-                                   f"not found")
-            if not os.access(self.usalign_exec, os.X_OK):
-                raise RuntimeError(f"USalign exec ({self.usalign_exec}) "
-                                   f"is not executable")
-            res = tmtools.USAlign(self.model, self.target,
-                                  usalign = self.usalign_exec)
+        if self.usalign_exec is None:
+            if self.oum:
+                flat_mapping = self.mapping.GetFlatMapping()
+                res = res = bindings.WrappedMMAlign(self.model, self.target,
+                                                    mapping=flat_mapping)
+            else:
+                res = bindings.WrappedMMAlign(self.model, self.target)
         else:
-            res = bindings.WrappedMMAlign(self.model, self.target)
+            if self.oum:
+                flat_mapping = self.mapping.GetFlatMapping()
+                res = tmtools.USAlign(self.model, self.target,
+                                      usalign = self.usalign_exec,
+                                      custom_chain_mapping = flat_mapping)
+            else:
+                res = tmtools.USAlign(self.model, self.target,
+                                      usalign = self.usalign_exec)
 
         self._tm_score = res.tm_score
         self._usalign_mapping = dict()

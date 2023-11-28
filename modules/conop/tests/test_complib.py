@@ -14,13 +14,16 @@ class TestCompLib(unittest.TestCase):
         chemdict_tool_path = os.path.join(prefix_path, "bin", "chemdict_tool")
         if not os.path.exists(chemdict_tool_path):
             raise RuntimeError("Expect chemdict_tool:", chemdict_tool_path)
-        tmp_dir = tempfile.TemporaryDirectory()
+        cls.tmp_dir = tempfile.TemporaryDirectory()
         compounds_path = os.path.join("testfiles", "test_compounds.cif")
-        complib_path = os.path.join(tmp_dir.name, "test_complib.dat")
+        complib_path = os.path.join(cls.tmp_dir.name, "test_complib.dat")
         cmd = [chemdict_tool_path, "create", compounds_path, complib_path]
         subprocess.run(cmd)
         cls.complib = conop.CompoundLib.Load(complib_path)
-        tmp_dir.cleanup()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp_dir.cleanup()
 
     def test_three_vs_five_letter_code(self):
         complib = self.complib
@@ -43,6 +46,18 @@ class TestCompLib(unittest.TestCase):
         comp_nh4 = complib.FindCompound("NH4")
         self.assertTrue(comp_nh4.atom_specs[0].charge == 1)
         self.assertTrue(comp_nh4.atom_specs[1].charge == 0)
+
+    def test_obsolete(self):
+        complib = self.complib
+        comp_ox = complib.FindCompound("OX")
+        # First test that we do get data
+        self.assertTrue(comp_ox.smiles == "O")
+        # Now the obsolete part
+        self.assertTrue(comp_ox.obsolete)
+        self.assertTrue(comp_ox.replaced_by == "O")
+        # Ensure not everything is obsolete
+        comp_001 = complib.FindCompound("001")
+        self.assertFalse(comp_001.obsolete)
 
     def test_default_lib_version(self):
         compound_lib = conop.GetDefaultLib()
