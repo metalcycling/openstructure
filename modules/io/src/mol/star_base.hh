@@ -232,9 +232,21 @@ public:
     // - special characters in strings (put in quotation marks)
     // - long strings (semicolon based syntax)
     // see https://mmcif.wwpdb.org/docs/tutorials/mechanics/pdbx-mmcif-syntax.html
+
+
+    bool has_space = false;
+    for(char c: value) {
+      if(isspace(c)) {
+        has_space = true;
+        break;
+      }
+    }
     if(value == "") {
       value_ = ".";
-    } else {
+    } else if(has_space) {
+      value_ = "'" + value + "'";
+    }
+    else {
       value_ = value;
     }
   }
@@ -272,12 +284,16 @@ public:
     desc_ = desc;
   }
 
+  const StarLoopDesc& GetDesc() { return desc_; }
+
   void AddData(const std::vector<StarLoopDataItemDO>& data) {
     if(data.size() != desc_.GetSize()) {
       throw ost::io::IOException("Invalid data size when adding to StarLoop");
     }
     data_.insert(data_.end(), data.begin(), data.end());
   }
+
+  const std::vector<StarLoopDataItemDO>& GetData() { return data_; }
 
   int GetN() {
     return data_.size() / desc_.GetSize();

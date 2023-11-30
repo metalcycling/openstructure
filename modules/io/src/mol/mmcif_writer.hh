@@ -36,23 +36,20 @@ public:
 
   virtual ~MMCifWriter();
 
-  // initializes
-  // atom_site_
-  // entity_
-  // struct_asym_
-  // entity_poly_seq_
-  void Process_atom_site(const ost::mol::EntityHandle& ent);
+  void SetEntity(const ost::mol::EntityHandle& ent);
 
 private:
-
   IOProfile profile_;
+  StarLoop* atom_type_;
   StarLoop* atom_site_;
+  StarLoop* pdbx_poly_seq_scheme_;
   StarLoop* entity_;
   StarLoop* struct_asym_;
+  StarLoop* entity_poly_;
   StarLoop* entity_poly_seq_;
+  StarLoop* chem_comp_;
 };
 
- 
 }} // ns
 
 #endif
