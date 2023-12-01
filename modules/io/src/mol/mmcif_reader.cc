@@ -134,12 +134,13 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
     this->TryStoreIdx(CARTN_X, "Cartn_x", header);
     this->TryStoreIdx(CARTN_Y, "Cartn_y", header);
     this->TryStoreIdx(CARTN_Z, "Cartn_z", header);
+    // optional (but warning: mandatory for waters/ligands)
+    indices_[AUTH_SEQ_ID]        = header.GetIndex("auth_seq_id");
+    indices_[PDBX_PDB_INS_CODE]  = header.GetIndex("pdbx_PDB_ins_code");
     // optional
     indices_[OCCUPANCY]          = header.GetIndex("occupancy");
     indices_[B_ISO_OR_EQUIV]     = header.GetIndex("B_iso_or_equiv");
     indices_[GROUP_PDB]          = header.GetIndex("group_PDB");
-    indices_[AUTH_SEQ_ID]        = header.GetIndex("auth_seq_id");
-    indices_[PDBX_PDB_INS_CODE]  = header.GetIndex("pdbx_PDB_ins_code");
     indices_[PDBX_PDB_MODEL_NUM] = header.GetIndex("pdbx_PDB_model_num");
     indices_[FORMAL_CHARGE]     = header.GetIndex("pdbx_formal_charge");
 
@@ -535,9 +536,25 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
 
   if(!curr_residue_) {
     update_residue=true;
-    subst_res_id_ = cif_chain_name +
-                    columns[indices_[AUTH_SEQ_ID]].str() +
-                    columns[indices_[PDBX_PDB_INS_CODE]].str();
+    if (indices_[AUTH_SEQ_ID] != -1 &&
+        indices_[PDBX_PDB_INS_CODE] != -1) {
+      subst_res_id_ = cif_chain_name +
+                      columns[indices_[AUTH_SEQ_ID]].str() +
+                      columns[indices_[PDBX_PDB_INS_CODE]].str();
+    } else if (!valid_res_num) {
+      // Here we didn't have valid residue number in label_seq_id (which is
+      // expected for ligands and waters). To work around that we store the
+      // author residue number information (auth_seq_id + pdbx_PDB_ins_code)
+      // in subst_res_id_. This variable is never read directly, only used
+      // indirectly to detect if we have to create a new residue.
+      // If we're here we had both missing missing value in label_seq_id,
+      // and the auth_seq_id or pdbx_PDB_ins_code were missing.
+      // There may be more elegant ways to detect that we crossed to a new
+      // residue that don't rely on auth_seq_id/pdbx_PDB_ins_code.
+      throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
+                                           "Missing residue number information",
+                                               this->GetCurrentLinenum()));
+    }
   } else if (!valid_res_num) {
     if (indices_[AUTH_SEQ_ID] != -1 &&
         indices_[PDBX_PDB_INS_CODE] != -1) {
@@ -601,8 +618,12 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
         curr_residue_ = editor.AppendResidue(curr_chain_, res_name.str());
       }
       curr_residue_.SetStringProp("pdb_auth_chain_name", auth_chain_name);
-      curr_residue_.SetStringProp("pdb_auth_resnum", columns[indices_[AUTH_SEQ_ID]].str());
-      curr_residue_.SetStringProp("pdb_auth_ins_code", columns[indices_[PDBX_PDB_INS_CODE]].str());
+      if (indices_[AUTH_SEQ_ID] != -1) {
+        curr_residue_.SetStringProp("pdb_auth_resnum", columns[indices_[AUTH_SEQ_ID]].str());
+      }
+      if (indices_[PDBX_PDB_INS_CODE] != -1) {
+        curr_residue_.SetStringProp("pdb_auth_ins_code", columns[indices_[PDBX_PDB_INS_CODE]].str());
+      }
       curr_residue_.SetStringProp("entity_id", columns[indices_[LABEL_ENTITY_ID]].str());
       curr_residue_.SetStringProp("resnum", columns[indices_[LABEL_SEQ_ID]].str());
       warned_name_mismatch_=false;
