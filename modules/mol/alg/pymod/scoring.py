@@ -179,11 +179,15 @@ class Scorer:
         for ch in self._model.chains:
             if ch.GetName().strip() == "":
                 raise RuntimeError("Model chains must have valid chain names")
+            if ch.GetName().strip() == "'" or ch.GetName().strip() == '"':
+                raise RuntimeError("Model chains cannot be named with quote signs (' or \"\")")
         
         # catch targets which have empty chain names
         for ch in self._target.chains:
             if ch.GetName().strip() == "":
                 raise RuntimeError("Target chains must have valid chain names")
+            if ch.GetName().strip() == "'" or ch.GetName().strip() == '"':
+                raise RuntimeError("Target chains cannot be named with quote signs (' or \"\")")
 
         if resnum_alignments:
             # In case of resnum_alignments, we have some requirements on 
