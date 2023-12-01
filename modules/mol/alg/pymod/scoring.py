@@ -1339,14 +1339,14 @@ class Scorer:
             cname = ch.GetName()
             s = ''.join([r.one_letter_code for r in ch.residues])
             s = seq.CreateSequence(ch.GetName(), s)
-            s.AttachView(target.Select(f"cname={cname}"))
+            s.AttachView(target.Select(f"cname='{cname}'"))
             trg_seqs[ch.GetName()] = s
         mdl_seqs = dict()
         for ch in model.chains:
             cname = ch.GetName()
             s = ''.join([r.one_letter_code for r in ch.residues])
             s = seq.CreateSequence(cname, s)
-            s.AttachView(model.Select(f"cname={cname}"))
+            s.AttachView(model.Select(f"cname='{cname}'"))
             mdl_seqs[ch.GetName()] = s
 
         alns = list()
@@ -1738,7 +1738,7 @@ class Scorer:
         result = {ch.GetName(): list() for ch in ent.chains}
         for ch in ent.chains:
             cname = ch.GetName()
-            sel = repr_ent.Select(f"(cname={cname} and 8 <> [cname!={cname}])")
+            sel = repr_ent.Select(f"(cname='{cname}' and 8 <> [cname!='{cname}'])")
             result[cname] = [r.GetNumber() for r in sel.residues]
         return result
 
@@ -1805,7 +1805,7 @@ class Scorer:
         # => all residues within 8A of r and within 12A of any other chain
     
         # q1 selects for everything in same chain and within 8A of r_pos
-        q1 = f"(cname={mdl_ch} and 8 <> {{{r_pos[0]},{r_pos[1]},{r_pos[2]}}})"
+        q1 = f"(cname='{mdl_ch}' and 8 <> {{{r_pos[0]},{r_pos[1]},{r_pos[2]}}})"
         # q2 selects for everything within 12A of any other chain
         q2 = f"(12 <> [cname!={mdl_ch}])"
         mdl_patch_one = self.model.CreateEmptyView()
@@ -1818,7 +1818,7 @@ class Scorer:
         # the closest residue to r is identified in any other chain, and the
         # patch is filled with residues that are within 8A of that residue and
         # within 12A of chain from r
-        sel = repr_mdl.Select(f"(cname!={mdl_ch})")
+        sel = repr_mdl.Select(f"(cname!='{mdl_ch}')")
         close_stuff = sel.FindWithin(r_pos, 8)
         min_pos = None
         min_dist = 42.0
@@ -1829,9 +1829,9 @@ class Scorer:
                 min_dist = dist
     
         # q1 selects for everything not in mdl_ch but within 8A of min_pos
-        q1 = f"(cname!={mdl_ch} and 8 <> {{{min_pos[0]},{min_pos[1]},{min_pos[2]}}})"
+        q1 = f"(cname!='{mdl_ch}' and 8 <> {{{min_pos[0]},{min_pos[1]},{min_pos[2]}}})"
         # q2 selects for everything within 12A of mdl_ch
-        q2 = f"(12 <> [cname={mdl_ch}])"
+        q2 = f"(12 <> [cname='{mdl_ch}'])"
         mdl_patch_two = self.model.CreateEmptyView()
         sel = repr_mdl.Select(" and ".join([q1, q2]))
         for r in sel.residues:
@@ -2082,8 +2082,8 @@ class Scorer:
             for ref_ch, mdl_ch in zip(ref_group, mdl_group):
                 if ref_ch is not None and mdl_ch is not None:
                     aln = ref_mdl_alns[(ref_ch, mdl_ch)]
-                    trg_view = chain_mapper.target.Select(f"cname={ref_ch}")
-                    mdl_view = mdl.Select(f"cname={mdl_ch}")
+                    trg_view = chain_mapper.target.Select(f"cname='{ref_ch}'")
+                    mdl_view = mdl.Select(f"cname='{mdl_ch}'")
                     aln.AttachView(0, trg_view)
                     aln.AttachView(1, mdl_view)
                     alns[(ref_ch, mdl_ch)] = aln
