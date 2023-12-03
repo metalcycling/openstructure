@@ -170,6 +170,200 @@ namespace {
     return type;
   }
 
+  inline String mon_id_to_olc(char chem_class,
+                              const String& mon_id) {
+
+    // hardcoded table according
+    // https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_entity_poly.pdbx_seq_one_letter_code.html
+
+    if(ost::mol::ChemClass(chem_class).IsPeptideLinking()) {
+      switch(mon_id[0]) {
+        case 'A': {
+          if(mon_id == "ALA") {
+            return "A";
+          }
+          if(mon_id == "ACE") {
+            return "(ACE)";
+          }
+          if(mon_id == "ASP") {
+            return "D";
+          }
+          if(mon_id == "ASN") {
+            return "N";
+          }
+          if(mon_id == "ARG") {
+            return "R";
+          }
+          break;
+        }
+        case 'C': {
+          if(mon_id == "CYS") {
+            return "C";
+          }
+          break;
+        }
+        case 'G': {
+          if(mon_id == "GLU") {
+            return "E";
+          }
+          if(mon_id == "GLY") {
+            return "G";
+          }
+          if(mon_id == "GLN") {
+            return "Q";
+          }
+          break;
+        }
+        case 'H': {
+          if(mon_id == "HIS") {
+            return "H";
+          }
+          break;
+        }
+        case 'I': {
+          if(mon_id == "ILE") {
+            return "I";
+          }
+          break;
+        }
+        case 'L': {
+          if(mon_id == "LEU") {
+            return "L";
+          }
+          if(mon_id == "LYS") {
+            return "K";
+          }
+          break;
+        }
+        case 'M': {
+          if(mon_id == "MET") {
+            return "M";
+          }
+          if(mon_id == "MSE") {
+            return "(MSE)";
+          }
+          break;
+        }
+        case 'N': {
+          if(mon_id == "NH2") {
+            return "(NH2)";
+          }
+          break;
+        }
+        case 'P': {
+          if(mon_id == "PHE") {
+            return "F";
+          }
+          if(mon_id == "PYL") {
+            return "O";
+          }
+          if(mon_id == "PRO") {
+            return "P";
+          }
+          if(mon_id == "PTR") {
+            return "(PTR)";
+          }
+          if(mon_id == "PCA") {
+            return "(PCA)";
+          }
+          break;
+        }
+        case 'S': {
+          if(mon_id == "SER") {
+            return "S";
+          }
+          if(mon_id == "SEC") {
+            return "U";
+          }
+          if(mon_id == "SEP") {
+            return "(SEP)";
+          }
+          break;
+        }
+        case 'T': {
+          if(mon_id == "THR") {
+            return "T";
+          }
+          if(mon_id == "TRP") {
+            return "W";
+          }
+          if(mon_id == "TYR") {
+            return "Y";
+          }
+          if(mon_id == "TPO") {
+            return "(PTO)"; // This is stupid - PTO would be Pseudotropine in
+                            // the chem comp dictionary. But hey, thats what the
+                            // mmcif reference demands...
+          }
+          break;
+        }
+        case 'V': {
+          if(mon_id == "VAL") {
+            return "V";
+          }
+          break;
+        }
+      }
+      return "(UNK)";
+    } else if(ost::mol::ChemClass(chem_class).IsNucleotideLinking()) {
+      switch(mon_id[0]) {
+        case 'A': {
+          if(mon_id == "A") {
+            return "A";
+          }
+          break;
+        }
+        case 'C': {
+          if(mon_id == "C") {
+            return "C";
+          }
+          break;
+        }
+        case 'D': {
+          if(mon_id == "DA") {
+            return "(DA)";
+          }
+          if(mon_id == "DC") {
+            return "(DC)";
+          }
+          if(mon_id == "DG") {
+            return "(DG)";
+          }
+          if(mon_id == "DT") {
+            return "(DT)";
+          }
+          break;
+        }
+        case 'G': {
+          if(mon_id == "G") {
+            return "G";
+          }
+          break;
+        }
+        case 'I': {
+          if(mon_id == "I") {
+            return "I";
+          }
+          break;
+        } 
+        case 'U': {
+          if(mon_id == "U") {
+            return "U";
+          }
+          break;
+        } 
+      }
+
+      return "N";
+
+    } else {
+      throw ost::io::IOException("Can only get OLCs for peptides/nucleotides");
+    }
+
+
+
+  }
+
   void Setup_chem_comp_(const ost::mol::ResidueHandleList& res_list,
                         std::map<String, CompInfo>& comp_infos) {
     for(auto res: res_list) {
@@ -197,6 +391,8 @@ namespace {
     std::vector<String> asym_ids; // relevant for _struct_asym.id
     std::vector<String> mon_ids; // relevant for _entity_poly_seq.mon_id
     bool is_poly; // in principle mon_ids.size() > 1
+    String seq; // _entity_poly.pdbx_seq_one_letter_code
+    String seq_can; // _entity_poly.pdbx_seq_one_letter_code_can 
   };
 
   int Setup_entity_(const String& asym_chain_name,
@@ -294,6 +490,24 @@ namespace {
       entity_infos.back().mon_ids = mon_ids;
       entity_infos.back().poly_type = chem_class_to_entity_poly_type(chem_class);
       entity_infos.back().is_poly = entity_infos.back().mon_ids.size() > 1;
+
+      // seqres basically follows a hardcoded table from the mmcif reference
+      std::stringstream ss;
+      for(auto mon_id: mon_ids) {
+        ss << mon_id_to_olc(chem_class, mon_id);
+      }
+      entity_infos.back().seq = ss.str();
+      ss.clear();
+
+      // canonical seqres maps one letter codes of parent residues
+      // OpenStructure does the same when setting up the entity in
+      // the processor. There still might be '?' or similar which
+      // should be treated separately... but hey, I'm in a rush for
+      // now
+      for(auto res: res_list) {
+        ss << res.GetOneLetterCode();
+      }
+      entity_infos.back().seq_can = ss.str();
     }
     return entity_idx;
   }
@@ -367,6 +581,8 @@ namespace {
     desc.SetCategory("_entity_poly");
     desc.Add("entity_id");
     desc.Add("type");
+    desc.Add("pdbx_seq_one_letter_code");
+    desc.Add("pdbx_seq_one_letter_code_can");
     ost::io::StarLoop* sl = new ost::io::StarLoop(desc);
     return sl;    
   }
@@ -569,10 +785,14 @@ namespace {
     std::vector<ost::io::StarLoopDataItemDO> entity_poly_data;
     entity_poly_data.push_back(ost::io::StarLoopDataItemDO(0));
     entity_poly_data.push_back(ost::io::StarLoopDataItemDO("other"));
+    entity_poly_data.push_back(ost::io::StarLoopDataItemDO("A"));
+    entity_poly_data.push_back(ost::io::StarLoopDataItemDO("A"));
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       if(entity_info[entity_idx].is_poly) {
         entity_poly_data[0] = ost::io::StarLoopDataItemDO(entity_idx);
         entity_poly_data[1] = ost::io::StarLoopDataItemDO(entity_info[entity_idx].poly_type);
+        entity_poly_data[2] = ost::io::StarLoopDataItemDO(entity_info[entity_idx].seq);
+        entity_poly_data[3] = ost::io::StarLoopDataItemDO(entity_info[entity_idx].seq_can);       
         entity_poly_ptr->AddData(entity_poly_data);
       }
     }
