@@ -172,8 +172,8 @@ class Scorer:
                                            assign_elem=True)
         Molck(self._model, conop.GetDefaultLib(), molck_settings)
         Molck(self._target, conop.GetDefaultLib(), molck_settings)
-        self._model = model.Select("peptide=True or nucleotide=True")
-        self._target = target.Select("peptide=True or nucleotide=True")
+        self._model = self._model.Select("peptide=True or nucleotide=True")
+        self._target = self._target.Select("peptide=True or nucleotide=True")
 
         # catch models which have empty chain names
         for ch in self._model.chains:
