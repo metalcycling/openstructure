@@ -95,6 +95,16 @@ behaviour.
         pdb_str = pdb.read()
         ent = io.PDBStrToEntity(pdb_str, ost.io.profiles['DEFAULT'], True)
 
+
+.. function:: LoadSDF(filename)
+
+  Load an SDF file and return an entity.
+
+  :param filename: File to be loaded
+  :type filename: :class:`str`
+
+  :rtype: :class:`~ost.mol.EntityHandle`
+
 .. function:: SDFStrToEntity(sdf_string)
 
   Load entity from a string in SDF format.
@@ -315,6 +325,15 @@ file:
   :param entity: The :class:`~ost.mol.EntityHandle` or :class:`~ost.mol.EntityView`
 
   :rtype: string.
+
+.. function:: SaveSDF(ent, filename)
+
+  Save entity to disk as an SDF file.
+
+  :param ent: The entity to be saved
+  :type  ent: :class:`~ost.mol.EntityHandle` or :class:`~ost.mol.EntityView`
+  :param filename: The filename
+  :type  filename: string
 
 .. _seq-io:
 
