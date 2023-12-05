@@ -69,6 +69,9 @@ ost::mol::alg::StereoChemicalProps (*read_props_b)(bool check) = &ReadStereoChem
 String (*sdf_str_a)(const mol::EntityHandle&)=&EntityToSDFString;
 String (*sdf_str_b)(const mol::EntityView&)=&EntityToSDFString;
 
+void (*save_sdf_handle)(const mol::EntityHandle& entity, const String& filename)=&SaveSDF;
+void (*save_sdf_view)(const mol::EntityView& entity, const String& filename)=&SaveSDF;
+
 }
 
 void export_pdb_io();
@@ -120,6 +123,8 @@ BOOST_PYTHON_MODULE(_ost_io)
   def("SaveSequence", &SaveSequence,
       (arg("sequence"), arg("filename"), arg("format")="auto"));
   def("LoadSDF", &LoadSDF);
+  def("SaveSDF", save_sdf_view);
+  def("SaveSDF", save_sdf_handle);
 
   def("EntityToSDFStr", sdf_str_a);
   def("EntityToSDFStr", sdf_str_b);

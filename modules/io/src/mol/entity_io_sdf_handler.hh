@@ -49,6 +49,8 @@ public:
 typedef EntityIOHandlerFactory<EntityIOSDFHandler> EntityIOSDFHandlerFactory;
 
 mol::EntityHandle DLLEXPORT_OST_IO LoadSDF(const String& file_name);
+void DLLEXPORT_OST_IO SaveSDF(const mol::EntityHandle& ent, const String& file_name);
+void DLLEXPORT_OST_IO SaveSDF(const mol::EntityView& ent, const String& file_name);
 
 }} // ns
 
