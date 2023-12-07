@@ -26,30 +26,30 @@ namespace ost { namespace mol {
 
 struct DLLEXPORT ChemClass {
 
-  const static char PEPTIDE_LINKING   ='P';
-  const static char D_PEPTIDE_LINKING ='D';
-  const static char L_PEPTIDE_LINKING ='L';
-  const static char RNA_LINKING       ='R';
-  const static char DNA_LINKING       ='S';
-  const static char NON_POLYMER       ='N';
-  const static char L_SACCHARIDE      ='X';
-  const static char D_SACCHARIDE      ='Y';
-  const static char SACCHARIDE        ='Z';
-  const static char WATER             ='W';
-  const static char UNKNOWN           ='U';
+  static constexpr char PEPTIDE_LINKING   ='P';
+  static constexpr char D_PEPTIDE_LINKING ='D';
+  static constexpr char L_PEPTIDE_LINKING ='L';
+  static constexpr char RNA_LINKING       ='R';
+  static constexpr char DNA_LINKING       ='S';
+  static constexpr char NON_POLYMER       ='N';
+  static constexpr char L_SACCHARIDE      ='X';
+  static constexpr char D_SACCHARIDE      ='Y';
+  static constexpr char SACCHARIDE        ='Z';
+  static constexpr char WATER             ='W';
+  static constexpr char UNKNOWN           ='U';
   
   // for backward compatibility to 1.1 and earlier
-  const static char PeptideLinking   =PEPTIDE_LINKING;
-  const static char DPeptideLinking  =D_PEPTIDE_LINKING;
-  const static char LPeptideLinking  =L_PEPTIDE_LINKING;
-  const static char RNALinking       =RNA_LINKING;  
-  const static char DNALinking       =DNA_LINKING;    
-  const static char NonPolymer       =NON_POLYMER;
-  const static char LSaccharide      =L_SACCHARIDE;
-  const static char DSaccharide      =D_SACCHARIDE;    
-  const static char Saccharide       =SACCHARIDE;
-  const static char Water            =WATER;
-  const static char Unknown          =UNKNOWN;
+  static constexpr char PeptideLinking   =PEPTIDE_LINKING;
+  static constexpr char DPeptideLinking  =D_PEPTIDE_LINKING;
+  static constexpr char LPeptideLinking  =L_PEPTIDE_LINKING;
+  static constexpr char RNALinking       =RNA_LINKING;  
+  static constexpr char DNALinking       =DNA_LINKING;    
+  static constexpr char NonPolymer       =NON_POLYMER;
+  static constexpr char LSaccharide      =L_SACCHARIDE;
+  static constexpr char DSaccharide      =D_SACCHARIDE;    
+  static constexpr char Saccharide       =SACCHARIDE;
+  static constexpr char Water            =WATER;
+  static constexpr char Unknown          =UNKNOWN;
   explicit ChemClass(char chem_class)
     : chem_class_(chem_class) {
   }
