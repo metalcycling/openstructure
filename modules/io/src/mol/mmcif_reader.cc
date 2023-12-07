@@ -551,6 +551,10 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
       // and the auth_seq_id or pdbx_PDB_ins_code were missing.
       // There may be more elegant ways to detect that we crossed to a new
       // residue that don't rely on auth_seq_id/pdbx_PDB_ins_code.
+      LOG_WARNING("_atom_site.label_seq_id is invalid for " <<
+        "residue '" << res_name << "' in chain '" << cif_chain_name <<
+        "' and _atom_site.auth_seq_id or _atom_site.pdbx_PDB_ins_code " <<
+        "are missing.");
       throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
                                            "Missing residue number information",
                                                this->GetCurrentLinenum()));
@@ -569,6 +573,10 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
                         columns[indices_[PDBX_PDB_INS_CODE]].str();
       }
     } else {
+      LOG_WARNING("_atom_site.label_seq_id is invalid for " <<
+        "residue '" << res_name << "' in chain '" << cif_chain_name <<
+        "' and _atom_site.auth_seq_id or _atom_site.pdbx_PDB_ins_code " <<
+        "are missing.");
       throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
                                            "Missing residue number information",
                                                this->GetCurrentLinenum()));
