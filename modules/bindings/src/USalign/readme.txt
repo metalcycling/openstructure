@@ -4,8 +4,8 @@
 
    References to cite:
    (1) Chengxin Zhang, Morgan Shine, Anna Marie Pyle, Yang Zhang
-       (2022) Nat Methods
-   (2) Chengxin Zhang, Anna Marie Pyle (2022) iScience
+       (2022) Nat Methods. 19(9), 1109-1115.
+   (2) Chengxin Zhang, Anna Marie Pyle (2022) iScience. 25(10), 105218.
 
    DISCLAIMER:
      Permission to use, copy, modify, and distribute this program for 
@@ -72,6 +72,8 @@
    2022/06/23: Fix -m for Windows. Add pymol plugin.
    2022/06/26: Add -full option for -mm 2 and 4
    2022/09/24: Support -TMscore for complex when the chain order is different
+   2023/06/09: Correct atom name justification in PDB file for standard amino
+               acids and nucleotides
 ===============================================================================
 
 =========================

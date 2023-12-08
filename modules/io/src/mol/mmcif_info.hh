@@ -27,6 +27,7 @@
 #include <ost/string_ref.hh>
 #include <ost/io/module_config.hh>
 #include <ost/mol/mol.hh>
+#include <ost/io/io_exception.hh>
 
 namespace ost { namespace io {
 

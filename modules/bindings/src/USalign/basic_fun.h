@@ -151,7 +151,8 @@ string Trim(const string &inputString)
 size_t get_PDB_lines(const string filename,
     vector<vector<string> >&PDB_lines, vector<string> &chainID_list,
     vector<int> &mol_vec, const int ter_opt, const int infmt_opt,
-    const string atom_opt, const int split_opt, const int het_opt)
+    const string atom_opt, const bool autojustify, const int split_opt, 
+    const int het_opt)
 {
     size_t i=0; // resi i.e. atom index
     string line;
@@ -188,14 +189,49 @@ size_t get_PDB_lines(const string filename,
 
     if (infmt_opt==0||infmt_opt==-1) // PDB format
     {
+        map<string,char> aa3to1;
+        aa3to1["  A"]=aa3to1[" DA"]='a';
+        aa3to1["  C"]=aa3to1[" DC"]='c';
+        aa3to1["  G"]=aa3to1[" DG"]='g';
+        aa3to1["  U"]=aa3to1["PSU"]='u';
+        aa3to1["  I"]=aa3to1[" DI"]='i';
+        aa3to1["  T"]='t';
+        aa3to1["ALA"]='A';
+        aa3to1["CYS"]='C';
+        aa3to1["ASP"]='D';
+        aa3to1["GLU"]='E';
+        aa3to1["PHE"]='F';
+        aa3to1["GLY"]='G';
+        aa3to1["HIS"]='H';
+        aa3to1["ILE"]='I';
+        aa3to1["LYS"]='K';
+        aa3to1["LEU"]='L';
+        aa3to1["MET"]=aa3to1["MSE"]='M';
+        aa3to1["ASN"]='N';
+        aa3to1["PRO"]='P';
+        aa3to1["GLN"]='Q';
+        aa3to1["ARG"]='R';
+        aa3to1["SER"]='S';
+        aa3to1["THR"]='T';
+        aa3to1["VAL"]='V'; 
+        aa3to1["TRP"]='W';
+        aa3to1["TYR"]='Y';
+        aa3to1["ASX"]='B';
+        aa3to1["GLX"]='Z';
+        aa3to1["SEC"]='U';
+        aa3to1["PYL"]='O';
+
+
+        string atom;
+        string resn;
         while ((compress_type==-1)?cin.good():(compress_type?fin_gz.good():fin.good()))
         {
             if  (compress_type==-1) getline(cin, line);
             else if (compress_type) getline(fin_gz, line);
             else                    getline(fin, line);
             if (infmt_opt==-1 && line.compare(0,5,"loop_")==0) // PDBx/mmCIF
-                return get_PDB_lines(filename,PDB_lines,chainID_list,
-                    mol_vec, ter_opt, 3, atom_opt, split_opt,het_opt);
+                return get_PDB_lines(filename,PDB_lines,chainID_list, mol_vec,
+                    ter_opt, 3, atom_opt, autojustify, split_opt,het_opt);
             if (i > 0)
             {
                 if      (ter_opt>=1 && line.compare(0,3,"END")==0) break;
@@ -208,20 +244,36 @@ size_t get_PDB_lines(const string filename,
                 (line.compare(0, 6, "HETATM")==0 && het_opt==2 && 
                  line.compare(17,3, "MSE")==0)))
             {
+                atom=line.substr(12,4);
+                if (autojustify)
+                {
+                    resn=line.substr(17,3);
+                    if (aa3to1.count(resn))
+                    {
+                        atom=Trim(atom);
+                        if (atom.size())
+                        {
+                            if (atom.size()>=2 && atom[atom.size()-1]=='*')
+                                atom=atom.substr(0,atom.size()-1)+"'";
+                            if (atom.size()==1) atom=" "+atom+"  ";
+                            else if (atom.size()==2) atom=" "+atom+" ";
+                            else if (atom.size()==3) atom=" "+atom;
+                        }
+                    }
+                }
                 if (atom_opt=="auto")
                 {
                     if (line[17]==' ' && (line[18]=='D'||line[18]==' '))
-                         select_atom=(line.compare(12,4," C3'")==0);
-                    else select_atom=(line.compare(12,4," CA ")==0);
+                         select_atom=(atom==" C3'");
+                    else select_atom=(atom==" CA ");
                 }
                 else if (atom_opt=="PC4'")
                 {
                     if (line[17]==' ' && (line[18]=='D'||line[18]==' '))
-                         select_atom=(line.compare(12,4," P  ")==0
-                                  )||(line.compare(12,4," C4'")==0);
-                    else select_atom=(line.compare(12,4," CA ")==0);
+                         select_atom=(atom==" P  ")||(atom==" C4'");
+                    else select_atom=(atom==" CA ");
                 }
-                else     select_atom=(line.compare(12,4,atom_opt)==0);
+                else     select_atom=(atom==atom_opt);
                 if (select_atom)
                 {
                     if (!chainID)
@@ -284,6 +336,8 @@ size_t get_PDB_lines(const string filename,
                 }
             }
         }
+
+        map<string,char>().swap(aa3to1);
     }
     else if (infmt_opt==1) // SPICKER format
     {
@@ -752,6 +806,17 @@ void read_user_alignment(vector<string>&sequence, const string &fname_lign,
     return;
 }
 
+
+inline bool isfile(const string& filename)
+{
+    if (FILE *fp = fopen(filename.c_str(), "r"))
+    {
+        fclose(fp);
+        return true;
+    }
+    else return false;
+}
+
 /* read list of entries from 'name' to 'chain_list'.
  * dir_opt is the folder name (prefix).
  * suffix_opt is the file name extension (suffix_opt).
@@ -764,14 +829,168 @@ void file2chainlist(vector<string>&chain_list, const string &name,
     if (! fp.is_open())
         PrintErrorAndQuit(("Can not open file: "+name+'\n').c_str());
     string line;
+    string filename;
+    int a,b;
+    string sep;
     while (fp.good())
     {
         getline(fp, line);
         if (! line.size()) continue;
-        chain_list.push_back(dir_opt+Trim(line)+suffix_opt);
+        line=Trim(line);
+        for (a=0;a<=2;a++)
+        {
+            if      (a==0) sep="";
+            else if (a==1) sep="/";
+            else if (a==2) sep="\\";
+                
+            filename=dir_opt+sep+line+suffix_opt;
+            if (isfile(filename)) break;
+            if (suffix_opt.size())
+            {
+                filename=dir_opt+sep+line;
+                if (isfile(filename)) break;
+            }
+            else
+            {
+                filename=dir_opt+sep+line+".pdb";
+                if (isfile(filename)) break;
+                filename=dir_opt+sep+line+".cif";
+                if (isfile(filename)) break;
+            }
+            filename.clear();
+        }
+
+        if (filename.size()==0)
+        {
+            filename=dir_opt+line+suffix_opt;
+            cerr<<"WARNING! "<<filename<<" does not exist"<<endl;
+        }
+        else chain_list.push_back(filename);
+        line.clear();
+        filename.clear();
     }
     fp.close();
-    line.clear();
+}
+
+void file2chainpairlist(vector<string>&chain1_list, vector<string>&chain2_list,
+    const string &name, const string &dirpair_opt, const string &suffix_opt)
+{
+    ifstream fp(name.c_str());
+    if (! fp.is_open())
+        PrintErrorAndQuit(("Can not open file: "+name+'\n').c_str());
+    string line;
+    string filename;
+    int a,b;
+    size_t i;
+    string sep,filename1,filename2;
+    vector<string> line_vec;
+    while (fp.good())
+    {
+        getline(fp, line);
+        if (! line.size()) continue;
+        line=Trim(line);
+        split(line, line_vec, '\t');
+        if (line_vec.size()==2)
+        {
+            filename1=line_vec[0];
+            filename2=line_vec[1];
+            for (i=0;i<2;i++) line_vec[i].clear(); line_vec.clear();
+        }
+        else
+        {
+            for (i=0;i<line_vec.size();i++) line_vec[i].clear(); line_vec.clear();
+            split(line, line_vec, ' ');
+            if (line_vec.size()==2)
+            {
+                filename1=line_vec[0];
+                filename2=line_vec[1];
+                for (i=0;i<2;i++) line_vec[i].clear(); line_vec.clear();
+            }
+            else
+            {
+                cerr<<"WARNING! not a chain pair: "<<line<<endl;
+                for (i=0;i<line_vec.size();i++) line_vec[i].clear(); line_vec.clear();
+                continue;
+            }
+        }
+
+        filename.clear();
+        for (a=0;a<=2;a++)
+        {
+            if      (a==0) sep="";
+            else if (a==1) sep="/";
+            else if (a==2) sep="\\";
+                
+            filename=dirpair_opt+sep+filename1+suffix_opt;
+            if (isfile(filename)) break;
+            if (suffix_opt.size())
+            {
+                filename=dirpair_opt+sep+line;
+                if (isfile(filename)) break;
+            }
+            else
+            {
+                filename=dirpair_opt+sep+line+".pdb";
+                if (isfile(filename)) break;
+                filename=dirpair_opt+sep+line+".cif";
+                if (isfile(filename)) break;
+            }
+            filename.clear();
+        }
+
+        if (filename.size()==0)
+        {
+            filename=dirpair_opt+filename1+suffix_opt;
+            cerr<<"WARNING! "<<filename<<" does not exist"<<endl;
+            continue;
+        }
+        else
+        {
+            filename1=filename; 
+            filename.clear();
+        }
+
+        for (a=0;a<=2;a++)
+        {
+            if      (a==0) sep="";
+            else if (a==1) sep="/";
+            else if (a==2) sep="\\";
+                
+            filename=dirpair_opt+sep+filename2+suffix_opt;
+            if (isfile(filename)) break;
+            if (suffix_opt.size())
+            {
+                filename=dirpair_opt+sep+line;
+                if (isfile(filename)) break;
+            }
+            else
+            {
+                filename=dirpair_opt+sep+line+".pdb";
+                if (isfile(filename)) break;
+                filename=dirpair_opt+sep+line+".cif";
+                if (isfile(filename)) break;
+            }
+            filename.clear();
+        }
+
+        if (filename.size()==0)
+        {
+            filename=dirpair_opt+filename2+suffix_opt;
+            cerr<<"WARNING! "<<filename<<" does not exist"<<endl;
+            continue;
+        }
+        else
+        {
+            filename2=filename; 
+            filename.clear();
+        }
+
+        chain1_list.push_back(filename1);
+        chain2_list.push_back(filename2);
+        line.clear();
+        filename.clear();
+    }
+    fp.close();
 }
 
 #endif

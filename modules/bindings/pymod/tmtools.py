@@ -32,7 +32,7 @@ import subprocess, os, tempfile, platform
 import ost
 from ost import settings, io, geom, seq
 
-def _SetupFiles(models):
+def _SetupFiles(models, custom_chain_mapping = None):
   # create temporary directory
   tmp_dir_name=tempfile.mkdtemp()
   dia = 'PDB'
@@ -46,6 +46,9 @@ def _SetupFiles(models):
           dia = 'CHARMM'
           break;
     io.SavePDB(model, os.path.join(tmp_dir_name, 'model%02d.pdb' % (index+1)), dialect=dia)
+  if custom_chain_mapping is not None:
+    with open(os.path.join(tmp_dir_name, "custom_mapping.txt"), 'w') as fh:
+      fh.write('\n'.join([f"{mdl_ch}\t{ref_ch}" for ref_ch, mdl_ch in custom_chain_mapping.items()]))
   return tmp_dir_name
 
 def _CleanupFiles(dir_name):
@@ -183,6 +186,9 @@ def _RunUSAlign(usalign, tmp_dir):
   mat_filename = os.path.join(tmp_dir, "mat.txt")
   usalign_path=settings.Locate('USalign', explicit_file_name=usalign)  
   command = f"{usalign_path} {model1_filename} {model2_filename}  -mm 1 -ter 0 -m {mat_filename}"
+  custom_mapping = os.path.join(tmp_dir, "custom_mapping.txt")
+  if os.path.exists(custom_mapping):
+    command += f" -chainmap {custom_mapping}"
   ps=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
   stdout,_=ps.communicate()
   lines=stdout.decode().splitlines()
@@ -319,7 +325,7 @@ def TMScore(model1, model2, tmscore=None):
   return result
 
 
-def USAlign(model1, model2, usalign=None):
+def USAlign(model1, model2, usalign=None, custom_chain_mapping=None):
   """
   Performs a sequence independent superposition of model1 onto model2, the 
   reference. Can deal with multimeric complexes and RNA.
@@ -334,13 +340,22 @@ def USAlign(model1, model2, usalign=None):
   :type model2: :class:`~ost.mol.EntityView` or :class:`~ost.mol.EntityHandle`
   :param usalign: If not None, the path to the USalign executable. Searches
                   for executable with name ``USalign`` in PATH if not given.
+  :param custom_chain_mapping: Custom chain mapping that is passed as -chainmap
+                               to USalign executable. Raises an error is this
+                               is not supported by the USalign executable you're
+                               using (introduced in July 2023).
+                               It's a dict with reference chain names as key
+                               (model2) and model chain names as values
+                               (model1).
+  :type custom_chain_mapping: :class:`dict`
   :returns: The result of the superposition
   :rtype: :class:`ost.bindings.MMAlignResult`
   
   :raises: :class:`~ost.settings.FileNotFound` if executable could not be located.
   :raises: :class:`RuntimeError` if the superposition failed
   """
-  tmp_dir_name=_SetupFiles((model1, model2))
+  tmp_dir_name=_SetupFiles((model1, model2),
+                           custom_chain_mapping=custom_chain_mapping)
   result=_RunUSAlign(usalign, tmp_dir_name)
   model1.handle.EditXCS().ApplyTransform(result.transform)
   _CleanupFiles(tmp_dir_name)

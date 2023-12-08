@@ -118,17 +118,16 @@ class TestOMF(unittest.TestCase):
         self.ent.SetName("This is a name 123")
 
     def test_AU(self):
-        omf = io.OMF.FromMMCIF(self.ent, self.info)
+        omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
         loaded_omf = io.OMF.FromBytes(omf_bytes)
         loaded_ent = loaded_omf.GetAU()
         self.assertTrue(compare_ent(self.ent, loaded_ent))
 
     def test_default_peplib(self):
-        omf = io.OMF.FromMMCIF(self.ent, self.info)
+        omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
-        omf_def_pep = io.OMF.FromMMCIF(self.ent, self.info,
-                                       io.OMFOption.DEFAULT_PEPLIB)
+        omf_def_pep = io.OMF.FromEntity(self.ent, options = io.OMFOption.DEFAULT_PEPLIB)
         omf_def_pep_bytes = omf_def_pep.ToBytes()
         loaded_omf_def_pep = io.OMF.FromBytes(omf_def_pep_bytes)
         loaded_ent = loaded_omf_def_pep.GetAU()
@@ -136,26 +135,10 @@ class TestOMF(unittest.TestCase):
         self.assertTrue(len(omf_def_pep_bytes) < len(omf_bytes))
         self.assertTrue(compare_ent(self.ent, loaded_ent))
 
-    def test_lossy(self):
-        omf = io.OMF.FromMMCIF(self.ent, self.info)
-        omf_bytes = omf.ToBytes()
-        omf_lossy = io.OMF.FromMMCIF(self.ent, self.info,
-                                     io.OMFOption.LOSSY)
-        omf_lossy_bytes = omf_lossy.ToBytes()
-        loaded_omf_lossy = io.OMF.FromBytes(omf_lossy_bytes)
-        loaded_ent = loaded_omf_lossy.GetAU()
-
-        self.assertTrue(len(omf_lossy_bytes) < len(omf_bytes))
-        self.assertFalse(compare_ent(self.ent, loaded_ent))
-        max_dist = math.sqrt(3*0.05*0.05)
-        self.assertTrue(compare_ent(self.ent, loaded_ent,
-                                    at_dist_thresh=max_dist))
-
     def test_avg_bfactors(self):
-        omf = io.OMF.FromMMCIF(self.ent, self.info)
+        omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
-        omf_avg_bfac = io.OMF.FromMMCIF(self.ent, self.info,
-                                        io.OMFOption.AVG_BFACTORS)
+        omf_avg_bfac = io.OMF.FromEntity(self.ent, options = io.OMFOption.AVG_BFACTORS)
         omf_avg_bfac_bytes = omf_avg_bfac.ToBytes()
         loaded_omf_avg_bfac = io.OMF.FromBytes(omf_avg_bfac_bytes)
         loaded_ent = loaded_omf_avg_bfac.GetAU()
@@ -174,10 +157,9 @@ class TestOMF(unittest.TestCase):
                 self.assertTrue(abs(a.b_factor - exp_bfac) < 0.008)
 
     def test_round_bfactors(self):
-        omf = io.OMF.FromMMCIF(self.ent, self.info)
+        omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
-        omf_round_bfac = io.OMF.FromMMCIF(self.ent, self.info,
-                                        io.OMFOption.ROUND_BFACTORS)
+        omf_round_bfac = io.OMF.FromEntity(self.ent, options = io.OMFOption.ROUND_BFACTORS)
         omf_round_bfac_bytes = omf_round_bfac.ToBytes()
         loaded_omf_round_bfac = io.OMF.FromBytes(omf_round_bfac_bytes)
         loaded_ent = loaded_omf_round_bfac.GetAU()
@@ -188,10 +170,9 @@ class TestOMF(unittest.TestCase):
                                     at_bfactor_thresh=0.5))
 
     def test_skip_ss(self):
-        omf = io.OMF.FromMMCIF(self.ent, self.info)
+        omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
-        omf_skip_ss = io.OMF.FromMMCIF(self.ent, self.info,
-                                          io.OMFOption.SKIP_SS)
+        omf_skip_ss = io.OMF.FromEntity(self.ent, options = io.OMFOption.SKIP_SS)
         omf_skip_ss_bytes = omf_skip_ss.ToBytes()
         loaded_omf_skip_ss = io.OMF.FromBytes(omf_skip_ss_bytes)
         loaded_ent = loaded_omf_skip_ss.GetAU()
@@ -201,10 +182,10 @@ class TestOMF(unittest.TestCase):
         self.assertTrue(compare_ent(self.ent, loaded_ent, skip_ss=True))
 
     def test_infer_pep_bonds(self):
-        omf = io.OMF.FromMMCIF(self.ent, self.info)
+        omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()
-        omf_infer_pep_bonds = io.OMF.FromMMCIF(self.ent, self.info,
-                                               io.OMFOption.INFER_PEP_BONDS)
+        omf_infer_pep_bonds = io.OMF.FromEntity(self.ent,
+                                                options = io.OMFOption.INFER_PEP_BONDS)
         omf_infer_pep_bonds_bytes = omf_infer_pep_bonds.ToBytes()
         loaded_omf_infer_pep_bonds = io.OMF.FromBytes(omf_infer_pep_bonds_bytes)
         loaded_ent = loaded_omf_infer_pep_bonds.GetAU()
@@ -212,39 +193,14 @@ class TestOMF(unittest.TestCase):
         self.assertTrue(len(omf_infer_pep_bonds_bytes) < len(omf_bytes))
         self.assertTrue(compare_ent(self.ent, loaded_ent))
 
-    def test_multiple_BU(self):
-        ent, seqres, info = io.LoadMMCIF("testfiles/mmcif/3imj.cif.gz", 
-                                         seqres=True,
-                                         info=True)
-
-        omf = io.OMF.FromMMCIF(ent, info)
+    def test_lower_precition(self):
+        omf = io.OMF.FromEntity(self.ent, max_error=0.5)
         omf_bytes = omf.ToBytes()
-        omf_loaded = io.OMF.FromBytes(omf_bytes)
+        loaded_omf = io.OMF.FromBytes(omf_bytes)
+        loaded_ent = loaded_omf.GetAU()
+        self.assertFalse(compare_ent(self.ent, loaded_ent))
+        self.assertTrue(compare_ent(self.ent, loaded_ent, at_dist_thresh=0.5))
 
-        # there are quite some discrepancies between PDBize and OMF
-        # - chain names: PDBize has specific chain names for ligands and
-        #                water etc. OMF just iterates A, B, C, D, ...
-        # - skip_bonds: Thats qualified atom name based. PDBize used rnums
-        #               and insertion codes for waters...
-        # - skip_rnums: Again, insertion codes for waters...
-        self.assertTrue(compare_ent(info.GetBioUnits()[0].PDBize(ent),
-                                    omf_loaded.GetBU(0),
-                                    skip_cnames=True, skip_bonds=True,
-                                    skip_rnums=True, bu_idx = 0))
-
-        self.assertTrue(compare_ent(info.GetBioUnits()[1].PDBize(ent),
-                                    omf_loaded.GetBU(1),
-                                    skip_cnames=True, skip_bonds=True,
-                                    skip_rnums=True, bu_idx = 1))
-
-        # no check for the full guy... problem: PDBize throws all water
-        # molecules in the same chain, whereas OMF keeps them separate
-        # as in the chains from the assymetric unit... maybe needs some
-        # thinking on how to resolve discrepancies between PDBize and OMF
-        #self.assertTrue(compare_ent(omf_loaded.GetBU(2),
-        #                            info.GetBioUnits()[2].PDBize(ent),
-        #                            skip_cnames=True, skip_bonds=True,
-        #                            skip_rnums=True))
 
 if __name__== '__main__':
     from ost import testutils

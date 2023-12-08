@@ -1131,4 +1131,42 @@ BOOST_AUTO_TEST_CASE(test_pqr_write_atom)
   BOOST_CHECK_EQUAL(fwriter.IsPQR(), true);
 }
 
+// Charges
+BOOST_AUTO_TEST_CASE(test_parse_charge)
+{
+  Logger::Instance().PushVerbosityLevel(0);
+  String fname("testfiles/pdb/charge.pdb");
+  PDBReader reader(fname, IOProfile());
+  mol::EntityHandle ent=mol::CreateEntity();
+  reader.Import(ent);
+
+  BOOST_CHECK(ent.FindAtom("A", 68, "N").GetCharge() == 1.0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CA").GetCharge() == 0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CB").GetCharge() == 0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CG1").GetCharge() == 0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CG2").GetCharge() == 4);
+  BOOST_CHECK(ent.FindAtom("A", 68, "O").GetCharge() == -1);
+
+}
+BOOST_AUTO_TEST_CASE(faulty_charges)
+{
+  String fname("testfiles/pdb/charge_faulty.pdb");
+  PDBReader reader(fname, IOProfile());
+  mol::EntityHandle ent=mol::CreateEntity();
+  BOOST_CHECK_THROW(reader.Import(ent), IOException);
+
+  ent=mol::CreateEntity(); // Clean entity
+  IOProfile profile;
+  profile.fault_tolerant=true;
+  PDBReader reader2(fname, profile);
+  reader2.Import(ent);
+
+  BOOST_CHECK(ent.FindAtom("A", 68, "N").GetCharge() == 1.0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CA").GetCharge() == 0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CB").GetCharge() == 0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CG1").GetCharge() == 0);
+  BOOST_CHECK(ent.FindAtom("A", 68, "CG2").GetCharge() == 4);
+  BOOST_CHECK(ent.FindAtom("A", 68, "O").GetCharge() == -1);
+}
+
 BOOST_AUTO_TEST_SUITE_END();

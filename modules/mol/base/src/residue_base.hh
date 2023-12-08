@@ -81,7 +81,7 @@ public:
   operator bool() const { return this->IsValid(); }
   /// \brief check validity of handle
   /// \sa #operator bool()
-  bool IsValid() const { return Impl().get()!=0; }
+  bool IsValid() const;
   friend class ConstGenericPropContainer<ResidueBase>;
   /// \brief return residue number
   const ResNum& GetNumber() const;

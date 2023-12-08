@@ -39,7 +39,7 @@ The standard vector operations are implemented as :ref:`free standing functions
 
 Vector Classes
 --------------------------------------------------------------------------------
-.. class:: Vec2([x=0.0, y=0.0, z=0.0])
+.. class:: Vec2(x=0.0, y=0.0, z=0.0)
            Vec2(vec)
            
    Real-valued vector in 2 dimensions.
@@ -65,7 +65,7 @@ Vector Classes
    .. attribute:: y
 
      The y-coordinate of the vector.
-.. class:: Vec3([x=0.0, y=0.0, z=0.0])
+.. class:: Vec3(x=0.0, y=0.0, z=0.0)
            Vec3(vec)
     
     Real-valued vector in 3 dimensions.
@@ -99,7 +99,7 @@ Vector Classes
       
       :type: float or int
 
-.. class:: Vec4([x=0.0, y=0.0, z=0.0, w=1.0])
+.. class:: Vec4(x=0.0, y=0.0, z=0.0, w=1.0)
            Vec4(vec)
 
     Real-valued vector in 4 dimensions.

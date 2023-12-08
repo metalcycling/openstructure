@@ -15,7 +15,7 @@ examples are:
   * fit of a fragment inside an electron density map
 
 In OpenStructure this is supported by the use of generic properties. Most 
-building blocks are derived from :class:`~ost.GenericPropertyContainer`, meaning 
+building blocks are derived from :class:`~ost.GenericPropContainer`, meaning
 that arbitrary key-value pairs can be stored in them. In essence, the following 
 classes support generic properties:
 
@@ -24,7 +24,7 @@ classes support generic properties:
   * :class:`~ost.mol.ResidueHandle` and :class:`~ost.mol.ResidueView`
   * :class:`~ost.mol.AtomHandle` and :class:`~ost.mol.AtomView`
   * :class:`~ost.mol.BondHandle`
-  * :class:`~ost.seq.SequenceHandle` and :class:`~ost.seq.AlignmentHandle`
+  * :class:`~ost.seq.SequenceHandle`
 
 The view variants will reflect the generic properties of the handle variants.
 
@@ -35,7 +35,7 @@ values are available both in Python and C++.
 Storing and Accessing Data
 --------------------------------------------------------------------------------
 
-All OpenStructure building blocks that are :class:`~ost.GenericPropContainers`, 
+All OpenStructure building blocks that are :class:`~ost.GenericPropContainer`\s,
 have four different methods to store generic data, depending on the data type 
 (i.e. string, float, int or bool).
 
@@ -98,7 +98,7 @@ level respectively. For more details see :doc:`../mol/base/query`.
 API documentation
 --------------------------------------------------------------------------------
 
-.. class:: GenericPropertyContainer
+.. class:: GenericPropContainer
 
   .. method:: HasProp(key)
   

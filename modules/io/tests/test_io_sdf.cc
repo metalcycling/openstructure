@@ -252,5 +252,17 @@ BOOST_AUTO_TEST_CASE(empty_dataheader_error_sdf)
   BOOST_CHECK_THROW(sdfh.Import(eh,"testfiles/sdf/empty_dataheader.sdf"), IOException);
 }
 
+BOOST_AUTO_TEST_CASE(rcsb_modelserver_sdf)
+{
+  // Check that we can read invalid SDF files from the RCSB model server.
+  // These files have too short
+  mol::EntityHandle eh=mol::CreateEntity();
+  EntityIOSDFHandler sdfh;
+  sdfh.Import(eh,"testfiles/sdf/1atg_C_ACT.sdf.gz");
+
+  // check success
+  BOOST_CHECK_EQUAL(eh.GetChainCount(), 1);
+}
+
 
 BOOST_AUTO_TEST_SUITE_END();

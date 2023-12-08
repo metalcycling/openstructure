@@ -102,9 +102,14 @@ String AtomBase::GetQualifiedName() const
   return Impl()->GetQualifiedName();
 }
 
+bool AtomBase::IsValid() const
+{
+  return Impl().get()!=0 && impl_->GetEntity();
+}
+
 void AtomBase::CheckValidity() const 
 {
-  if (!impl_)
+  if (! IsValid())
     throw InvalidHandle();
 }
 

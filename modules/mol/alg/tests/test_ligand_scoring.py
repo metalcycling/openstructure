@@ -3,6 +3,7 @@ from functools import lru_cache
 
 import numpy as np
 
+import ost
 from ost import io, mol, geom
 # check if we can import: fails if numpy or scipy not available
 try:
@@ -50,10 +51,10 @@ class TestLigandScoring(unittest.TestCase):
 
         sc = LigandScorer(mdl, trg, None, None)
 
-        assert len(sc.target_ligands) == 7
-        assert len(sc.model_ligands) == 1
-        assert len([r for r in sc.target.residues if r.is_ligand]) == 7
-        assert len([r for r in sc.model.residues if r.is_ligand]) == 1
+        self.assertEqual(len(sc.target_ligands),  7)
+        self.assertEqual(len(sc.model_ligands), 1)
+        self.assertEqual(len([r for r in sc.target.residues if r.is_ligand]), 7)
+        self.assertEqual(len([r for r in sc.model.residues if r.is_ligand]), 1)
 
     def test_init_given_ligands(self):
         """Test that we can instantiate the scorer with ligands contained in
@@ -67,29 +68,29 @@ class TestLigandScoring(unittest.TestCase):
         mdl_lig = [mdl.Select("rname=G3D")]
         sc = LigandScorer(mdl, trg, mdl_lig, trg_lig)
 
-        assert len(sc.target_ligands) == 4
-        assert len(sc.model_ligands) == 1
+        self.assertEqual(len(sc.target_ligands), 4)
+        self.assertEqual(len(sc.model_ligands), 1)
         # IsLigand flag should still be set even on not selected ligands
-        assert len([r for r in sc.target.residues if r.is_ligand]) == 7
-        assert len([r for r in sc.model.residues if r.is_ligand]) == 1
+        self.assertEqual(len([r for r in sc.target.residues if r.is_ligand]), 7)
+        self.assertEqual(len([r for r in sc.model.residues if r.is_ligand]), 1)
 
         # Ensure the residues are not copied
-        assert len(sc.target.Select("rname=MG").residues) == 2
-        assert len(sc.target.Select("rname=G3D").residues) == 2
-        assert len(sc.model.Select("rname=G3D").residues) == 1
+        self.assertEqual(len(sc.target.Select("rname=MG").residues), 2)
+        self.assertEqual(len(sc.target.Select("rname=G3D").residues), 2)
+        self.assertEqual(len(sc.model.Select("rname=G3D").residues), 1)
 
         # Pass residue handles
         trg_lig = [trg.FindResidue("F", 1), trg.FindResidue("H", 1)]
         mdl_lig = [mdl.FindResidue("L_2", 1)]
         sc = LigandScorer(mdl, trg, mdl_lig, trg_lig)
 
-        assert len(sc.target_ligands) == 2
-        assert len(sc.model_ligands) == 1
+        self.assertEqual(len(sc.target_ligands), 2)
+        self.assertEqual(len(sc.model_ligands), 1)
 
         # Ensure the residues are not copied
-        assert len(sc.target.Select("rname=ZN").residues) == 1
-        assert len(sc.target.Select("rname=G3D").residues) == 2
-        assert len(sc.model.Select("rname=G3D").residues) == 1
+        self.assertEqual(len(sc.target.Select("rname=ZN").residues), 1)
+        self.assertEqual(len(sc.target.Select("rname=G3D").residues), 2)
+        self.assertEqual(len(sc.model.Select("rname=G3D").residues), 1)
 
     def test_init_sdf_ligands(self):
         """Test that we can instantiate the scorer with ligands from separate SDF files.
@@ -115,11 +116,11 @@ class TestLigandScoring(unittest.TestCase):
         # Pass entities
         sc = LigandScorer(mdl, trg, mdl_ligs, trg_ligs)
 
-        assert len(sc.target_ligands) == 7
-        assert len(sc.model_ligands) == 1
+        self.assertEqual(len(sc.target_ligands), 7)
+        self.assertEqual(len(sc.model_ligands), 1)
         # Ensure we set the is_ligand flag
-        assert len([r for r in sc.target.residues if r.is_ligand]) == 7
-        assert len([r for r in sc.model.residues if r.is_ligand]) == 1
+        self.assertEqual(len([r for r in sc.target.residues if r.is_ligand]), 7)
+        self.assertEqual(len([r for r in sc.model.residues if r.is_ligand]), 1)
 
         # Pass residues
         mdl_ligs_res = [mdl_ligs[0].residues[0]]
@@ -127,8 +128,8 @@ class TestLigandScoring(unittest.TestCase):
 
         sc = LigandScorer(mdl, trg, mdl_ligs_res, trg_ligs_res)
 
-        assert len(sc.target_ligands) == 7
-        assert len(sc.model_ligands) == 1
+        self.assertEqual(len(sc.target_ligands), 7)
+        self.assertEqual(len(sc.model_ligands), 1)
 
     def test_init_reject_duplicate_ligands(self):
         """Test that we reject input if multiple ligands with the same chain
@@ -158,16 +159,16 @@ class TestLigandScoring(unittest.TestCase):
         mdl_lig = _LoadEntity("P84080_model_02_ligand_0.sdf")
 
         graph = ligand_scoring._ResidueToGraph(mdl_lig.residues[0])
-        assert len(graph.edges) == 34
-        assert len(graph.nodes) == 32
+        self.assertEqual(len(graph.edges), 34)
+        self.assertEqual(len(graph.nodes), 32)
         # Check an arbitrary node
-        assert [a for a in graph.adj["14"].keys()] == ["13", "29"]
+        self.assertEqual([a for a in graph.adj["14"].keys()], ["13", "29"])
 
         graph = ligand_scoring._ResidueToGraph(mdl_lig.residues[0], by_atom_index=True)
-        assert len(graph.edges) == 34
-        assert len(graph.nodes) == 32
+        self.assertEqual(len(graph.edges), 34)
+        self.assertEqual(len(graph.nodes), 32)
         # Check an arbitrary node
-        assert [a for a in graph.adj[13].keys()] == [12, 28]
+        self.assertEqual([a for a in graph.adj[13].keys()], [12, 28])
 
     def test__ComputeSymmetries(self):
         """Test that _ComputeSymmetries works.
@@ -182,31 +183,33 @@ class TestLigandScoring(unittest.TestCase):
         mdl_g3d = mdl.FindResidue("L_2", 1)
 
         sym = ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1)
-        assert len(sym) == 72
+        self.assertEqual(len(sym), 72)
 
         sym = ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1, by_atom_index=True)
-        assert len(sym) == 72
+        self.assertEqual(len(sym), 72)
 
         # Test that we can match ions read from SDF
         sdf_lig = _LoadEntity("1r8q_ligand_0.sdf")
         sym = ligand_scoring._ComputeSymmetries(trg_mg1, sdf_lig.residues[0], by_atom_index=True)
-        assert len(sym) == 1
+        self.assertEqual(len(sym), 1)
 
         # Test that it works with views and only consider atoms in the view
         # Skip PA, PB and O[1-3]A and O[1-3]B in target and model
         # We assume atom index are fixed and won't change
-        trg_g3d1_sub = trg_g3d1.Select("aindex>6019").residues[0]
-        mdl_g3d_sub = mdl_g3d.Select("aindex>1447").residues[0]
+        trg_g3d1_sub_ent = trg_g3d1.Select("aindex>6019")
+        trg_g3d1_sub = trg_g3d1_sub_ent.residues[0]
+        mdl_g3d_sub_ent = mdl_g3d.Select("aindex>1447")
+        mdl_g3d_sub = mdl_g3d_sub_ent.residues[0]
 
         sym = ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1_sub)
-        assert len(sym) == 6
+        self.assertEqual(len(sym), 6)
 
         sym = ligand_scoring._ComputeSymmetries(mdl_g3d_sub, trg_g3d1_sub, by_atom_index=True)
-        assert len(sym) == 6
+        self.assertEqual(len(sym), 6)
 
         # Substructure matches
         sym = ligand_scoring._ComputeSymmetries(mdl_g3d, trg_g3d1_sub, substructure_match=True)
-        assert len(sym) == 6
+        self.assertEqual(len(sym), 6)
 
         # Missing atoms only allowed in target, not in model
         with self.assertRaises(NoSymmetryError):
@@ -269,7 +272,7 @@ class TestLigandScoring(unittest.TestCase):
         sc._compute_scores()
 
         # Check RMSD
-        assert sc.rmsd_matrix.shape == (7, 1)
+        self.assertEqual(sc.rmsd_matrix.shape, (7, 1))
         np.testing.assert_almost_equal(sc.rmsd_matrix, np.array(
             [[np.nan],
             [0.04244993],
@@ -369,24 +372,23 @@ class TestLigandScoring(unittest.TestCase):
 
         # Local by default
         sc = LigandScorer(mdl, trg, None, None)
-        assert sc.rmsd_details["L_2"][1]["chain_mapping"] == {'A': 'A'}
-        assert sc.lddt_pli_details["L_2"][1]["chain_mapping"] == {'C': 'A'}
+        self.assertEqual(sc.rmsd_details["L_2"][1]["chain_mapping"], {'A': 'A'})
+        self.assertEqual(sc.lddt_pli_details["L_2"][1]["chain_mapping"], {'C': 'A'})
 
         # Global
         sc = LigandScorer(mdl, trg, None, None, global_chain_mapping=True)
-        assert sc.rmsd_details["L_2"][1]["chain_mapping"] == {'C': 'A'}
-        assert sc.lddt_pli_details["L_2"][1]["chain_mapping"] == {'C': 'A'}
+        self.assertEqual(sc.rmsd_details["L_2"][1]["chain_mapping"], {'C': 'A'})
+        self.assertEqual(sc.lddt_pli_details["L_2"][1]["chain_mapping"], {'C': 'A'})
 
         # Custom
         sc = LigandScorer(mdl, trg, None, None, global_chain_mapping=True, custom_mapping={'A': 'A'})
-        assert sc.rmsd_details["L_2"][1]["chain_mapping"] == {'A': 'A'}
-        assert sc.lddt_pli_details["L_2"][1]["chain_mapping"] == {'A': 'A'}
+        self.assertEqual(sc.rmsd_details["L_2"][1]["chain_mapping"], {'A': 'A'})
+        self.assertEqual(sc.lddt_pli_details["L_2"][1]["chain_mapping"], {'A': 'A'})
 
         # Custom only active with global chain mapping
         sc = LigandScorer(mdl, trg, None, None, global_chain_mapping=False, custom_mapping={'A': 'A'})
-        assert sc.rmsd_details["L_2"][1]["chain_mapping"] == {'A': 'A'}
-        assert sc.lddt_pli_details["L_2"][1]["chain_mapping"] == {'C': 'A'}
-
+        self.assertEqual(sc.rmsd_details["L_2"][1]["chain_mapping"], {'A': 'A'})
+        self.assertEqual(sc.lddt_pli_details["L_2"][1]["chain_mapping"], {'C': 'A'})
 
     def test_rmsd_assignment(self):
         """Test that the RMSD-based assignment works.
@@ -405,7 +407,254 @@ class TestLigandScoring(unittest.TestCase):
 
         # RMSD assignment forces the same assignment
         sc = LigandScorer(mdl, trg, None, None, rmsd_assignment=True)
-        assert sc.rmsd_details["L_2"][1]["target_ligand"] == sc.lddt_pli_details["L_2"][1]["target_ligand"]
+        self.assertEqual(sc.rmsd_details["L_2"][1]["target_ligand"], sc.lddt_pli_details["L_2"][1]["target_ligand"])
+
+    def test_ignore_binding_site(self):
+        """Test that we ignore non polymer stuff in the binding site.
+         NOTE: we should consider changing this behavior in the future and take
+         other ligands, peptides and short oligomers into account for superposition.
+         When that's the case this test should be adapter
+         """
+        trg = _LoadMMCIF("1SSP.cif.gz")
+        sc = LigandScorer(trg, trg, None, None)
+        expected_bs_ref_res = ['C.GLY62', 'C.GLN63', 'C.ASP64', 'C.PRO65', 'C.TYR66', 'C.CYS76', 'C.PHE77', 'C.ASN123', 'C.HIS187']
+        ost.PushVerbosityLevel(ost.LogLevel.Error)
+        self.assertEqual([str(r) for r in sc.rmsd_details["D"][1]["bs_ref_res"]], expected_bs_ref_res)
+        ost.PopVerbosityLevel()
+
+    def test_unassigned_reasons(self):
+        """Test reasons for being unassigned."""
+        trg = _LoadMMCIF("1r8q.cif.gz")
+        mdl = _LoadMMCIF("P84080_model_02.cif.gz")
+
+        def _AppendResidueWithBonds(ed, chain, old_res):
+            new_res = ed.AppendResidue(chain, old_res.name)
+            for old_atom in old_res.atoms:
+                ed.InsertAtom(new_res, old_atom.name, old_atom.pos, old_atom.element,
+                              old_atom.occupancy, old_atom.b_factor, old_atom.is_hetatom)
+            for old_bond in old_atom.bonds:
+                new_first = new_res.FindAtom(old_bond.first.name)
+                new_second = new_res.FindAtom(old_bond.second.name)
+                ed.Connect(new_first, new_second)
+            return new_res
+
+        # Add interesting ligands to model and target
+        mdl_ed = mdl.EditXCS()
+        trg_ed = trg.EditXCS()
+
+        # Add ZN: representation in the model (chain missing in model)
+        new_chain = mdl_ed.InsertChain("L_ZN")
+        mdl_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = _AppendResidueWithBonds(mdl_ed, new_chain, trg.Select("rname=ZN").residues[0].handle)
+        new_res.is_ligand = True
+
+        # Add NA: not in contact with target
+        new_chain = trg_ed.InsertChain("L_NA")
+        trg_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = trg_ed.AppendResidue(new_chain, "NA")
+        new_atom = trg_ed.InsertAtom(new_res, "NA", geom.Vec3(100, 100, 100), "NA")
+        new_res.is_ligand = True
+        new_chain = mdl_ed.InsertChain("L_NA")
+        mdl_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = mdl_ed.AppendResidue(new_chain, "NA")
+        new_atom = mdl_ed.InsertAtom(new_res, "NA", geom.Vec3(100, 100, 100), "NA")
+        new_res.is_ligand = True
+
+        # Add OXY: no symmetry/ not identical -
+        new_chain = mdl_ed.InsertChain("L_OXY")
+        mdl_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = mdl_ed.AppendResidue(new_chain, "OXY")
+        new_atom1 = mdl_ed.InsertAtom(new_res, "O1", geom.Vec3(0, 0, 0), "O")
+        new_atom2 = mdl_ed.InsertAtom(new_res, "O2", geom.Vec3(1, 1, 1), "O")
+        mdl_ed.Connect(new_atom1, new_atom2)
+        new_res.is_ligand = True
+
+        # Add CMO: disconnected
+        new_chain = mdl_ed.InsertChain("L_CMO")
+        mdl_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = mdl_ed.AppendResidue(new_chain, "CMO")
+        new_atom1 = mdl_ed.InsertAtom(new_res, "O", geom.Vec3(0, 0, 0), "O")
+        new_atom2 = mdl_ed.InsertAtom(new_res, "C", geom.Vec3(1, 1, 1), "O")
+        new_res.is_ligand = True
+        new_chain = trg_ed.InsertChain("L_CMO")
+        trg_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+        new_res = trg_ed.AppendResidue(new_chain, "CMO")
+        new_atom1 = trg_ed.InsertAtom(new_res, "O", geom.Vec3(0, 0, 0), "O")
+        new_atom2 = trg_ed.InsertAtom(new_res, "C", geom.Vec3(1, 1, 1), "O")
+        new_res.is_ligand = True
+
+        # Add 3 MG in model: assignment/stoichiometry
+        mg_pos = [
+            mdl.geometric_center,
+            mdl.geometric_center + 1,
+            mdl.geometric_center + 100
+        ]
+        for i in range(3):
+            new_chain = mdl_ed.InsertChain("L_MG_%d" % i)
+            mdl_ed.SetChainType(new_chain, mol.ChainType.CHAINTYPE_NON_POLY)
+            new_res = mdl_ed.AppendResidue(new_chain, "MG")
+            new_atom = mdl_ed.InsertAtom(new_res, "MG", mg_pos[i], "MG")
+            new_res.is_ligand = True
+
+        mdl_ed.UpdateICS()
+        trg_ed.UpdateICS()
+
+        sc = LigandScorer(mdl, trg, None, None, unassigned=True)
+
+        # Check unassigned targets
+        # NA: not in contact with target
+        trg_na = sc.target.FindResidue("L_NA", 1)
+        self.assertEqual(sc.unassigned_target_ligands["L_NA"][1], "binding_site")
+        # ZN: no representation
+        trg_zn = sc.target.FindResidue("H", 1)
+        self.assertEqual(sc.unassigned_target_ligands["H"][1], "model_representation")
+        # AFB: not identical to anything in the model
+        trg_afb = sc.target.FindResidue("G", 1)
+        self.assertEqual(sc.unassigned_target_ligands["G"][1], "identity")
+        # F.G3D1: J.G3D1 assigned instead
+        trg_fg3d1 = sc.target.FindResidue("F", 1)
+        self.assertEqual(sc.unassigned_target_ligands["F"][1], "stoichiometry")
+        # CMO: disconnected
+        trg_cmo1 = sc.target.FindResidue("L_CMO", 1)
+        self.assertEqual(sc.unassigned_target_ligands["L_CMO"][1], "disconnected")
+        # J.G3D1: assigned to L_2.G3D1 => error
+        trg_jg3d1 = sc.target.FindResidue("J", 1)
+        with self.assertRaises(RuntimeError):
+            sc._find_unassigned_target_ligand_reason(trg_jg3d1)
+        self.assertNotIn("J", sc.unassigned_target_ligands)
+        # Raises with an invalid ligand
+        with self.assertRaises(ValueError):
+            sc._find_unassigned_target_ligand_reason(sc.model_ligands[0])
+
+        # Check unassigned models
+        # OXY: not identical to anything in the model
+        mdl_oxy = sc.model.FindResidue("L_OXY", 1)
+        self.assertEqual(sc.unassigned_model_ligands["L_OXY"][1], "identity")
+        self.assertIsNone(sc.lddt_pli["L_OXY"][1])
+        # NA: not in contact with target
+        mdl_na = sc.model.FindResidue("L_NA", 1)
+        self.assertEqual(sc.unassigned_model_ligands["L_NA"][1], "binding_site")
+        self.assertIsNone(sc.lddt_pli["L_NA"][1])
+        # ZN: no representation
+        mdl_zn = sc.model.FindResidue("L_ZN", 1)
+        self.assertEqual(sc.unassigned_model_ligands["L_ZN"][1], "model_representation")
+        self.assertIsNone(sc.lddt_pli["L_ZN"][1])
+        # MG in L_MG_2 has stupid coordinates and is not assigned
+        mdl_mg_2 = sc.model.FindResidue("L_MG_2", 1)
+        self.assertEqual(sc.unassigned_model_ligands["L_MG_2"][1], "stoichiometry")
+        self.assertIsNone(sc.lddt_pli["L_MG_2"][1])
+        # MG in L_MG_0: assigned to I.MG1 => error
+        mdl_mg_0 = sc.model.FindResidue("L_MG_0", 1)
+        with self.assertRaises(RuntimeError):
+            sc._find_unassigned_model_ligand_reason(mdl_mg_0)
+        self.assertNotIn("L_MG_0", sc.unassigned_model_ligands)
+        # CMO: disconnected
+        mdl_cmo1 = sc.model.FindResidue("L_CMO", 1)
+        self.assertEqual(sc.unassigned_model_ligands["L_CMO"][1], "disconnected")
+        # Raises with an invalid ligand
+        with self.assertRaises(ValueError):
+            sc._find_unassigned_model_ligand_reason(sc.target_ligands[0])
+
+        # Should work with rmsd_assignment too
+        sc = LigandScorer(mdl, trg, None, None, unassigned=True,
+                          rmsd_assignment=True)
+        self.assertEqual(sc.unassigned_model_ligands, {
+            'L_ZN': {1: 'model_representation'},
+            'L_NA': {1: 'binding_site'},
+            'L_OXY': {1: 'identity'},
+            'L_MG_2': {1: 'stoichiometry'},
+            "L_CMO": {1: 'disconnected'}
+        })
+        self.assertEqual(sc.unassigned_target_ligands, {
+            'G': {1: 'identity'},
+            'H': {1: 'model_representation'},
+            'J': {1: 'stoichiometry'},
+            'K': {1: 'identity'},
+            'L_NA': {1: 'binding_site'},
+            "L_CMO": {1: 'disconnected'}
+        })
+        self.assertIsNone(sc.lddt_pli["L_OXY"][1])
+
+        # With missing ligands
+        sc = LigandScorer(mdl.Select("cname=A"), trg, None, None)
+        self.assertEqual(sc.unassigned_target_ligands["E"][1], 'no_ligand')
+
+        sc = LigandScorer(mdl, trg.Select("cname=A"), None, None)
+        self.assertEqual(sc.unassigned_model_ligands["L_2"][1], 'no_ligand')
+
+        sc = LigandScorer(mdl.Select("cname=A"), trg, None, None,
+                          unassigned=True, rmsd_assignment=True)
+        self.assertEqual(sc.unassigned_target_ligands["E"][1], 'no_ligand')
+
+        sc = LigandScorer(mdl, trg.Select("cname=A"), None, None,
+                          unassigned=True, rmsd_assignment=True)
+        self.assertEqual(sc.unassigned_model_ligands["L_2"][1], 'no_ligand')
+
+        # However not everything must be missing
+        with self.assertRaises(ValueError):
+            sc = LigandScorer(mdl.Select("cname=A"), trg.Select("cname=A"), None, None,
+                              unassigned=True, rmsd_assignment=True)
+
+
+    def test_substructure_match(self):
+        """Test that substructure_match=True works."""
+        trg = _LoadMMCIF("1r8q.cif.gz")
+        mdl = _LoadMMCIF("P84080_model_02.cif.gz")
+
+        trg_g3d1 = trg.FindResidue("F", 1)
+        mdl_g3d = mdl.FindResidue("L_2", 1)
+
+        # Skip PA, PB and O[1-3]A and O[1-3]B in target and model
+        # ie 8 / 32 atoms => coverage 0.75
+        # We assume atom index are fixed and won't change
+        trg_g3d1_sub_ent = trg_g3d1.Select("aindex>6019")
+        trg_g3d1_sub = trg_g3d1_sub_ent.residues[0]
+
+        # Substructure matches
+        sc = LigandScorer(mdl.Select("protein=True"), trg.Select("protein=True"),
+                          model_ligands=[mdl_g3d], target_ligands=[trg_g3d1_sub],
+                          substructure_match=True)
+        self.assertEqual(sc.rmsd_details["L_2"][1]["coverage"], 0.75)
+
+    def test_6jyf(self):
+        """6JYF initially caused issues in the CASP15-CAMEO/LIGATE paper where
+         the ligand RET was wrongly assigned to short copies of OLA that float
+          around and yielded higher scores.
+          Here we test that this is resolved correctly."""
+        mdl = _LoadPDB("6jyf_mdl.pdb")
+        trg = _LoadMMCIF("6jyf_trg.cif")
+        mdl_lig = _LoadEntity("6jyf_RET_pred.sdf")
+        mdl_lig_full = _LoadEntity("6jyf_RET_pred_complete.sdf")
+
+        # Problem is easily fixed by just prioritizing full coverage
+        sc = LigandScorer(mdl, trg, model_ligands=[mdl_lig],
+                          substructure_match=True)
+        self.assertEqual(sc.rmsd_details['00001_'][1]["coverage"], 1.0)
+        self.assertEqual(sc.rmsd_details['00001_'][1]["target_ligand"].name, "RET")
+        self.assertAlmostEqual(sc.rmsd['00001_'][1], 15.56022, 4)
+        self.assertTrue(np.array_equal(sc.coverage_matrix,
+                              np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0.5, 0.3, 0.45, 0, 0, 0.55]]).transpose()))
+
+        # We need to make sure that it also works if the match is partial.
+        # For that we load the complete ligand incl. the O missing in target
+        # with a coverage of around 95% only.
+        sc = LigandScorer(mdl, trg, model_ligands=[mdl_lig_full],
+                          substructure_match=True)
+        self.assertTrue(sc.rmsd_details['00001_'][1]["coverage"] > 0.95)
+        self.assertEqual(sc.rmsd_details['00001_'][1]["target_ligand"].name, "RET")
+        self.assertAlmostEqual(sc.rmsd['00001_'][1], 15.56022, 4)
+
+        # Next, we check that coverage_delta has an effect. With a large
+        # delta of 0.5 we will assign to OLA which has a higher RMSD
+        # but a coverage of 0.52 only.
+        sc = LigandScorer(mdl, trg, model_ligands=[mdl_lig_full],
+                          substructure_match=True,
+                          coverage_delta=0.5)
+        self.assertTrue(sc.rmsd_details['00001_'][1]["coverage"] > 0.5)
+        self.assertEqual(sc.rmsd_details['00001_'][1]["target_ligand"].name, "OLA")
+        self.assertAlmostEqual(sc.rmsd['00001_'][1], 6.13006878, 4)
+
+
 
 
 if __name__ == "__main__":

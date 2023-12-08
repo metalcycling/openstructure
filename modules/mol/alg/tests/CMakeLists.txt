@@ -11,6 +11,8 @@ set(OST_MOL_ALG_UNIT_TESTS
   test_lddt.py
   test_qsscore.py
   test_stereochemistry.py
+  test_contact_score.py
+  test_biounit.py
 )
 
 if (COMPOUND_LIB)

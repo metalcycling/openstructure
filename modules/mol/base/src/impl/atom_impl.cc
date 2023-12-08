@@ -214,6 +214,9 @@ AtomImpl::~AtomImpl() {
 
 EntityImplPtr AtomImpl::GetEntity() const
 {
+  if (!res_.lock()) {
+    return EntityImplPtr();
+  }
   return res_.lock()->GetEntity();
 }
 

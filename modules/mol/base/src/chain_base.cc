@@ -52,8 +52,13 @@ String ChainBase::GetDescription() const {
   return impl_->GetDescription();
 }
 
+bool ChainBase::IsValid() const
+{
+  return Impl().get()!=0 && impl_->GetEntity();
+}
+
 void ChainBase::CheckValidity() const {
-  if (!impl_)
+  if (! IsValid())
     throw InvalidHandle();
 }
 

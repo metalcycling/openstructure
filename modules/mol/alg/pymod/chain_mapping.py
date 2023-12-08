@@ -12,6 +12,7 @@ from scipy.special import factorial
 from scipy.special import binom # as of Python 3.8, the math module implements
                                 # comb, i.e. n choose k
 
+import ost
 from ost import seq
 from ost import mol
 from ost import geom
@@ -786,8 +787,8 @@ class ChainMapper:
 
     def GetlDDTMapping(self, model, inclusion_radius=15.0,
                        thresholds=[0.5, 1.0, 2.0, 4.0], strategy="naive",
-                       steep_opt_rate = None, full_n_mdl_chains = None,
-                       block_seed_size = 5, block_blocks_per_chem_group = 5,
+                       steep_opt_rate = None, block_seed_size = 5,
+                       block_blocks_per_chem_group = 5,
                        chem_mapping_result = None):
         """ Identify chain mapping by optimizing lDDT score
 
@@ -814,15 +815,12 @@ class ChainMapper:
 
         * **greedy_full**: try multiple seeds for greedy extension, i.e. try
           all ref/mdl chain combinations within the respective chem groups and
-          retain the mapping leading to the best lDDT. Optionally, you can
-          reduce the number of mdl chains per ref chain to the
-          *full_n_mdl_chains* best scoring ones.
+          retain the mapping leading to the best lDDT.
 
         * **greedy_block**: try multiple seeds for greedy extension, i.e. try
           all ref/mdl chain combinations within the respective chem groups and
-          compute single chain lDDTs. The *block_blocks_per_chem_group* best
-          scoring ones are extend by *block_seed_size* chains and the best
-          scoring one is exhaustively extended.
+          extend them to *block_seed_size*. *block_blocks_per_chem_group*
+          for each chem group are selected for exhaustive extension.
 
         Sets :attr:`MappingResult.opt_score` in case of no trivial one-to-one
         mapping. 
@@ -845,10 +843,6 @@ class ChainMapper:
                                swaps that improve lDDT score. Iteration stops as
                                soon as no improvement can be achieved anymore.
         :type steep_opt_rate: :class:`int`
-        :param full_n_mdl_chains: Param for *greedy_full* strategy - Max number of
-                                  mdl chains that are tried per ref chain. The
-                                  default (None) tries all of them.
-        :type full_n_mdl_chains: :class:`int`
         :param block_seed_size: Param for *greedy_block* strategy - Initial seeds
                                 are extended by that number of chains.
         :type block_seed_size: :class:`int`
@@ -911,7 +905,7 @@ class ChainMapper:
             if strategy == "greedy_fast":
                 mapping = _lDDTGreedyFast(the_greed)
             elif strategy == "greedy_full":
-                mapping = _lDDTGreedyFull(the_greed, full_n_mdl_chains)
+                mapping = _lDDTGreedyFull(the_greed)
             elif strategy == "greedy_block":
                 mapping = _lDDTGreedyBlock(the_greed, block_seed_size,
                                            block_blocks_per_chem_group)
@@ -932,16 +926,14 @@ class ChainMapper:
 
 
     def GetQSScoreMapping(self, model, contact_d = 12.0, strategy = "naive",
-                          full_n_mdl_chains = None, block_seed_size = 5,
-                          block_blocks_per_chem_group = 5,
-                          steep_opt_rate = None, chem_mapping_result = None):
+                          block_seed_size = 5, block_blocks_per_chem_group = 5,
+                          steep_opt_rate = None, chem_mapping_result = None,
+                          greedy_prune_contact_map = False):
         """ Identify chain mapping based on QSScore
 
         Scoring is based on CA/C3' positions which are present in all chains of
         a :attr:`chem_groups` as well as the *model* chains which are mapped to
-        that respective chem group. QS score is not defined for single chains.
-        The greedy strategies that require to identify starting seeds thus
-        often rely on single chain lDDTs.
+        that respective chem group.
 
         The following strategies are available:
 
@@ -951,19 +943,16 @@ class ChainMapper:
         * **greedy_fast**: perform all vs. all single chain lDDTs within the
           respective ref/mdl chem groups. The mapping with highest number of
           conserved contacts is selected as seed for greedy extension.
-          Extension is based on QS score.
+          Extension is based on QS-score.
 
         * **greedy_full**: try multiple seeds for greedy extension, i.e. try
           all ref/mdl chain combinations within the respective chem groups and
-          retain the mapping leading to the best QS score. Optionally, you can
-          reduce the number of mdl chains per ref chain to the
-          *full_n_mdl_chains* best scoring with respect to single chain lDDT.
+          retain the mapping leading to the best QS-score. 
 
         * **greedy_block**: try multiple seeds for greedy extension, i.e. try
           all ref/mdl chain combinations within the respective chem groups and
-          compute single chain lDDTs. The *block_blocks_per_chem_group* best
-          scoring ones are extend by *block_seed_size* chains and the block with
-          with best QS score is exhaustively extended.
+          extend them to *block_seed_size*. *block_blocks_per_chem_group*
+          for each chem group are selected for exhaustive extension.
 
         Sets :attr:`MappingResult.opt_score` in case of no trivial one-to-one
         mapping.
@@ -980,6 +969,17 @@ class ChainMapper:
                                     *model*. If set, *model* parameter is not
                                     used.
         :type chem_mapping_result: :class:`tuple`
+        :param greedy_prune_contact_map: Relevant for all strategies that use
+                                         greedy extensions. If True, only chains
+                                         with at least 3 contacts (8A CB
+                                         distance) towards already mapped chains
+                                         in trg/mdl are considered for
+                                         extension. All chains that give a
+                                         potential non-zero QS-score increase
+                                         are used otherwise (at least one
+                                         contact within 12A). The consequence
+                                         is reduced runtime and usually no
+                                         real reduction in accuracy.
         :returns: A :class:`MappingResult`
         """
 
@@ -1023,18 +1023,18 @@ class ChainMapper:
                                                self.chem_groups,
                                                chem_mapping, ref_mdl_alns,
                                                contact_d = contact_d,
-                                               steep_opt_rate=steep_opt_rate)
+                                               steep_opt_rate=steep_opt_rate,
+                                               greedy_prune_contact_map = greedy_prune_contact_map)
             if strategy == "greedy_fast":
                 mapping = _QSScoreGreedyFast(the_greed)
             elif strategy == "greedy_full":
-                mapping = _QSScoreGreedyFull(the_greed, full_n_mdl_chains)
+                mapping = _QSScoreGreedyFull(the_greed)
             elif strategy == "greedy_block":
                 mapping = _QSScoreGreedyBlock(the_greed, block_seed_size,
                                               block_blocks_per_chem_group)
             # cached => QSScore computation is fast here
             opt_qsscore = the_greed.Score(mapping, check=False)
               
-
         alns = dict()
         for ref_group, mdl_group in zip(self.chem_groups, mapping):
             for ref_ch, mdl_ch in zip(ref_group, mdl_group):
@@ -1228,25 +1228,24 @@ class ChainMapper:
         return MappingResult(self.target, mdl, self.chem_groups, chem_mapping,
                              final_mapping, alns)
 
-    def GetMapping(self, model, n_max_naive = 12):
+    def GetMapping(self, model, n_max_naive = 40320):
         """ Convenience function to get mapping with currently preferred method
 
-        If number of chains in model and target are <= *n_max_naive*, a naive
-        QS-score mapping is performed. For anything else, a QS-score mapping
-        with the greedy_block strategy is performed (steep_opt_rate = 3,
-        block_seed_size = 5, block_blocks_per_chem_group = 6).
+        If number of possible chain mappings is <= *n_max_naive*, a naive
+        QS-score mapping is performed and optimal QS-score is guaranteed.
+        For anything else, a QS-score mapping with the greedy_full strategy is
+        performed (greedy_prune_contact_map = True). The default for
+        *n_max_naive* of 40320 corresponds to an octamer (8!=40320). A
+        structure with stoichiometry A6B2 would be 6!*2!=1440 etc.
         """
-        n_trg_chains = len(self.target.chains)
-        res = self.GetChemMapping(model)
-        n_mdl_chains = len(res[2].chains)
-        if n_trg_chains <= n_max_naive and n_mdl_chains <= n_max_naive:
+        chem_mapping_res = self.GetChemMapping(model)
+        if _NMappingsWithin(self.chem_groups, chem_mapping_res[0], n_max_naive):
             return self.GetQSScoreMapping(model, strategy="naive",
-                                          chem_mapping_result=res)
+                                          chem_mapping_result=chem_mapping_res)
         else:
-            return self.GetQSScoreMapping(model, strategy="greedy_block",
-                                          steep_opt_rate=3, block_seed_size=5,
-                                          block_blocks_per_chem_group=6,
-                                          chem_mapping_result=res)
+            return self.GetQSScoreMapping(model, strategy="greedy_full",
+                                          greedy_prune_contact_map=True,
+                                          chem_mapping_result=chem_mapping_res)
 
     def GetRepr(self, substructure, model, topn=1, inclusion_radius=15.0,
                 thresholds=[0.5, 1.0, 2.0, 4.0], bb_only=False,
@@ -1467,6 +1466,7 @@ class ChainMapper:
                                        no_intrachain = only_interchain)
 
             if lDDT is None:
+                ost.LogVerbose("No valid contacts in the reference")
                 lDDT = 0.0 # that means, that we have not a single valid contact
                            # in lDDT. For the code below to work, we just set it
                            # to a terrible score => 0.0
@@ -2231,12 +2231,6 @@ class _lDDTGreedySearcher(_lDDTDecomposer):
         if len(mapping) == 0:
             raise RuntimError("Mapping must contain a starting point")
 
-        for ref_ch, mdl_ch in mapping.items():
-            assert(ref_ch in self.ref_ch_group_mapper)
-            assert(mdl_ch in self.mdl_ch_group_mapper)
-            assert(self.ref_ch_group_mapper[ref_ch] == \
-                   self.mdl_ch_group_mapper[mdl_ch])
-
         # Ref chains onto which we can map. The algorithm starts with a mapping
         # on ref_ch. From there we can start to expand to connected neighbors.
         # All neighbors that we can reach from the already mapped chains are
@@ -2406,6 +2400,19 @@ def _lDDTNaive(trg, mdl, inclusion_radius, thresholds, chem_groups,
     return (best_mapping, best_lddt)
 
 
+def _GetSeeds(ref_chem_groups, mdl_chem_groups, mapped_ref_chains = set(),
+              mapped_mdl_chains = set()):
+    seeds = list()
+    for ref_chains, mdl_chains in zip(ref_chem_groups,
+                                      mdl_chem_groups):
+        for ref_ch in ref_chains:
+            if ref_ch not in mapped_ref_chains:
+                for mdl_ch in mdl_chains:
+                    if mdl_ch not in mapped_mdl_chains:
+                        seeds.append((ref_ch, mdl_ch))
+    return seeds
+
+
 def _lDDTGreedyFast(the_greed):
 
     something_happened = True
@@ -2413,28 +2420,24 @@ def _lDDTGreedyFast(the_greed):
 
     while something_happened:
         something_happened = False
+        seeds = _GetSeeds(the_greed.ref_chem_groups,
+                          the_greed.mdl_chem_groups,
+                          mapped_ref_chains = set(mapping.keys()),
+                          mapped_mdl_chains = set(mapping.values()))
         # search for best scoring starting point
         n_best = 0
         best_seed = None
-        mapped_ref_chains = set(mapping.keys())
-        mapped_mdl_chains = set(mapping.values())
-        for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
-                                          the_greed.mdl_chem_groups):
-            for ref_ch in ref_chains:
-                if ref_ch not in mapped_ref_chains:
-                    for mdl_ch in mdl_chains:
-                        if mdl_ch not in mapped_mdl_chains:
-                            n = the_greed.SCCounts(ref_ch, mdl_ch)
-                            if n > n_best:
-                                n_best = n
-                                best_seed = (ref_ch, mdl_ch)
+        for seed in seeds:
+            n = the_greed.SCCounts(seed[0], seed[1])
+            if n > n_best:
+                n_best = n
+                best_seed = seed
         if n_best == 0:
             break # no proper seed found anymore...
         # add seed to mapping and start the greed
         mapping[best_seed[0]] = best_seed[1]
         mapping = the_greed.ExtendMapping(mapping)
         something_happened = True
-
 
     # translate mapping format and return
     final_mapping = list()
@@ -2450,53 +2453,49 @@ def _lDDTGreedyFast(the_greed):
     return final_mapping
 
 
-def _lDDTGreedyFull(the_greed, n_mdl_chains):
+def _lDDTGreedyFull(the_greed):
     """ Uses each reference chain as starting point for expansion
-
-    However, not all mdl chain are mapped onto these reference chains,
-    that's controlled by *n_mdl_chains*
     """
 
-    if n_mdl_chains is not None and n_mdl_chains < 1:
-        raise RuntimeError("n_mdl_chains must be None or >= 1")
+    seeds = _GetSeeds(the_greed.ref_chem_groups, the_greed.mdl_chem_groups)
+    best_overall_score = -1.0
+    best_overall_mapping = dict()
 
-    something_happened = True
-    mapping = dict()
+    for seed in seeds:
 
-    while something_happened:
-        something_happened = False
-        # Try all possible starting points and keep the one giving the best lDDT
-        best_lddt = 0.0
-        best_mapping = None
-        mapped_ref_chains = set(mapping.keys())
-        mapped_mdl_chains = set(mapping.values())
-        for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
-                                          the_greed.mdl_chem_groups):
-            for ref_ch in ref_chains:
-                if ref_ch not in mapped_ref_chains:
-                    seeds = list()
-                    for mdl_ch in mdl_chains:
-                        if mdl_ch not in mapped_mdl_chains:
-                            seeds.append((ref_ch, mdl_ch))
-                    if n_mdl_chains is not None and n_mdl_chains < len(seeds):
-                        counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
-                        tmp = [(a,b) for a,b in zip(counts, seeds)]
-                        tmp.sort(reverse=True)
-                        seeds = [item[1] for item in tmp[:n_mdl_chains]]
-                    for seed in seeds:
-                        tmp_mapping = dict(mapping)
-                        tmp_mapping[seed[0]] = seed[1]
-                        tmp_mapping = the_greed.ExtendMapping(tmp_mapping)
-                        tmp_lddt = the_greed.lDDTFromFlatMap(tmp_mapping)
-                        if tmp_lddt > best_lddt:
-                            best_lddt = tmp_lddt
-                            best_mapping = tmp_mapping
+        # do initial extension
+        mapping = the_greed.ExtendMapping({seed[0]: seed[1]})
 
-        if best_lddt == 0.0:
-            break # no proper mapping found anymore...
-
+        # repeat the process until we have a full mapping
         something_happened = True
-        mapping = best_mapping
+        while something_happened:
+            something_happened = False
+            remnant_seeds = _GetSeeds(the_greed.ref_chem_groups,
+                                      the_greed.mdl_chem_groups,
+                                      mapped_ref_chains = set(mapping.keys()),
+                                      mapped_mdl_chains = set(mapping.values()))
+            if len(remnant_seeds) > 0:
+                # still more mapping to be done
+                best_score = -1.0
+                best_mapping = None
+                for remnant_seed in remnant_seeds:
+                    tmp_mapping = dict(mapping)
+                    tmp_mapping[remnant_seed[0]] = remnant_seed[1]
+                    tmp_mapping = the_greed.ExtendMapping(tmp_mapping)
+                    score = the_greed.lDDTFromFlatMap(tmp_mapping)
+                    if score > best_score:
+                        best_score = score
+                        best_mapping = tmp_mapping
+                if best_mapping is not None:
+                    something_happened = True
+                    mapping = best_mapping
+
+        score = the_greed.lDDTFromFlatMap(mapping)
+        if score > best_overall_score:
+            best_overall_score = score
+            best_overall_mapping = mapping
+
+    mapping = best_overall_mapping
 
     # translate mapping format and return
     final_mapping = list()
@@ -2532,7 +2531,6 @@ def _lDDTGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
     mdl_chem_groups = copy.deepcopy(the_greed.mdl_chem_groups)
 
     mapping = dict()
-
     something_happened = True
     while something_happened:
         something_happened = False
@@ -2540,30 +2538,32 @@ def _lDDTGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
         for ref_chains, mdl_chains in zip(ref_chem_groups, mdl_chem_groups):
             if len(mdl_chains) == 0:
                 continue # nothing to map
-
-            # Identify starting seeds for *blocks_per_chem_group* blocks
-            seeds = list()
-            for ref_ch in ref_chains:
-                seeds += [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
-            counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
-            tmp = [(a,b) for a,b in zip(counts, seeds)]
-            tmp.sort(reverse=True)
-            seeds = [item[1] for item in tmp[:blocks_per_chem_group]]
-
-            # extend starting seeds to *seed_size* and retain best scoring block
-            # for further extension
-            best_lddt = 0.0
-            best_mapping = None
-            for s in seeds:
-                seed = dict(mapping)
-                seed.update({s[0]: s[1]})  
-                seed = the_greed.ExtendMapping(seed, max_ext = max_ext)
-                seed_lddt = the_greed.lDDTFromFlatMap(seed)
-                if seed_lddt > best_lddt:
-                    best_lddt = seed_lddt
-                    best_mapping = seed
-            if best_mapping != None:
-                starting_blocks.append(best_mapping)
+            ref_chains_copy = list(ref_chains)
+            for i in range(blocks_per_chem_group):
+                if len(ref_chains_copy) == 0:
+                    break
+                seeds = list()
+                for ref_ch in ref_chains_copy:
+                    seeds += [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
+                # extend starting seeds to *seed_size* and retain best scoring
+                # block for further extension
+                best_score = -1.0
+                best_mapping = None
+                best_seed = None
+                for s in seeds:
+                    seed = dict(mapping)
+                    seed.update({s[0]: s[1]})  
+                    seed = the_greed.ExtendMapping(seed, max_ext = max_ext)
+                    seed_lddt = the_greed.lDDTFromFlatMap(seed)
+                    if seed_lddt > best_score:
+                        best_score = seed_lddt
+                        best_mapping = seed
+                        best_seed = s
+                if best_mapping != None:
+                    starting_blocks.append(best_mapping)
+                    if best_seed[0] in ref_chains_copy:
+                        # remove that ref chain to enforce diversity
+                        ref_chains_copy.remove(best_seed[0])
 
         # fully expand initial starting blocks
         best_lddt = 0.0
@@ -2604,7 +2604,7 @@ def _lDDTGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
 class _QSScoreGreedySearcher(qsscore.QSScorer):
     def __init__(self, ref, mdl, ref_chem_groups, mdl_chem_groups,
                  ref_mdl_alns, contact_d = 12.0,
-                 steep_opt_rate = None):
+                 steep_opt_rate = None, greedy_prune_contact_map=False):
         """ Greedy extension of already existing but incomplete chain mappings
         """
         super().__init__(ref, ref_chem_groups, mdl, ref_mdl_alns,
@@ -2614,15 +2614,30 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
         self.ref_mdl_alns = ref_mdl_alns
         self.steep_opt_rate = steep_opt_rate
 
-        self.neighbors = {k: set() for k in self.qsent1.chain_names}
-        for p in self.qsent1.interacting_chains:
-            self.neighbors[p[0]].add(p[1])
-            self.neighbors[p[1]].add(p[0])
+        if greedy_prune_contact_map:
+            self.neighbors = {k: set() for k in self.qsent1.chain_names}
+            for p in self.qsent1.interacting_chains:
+                if np.count_nonzero(self.qsent1.PairDist(p[0], p[1])<=8) >= 3:
+                    self.neighbors[p[0]].add(p[1])
+                    self.neighbors[p[1]].add(p[0])
 
-        self.mdl_neighbors = {k: set() for k in self.qsent2.chain_names}
-        for p in self.qsent2.interacting_chains:
-            self.mdl_neighbors[p[0]].add(p[1])
-            self.mdl_neighbors[p[1]].add(p[0])
+            self.mdl_neighbors = {k: set() for k in self.qsent2.chain_names}
+            for p in self.qsent2.interacting_chains:
+                if np.count_nonzero(self.qsent2.PairDist(p[0], p[1])<=8) >= 3:
+                    self.mdl_neighbors[p[0]].add(p[1])
+                    self.mdl_neighbors[p[1]].add(p[0])
+
+
+        else:
+            self.neighbors = {k: set() for k in self.qsent1.chain_names}
+            for p in self.qsent1.interacting_chains:
+                self.neighbors[p[0]].add(p[1])
+                self.neighbors[p[1]].add(p[0])
+
+            self.mdl_neighbors = {k: set() for k in self.qsent2.chain_names}
+            for p in self.qsent2.interacting_chains:
+                self.mdl_neighbors[p[0]].add(p[1])
+                self.mdl_neighbors[p[1]].add(p[0])
 
         assert(len(ref_chem_groups) == len(mdl_chem_groups))
         self.ref_chem_groups = ref_chem_groups
@@ -2665,12 +2680,6 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
 
         if len(mapping) == 0:
             raise RuntimError("Mapping must contain a starting point")
-
-        for ref_ch, mdl_ch in mapping.items():
-            assert(ref_ch in self.ref_ch_group_mapper)
-            assert(mdl_ch in self.mdl_ch_group_mapper)
-            assert(self.ref_ch_group_mapper[ref_ch] == \
-                   self.mdl_ch_group_mapper[mdl_ch])
 
         # Ref chains onto which we can map. The algorithm starts with a mapping
         # on ref_ch. From there we can start to expand to connected neighbors.
@@ -2718,6 +2727,8 @@ class _QSScoreGreedySearcher(qsscore.QSScorer):
             for ref_ch in map_targets:
                 chem_group_idx = self.ref_ch_group_mapper[ref_ch]
                 for mdl_ch in free_mdl_chains[chem_group_idx]:
+                    # we're not computing full QS-score here, we directly hack
+                    # into the QS-score formula to compute a diff
                     nominator_diff = 0.0
                     denominator_diff = 0.0
                     for neighbor in self.neighbors[ref_ch]:
@@ -2833,31 +2844,26 @@ def _QSScoreGreedyFast(the_greed):
 
     something_happened = True
     mapping = dict()
-
     while something_happened:
         something_happened = False
         # search for best scoring starting point, we're using lDDT here
         n_best = 0
         best_seed = None
-        mapped_ref_chains = set(mapping.keys())
-        mapped_mdl_chains = set(mapping.values())
-        for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
-                                          the_greed.mdl_chem_groups):
-            for ref_ch in ref_chains:
-                if ref_ch not in mapped_ref_chains:
-                    for mdl_ch in mdl_chains:
-                        if mdl_ch not in mapped_mdl_chains:
-                            n = the_greed.SCCounts(ref_ch, mdl_ch)
-                            if n > n_best:
-                                n_best = n
-                                best_seed = (ref_ch, mdl_ch)
+        seeds = _GetSeeds(the_greed.ref_chem_groups,
+                          the_greed.mdl_chem_groups,
+                          mapped_ref_chains = set(mapping.keys()),
+                          mapped_mdl_chains = set(mapping.values()))
+        for seed in seeds:
+            n = the_greed.SCCounts(seed[0], seed[1])
+            if n > n_best:
+                n_best = n
+                best_seed = seed
         if n_best == 0:
             break # no proper seed found anymore...
         # add seed to mapping and start the greed
         mapping[best_seed[0]] = best_seed[1]
         mapping = the_greed.ExtendMapping(mapping)
         something_happened = True
-
 
     # translate mapping format and return
     final_mapping = list()
@@ -2873,53 +2879,49 @@ def _QSScoreGreedyFast(the_greed):
     return final_mapping
 
 
-def _QSScoreGreedyFull(the_greed, n_mdl_chains):
+def _QSScoreGreedyFull(the_greed):
     """ Uses each reference chain as starting point for expansion
-
-    However, not all mdl chain are mapped onto these reference chains,
-    that's controlled by *n_mdl_chains*
     """
 
-    if n_mdl_chains is not None and n_mdl_chains < 1:
-        raise RuntimeError("n_mdl_chains must be None or >= 1")
+    seeds = _GetSeeds(the_greed.ref_chem_groups, the_greed.mdl_chem_groups)
+    best_overall_score = -1.0
+    best_overall_mapping = dict()
 
-    something_happened = True
-    mapping = dict()
+    for seed in seeds:
 
-    while something_happened:
-        something_happened = False
-        # Try all possible starting points and keep the one giving the best QS score
-        best_score = -1.0
-        best_mapping = None
-        mapped_ref_chains = set(mapping.keys())
-        mapped_mdl_chains = set(mapping.values())
-        for ref_chains, mdl_chains in zip(the_greed.ref_chem_groups,
-                                          the_greed.mdl_chem_groups):
-            for ref_ch in ref_chains:
-                if ref_ch not in mapped_ref_chains:
-                    seeds = list()
-                    for mdl_ch in mdl_chains:
-                        if mdl_ch not in mapped_mdl_chains:
-                            seeds.append((ref_ch, mdl_ch))
-                    if n_mdl_chains is not None and n_mdl_chains < len(seeds):
-                        counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
-                        tmp = [(a,b) for a,b in zip(counts, seeds)]
-                        tmp.sort(reverse=True)
-                        seeds = [item[1] for item in tmp[:n_mdl_chains]]
-                    for seed in seeds:
-                        tmp_mapping = dict(mapping)
-                        tmp_mapping[seed[0]] = seed[1]
-                        tmp_mapping = the_greed.ExtendMapping(tmp_mapping)
-                        score_result = the_greed.FromFlatMapping(tmp_mapping)
-                        if score_result.QS_global > best_score:
-                            best_score = score_result.QS_global
-                            best_mapping = tmp_mapping
+        # do initial extension
+        mapping = the_greed.ExtendMapping({seed[0]: seed[1]})
 
-        if best_mapping is not None and len(best_mapping) > len(mapping):
-            # this even accepts extensions that lead to no increase in QS-score
-            # at least they make sense from an lDDT perspective
-            something_happened = True
-            mapping = best_mapping
+        # repeat the process until we have a full mapping
+        something_happened = True
+        while something_happened:
+            something_happened = False
+            remnant_seeds = _GetSeeds(the_greed.ref_chem_groups,
+                                      the_greed.mdl_chem_groups,
+                                      mapped_ref_chains = set(mapping.keys()),
+                                      mapped_mdl_chains = set(mapping.values()))
+            if len(remnant_seeds) > 0:
+                # still more mapping to be done
+                best_score = -1.0
+                best_mapping = None
+                for remnant_seed in remnant_seeds:
+                    tmp_mapping = dict(mapping)
+                    tmp_mapping[remnant_seed[0]] = remnant_seed[1]
+                    tmp_mapping = the_greed.ExtendMapping(tmp_mapping)
+                    score_result = the_greed.FromFlatMapping(tmp_mapping)
+                    if score_result.QS_global > best_score:
+                        best_score = score_result.QS_global
+                        best_mapping = tmp_mapping
+                if best_mapping is not None:
+                    something_happened = True
+                    mapping = best_mapping
+
+        score_result = the_greed.FromFlatMapping(mapping)
+        if score_result.QS_global > best_overall_score:
+            best_overall_score = score_result.QS_global
+            best_overall_mapping = mapping
+
+    mapping = best_overall_mapping
 
     # translate mapping format and return
     final_mapping = list()
@@ -2963,31 +2965,32 @@ def _QSScoreGreedyBlock(the_greed, seed_size, blocks_per_chem_group):
         for ref_chains, mdl_chains in zip(ref_chem_groups, mdl_chem_groups):
             if len(mdl_chains) == 0:
                 continue # nothing to map
-
-            # Identify starting seeds for *blocks_per_chem_group* blocks
-            # thats done with lDDT
-            seeds = list()
-            for ref_ch in ref_chains:
-                seeds += [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
-            counts = [the_greed.SCCounts(s[0], s[1]) for s in seeds]
-            tmp = [(a,b) for a,b in zip(counts, seeds)]
-            tmp.sort(reverse=True)
-            seeds = [item[1] for item in tmp[:blocks_per_chem_group]]
-
-            # extend starting seeds to *seed_size* and retain best scoring block
-            # for further extension
-            best_score = -1.0
-            best_mapping = None
-            for s in seeds:
-                seed = dict(mapping)
-                seed.update({s[0]: s[1]})  
-                seed = the_greed.ExtendMapping(seed, max_ext = max_ext)
-                score_result = the_greed.FromFlatMapping(seed)
-                if score_result.QS_global > best_score:
-                    best_score = score_result.QS_global
-                    best_mapping = seed
-            if best_mapping != None:
-                starting_blocks.append(best_mapping)
+            ref_chains_copy = list(ref_chains)
+            for i in range(blocks_per_chem_group):
+                if len(ref_chains_copy) == 0:
+                    break
+                seeds = list()
+                for ref_ch in ref_chains_copy:
+                    seeds += [(ref_ch, mdl_ch) for mdl_ch in mdl_chains]
+                # extend starting seeds to *seed_size* and retain best scoring block
+                # for further extension
+                best_score = -1.0
+                best_mapping = None
+                best_seed = None
+                for s in seeds:
+                    seed = dict(mapping)
+                    seed.update({s[0]: s[1]})  
+                    seed = the_greed.ExtendMapping(seed, max_ext = max_ext)
+                    score_result = the_greed.FromFlatMapping(seed)
+                    if score_result.QS_global > best_score:
+                        best_score = score_result.QS_global
+                        best_mapping = seed
+                        best_seed = s
+                if best_mapping != None:
+                    starting_blocks.append(best_mapping)
+                    if best_seed[0] in ref_chains_copy:
+                        # remove selected ref chain to enforce diversity
+                        ref_chains_copy.remove(best_seed[0])
 
         # fully expand initial starting blocks
         best_score = -1.0

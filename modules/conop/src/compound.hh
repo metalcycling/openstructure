@@ -76,17 +76,19 @@ struct DLLEXPORT_OST_CONOP AtomSpec {
     alt_name(),
     element(),
     is_leaving(false),
-    is_aromatic()
+    is_aromatic(),
+    charge(0)
   {
   }
   AtomSpec(int o, const String& n, const String& a, const String& e,
-           bool l, bool r):
+           bool l, bool r, int c=0):
     ordinal(o),
     name(n),
     alt_name(a),
     element(e),
     is_leaving(l),
-    is_aromatic(r)
+    is_aromatic(r),
+    charge(c)
   {}
   int    ordinal;
   String name;
@@ -94,6 +96,7 @@ struct DLLEXPORT_OST_CONOP AtomSpec {
   String element;
   bool   is_leaving;
   bool   is_aromatic;
+  int    charge;
   bool operator==(const AtomSpec& rhs) const {
     return ordinal==rhs.ordinal && name==rhs.name && alt_name==rhs.alt_name &&
            element==rhs.element && is_leaving==rhs.is_leaving && 
@@ -149,6 +152,9 @@ public:
     name_(),
     inchi_(),
     inchi_key_(),
+    smiles_(),
+    replaced_by_(),
+    obsolete_(),
     atom_specs_(),
     bond_specs_(),
     chem_class_(),
@@ -202,6 +208,22 @@ public:
     return chem_class_;
   }
 
+  void SetObsolete(bool obsolete) {
+    obsolete_=obsolete;
+  }
+
+  bool GetObsolete() const {
+    return obsolete_;
+  }
+
+  void SetReplacedBy(const String& replaced_by) {
+    replaced_by_=replaced_by;
+  }
+
+  const String& GetReplacedBy() const {
+    return replaced_by_;
+  }
+
   void SetChemType(mol::ChemType chem_type) {
     chem_type_=chem_type;
   }
@@ -252,6 +274,10 @@ public:
 
   const String& GetInchiKey() { return inchi_key_; }
 
+  void SetSMILES(const String& smiles) { smiles_=smiles; }
+
+  const String& GetSMILES() { return smiles_; }
+
   const BondSpecList& GetBondSpecs() const {
     return bond_specs_;
   }
@@ -281,6 +307,9 @@ private:
   String                       name_;
   String                       inchi_;
   String                       inchi_key_;
+  String                       smiles_;
+  String                       replaced_by_;
+  bool                         obsolete_;
   AtomSpecList                 atom_specs_;
   BondSpecList                 bond_specs_;
   mol::ChemClass               chem_class_;

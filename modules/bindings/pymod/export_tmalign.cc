@@ -40,9 +40,17 @@ ost::bindings::TMAlignResult WrapTMAlignView(const ost::mol::ChainView& chain1,
 
 ost::bindings::MMAlignResult WrapMMAlignView(const ost::mol::EntityView& ent1,
                                              const ost::mol::EntityView& ent2, 
-                                             bool fast) {
+                                             bool fast,
+                                             boost::python::dict& mapping) {
+  boost::python::list keys(mapping.keys());
+  boost::python::list values(mapping.values());
+  std::map<String, String> m_mapping;
+  for(uint i = 0; i < boost::python::len(keys); ++i) {
+    m_mapping[boost::python::extract<String>(keys[i])] =
+    boost::python::extract<String>(values[i]);
+  }
 
-  return ost::bindings::WrappedMMAlign(ent1, ent2, fast);
+  return ost::bindings::WrappedMMAlign(ent1, ent2, fast, m_mapping);
 }
 
 void export_TMAlign() {
@@ -84,5 +92,6 @@ void export_TMAlign() {
                                            arg("fast")=false));
 
   def("WrappedMMAlign", &WrapMMAlignView, (arg("ent1"), arg("ent2"),
-                                           arg("fast")=false));
+                                           arg("fast")=false,
+                                           arg("mapping")=boost::python::dict()));
 }

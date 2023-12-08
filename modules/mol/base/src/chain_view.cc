@@ -483,5 +483,11 @@ unsigned long ChainView::GetHashCode() const
   return reinterpret_cast<unsigned long>(data_.get());
 }
 
+bool ChainView::IsValid() const
+{
+  return Impl().get()!=0 && Impl()->GetEntity();
+}
+
+
 }} // ns
 

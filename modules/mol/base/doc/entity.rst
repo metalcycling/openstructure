@@ -8,6 +8,10 @@ This document describes the :class:`EntityHandle` and the related classes.
 The Handle Classes
 --------------------------------------------------------------------------------
 
+:class:`Entity <EntityHandle>`, :class:`residue <ResidueHandle>`,
+:class:`atom <AtomHandle>` and :class:`bond <BondHandle>` handles can store
+arbitrary :doc:`generic properties <../../base/generic>`.
+
 .. function:: CreateEntity()
 
    Creates a new entity. The created entity is empty, that is, it does not
@@ -15,7 +19,10 @@ The Handle Classes
    entity, use an :doc:`entity editor <editors>`.
    
    :returns: The newly created :class:`EntityHandle`
-   
+
+Entity Handle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: EntityHandle
 
   The entity class represents a molecular structure. Such a structure is in
@@ -26,6 +33,10 @@ The Handle Classes
   does not prevent it to be used for molecules in general: An entity also
   represent a ligand or a collection of water molecules - hence the rather
   generic name.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
 
   .. attribute:: chains
     
@@ -338,11 +349,18 @@ The Handle Classes
   .. method:: IsValid()
   
     See :attr:`valid`
-    
+
+Chain Handle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: ChainHandle
 
   A chain of one or more :class:`residues <ResidueHandle>`. Chains are always 
-  part of an entity.
+  part of an entity (see :ref:`note on memory management <memory_management>`).
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
 
   .. attribute:: atoms
 
@@ -577,13 +595,21 @@ The Handle Classes
   
     See :attr:`valid`
 
+Residue Handle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: ResidueHandle
 
   The residue is either used to represent complete molecules or building blocks 
   in a polymer, e.g. in a protein, DNA or RNA. A residue consists of one or 
   more :class:`atoms <AtomHandle>`. Residues are always part of a 
   :class:`ChainHandle`, even if they are ligands or water molecules where the 
-  concept of a chain does not apply.
+  concept of a chain does not apply, and of an entity (see
+  :ref:`note on memory management <memory_management>`).
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
   
   .. attribute:: name
   
@@ -1010,11 +1036,18 @@ The Handle Classes
 
     See :attr:`next`
 
+Atom Handle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. class:: AtomHandle
 
   Represents an atom in a molecular structure. Atoms are always part of a 
-  residue.
+  residue and of an entity (see
+  :ref:`note on memory management <memory_management>`)
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
   
   .. attribute:: name
   
@@ -1251,13 +1284,19 @@ The Handle Classes
   
     See :attr:`valid`
 
+Bond Handle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. class:: BondHandle
 
   Represents a chemical bond between two atoms (first and second).
 
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
+
   .. attribute:: first
-  .. attribute:: second
+                 second
 
     Atoms involved in the bond. No assumptions about the order should be made.
     With the internal coordinate system enabled, first and second may even be
@@ -1354,10 +1393,23 @@ The Handle Classes
 The View Classes
 --------------------------------------------------------------------------------
 
+:class:`Entity <EntityView>`, :class:`residue <ResidueView>` and
+:class:`atom <AtomView>` views can store arbitrary
+:doc:`generic properties <../../base/generic>`.
+
+Entity View
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: EntityView
 
-  An entity view represents a structural subset of an :class:`EntityHandle`. For 
-  an introduction, see :doc:`../../intro-01`.
+  An entity view represents a structural subset of an :class:`EntityHandle` and
+  contains :class:`ChainView`\s, :class:`ResidueView`\s, :class:`AtomView`\s and
+  :class:`BondHandle`\s.
+  For an introduction, see :doc:`../../intro-01`.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
 
   .. attribute:: handle
 
@@ -1600,11 +1652,24 @@ The View Classes
 
   .. method:: FindResidue(residue)
     
-    Find residue view of pointing to the given handle.
-      
+    Deprecated. Use :meth:`ViewForHandle` instead.
+
     :param residue: Residue handle
     :type  residue: ResidueHandle
-    :returns: The residue view pointing the the handle, or an invalid handle if  the residue is not part of the view
+    :returns: The residue view pointing the handle, or an invalid handle if  the residue is not part of the view
+    :rtype: :class:`ResidueView`
+
+  .. method:: FindResidue(chain_name, res_num)
+    :noindex:
+
+    Find residue by chain name and residue number.
+
+    :param chain_name:  Chain identifier, e.g. "A"
+    :type  chain_name:  str
+    :param    res_num:  residue number
+    :type     res_num:  :class:`ResNum`
+    :returns: The residue if present in the view, an invalid :class:`ResidueView`
+       otherwise
     :rtype: :class:`ResidueView`
 
   .. method:: FindAtom(chain_name, res_num, atom_name)
@@ -1615,7 +1680,39 @@ The View Classes
     :type  res_num: :class:`ResNum` or :class:`int`
     :param atom_name: The name of the atom
     :type  atom_name: str
+    :returns: The atom if present in the view, an invalid :class:`AtomView`
+       otherwise
     :rtype: :class:`AtomView`
+
+  .. method:: ViewForHandle(handle)
+
+    Find chain view, residue view or atom view of pointing to the given handle.
+
+    :param handle: handle to search for
+    :type  residue: (Chain\|Residue\|Atom)Handle
+    :returns: The view pointing the handle, or an invalid handle if the handle
+         is not part of the view
+    :rtype: (Chain\|Residue\|Atom)View
+
+  .. method:: ExtendViewToResidues()
+
+    Extend current view to include all atoms of each residue where
+    at least one atom is selected currently.
+
+    :returns: The extended view
+    :rtype: :class:`EntityView`
+
+  .. method:: ExtendViewToSurrounding(handle)
+
+    Extend current view to include all atoms that are within the sum
+    of their van-der-Waals radius + gap.
+
+    This includes all atoms within: at1.GetRadius() + at2.GetRadius() + gap.
+
+    :param gap: the gap between atoms
+    :type  gap: float
+    :returns: The extended view
+    :rtype: :class:`EntityView`
 
   .. method:: Select(query, flags=0)
 
@@ -1633,9 +1730,15 @@ The View Classes
     
     .. code-block:: python
       
-      the_copy=view.Select(')
+      the_copy = view.Select('')
     
     :rtype: :class:`EntityView`
+
+  .. method:: Dump()
+
+    Returns a string containing a human-readable summary of the entity view.
+
+    :rtype: :class:`str`
 
   .. method:: GetMass()
 
@@ -1718,10 +1821,17 @@ The View Classes
   
     See :attr:`valid`
 
+Chain View
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: ChainView
 
   A view representation of a :class:`ChainHandle`. Mostly, the same
   functionality is provided as for the handle.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
 
   .. attribute:: handle
 
@@ -1877,6 +1987,16 @@ The View Classes
     :returns: The residue view, or an invalid residue view if no residue with 
        the given residue number is in the view.
 
+  .. method:: ViewForHandle(handle)
+
+    Find residue view or atom view of pointing to the given handle.
+
+    :param handle: handle to search for
+    :type  residue: (Residue\|Atom)Handle
+    :returns: The view pointing the handle, or an invalid handle if the handle
+         is not part of the view
+    :rtype: (Residue\|Atom)View
+
   .. method:: GetCenterOfAtoms()
 
     See :attr:`center_of_atoms`
@@ -1953,10 +2073,17 @@ The View Classes
     :type  flags: :class:`int` / :class:`QueryFlag`
     :rtype: :class:`EntityView`
 
+Residue View
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: ResidueView
 
   A view representation of a :class:`ResidueHandle`. Mostly, the same
   functionality is provided as for the handle.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
 
   .. attribute:: handle
 
@@ -2035,6 +2162,16 @@ The View Classes
     :param atom_view: The atom to be removed. May be an invalid handle
     :type  atom_view: :class:`AtomView`
     :rtype: None
+
+  .. method:: ViewForHandle(handle)
+
+    Find atom view of pointing to the given handle.
+
+    :param handle: handle to search for
+    :type  residue: :class:`AtomHandle`
+    :returns: The view pointing the handle, or an invalid handle if the handle
+         is not part of the view
+    :rtype: :class:`AtomView`
 
   .. method:: GetHandle()
 
@@ -2126,11 +2263,17 @@ The View Classes
     :type  flags: :class:`int` / :class:`QueryFlag`
     :rtype: :class:`EntityView`
 
+Atom View
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. class:: AtomView
 
   A view representation of an :class:`AtomHandle`. Mostly, the same
   functionality is provided as for the handle.
+
+  .. attribute:: properties
+
+    All the :class:`generic properties <ost.GenericPropContainer>` are available.
 
   .. attribute:: handle
   
@@ -2201,7 +2344,8 @@ Boolean Operators
 Other Entity-Related Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. function:: CreateViewFromAtomList(atom_list)
+.. function:: CreateViewFromAtoms(atom_list)
+              CreateViewFromAtomList(atom_list)
 
   Returns a view made up of the atoms in *atom_list*. All atoms are required to
   be atoms of the same entity. Duplicate atoms are only added to the view once.

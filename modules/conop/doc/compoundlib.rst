@@ -11,13 +11,13 @@ information for the :class:`rule-based processor <RuleBasedBuilder>`.
 The compound definitions for standard PDB files are taken from the 
 components.cif dictionary provided by the PDB. The dictionary is updated with 
 every PDB release and augmented with the compound definitions of newly 
-crystallized compounds. 
+crystallized compounds. Follow :ref:`these instructions <mmcif-convert>` to
+build the compound library.
 
-If you downloaded the bundle, a recent version of the compound library is 
-already included. If you are compiling from source or want to incorporate the 
-latest compound definitions, follow :ref:`these instructions <mmcif-convert>` to 
-build the compound library manually.
-
+In general, compound libraries built with older versions of OST are compatible
+with newer version of OST, so it may not be necessary to rebuild a new one.
+However, some functionality may not be available. Currently, compound libraries
+built with OST 1.5.0 or later can be loaded.
 
 .. function:: GetDefaultLib()
 
@@ -58,16 +58,42 @@ build the compound library manually.
     
     Create a new compound library
     
-  .. method:: FindCompound(tlc, dialect='PDB')
-  
-    Lookup compound by its three-letter-code, e.g ALA. If no compound with that 
-    name exists, the function returns None. Compounds are cached after they have 
-    been loaded with FindCompound. To delete the compound cache, use 
+  .. method:: FindCompound(id, dialect='PDB')
+
+    Lookup compound by its three-letter-code, e.g ALA. If no compound with that
+    name exists, the function returns None. Compounds are cached after they
+    have been loaded with FindCompound. To delete the compound cache, use
     :meth:`ClearCache`.
     
     :returns: The found compound
     :rtype: :class:`Compound`
-  
+
+  .. method:: FindCompounds(query, by, dialect='PDB')
+
+    Lookup one or more compound by SMILES string, InChI code, InChI key or
+    formula.
+
+    The compound library is queried for exact string matches. Many SMILES
+    strings can represent the same compound, so this function is only useful
+    for SMILES strings coming from the PDB (or canonical SMILES from the
+    OpenEye Toolkits). This is also the case for InChI codes, although to a
+    lesser extent.
+
+    Obsolete compounds will be sorted at the back of the list. However, there
+    is no guarantee that the first compound is active.
+
+    :param query: the string to lookup.
+    :type query: :class:`string`
+    :param by: the key into which to lookup for the query. One of: "smiles",
+      "inchi_code", "inchi_key" or "formula".
+    :type by: :class:`string`
+    :param dialect: the dialect to select for (typically "PDB", or "CHARMM" if
+      your compound library was built with charmm support).
+    :type dialect: :class:`string`
+    :returns: A list of found compounds, or an empty list if no compound was
+      found.
+    :rtype: :class:`list` or :class:`Compound`
+
   .. method:: Copy(dst_filename)
   
     Copy database to dst_filename. The new library will be an exact copy of the 
@@ -156,16 +182,42 @@ build the compound library manually.
     
   .. attribute:: inchi
   
-    The InChI code of this compound, without the 'InChI=' part, e.g 
-    '1S/H2O/h1H2' for water. Read-only.
+    The InChI code of this compound, e.g  '1S/H2O/h1H2' for water, or an empty
+    string if missing.
+    Read-only.
     
     :type: :class:`str`
     
   .. attribute:: inchi_key
   
-    The InChIKey of this compound without the 'InChIKey=' part, e.g.
-    'XLYOFNOQVPJJNP-UHFFFAOYSA-N' for water. Read-only.
+    The InChIKey of this compound, e.g.
+    'XLYOFNOQVPJJNP-UHFFFAOYSA-N' for water, or an empty string if missing.
+    Read-only.
     
+    :type: :class:`str`
+
+  .. attribute:: smiles
+
+    The SMILES string of this compound, e.g 'O' for water, or an empty string
+    if missing. Read-only.
+
+    The string is read from the canonical SMILES produced by the
+    OpenEye OEToolkits.
+
+    :type: :class:`str`
+
+  .. attribute:: obsolete
+
+    Whether the component has been obsoleted by the PDB.
+
+    :type: :class:`bool`
+
+  .. attribute:: replaced_by
+
+    If the component has been obsoleted by the PDB, this is the three-letter
+    code of the compound that replaces it. This is not set for all obsolete
+    compounds.
+
     :type: :class:`str`
     
 
@@ -191,6 +243,10 @@ build the compound library manually.
     Whether this atom is required for a residue to be complete. The best example 
     of a leaving atom is the *OXT* atom of amino acids that gets lost when a 
     peptide bond is formed.
+
+  .. attribute:: charge
+
+    The charge of the atom.
 
 .. class:: BondSpec
 

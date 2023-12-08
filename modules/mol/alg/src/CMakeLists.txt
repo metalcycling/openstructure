@@ -24,6 +24,7 @@ set(OST_MOL_ALG_HEADERS
   molck.hh
   find_membrane.hh
   entity_to_density.hh
+  biounit.hh
 )
 
 set(OST_MOL_ALG_SOURCES
@@ -51,6 +52,7 @@ set(OST_MOL_ALG_SOURCES
   molck.cc
   find_membrane.cc
   entity_to_density.cc
+  biounit.cc
 )
 
 set(MOL_ALG_DEPS ost_mol ost_seq ost_img ost_img_alg ost_seq_alg ost_conop)

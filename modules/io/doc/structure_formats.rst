@@ -51,7 +51,19 @@ radii.
   
 SDF - Structured Data File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Chemical-data file format.
+Chemical table (Ctab) file format (V2000; read-only V3000 experimental support),
+aka MDL Molfile.
+The SDF format does not support residues, chains or atom names natively.
+The SDF importer supports loading gzipped files, which are auto-detected by the
+.gz file extension.
+
+The reader assigns 1-based atom indices as atom names.
+SDF files containing several molecules are loaded into distinct chains,
+named after the molecule name in the MOLfile header with a numerical prefix.
+Residues are named after the name in the MOLfile header as well.
+
+Chains are written as separate molecules. If a chain contains more than one
+residue, they will be merged into a single molecule.
 
 *Recognized File Extensions*
   .sdf, .sdf.gz

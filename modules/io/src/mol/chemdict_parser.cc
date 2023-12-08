@@ -30,7 +30,8 @@ bool ChemdictParser::OnBeginLoop(const StarLoopDesc& header)
     indices_[ELE]=header.GetIndex("type_symbol");      
     indices_[IS_LEAVING]=header.GetIndex("pdbx_leaving_atom_flag");
     indices_[IS_AROMATIC]=header.GetIndex("pdbx_aromatic_flag");
-    indices_[ORDINAL]=header.GetIndex("pdbx_ordinal");      
+    indices_[ORDINAL]=header.GetIndex("pdbx_ordinal");
+    indices_[CHARGE]=header.GetIndex("charge");
     return true;
   } else if (header.GetCategory()=="chem_comp_bond") {
     loop_type_=BOND_SPEC;
@@ -42,6 +43,7 @@ bool ChemdictParser::OnBeginLoop(const StarLoopDesc& header)
     loop_type_=DESC_SPEC;
     indices_[DESC_TYPE]=header.GetIndex("type");
     indices_[DESC]=header.GetIndex("descriptor");
+    indices_[PROGRAM]=header.GetIndex("program");
     return true;
   }
   loop_type_=DONT_KNOW;
@@ -59,6 +61,7 @@ void ChemdictParser::OnDataRow(const StarLoopDesc& header,
     atom.ordinal=columns[indices_[ORDINAL]].to_int().second-1;
     atom.element=columns[indices_[ELE]].str();
     atom.is_aromatic=columns[indices_[IS_AROMATIC]][0]=='Y';
+    atom.charge=columns[indices_[CHARGE]].to_int().second;
     compound_->AddAtom(atom);
     atom_map_[atom.name]=atom.ordinal;
   } else if (loop_type_==BOND_SPEC) {
@@ -82,9 +85,12 @@ void ChemdictParser::OnDataRow(const StarLoopDesc& header,
                      "'InChI=' prefix." << std::endl;
         return;
       }
-      compound_->SetInchi(columns[indices_[DESC]].substr(6).str());
+      compound_->SetInchi(columns[indices_[DESC]].str());
     } else if (columns[indices_[DESC_TYPE]] == StringRef("InChIKey", 8)) {
       compound_->SetInchiKey(columns[indices_[DESC]].str());
+    } else if (columns[indices_[DESC_TYPE]] == StringRef("SMILES_CANONICAL", 16) &&
+              columns[indices_[PROGRAM]] == StringRef("OpenEye OEToolkits", 18)) {
+      compound_->SetSMILES(columns[indices_[DESC]].str());
     }
   }
 }
@@ -135,7 +141,17 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
         compound_->SetChemClass(mol::ChemClass(mol::ChemClass::WATER));
         compound_->SetOneLetterCode('.');
       }
-    } else if (item.GetName()==StringRef("one_letter_code", 15)) {
+    } else if (item.GetName()==StringRef("pdbx_release_status", 19)) {
+      String release_status = item.GetValue().str();
+      if (release_status == "OBS") {
+        compound_->SetObsolete(true);
+      }
+    } else if (item.GetName()==StringRef("pdbx_replaced_by", 16)) {
+      String replaced_by = item.GetValue().str();
+      if (replaced_by != "?") {
+        compound_->SetReplacedBy(replaced_by);
+      }
+    }  else if (item.GetName()==StringRef("one_letter_code", 15)) {
       if (item.GetValue().length()==1) {
         compound_->SetOneLetterCode(item.GetValue()[0]);   
       }

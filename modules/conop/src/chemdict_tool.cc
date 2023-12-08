@@ -66,6 +66,11 @@ int main(int argc, char const *argv[])
   }
   boost::iostreams::filtering_stream<boost::iostreams::input>  filtered_istream;  
   std::ifstream istream(argv[2]);
+  if (! istream.is_open()) {
+      std::cout << "Cannot open " << argv[2] << ": [Errno " << errno << "] "
+                << strerror(errno) << std::endl;
+      return 1;
+  }
   if (boost::iequals(".gz", boost::filesystem::extension(argv[2]))) {
     filtered_istream.push(boost::iostreams::gzip_decompressor());
   }
@@ -92,6 +97,11 @@ int main(int argc, char const *argv[])
   cdp.SetCompoundLib(in_mem_lib);
   cdp.Parse();
   in_mem_lib->SetChemLibInfo();
-  in_mem_lib->Copy(argv[3]);  
+  conop::CompoundLibPtr copy = in_mem_lib->Copy(argv[3]);
+  if (! copy) {
+      std::cout << "Cannot save " << argv[3] << ": [Errno " << errno << "] "
+                << strerror(errno) << std::endl;
+      return 1;
+  }
   return 0;
 }
