@@ -77,7 +77,7 @@ void export_mmcif_io()
     ;
 
   class_<MMCifWriter, boost::noncopyable>("MMCifWriter", init<const String&, const IOProfile&>())
-    .def("SetEntity", &MMCifWriter::SetEntity)
+    .def("SetEntity", &MMCifWriter::SetEntity, (arg("ent"), arg("mmcif_conform")=true))
     .def("Write", &MMCifWriter::Write)
     ;
 

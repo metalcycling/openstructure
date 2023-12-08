@@ -221,7 +221,6 @@ namespace {
     String type;
   };
 
-
   inline String chem_class_to_chem_comp_type(char chem_class) {
     String type = "";
     switch(chem_class) {
@@ -273,7 +272,6 @@ namespace {
         std::stringstream err;
         err << "Invalid chem class: "<<chem_class;
         throw ost::io::IOException(err.str());
-
       }
     }
     return type;
@@ -559,6 +557,16 @@ namespace {
     return entity_idx;
   }
 
+  int Setup_entity_(const String& asym_chain_name,
+                    ost::mol::ChainType chain_type,
+                    const ost::mol::ResidueHandleList& res_list,
+                    std::vector<EntityInfo>& entity_infos) {
+    // instead of infering a chain type, we're just checking whether the
+    // residues in res_list are allowed to be present in given chain type.
+    int entity_idx = 0;
+    return entity_idx;
+  }
+
   ost::io::StarLoop* Setup_atom_type_ptr() {
     ost::io::StarLoopDesc desc;
     desc.SetCategory("_atom_type");
@@ -839,6 +847,295 @@ namespace {
       chem_comp_ptr->AddData(comp_data);
     }
   }
+
+  void SetEntity_(const ost::mol::EntityHandle& ent,
+                  std::map<String, CompInfo>& comp_infos,
+                  std::vector<EntityInfo>& entity_info,
+                  ost::io::StarLoop* atom_site,
+                  ost::io::StarLoop* pdbx_poly_seq_scheme) {
+    ost::mol::ChainHandleList chain_list = ent.GetChainList();
+    for(auto ch: chain_list) {
+
+      ost::mol::ResidueHandleList res_list = ch.GetResidueList();
+
+      Setup_chem_comp_(res_list, comp_infos);
+      String chain_name = ch.GetName();
+      int entity_id = Setup_entity_(chain_name,
+                                    ch.GetType(),
+                                    res_list,
+                                    entity_info);
+      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
+                      entity_info[entity_id].is_poly);
+      if(entity_info[entity_id].is_poly) {
+        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
+                                  entity_id, res_list);
+      }
+    }
+  }
+
+  void SetEntitymmCIFify_(const ost::mol::EntityHandle& ent,
+                          std::map<String, CompInfo>& comp_infos,
+                          std::vector<EntityInfo>& entity_info,
+                          ost::io::StarLoop* atom_site,
+                          ost::io::StarLoop* pdbx_poly_seq_scheme) {
+
+    std::vector<std::vector<ost::mol::ResidueHandle> > L_chains; // L_PEPTIDE_LINKING
+    std::vector<std::vector<ost::mol::ResidueHandle> > D_chains; // D_PEPTIDE_LINKING
+    std::vector<std::vector<ost::mol::ResidueHandle> > P_chains; // PEPTIDE_LINKING  
+    std::vector<std::vector<ost::mol::ResidueHandle> > R_chains; // RNA_LINKING
+    std::vector<std::vector<ost::mol::ResidueHandle> > S_chains; // DNA_LINKING
+    // all Saccharides go into the same chain
+    std::vector<std::vector<ost::mol::ResidueHandle> > Z_chains; // SACCHARIDE 
+    std::vector<std::vector<ost::mol::ResidueHandle> > W_chains; // WATER
+    std::vector<ost::mol::ResidueHandle> N_chains; // NON_POLYMER (1 res per chain)
+
+    ost::mol::ChainHandleList chain_list = ent.GetChainList();
+    for(auto ch: chain_list) {
+
+      ost::mol::ResidueHandleList res_list = ch.GetResidueList();
+
+      Setup_chem_comp_(res_list, comp_infos);
+
+      // we don't just go for chain type here...
+      // just think of PDB entries that have a polypeptide, water and a ligand
+      // in the same chain...
+      bool has_l_peptide_linking = false;
+      bool has_d_peptide_linking = false;
+      bool has_peptide_linking = false;
+      bool has_rna_linking = false;
+      bool has_dna_linking = false;
+      bool has_saccharide = false;
+      bool has_water = false;
+      for(auto res: res_list) {
+
+        // Peptide chains must not mix L_PEPTIDE_LINKING AND D_PEPTIDE_LINKING
+        if(res.GetChemClass() == ost::mol::ChemClass::D_PEPTIDE_LINKING) {
+          if(has_l_peptide_linking) {
+            throw ost::io::IOException("Cannot write mmCIF when same chain "
+                                       "contains D- and L-peptides");
+          }
+          has_d_peptide_linking = true;
+        }
+        if(res.GetChemClass() == ost::mol::ChemClass::L_PEPTIDE_LINKING) {
+          if(has_d_peptide_linking) {
+            throw ost::io::IOException("Cannot write mmCIF when same chain "
+                                       "contains D- and L-peptides");
+          }
+          has_l_peptide_linking = true;
+        }
+
+        if(res.GetChemClass() == ost::mol::ChemClass::PEPTIDE_LINKING) {
+          has_peptide_linking = true;
+        }
+
+        if(res.GetChemClass() == ost::mol::ChemClass::RNA_LINKING) {
+          has_rna_linking = true;
+        }
+
+        if(res.GetChemClass() == ost::mol::ChemClass::DNA_LINKING) {
+          has_dna_linking = true;
+        }
+
+        if(res.GetChemClass() == ost::mol::ChemClass::L_SACCHARIDE) {
+          has_saccharide = true;
+        }
+
+        if(res.GetChemClass() == ost::mol::ChemClass::D_SACCHARIDE) {
+          has_saccharide = true;
+        }
+
+        if(res.GetChemClass() == ost::mol::ChemClass::SACCHARIDE) {
+          has_saccharide = true;
+        }
+
+        if(res.GetChemClass() == ost::mol::ChemClass::WATER) {
+          has_water = true;
+        }
+      }
+
+      // if there is any L-peptide or D-peptide, all peptides without
+      // chiral center get assigned to it. No need for specific chain.
+      if(has_l_peptide_linking || has_d_peptide_linking) {
+        has_peptide_linking = false;
+      }
+
+      if(has_l_peptide_linking) {
+        L_chains.push_back(ost::mol::ResidueHandleList());
+      }
+
+      if(has_d_peptide_linking) {
+        D_chains.push_back(ost::mol::ResidueHandleList());
+      }
+
+      if(has_peptide_linking) {
+        P_chains.push_back(ost::mol::ResidueHandleList());
+      }
+
+      if(has_rna_linking) {
+        R_chains.push_back(ost::mol::ResidueHandleList());
+      }
+
+      if(has_dna_linking) {
+        S_chains.push_back(ost::mol::ResidueHandleList());
+      }
+
+      if(has_saccharide) {
+        Z_chains.push_back(ost::mol::ResidueHandleList());
+      }
+
+      if(has_water) {
+        W_chains.push_back(ost::mol::ResidueHandleList());
+      }
+
+      for(auto res: res_list) {
+        if(res.GetChemClass().IsPeptideLinking()) {
+          if(has_l_peptide_linking) {
+            L_chains.back().push_back(res);
+          } else if(has_d_peptide_linking) {
+            D_chains.back().push_back(res);
+          } else {
+            P_chains.back().push_back(res);
+          }
+        } else if(res.GetChemClass() == ost::mol::ChemClass::RNA_LINKING) {
+          R_chains.back().push_back(res);
+        } else if(res.GetChemClass() == ost::mol::ChemClass::DNA_LINKING) {
+          S_chains.back().push_back(res);
+        } else if(res.GetChemClass() == ost::mol::ChemClass::L_SACCHARIDE) {
+          Z_chains.back().push_back(res);
+        } else if(res.GetChemClass() == ost::mol::ChemClass::D_SACCHARIDE) {
+          Z_chains.back().push_back(res);
+        } else if(res.GetChemClass() == ost::mol::ChemClass::SACCHARIDE) {
+          Z_chains.back().push_back(res);
+        } else if(res.GetChemClass() == ost::mol::ChemClass::WATER) {
+          W_chains.back().push_back(res);
+        } else if(res.GetChemClass() == ost::mol::ChemClass::NON_POLYMER) {
+          N_chains.push_back(res);
+        } else if(res.GetChemClass() == ost::mol::ChemClass::UNKNOWN) {
+          // unknown is just treated as non-poly
+          N_chains.push_back(res);
+        } else {
+          // TODO: make error message more insightful...
+          throw ost::io::IOException("Unsupported chem class...");
+        }
+      }
+    }
+
+    ChainNameGenerator chain_name_gen;
+
+    // process L_PEPTIDE_LINKING
+    for(auto res_list: L_chains) {
+      String chain_name = chain_name_gen.Get();
+      int entity_id = Setup_entity_(chain_name,
+                                    res_list,
+                                    entity_info);
+      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
+                      entity_info[entity_id].is_poly);
+      if(entity_info[entity_id].is_poly) {
+        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
+                                  entity_id, res_list);
+      }
+    }
+
+    // process D_PEPTIDE_LINKING
+    for(auto res_list: D_chains) {
+      String chain_name = chain_name_gen.Get();
+      int entity_id = Setup_entity_(chain_name,
+                                    res_list,
+                                    entity_info);
+      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
+                      entity_info[entity_id].is_poly);
+      if(entity_info[entity_id].is_poly) {
+        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
+                                  entity_id, res_list);
+      }
+    }
+
+    // process PEPTIDE_LINKING
+    for(auto res_list: P_chains) {
+      String chain_name = chain_name_gen.Get();
+      int entity_id = Setup_entity_(chain_name,
+                                    res_list,
+                                    entity_info);
+      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
+                      entity_info[entity_id].is_poly);
+      if(entity_info[entity_id].is_poly) {
+        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
+                                  entity_id, res_list);
+      }
+    }
+
+    // process RNA_LINKING
+    for(auto res_list: R_chains) {
+      String chain_name = chain_name_gen.Get();
+      int entity_id = Setup_entity_(chain_name,
+                                    res_list,
+                                    entity_info);
+      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
+                      entity_info[entity_id].is_poly);
+      if(entity_info[entity_id].is_poly) {
+        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
+                                  entity_id, res_list);
+      }
+    }
+
+    // process DNA_LINKING
+    for(auto res_list: S_chains) {
+      String chain_name = chain_name_gen.Get();
+      int entity_id = Setup_entity_(chain_name,
+                                    res_list,
+                                    entity_info);
+      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
+                      entity_info[entity_id].is_poly);
+      if(entity_info[entity_id].is_poly) {
+        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
+                                  entity_id, res_list);
+      }
+    }
+
+    // process SACHARIDE
+    for(auto res_list: Z_chains) {
+      String chain_name = chain_name_gen.Get();
+      int entity_id = Setup_entity_(chain_name,
+                                    res_list,
+                                    entity_info);
+      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
+                      entity_info[entity_id].is_poly);
+      if(entity_info[entity_id].is_poly) {
+        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
+                                  entity_id, res_list);
+      }
+    }
+
+    // process WATER
+    for(auto res_list: W_chains) {
+      String chain_name = chain_name_gen.Get();
+      int entity_id = Setup_entity_(chain_name,
+                                    res_list,
+                                    entity_info);
+      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
+                      entity_info[entity_id].is_poly);
+      if(entity_info[entity_id].is_poly) {
+        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
+                                  entity_id, res_list);
+      }
+    }
+
+    // process NON_POLYMER
+    for(auto res: N_chains) {
+      ost::mol::ResidueHandleList res_list;
+      res_list.push_back(res);
+      String chain_name = chain_name_gen.Get();
+      int entity_id = Setup_entity_(chain_name,
+                                    res_list,
+                                    entity_info);
+      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
+                      entity_info[entity_id].is_poly);
+      if(entity_info[entity_id].is_poly) {
+        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
+                                  entity_id, res_list);
+      }
+    }
+  }
 }
 
 namespace ost { namespace io {
@@ -882,7 +1179,8 @@ MMCifWriter::~MMCifWriter() {
   }
 }
 
-void MMCifWriter::SetEntity(const ost::mol::EntityHandle& ent) {
+void MMCifWriter::SetEntity(const ost::mol::EntityHandle& ent,
+                            bool mmcif_conform) {
 
   // tabula rasa
   if(atom_type_ != NULL) {
@@ -919,265 +1217,26 @@ void MMCifWriter::SetEntity(const ost::mol::EntityHandle& ent) {
   entity_poly_seq_ = Setup_entity_poly_seq_ptr();
   chem_comp_ = Setup_chem_comp_ptr();
 
-  std::vector<std::vector<ost::mol::ResidueHandle> > L_chains; // L_PEPTIDE_LINKING
-  std::vector<std::vector<ost::mol::ResidueHandle> > D_chains; // D_PEPTIDE_LINKING
-  std::vector<std::vector<ost::mol::ResidueHandle> > P_chains; // PEPTIDE_LINKING  
-  std::vector<std::vector<ost::mol::ResidueHandle> > R_chains; // RNA_LINKING
-  std::vector<std::vector<ost::mol::ResidueHandle> > S_chains; // DNA_LINKING
-  // all Saccharides go into the same chain
-  std::vector<std::vector<ost::mol::ResidueHandle> > Z_chains; // SACCHARIDE 
-  std::vector<std::vector<ost::mol::ResidueHandle> > W_chains; // WATER
-  std::vector<ost::mol::ResidueHandle> N_chains; // NON_POLYMER (1 res per chain)
   std::map<String, CompInfo> comp_infos;
-
-  ost::mol::ChainHandleList chain_list = ent.GetChainList();
-  for(auto ch: chain_list) {
-
-    ost::mol::ResidueHandleList res_list = ch.GetResidueList();
-
-    Setup_chem_comp_(res_list, comp_infos);
-
-    // we don't just go for chain type here...
-    // just think of PDB entries that have a polypeptide, water and a ligand
-    // in the same chain...
-    bool has_l_peptide_linking = false;
-    bool has_d_peptide_linking = false;
-    bool has_peptide_linking = false;
-    bool has_rna_linking = false;
-    bool has_dna_linking = false;
-    bool has_saccharide = false;
-    bool has_water = false;
-    for(auto res: res_list) {
-
-      // Peptide chains must not mix L_PEPTIDE_LINKING AND D_PEPTIDE_LINKING
-      if(res.GetChemClass() == ost::mol::ChemClass::D_PEPTIDE_LINKING) {
-        if(has_l_peptide_linking) {
-          throw ost::io::IOException("Cannot write mmCIF when same chain "
-                                     "contains D- and L-peptides");
-        }
-        has_d_peptide_linking = true;
-      }
-      if(res.GetChemClass() == ost::mol::ChemClass::L_PEPTIDE_LINKING) {
-        if(has_d_peptide_linking) {
-          throw ost::io::IOException("Cannot write mmCIF when same chain "
-                                     "contains D- and L-peptides");
-        }
-        has_l_peptide_linking = true;
-      }
-
-      if(res.GetChemClass() == ost::mol::ChemClass::PEPTIDE_LINKING) {
-        has_peptide_linking = true;
-      }
-
-      if(res.GetChemClass() == ost::mol::ChemClass::RNA_LINKING) {
-        has_rna_linking = true;
-      }
-
-      if(res.GetChemClass() == ost::mol::ChemClass::DNA_LINKING) {
-        has_dna_linking = true;
-      }
-
-      if(res.GetChemClass() == ost::mol::ChemClass::L_SACCHARIDE) {
-        has_saccharide = true;
-      }
-
-      if(res.GetChemClass() == ost::mol::ChemClass::D_SACCHARIDE) {
-        has_saccharide = true;
-      }
-
-      if(res.GetChemClass() == ost::mol::ChemClass::SACCHARIDE) {
-        has_saccharide = true;
-      }
-
-      if(res.GetChemClass() == ost::mol::ChemClass::WATER) {
-        has_water = true;
-      }
-    }
-
-    // if there is any L-peptide or D-peptide, all peptides without
-    // chiral center get assigned to it. No need for specific chain.
-    if(has_l_peptide_linking || has_d_peptide_linking) {
-      has_peptide_linking = false;
-    }
-
-    if(has_l_peptide_linking) {
-      L_chains.push_back(ost::mol::ResidueHandleList());
-    }
-
-    if(has_d_peptide_linking) {
-      D_chains.push_back(ost::mol::ResidueHandleList());
-    }
-
-    if(has_peptide_linking) {
-      P_chains.push_back(ost::mol::ResidueHandleList());
-    }
-
-    if(has_rna_linking) {
-      R_chains.push_back(ost::mol::ResidueHandleList());
-    }
-
-    if(has_dna_linking) {
-      S_chains.push_back(ost::mol::ResidueHandleList());
-    }
-
-    if(has_saccharide) {
-      Z_chains.push_back(ost::mol::ResidueHandleList());
-    }
-
-    if(has_water) {
-      W_chains.push_back(ost::mol::ResidueHandleList());
-    }
-
-    for(auto res: res_list) {
-      if(res.GetChemClass().IsPeptideLinking()) {
-        if(has_l_peptide_linking) {
-          L_chains.back().push_back(res);
-        } else if(has_d_peptide_linking) {
-          D_chains.back().push_back(res);
-        } else {
-          P_chains.back().push_back(res);
-        }
-      } else if(res.GetChemClass() == ost::mol::ChemClass::RNA_LINKING) {
-        R_chains.back().push_back(res);
-      } else if(res.GetChemClass() == ost::mol::ChemClass::DNA_LINKING) {
-        S_chains.back().push_back(res);
-      } else if(res.GetChemClass() == ost::mol::ChemClass::L_SACCHARIDE) {
-        Z_chains.back().push_back(res);
-      } else if(res.GetChemClass() == ost::mol::ChemClass::D_SACCHARIDE) {
-        Z_chains.back().push_back(res);
-      } else if(res.GetChemClass() == ost::mol::ChemClass::SACCHARIDE) {
-        Z_chains.back().push_back(res);
-      } else if(res.GetChemClass() == ost::mol::ChemClass::WATER) {
-        W_chains.back().push_back(res);
-      } else if(res.GetChemClass() == ost::mol::ChemClass::NON_POLYMER) {
-        N_chains.push_back(res);
-      } else if(res.GetChemClass() == ost::mol::ChemClass::UNKNOWN) {
-        // unknown is just treated as non-poly
-        N_chains.push_back(res);
-      } else {
-        // TODO: make error message more insightful...
-        throw ost::io::IOException("Unsupported chem class...");
-      }
-    }
-  }
-
-  ChainNameGenerator chain_name_gen;
   std::vector<EntityInfo> entity_info;
 
-  // process L_PEPTIDE_LINKING
-  for(auto res_list: L_chains) {
-    String chain_name = chain_name_gen.Get();
-    int entity_id = Setup_entity_(chain_name,
-                                  res_list,
-                                  entity_info);
-    Feed_atom_site_(atom_site_, chain_name, entity_id, res_list,
-                    entity_info[entity_id].is_poly);
-    if(entity_info[entity_id].is_poly) {
-      Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme_, chain_name,
-                                entity_id, res_list);
-    }
+  // The SetEntity functions fill CompInfo and EntityInfo, i.e. gather info on
+  // all unique compounds and entities observed in ent and relate the entities
+  // with asym chain names that are directly written to
+  // atom_site_/pdbx_poly_seq_scheme_.
+  if(mmcif_conform) {
+    // chains are assumed to be mmCIF conform - that means water in separate
+    // chains, ligands in separate chains etc. Chain types are inferred from
+    // chain type property set to the chains in ent. If any of the residues in
+    // the respective chains is incompatible with the set chain type, an error
+    // is thrown.
+    SetEntity_(ent, comp_infos, entity_info,
+               atom_site_, pdbx_poly_seq_scheme_);
+  } else {
+    // rule based splitting of chains into mmCIF conform chains
+    SetEntitymmCIFify_(ent, comp_infos, entity_info,
+                       atom_site_, pdbx_poly_seq_scheme_);
   }
-
-  // process D_PEPTIDE_LINKING
-  for(auto res_list: D_chains) {
-    String chain_name = chain_name_gen.Get();
-    int entity_id = Setup_entity_(chain_name,
-                                  res_list,
-                                  entity_info);
-    Feed_atom_site_(atom_site_, chain_name, entity_id, res_list,
-                    entity_info[entity_id].is_poly);
-    if(entity_info[entity_id].is_poly) {
-      Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme_, chain_name,
-                                entity_id, res_list);
-    }
-  }
-
-  // process PEPTIDE_LINKING
-  for(auto res_list: P_chains) {
-    String chain_name = chain_name_gen.Get();
-    int entity_id = Setup_entity_(chain_name,
-                                  res_list,
-                                  entity_info);
-    Feed_atom_site_(atom_site_, chain_name, entity_id, res_list,
-                    entity_info[entity_id].is_poly);
-    if(entity_info[entity_id].is_poly) {
-      Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme_, chain_name,
-                                entity_id, res_list);
-    }
-  }
-
-  // process RNA_LINKING
-  for(auto res_list: R_chains) {
-    String chain_name = chain_name_gen.Get();
-    int entity_id = Setup_entity_(chain_name,
-                                  res_list,
-                                  entity_info);
-    Feed_atom_site_(atom_site_, chain_name, entity_id, res_list,
-                    entity_info[entity_id].is_poly);
-    if(entity_info[entity_id].is_poly) {
-      Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme_, chain_name,
-                                entity_id, res_list);
-    }
-  }
-
-  // process DNA_LINKING
-  for(auto res_list: S_chains) {
-    String chain_name = chain_name_gen.Get();
-    int entity_id = Setup_entity_(chain_name,
-                                  res_list,
-                                  entity_info);
-    Feed_atom_site_(atom_site_, chain_name, entity_id, res_list,
-                    entity_info[entity_id].is_poly);
-    if(entity_info[entity_id].is_poly) {
-      Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme_, chain_name,
-                                entity_id, res_list);
-    }
-  }
-
-  // process SACHARIDE
-  for(auto res_list: Z_chains) {
-    String chain_name = chain_name_gen.Get();
-    int entity_id = Setup_entity_(chain_name,
-                                  res_list,
-                                  entity_info);
-    Feed_atom_site_(atom_site_, chain_name, entity_id, res_list,
-                    entity_info[entity_id].is_poly);
-    if(entity_info[entity_id].is_poly) {
-      Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme_, chain_name,
-                                entity_id, res_list);
-    }
-  }
-
-  // process WATER
-  for(auto res_list: W_chains) {
-    String chain_name = chain_name_gen.Get();
-    int entity_id = Setup_entity_(chain_name,
-                                  res_list,
-                                  entity_info);
-    Feed_atom_site_(atom_site_, chain_name, entity_id, res_list,
-                    entity_info[entity_id].is_poly);
-    if(entity_info[entity_id].is_poly) {
-      Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme_, chain_name,
-                                entity_id, res_list);
-    }
-  }
-
-  // process NON_POLYMER
-  for(auto res: N_chains) {
-    ost::mol::ResidueHandleList res_list;
-    res_list.push_back(res);
-    String chain_name = chain_name_gen.Get();
-    int entity_id = Setup_entity_(chain_name,
-                                  res_list,
-                                  entity_info);
-    Feed_atom_site_(atom_site_, chain_name, entity_id, res_list,
-                    entity_info[entity_id].is_poly);
-    if(entity_info[entity_id].is_poly) {
-      Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme_, chain_name,
-                                entity_id, res_list);
-    }
-  }
-
   Feed_entity_(entity_, entity_info);
   Feed_struct_asym_(struct_asym_, entity_info);
   Feed_entity_poly_(entity_poly_, entity_info);
