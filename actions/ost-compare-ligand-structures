@@ -23,8 +23,9 @@ structures in PDB format.
 Polymer/oligomeric ligands (saccharides, peptides, nucleotides) are not
 supported.
 
-Only minimal cleanup steps are performed (remove hydrogens, and for structures
-of polymers only, remove unknown atoms and cleanup element column).
+Only minimal cleanup steps are performed (remove hydrogens and deuteriums,
+and for structures of polymers only, remove unknown atoms and cleanup element
+column).
 
 Ligands in mmCIF and PDB files must comply with the PDB component dictionary
 definition, and have properly named residues and atoms, in order for
@@ -299,8 +300,8 @@ def _LoadStructure(structure_path, format="auto", fault_tolerant=False):
                         f"file {structure_path}.")
 
     # Remove hydrogens
-    cleaned_entity = ost.mol.CreateEntityFromView(entity.Select("ele != H"),
-                                                  include_exlusive_atoms=False)
+    cleaned_entity = ost.mol.CreateEntityFromView(entity.Select(
+        "ele != H and ele != D"), include_exlusive_atoms=False)
     cleaned_entity.SetName(structure_path)
     return cleaned_entity
 
