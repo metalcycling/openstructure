@@ -104,7 +104,7 @@ class UniformColorWidget(QtWidgets.QWidget):
       entity.Apply(ufco)
     
   def resizeEvent(self, event):
-    self.color_select_widget_.SetSize(self.width()/2,self.height()/2)
+    self.color_select_widget_.SetSize(int(self.width()/2),int(self.height()/2))
     
   def GetText(self):
     return self.text_
