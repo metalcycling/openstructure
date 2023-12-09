@@ -154,6 +154,36 @@ namespace {
     return "other";
   }
 
+  String GuessEntityPolyType(ost::mol::ChainType chain_type) {
+    // no real guessing but hardcoded response for every polymer chain type in
+    // ost::mol::ChainType
+
+    // allowed values according to mmcif_pdbx_v50.dic:
+    // - cyclic-pseudo-peptide 	
+    // - other 	
+    // - peptide nucleic acid 	
+    // - polydeoxyribonucleotide 	
+    // - polydeoxyribonucleotide/polyribonucleotide hybrid 	
+    // - polypeptide(D) 	
+    // - polypeptide(L) 	
+    // - polyribonucleotide
+
+    // added additional type: unknown
+    // must be handled by caller
+
+    switch(chain_type) {
+      case ost::mol::CHAINTYPE_POLY: return "other";
+      case ost::mol::CHAINTYPE_POLY_PEPTIDE_D: return "polypeptide(D)";
+      case ost::mol::CHAINTYPE_POLY_PEPTIDE_L: return "polypeptide(L)";
+      case ost::mol::CHAINTYPE_POLY_DN: return "polydeoxyribonucleotide";
+      case ost::mol::CHAINTYPE_POLY_RN: return "polyribonucleotide";
+      case ost::mol::CHAINTYPE_POLY_DN_RN: return "polydeoxyribonucleotide/polyribonucleotide hybrid";
+      case ost::mol::CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE: return "cyclic-pseudo-peptide";
+      case ost::mol::CHAINTYPE_POLY_PEPTIDE_DN_RN: return "peptide nucleic acid";
+      default: return "unknown";
+    }
+  }
+
   String GuessEntityType(const ost::mol::ResidueHandleList& res_list) {
 
     // guesses _entity.type based on residue chem classes
@@ -214,6 +244,41 @@ namespace {
     }
 
     return "polymer";
+  }
+
+  String GuessEntityType(ost::mol::ChainType chain_type) {
+    // no real guessing but hardcoded response for every chain type in
+    // ost::mol::ChainType
+
+    // allowed values according to mmcif_pdbx_v50.dic:
+    // - branched
+    // - macrolide
+    // - non-polymer
+    // - polymer
+    // - water
+
+    // added additional type: unknown
+    // must be handled by caller
+
+    switch(chain_type) {
+      case ost::mol::CHAINTYPE_POLY: return "polymer";
+      case ost::mol::CHAINTYPE_NON_POLY: return "non-polymer";
+      case ost::mol::CHAINTYPE_WATER: return "water";
+      case ost::mol::CHAINTYPE_POLY_PEPTIDE_D: return "polymer";
+      case ost::mol::CHAINTYPE_POLY_PEPTIDE_L: return "polymer";
+      case ost::mol::CHAINTYPE_POLY_DN: return "polymer";
+      case ost::mol::CHAINTYPE_POLY_RN: return "polymer";
+      case ost::mol::CHAINTYPE_POLY_SAC_D: return "polymer"; // branched?
+      case ost::mol::CHAINTYPE_POLY_SAC_L: return "polymer"; // branched?
+      case ost::mol::CHAINTYPE_POLY_DN_RN: return "polymer";
+      case ost::mol::CHAINTYPE_UNKNOWN: return "unknown";
+      case ost::mol::CHAINTYPE_MACROLIDE: return "macrolide";         
+      case ost::mol::CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE: return "polymer";
+      case ost::mol::CHAINTYPE_POLY_PEPTIDE_DN_RN: return "polymer";
+      case ost::mol::CHAINTYPE_BRANCHED: return "branched";
+      case ost::mol::CHAINTYPE_OLIGOSACCHARIDE: return "branched"; // poly?
+      default: return "unknown";
+    }
   }
 
   // internal object with all info to fill chem_comp_ category
@@ -495,16 +560,13 @@ namespace {
     String seq_can; // _entity_poly.pdbx_seq_one_letter_code_can 
   };
 
-  int Setup_entity_(const String& asym_chain_name,
-                    const ost::mol::ResidueHandleList& res_list,
-                    std::vector<EntityInfo>& entity_infos) {
+  int Setup_entity(const String& asym_chain_name,
+                   const String& type,
+                   const String& poly_type,
+                   const ost::mol::ResidueHandleList& res_list,
+                   std::vector<EntityInfo>& entity_infos) {
 
-    String type = GuessEntityType(res_list);
-    String poly_type = "";
     bool is_poly = type == "polymer";
-    if(is_poly) {
-      poly_type = GuessEntityPolyType(res_list);
-    }
 
     std::vector<String> mon_ids;
     if(type == "water") {
@@ -558,13 +620,44 @@ namespace {
   }
 
   int Setup_entity_(const String& asym_chain_name,
+                    const ost::mol::ResidueHandleList& res_list,
+                    std::vector<EntityInfo>& entity_infos) {
+
+    String type = GuessEntityType(res_list);
+    bool is_poly = type == "polymer";
+    String poly_type = "";
+    if(is_poly) {
+      poly_type = GuessEntityPolyType(res_list);
+    }
+    return Setup_entity(asym_chain_name, type, poly_type, res_list,
+                        entity_infos);
+  }
+
+  int Setup_entity_(const String& asym_chain_name,
                     ost::mol::ChainType chain_type,
                     const ost::mol::ResidueHandleList& res_list,
                     std::vector<EntityInfo>& entity_infos) {
-    // instead of infering a chain type, we're just checking whether the
-    // residues in res_list are allowed to be present in given chain type.
-    int entity_idx = 0;
-    return entity_idx;
+    // use chain_type info attached to chain to determine
+    // _entity.type and _entity_poly.type
+    String type = GuessEntityType(chain_type);
+    if(type == "unknown") {
+      std::stringstream ss;
+      ss << "Each chain must have valid chain type set, got " << chain_type;
+      throw ost::io::IOException(ss.str());
+    }
+    bool is_poly = type == "polymer";
+    String poly_type = "";
+    if(is_poly) {
+      poly_type = GuessEntityPolyType(chain_type);
+      if(poly_type == "unknown") {
+        std::stringstream ss;
+        ss << "Each polymer chain must have valid polymer chain type set, got ";
+        ss << chain_type;
+        throw ost::io::IOException(ss.str());
+      }
+    }
+    return Setup_entity(asym_chain_name, type, poly_type, res_list,
+                        entity_infos);
   }
 
   ost::io::StarLoop* Setup_atom_type_ptr() {
@@ -685,7 +778,6 @@ namespace {
                                  const String& label_asym_id,
                                  int label_entity_id,
                                  const ost::mol::ResidueHandleList& res_list) {
-
     std::vector<ost::io::StarLoopDataItemDO> data;
     data.push_back(ost::io::StarLoopDataItemDO(label_asym_id));
     data.push_back(ost::io::StarLoopDataItemDO(label_entity_id));
