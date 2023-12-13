@@ -89,8 +89,23 @@ Notes:
     * ``atom_site.auth_asym_id``: ``residue.GetStringProp("pdb_auth_chain_name")``
     * ``atom_site.auth_seq_id``: ``residue.GetStringProp("pdb_auth_resnum")``
     * ``atom_site.pdbx_PDB_ins_code``: ``residue.GetStringProp("pdb_auth_ins_code")``
+
+  The last two items might be missing (not empty) if the ``atom_site.auth_seq_id``
+  or ``atom_site.pdbx_PDB_ins_code`` are not present in the mmCIF file.
 * Missing values in the aforementioned data items will be denoted as ``.`` or
   ``?``.
+* Author residue numbers (``atom_site.auth_seq_id``) and insertion codes 
+  (``atom_site.pdbx_PDB_ins_code``) are optional according to the mmCIF 
+  dictionary. The data items (whole columns) can be omitted in structures where
+  the "new" residue numbers (``atom_site.label_seq_id``) are defined (to valid
+  values). This is usually the case for polymer chains. However non-polymer and
+  water chains do not have valid "new" residue numbers. In structures 
+  containing such missing data, OST requires the presence of both "old" residue
+  numbers and insertion codes in order to identify and build residues properly.
+  It is a known limitation of the mmCIF format to allow ambiguous identifiers
+  for waters (and ligands to some extent) and so we have to require these
+  additional identifiers.
+
 
 Info Classes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
