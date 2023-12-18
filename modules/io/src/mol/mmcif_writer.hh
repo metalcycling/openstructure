@@ -36,7 +36,7 @@ public:
 
   virtual ~MMCifWriter();
 
-  void SetEntity(const ost::mol::EntityHandle& ent, bool mmcif_conform=true);
+  void SetStructure(const ost::mol::EntityHandle& ent, bool mmcif_conform=true);
 
 private:
   IOProfile profile_;

@@ -1192,11 +1192,11 @@ namespace {
     }
   }
 
-  void SetEntity_(const ost::mol::EntityHandle& ent,
-                  std::map<String, CompInfo>& comp_infos,
-                  std::vector<EntityInfo>& entity_info,
-                  ost::io::StarLoop* atom_site,
-                  ost::io::StarLoop* pdbx_poly_seq_scheme) {
+  void SetStructure_(const ost::mol::EntityHandle& ent,
+                     std::map<String, CompInfo>& comp_infos,
+                     std::vector<EntityInfo>& entity_info,
+                     ost::io::StarLoop* atom_site,
+                     ost::io::StarLoop* pdbx_poly_seq_scheme) {
     ost::mol::ChainHandleList chain_list = ent.GetChainList();
     for(auto ch: chain_list) {
 
@@ -1218,11 +1218,11 @@ namespace {
     }
   }
 
-  void SetEntitymmCIFify_(const ost::mol::EntityHandle& ent,
-                          std::map<String, CompInfo>& comp_infos,
-                          std::vector<EntityInfo>& entity_info,
-                          ost::io::StarLoop* atom_site,
-                          ost::io::StarLoop* pdbx_poly_seq_scheme) {
+  void SetStructuremmCIFify_(const ost::mol::EntityHandle& ent,
+                             std::map<String, CompInfo>& comp_infos,
+                             std::vector<EntityInfo>& entity_info,
+                             ost::io::StarLoop* atom_site,
+                             ost::io::StarLoop* pdbx_poly_seq_scheme) {
 
     std::vector<std::vector<ost::mol::ResidueHandle> > L_chains; // L_PEPTIDE_LINKING
     std::vector<std::vector<ost::mol::ResidueHandle> > D_chains; // D_PEPTIDE_LINKING
@@ -1532,8 +1532,8 @@ MMCifWriter::~MMCifWriter() {
   }
 }
 
-void MMCifWriter::SetEntity(const ost::mol::EntityHandle& ent,
-                            bool mmcif_conform) {
+void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
+                               bool mmcif_conform) {
 
   // tabula rasa
   if(atom_type_ != NULL) {
@@ -1573,7 +1573,7 @@ void MMCifWriter::SetEntity(const ost::mol::EntityHandle& ent,
   std::map<String, CompInfo> comp_infos;
   std::vector<EntityInfo> entity_info;
 
-  // The SetEntity functions fill CompInfo and EntityInfo, i.e. gather info on
+  // The SetStructure functions fill CompInfo and EntityInfo, i.e. gather info on
   // all unique compounds and entities observed in ent and relate the entities
   // with asym chain names that are directly written to
   // atom_site_/pdbx_poly_seq_scheme_.
@@ -1583,13 +1583,13 @@ void MMCifWriter::SetEntity(const ost::mol::EntityHandle& ent,
     // chain type property set to the chains in ent. If any of the residues in
     // the respective chains is incompatible with the set chain type, an error
     // is thrown.
-    SetEntity_(ent, comp_infos, entity_info,
-               atom_site_, pdbx_poly_seq_scheme_);
+    SetStructure_(ent, comp_infos, entity_info,
+                  atom_site_, pdbx_poly_seq_scheme_);
   } else {
     // rule based splitting of chains into mmCIF conform chains
-    SetEntitymmCIFify_(ent, comp_infos, entity_info,
-                       atom_site_, pdbx_poly_seq_scheme_);
-  }
+    SetStructuremmCIFify_(ent, comp_infos, entity_info,
+                          atom_site_, pdbx_poly_seq_scheme_);
+  } 
   Feed_entity_(entity_, entity_info);
   Feed_struct_asym_(struct_asym_, entity_info);
   Feed_entity_poly_(entity_poly_, entity_info);
