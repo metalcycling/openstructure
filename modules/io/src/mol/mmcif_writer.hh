@@ -29,6 +29,42 @@
 
 namespace ost { namespace io {
 
+
+struct MMCifWriterEntity {
+
+  int GetAsymIdx(const String& asym_id) const;
+
+  // _entity.type
+  String type;
+
+  // _entity_poly.type
+  String poly_type;  
+
+  // Names of chains in AU that are assigned to this entity
+  std::vector<String> asym_ids;
+
+  // in principle type == "polymer"
+  bool is_poly;
+
+  // SEQRES... kind of... internally we're not working on one letter codes
+  // etc. but on full compound names. Only one element if is_poly is false.
+  std::vector<String> mon_ids;
+
+  // The respective strings for pdbx_seq_one_letter_code
+  // Irrelevant if is_poly is false.
+  std::vector<String> seq_olcs;
+
+  // same for pdbx_seq_one_letter_code_can
+  // Irrelevant if is_poly is false.
+  std::vector<String> seq_can_olcs;
+
+  // One alignment to mon_ids for each element in asym_ids, i.e. SEQRES-ATOMSEQ
+  // alignment. Contains "-" for residues that are missing in ATOMSEQ.
+  // irrelevant if is_poly is false.
+  std::vector<std::vector<String> > asym_alns; 
+};
+
+
 class DLLEXPORT_OST_IO MMCifWriter : public StarWriter {
 public:
 
@@ -40,6 +76,7 @@ public:
 
 private:
   IOProfile profile_;
+  std::vector<MMCifWriterEntity> entity_info_;
   StarLoop* atom_type_;
   StarLoop* atom_site_;
   StarLoop* pdbx_poly_seq_scheme_;

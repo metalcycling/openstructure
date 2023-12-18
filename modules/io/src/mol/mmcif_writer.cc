@@ -546,38 +546,8 @@ namespace {
     }
   }
 
-  // internal object with all info to fill entity_, struct_asym_,
-  // entity_poly_seq_ categories
-  struct EntityInfo {
-
-    int GetAsymIdx(const String& asym_id) const {
-      for(size_t i = 0; i < asym_ids.size(); ++i) {
-        if(asym_ids[i] == asym_id) {
-          return i;
-        }
-      }
-      throw "asdf";
-    }
-
-    String type; // relevant for _entity
-    String poly_type; // relevant for _entity_poly
-    bool is_poly; // in principle type == "polymer"
-    std::vector<String> asym_ids; // relevant for _struct_asym.id
-    std::vector<String> mon_ids; // relevant for _entity_poly_seq.mon_id
-    std::vector<String> seq_olcs; // relevant for pdbx_seq_one_letter_code
-    std::vector<String> seq_can_olcs; // relevant for pdbx_seq_one_letter_code_can
-    std::vector<std::vector<String> > asym_alns; // one alignment to mon_ids for
-                                                 // each element in asym_ids.
-                                                 // relevant for label_seq_id
-                                                 // contains "-" for residues
-                                                 // that are missing in ATOMSEQ.
-                                                 // in theory that would only be
-                                                 // necessary for polymers but
-                                                 // here we add everything...
-  };
-
   bool Match_entity_resnum(const ost::mol::ResidueHandleList& res_list,
-                           const EntityInfo& info,
+                           const ost::io::MMCifWriterEntity& info,
                            Real beyond_frac = 0.05) {
     // Checks if res_list matches SEQRES given in info.mon_ids
     // It may be that res_list defines residues beyond this SEQRES or
@@ -614,7 +584,7 @@ namespace {
   }
 
   bool Match_entity(const ost::mol::ResidueHandleList& res_list,
-                    const EntityInfo& info) {
+                    const ost::io::MMCifWriterEntity& info) {
     // checks if the residue names in res_list are an exact match
     // with mon_ids in info
     std::vector<String> mon_ids;
@@ -625,7 +595,7 @@ namespace {
   }
 
   void Add_asym(const String& asym_chain_name,
-                EntityInfo& info) {
+                ost::io::MMCifWriterEntity& info) {
     // adds asym_chain_name to info under the assumption that mon_ids
     // exactly match => just add a copy of mon_ids to asym_alns
     info.asym_ids.push_back(asym_chain_name);
@@ -634,7 +604,7 @@ namespace {
 
   void Add_asym_resnum(const String& asym_chain_name,
                        const ost::mol::ResidueHandleList& res_list,
-                       EntityInfo& info) {
+                       ost::io::MMCifWriterEntity& info) {
 
     if(!info.is_poly) {
       // no need for SEQRES alignment vodoo
@@ -698,7 +668,7 @@ namespace {
                    const String& poly_type,
                    const ost::mol::ResidueHandleList& res_list,
                    bool resnum_alignment,
-                   std::vector<EntityInfo>& entity_infos) {
+                   std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
 
     bool is_poly = type == "polymer";
 
@@ -775,7 +745,7 @@ namespace {
 
 
     int entity_idx = entity_infos.size();
-    entity_infos.push_back(EntityInfo());
+    entity_infos.push_back(ost::io::MMCifWriterEntity());
     entity_infos.back().type = type;
     entity_infos.back().poly_type = poly_type;
     entity_infos.back().mon_ids = mon_ids;
@@ -795,7 +765,7 @@ namespace {
   int Setup_entity_(const String& asym_chain_name,
                     const ost::mol::ResidueHandleList& res_list,
                     bool resnum_alignment,
-                    std::vector<EntityInfo>& entity_infos) {
+                    std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
 
     String type = GuessEntityType(res_list);
     bool is_poly = type == "polymer";
@@ -811,7 +781,7 @@ namespace {
                     ost::mol::ChainType chain_type,
                     const ost::mol::ResidueHandleList& res_list,
                     bool resnum_alignment, 
-                    std::vector<EntityInfo>& entity_infos) {
+                    std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
     // use chain_type info attached to chain to determine
     // _entity.type and _entity_poly.type
     String type = GuessEntityType(chain_type);
@@ -952,7 +922,7 @@ namespace {
   void Feed_pdbx_poly_seq_scheme(ost::io::StarLoop* pdbx_poly_seq_scheme_ptr,
                                  const String& label_asym_id,
                                  int label_entity_id,
-                                 EntityInfo& entity_info,
+                                 ost::io::MMCifWriterEntity& entity_info,
                                  const ost::mol::ResidueHandleList& res_list) {
 
     std::vector<ost::io::StarLoopDataItemDO> data;
@@ -1017,7 +987,7 @@ namespace {
   void Feed_atom_site_(ost::io::StarLoop* atom_site_ptr,
                        const String& label_asym_id,
                        int label_entity_id,
-                       const EntityInfo& entity_info,
+                       const ost::io::MMCifWriterEntity& entity_info,
                        const ost::mol::ResidueHandleList& res_list) {
 
     int asym_idx = entity_info.GetAsymIdx(label_asym_id);
@@ -1103,7 +1073,7 @@ namespace {
   }
 
   void Feed_entity_(ost::io::StarLoop* entity_ptr,
-                    const std::vector<EntityInfo>& entity_info) {
+                    const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       std::vector<ost::io::StarLoopDataItemDO> ent_data;
       ent_data.push_back(ost::io::StarLoopDataItemDO(entity_idx));
@@ -1113,7 +1083,7 @@ namespace {
   }
 
   void Feed_struct_asym_(ost::io::StarLoop* struct_asym_ptr,
-                         const std::vector<EntityInfo>& entity_info) {
+                         const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       for(auto asym_id : entity_info[entity_idx].asym_ids) {
         std::vector<ost::io::StarLoopDataItemDO> asym_data;
@@ -1125,7 +1095,7 @@ namespace {
   }
 
   void Feed_entity_poly_seq_(ost::io::StarLoop* entity_poly_seq_ptr,
-                             const std::vector<EntityInfo>& entity_info) {
+                             const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
     // reuse data vector for efficiency
     std::vector<ost::io::StarLoopDataItemDO> entity_poly_seq_data;
     entity_poly_seq_data.push_back(ost::io::StarLoopDataItemDO(0));
@@ -1146,7 +1116,7 @@ namespace {
   }
 
   void Feed_entity_poly_(ost::io::StarLoop* entity_poly_ptr,
-                         const std::vector<EntityInfo>& entity_info) {
+                         const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
     // reuse data vector for efficiency
     std::vector<ost::io::StarLoopDataItemDO> entity_poly_data;
     entity_poly_data.push_back(ost::io::StarLoopDataItemDO(0));
@@ -1194,7 +1164,7 @@ namespace {
 
   void SetStructure_(const ost::mol::EntityHandle& ent,
                      std::map<String, CompInfo>& comp_infos,
-                     std::vector<EntityInfo>& entity_info,
+                     std::vector<ost::io::MMCifWriterEntity>& entity_info,
                      ost::io::StarLoop* atom_site,
                      ost::io::StarLoop* pdbx_poly_seq_scheme) {
     ost::mol::ChainHandleList chain_list = ent.GetChainList();
@@ -1220,7 +1190,7 @@ namespace {
 
   void SetStructuremmCIFify_(const ost::mol::EntityHandle& ent,
                              std::map<String, CompInfo>& comp_infos,
-                             std::vector<EntityInfo>& entity_info,
+                             std::vector<ost::io::MMCifWriterEntity>& entity_info,
                              ost::io::StarLoop* atom_site,
                              ost::io::StarLoop* pdbx_poly_seq_scheme) {
 
@@ -1493,6 +1463,23 @@ namespace {
 
 namespace ost { namespace io {
 
+int MMCifWriterEntity::GetAsymIdx(const String& asym_id) const {
+  for(size_t i = 0; i < asym_ids.size(); ++i) {
+    if(asym_ids[i] == asym_id) {
+      return i;
+    }
+  }
+  std::stringstream ss;
+  ss << "Tried to find asym id " << asym_id << "in entity that has only ";
+  ss << "the following asym ids: ";
+  for(auto i: asym_ids) {
+    ss << i << ", ";
+  }
+  String err = ss.str();
+  err = err.substr(0, err.size()-2); // remove last ", "
+  throw ost::io::IOException(err);  
+}
+
 MMCifWriter::MMCifWriter(const String& filename, const IOProfile& profile):
   StarWriter(filename),
   profile_(profile),
@@ -1571,11 +1558,10 @@ void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
   chem_comp_ = Setup_chem_comp_ptr();
 
   std::map<String, CompInfo> comp_infos;
-  std::vector<EntityInfo> entity_info;
 
-  // The SetStructure functions fill CompInfo and EntityInfo, i.e. gather info on
-  // all unique compounds and entities observed in ent and relate the entities
-  // with asym chain names that are directly written to
+  // The SetStructure functions fill comp_info and entity_info_, i.e. gather
+  // info on all unique compounds and entities observed in ent and relate the
+  // entities with asym chain names that are directly written to
   // atom_site_/pdbx_poly_seq_scheme_.
   if(mmcif_conform) {
     // chains are assumed to be mmCIF conform - that means water in separate
@@ -1583,17 +1569,17 @@ void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
     // chain type property set to the chains in ent. If any of the residues in
     // the respective chains is incompatible with the set chain type, an error
     // is thrown.
-    SetStructure_(ent, comp_infos, entity_info,
+    SetStructure_(ent, comp_infos, entity_info_,
                   atom_site_, pdbx_poly_seq_scheme_);
   } else {
     // rule based splitting of chains into mmCIF conform chains
-    SetStructuremmCIFify_(ent, comp_infos, entity_info,
+    SetStructuremmCIFify_(ent, comp_infos, entity_info_,
                           atom_site_, pdbx_poly_seq_scheme_);
   } 
-  Feed_entity_(entity_, entity_info);
-  Feed_struct_asym_(struct_asym_, entity_info);
-  Feed_entity_poly_(entity_poly_, entity_info);
-  Feed_entity_poly_seq_(entity_poly_seq_, entity_info);
+  Feed_entity_(entity_, entity_info_);
+  Feed_struct_asym_(struct_asym_, entity_info_);
+  Feed_entity_poly_(entity_poly_, entity_info_);
+  Feed_entity_poly_seq_(entity_poly_seq_, entity_info_);
   Feed_chem_comp_(chem_comp_, comp_infos);
   Feed_atom_type_(atom_type_, atom_site_); 
 
