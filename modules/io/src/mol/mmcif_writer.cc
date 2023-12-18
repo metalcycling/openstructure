@@ -522,9 +522,7 @@ namespace {
           break;
         } 
       }
-    } else {
-      throw ost::io::IOException("Can only get OLCs for peptides/nucleotides");
-    }
+    } 
 
     return "(" + mon_id + ")";
   }
@@ -551,69 +549,244 @@ namespace {
   // internal object with all info to fill entity_, struct_asym_,
   // entity_poly_seq_ categories
   struct EntityInfo {
+
+    int GetAsymIdx(const String& asym_id) const {
+      for(size_t i = 0; i < asym_ids.size(); ++i) {
+        if(asym_ids[i] == asym_id) {
+          return i;
+        }
+      }
+      throw "asdf";
+    }
+
     String type; // relevant for _entity
     String poly_type; // relevant for _entity_poly
+    bool is_poly; // in principle type == "polymer"
     std::vector<String> asym_ids; // relevant for _struct_asym.id
     std::vector<String> mon_ids; // relevant for _entity_poly_seq.mon_id
-    bool is_poly; // in principle type == "polymer"
-    String seq; // _entity_poly.pdbx_seq_one_letter_code
-    String seq_can; // _entity_poly.pdbx_seq_one_letter_code_can 
+    std::vector<String> seq_olcs; // relevant for pdbx_seq_one_letter_code
+    std::vector<String> seq_can_olcs; // relevant for pdbx_seq_one_letter_code_can
+    std::vector<std::vector<String> > asym_alns; // one alignment to mon_ids for
+                                                 // each element in asym_ids.
+                                                 // relevant for label_seq_id
+                                                 // contains "-" for residues
+                                                 // that are missing in ATOMSEQ.
+                                                 // in theory that would only be
+                                                 // necessary for polymers but
+                                                 // here we add everything...
   };
+
+  bool Match_entity_resnum(const ost::mol::ResidueHandleList& res_list,
+                           const EntityInfo& info,
+                           Real beyond_frac = 0.05) {
+    // Checks if res_list matches SEQRES given in info.mon_ids
+    // It may be that res_list defines residues beyond this SEQRES or
+    // has residues that are not yet defined, i.e. the respective mon_id is "-".
+    // This function returns True if the number of such occurences is below
+    // the specified fraction of actual matches (default: 5%).
+    int n_beyond = 0;
+    int n_matches = 0;
+    int num_mon_ids = info.mon_ids.size();
+    for(auto res: res_list) {
+      int num = res.GetNumber().GetNum();
+      if(num < 1) {
+        std::stringstream ss;
+        ss << "Cannot perform resnum based alignment with invalid resnum in ";
+        ss << "residue " << res;
+        throw ost::io::IOException(ss.str());
+      } else if (num > num_mon_ids) {
+        ++n_beyond;
+      } else {
+        if(info.mon_ids[num-1] == "-") {
+          ++n_beyond; // we're basically filling an unknown gap...
+        } else if(info.mon_ids[num-1] == res.GetName()) {
+          ++n_matches;
+        } else {
+          return false;
+        }
+      }
+    }
+    if(n_matches == 0) {
+      return false;
+    } else {
+      return n_beyond / n_matches <= beyond_frac;
+    }
+  }
+
+  bool Match_entity(const ost::mol::ResidueHandleList& res_list,
+                    const EntityInfo& info) {
+    // checks if the residue names in res_list are an exact match
+    // with mon_ids in info
+    std::vector<String> mon_ids;
+    for(auto res : res_list) {
+      mon_ids.push_back(res.GetName());
+    }
+    return mon_ids == info.mon_ids;
+  }
+
+  void Add_asym(const String& asym_chain_name,
+                EntityInfo& info) {
+    // adds asym_chain_name to info under the assumption that mon_ids
+    // exactly match => just add a copy of mon_ids to asym_alns
+    info.asym_ids.push_back(asym_chain_name);
+    info.asym_alns.push_back(info.mon_ids);
+  }
+
+  void Add_asym_resnum(const String& asym_chain_name,
+                       const ost::mol::ResidueHandleList& res_list,
+                       EntityInfo& info) {
+
+    if(!info.is_poly) {
+      // no need for SEQRES alignment vodoo
+      Add_asym(asym_chain_name, info);
+      return;
+    }
+
+    int max_resnum = info.mon_ids.size();
+    std::vector<String> mon_ids;
+    std::vector<int> resnums;
+
+    for(auto res: res_list) {
+      int num = res.GetNumber().GetNum();
+      // assumes that Match_entity_resnum has already been run to check for
+      // resnum < 1
+      mon_ids.push_back(res.GetName());
+      resnums.push_back(num);
+      max_resnum = std::max(max_resnum, num);
+    }
+
+    std::vector<String> aln_mon_ids(max_resnum, "-");
+    for(size_t i = 0; i < mon_ids.size(); ++i) {
+      aln_mon_ids[resnums[i]-1] = mon_ids[i];
+    }
+
+    if(max_resnum > static_cast<int>(info.mon_ids.size())) {
+      // This chain covers more residues towards C-terminus than any chain that
+      // is associated with this entity - expand to enforce equal size
+      int N = max_resnum - info.mon_ids.size();
+      info.mon_ids.insert(info.mon_ids.end(), N, "-");
+      info.seq_olcs.insert(info.seq_olcs.end(), N, "-");
+      info.seq_can_olcs.insert(info.seq_can_olcs.end(), N, "-");
+      for(size_t asym_idx = 0; asym_idx < info.asym_alns.size(); ++asym_idx) {
+        info.asym_alns[asym_idx].insert(info.asym_alns[asym_idx].end(), N, "-");
+      }
+    }
+
+    // Fill SEQRES infos newly covered by this asym chain
+    for(size_t i = 0; i < resnums.size(); ++i) {
+      if(info.mon_ids[resnums[i]-1] == "-") {
+        info.mon_ids[resnums[i]-1] = mon_ids[i];
+        const ost::mol::ResidueHandle& res = res_list[i];
+        info.seq_olcs[resnums[i]-1] = mon_id_to_olc(res.GetChemClass(),
+                                                    mon_ids[i]);
+        char olc = res.GetOneLetterCode();
+        if(olc < 'A' || olc > 'Z') {
+          info.seq_can_olcs[resnums[i]-1] = "X";
+        } else {
+          info.seq_can_olcs[resnums[i]-1] = String(1, olc);
+        }
+      }
+    }
+    
+    // finalize
+    info.asym_ids.push_back(asym_chain_name);
+    info.asym_alns.push_back(aln_mon_ids);
+  }
 
   int Setup_entity(const String& asym_chain_name,
                    const String& type,
                    const String& poly_type,
                    const ost::mol::ResidueHandleList& res_list,
+                   bool resnum_alignment,
                    std::vector<EntityInfo>& entity_infos) {
 
     bool is_poly = type == "polymer";
 
-    std::vector<String> mon_ids;
-    if(type == "water") {
-      mon_ids.push_back("HOH");
-    } else {
-      for(auto res : res_list) {
-        mon_ids.push_back(res.GetName());
-      }
+    if(!is_poly && res_list.size() != 1 && type != "water") {
+      std::stringstream ss;
+      ss << "Cannot setup entity with " << res_list.size() << " residues ";
+      ss << "but is of type: " << type;
+      throw ost::io::IOException(ss.str());
     }
 
     // check if entity is already there
     for(size_t i = 0; i < entity_infos.size(); ++i) {
       if(entity_infos[i].type == type &&
-        entity_infos[i].poly_type == poly_type &&
-        entity_infos[i].mon_ids == mon_ids) {
-        entity_infos[i].asym_ids.push_back(asym_chain_name);
-        return i;
+         entity_infos[i].poly_type == poly_type) {
+        if(is_poly && resnum_alignment) {
+          if(Match_entity_resnum(res_list, entity_infos[i])) {
+            Add_asym_resnum(asym_chain_name, res_list, entity_infos[i]);
+            return i;
+          }   
+        } else {
+           if(Match_entity(res_list, entity_infos[i])) {
+             Add_asym(asym_chain_name, entity_infos[i]);
+             return i;
+           }
+        }
       }
     }
 
     // need to create new entity
+    std::vector<String> mon_ids;
+    std::vector<String> seq;
+    std::vector<String> seq_can;
+
+    if(is_poly && resnum_alignment) {
+      int max_resnum = res_list.size();
+      std::vector<String> res_mon_ids;
+      std::vector<int> resnums;
+      for(auto res: res_list) {
+        int num = res.GetNumber().GetNum();
+        if(num < 1) {
+          throw "asdf";
+        }
+        res_mon_ids.push_back(res.GetName());
+        resnums.push_back(num);
+        max_resnum = std::max(max_resnum, num);
+      }
+      mon_ids.assign(max_resnum, "-");
+      seq.assign(max_resnum, "-");
+      seq_can.assign(max_resnum, "-");
+      for(size_t i = 0; i < res_mon_ids.size(); ++i) {
+        mon_ids[resnums[i]-1] = res_mon_ids[i];
+        const ost::mol::ResidueHandle& res = res_list[i];
+        seq[resnums[i]-1] = mon_id_to_olc(res.GetChemClass(),
+                                          mon_ids[resnums[i]-1]);
+        char olc = res.GetOneLetterCode();
+        if(olc < 'A' || olc > 'Z') {
+          seq_can[resnums[i]-1] = "X";
+        } else {
+          seq_can[resnums[i]-1] = String(1, olc);
+        }
+      }
+    } else {
+      for(auto res: res_list) {
+        mon_ids.push_back(res.GetName());
+        seq.push_back(mon_id_to_olc(res.GetChemClass(), res.GetName()));
+        char olc = res.GetOneLetterCode();
+        if(olc < 'A' || olc > 'Z') {
+          seq_can.push_back("X");
+        } else {
+          seq_can.push_back(String(1, olc));
+        }
+      }
+    }
+
+
     int entity_idx = entity_infos.size();
     entity_infos.push_back(EntityInfo());
     entity_infos.back().type = type;
     entity_infos.back().poly_type = poly_type;
-    entity_infos.back().asym_ids.push_back(asym_chain_name);
     entity_infos.back().mon_ids = mon_ids;
+    entity_infos.back().seq_olcs = seq;
+    entity_infos.back().seq_can_olcs = seq_can;
     entity_infos.back().is_poly = is_poly;
-    if(is_poly) {
-      std::stringstream seq;
-      std::stringstream seq_can;
-      for(auto res: res_list) {
-        // seqres basically follows a hardcoded table from the mmcif reference
-        seq << mon_id_to_olc(res.GetChemClass(), res.GetName());
-        // canonical seqres maps one letter codes of parent residues 
-        // OpenStructure does the same when setting up the entity in the
-        // processor. We just trust OpenStructure to do the right thing but set
-        // olc to 'X' in case of invalid olc outside [A-Z] (example is '?')
-        char olc = res.GetOneLetterCode();
-        if(olc < 'A' || olc > 'Z') {
-          seq_can << 'X';
-        } else {
-          seq_can << res.GetOneLetterCode();
-        }
-      }
-      entity_infos.back().seq = seq.str();
-      entity_infos.back().seq_can = seq_can.str();
+
+    if(is_poly && resnum_alignment) {
+      Add_asym_resnum(asym_chain_name, res_list, entity_infos.back());
+    } else {
+      Add_asym(asym_chain_name, entity_infos.back());
     }
 
     return entity_idx;
@@ -621,6 +794,7 @@ namespace {
 
   int Setup_entity_(const String& asym_chain_name,
                     const ost::mol::ResidueHandleList& res_list,
+                    bool resnum_alignment,
                     std::vector<EntityInfo>& entity_infos) {
 
     String type = GuessEntityType(res_list);
@@ -630,12 +804,13 @@ namespace {
       poly_type = GuessEntityPolyType(res_list);
     }
     return Setup_entity(asym_chain_name, type, poly_type, res_list,
-                        entity_infos);
+                        resnum_alignment, entity_infos);
   }
 
   int Setup_entity_(const String& asym_chain_name,
                     ost::mol::ChainType chain_type,
                     const ost::mol::ResidueHandleList& res_list,
+                    bool resnum_alignment, 
                     std::vector<EntityInfo>& entity_infos) {
     // use chain_type info attached to chain to determine
     // _entity.type and _entity_poly.type
@@ -657,7 +832,7 @@ namespace {
       }
     }
     return Setup_entity(asym_chain_name, type, poly_type, res_list,
-                        entity_infos);
+                        resnum_alignment, entity_infos);
   }
 
   ost::io::StarLoop* Setup_atom_type_ptr() {
@@ -777,7 +952,9 @@ namespace {
   void Feed_pdbx_poly_seq_scheme(ost::io::StarLoop* pdbx_poly_seq_scheme_ptr,
                                  const String& label_asym_id,
                                  int label_entity_id,
+                                 EntityInfo& entity_info,
                                  const ost::mol::ResidueHandleList& res_list) {
+
     std::vector<ost::io::StarLoopDataItemDO> data;
     data.push_back(ost::io::StarLoopDataItemDO(label_asym_id));
     data.push_back(ost::io::StarLoopDataItemDO(label_entity_id));
@@ -786,20 +963,52 @@ namespace {
     data.push_back(ost::io::StarLoopDataItemDO(""));
     data.push_back(ost::io::StarLoopDataItemDO(0));
     data.push_back(ost::io::StarLoopDataItemDO(""));
-    int label_seq_id = 1;
+
+    int asym_idx = entity_info.GetAsymIdx(label_asym_id);
+    const std::vector<String>& aln = entity_info.asym_alns[asym_idx];
+    int label_seq_id = 0; // 0-based index
+
     for(auto res: res_list) {
-      data[2] = ost::io::StarLoopDataItemDO(res.GetName());
-      data[3] = ost::io::StarLoopDataItemDO(label_seq_id);
-      data[4] = ost::io::StarLoopDataItemDO(res.GetChain().GetName());
-      data[5] = ost::io::StarLoopDataItemDO(res.GetNumber().GetNum());
-      char ins_code = res.GetNumber().GetInsCode();      
-      if(ins_code == '\0') {
-        data[6] = ost::io::StarLoopDataItemDO("");
+      String res_name = res.GetName();
+      while(aln[label_seq_id] == "-") {
+        ++label_seq_id;
+      }
+
+      if(res_name != aln[label_seq_id]) {
+        throw "ksajdhfgjkaljshdfsfgd";
+      }
+
+      data[2] = ost::io::StarLoopDataItemDO(res_name);
+      data[3] = ost::io::StarLoopDataItemDO(label_seq_id + 1);
+
+      // the remaining data items honor String properties if set:
+      // pdb_auth_chain_name, pdb_auth_resnum and pdb_auth_ins_code
+
+      if(res.GetChain().HasProp("pdb_auth_chain_name")) {
+        data[4] = 
+        ost::io::StarLoopDataItemDO(res.GetChain().GetStringProp("pdb_auth_chain_name"));
       } else {
-        String tmp = " ";
-        tmp[0] = ins_code;
-        data[6] = ost::io::StarLoopDataItemDO(tmp);
-      }      
+        data[4] = ost::io::StarLoopDataItemDO(res.GetChain().GetName());  
+      }
+
+      if(res.HasProp("pdb_auth_resnum")) {
+        data[5] = ost::io::StarLoopDataItemDO(res.GetStringProp("pdb_auth_resnum"));
+      } else {
+        data[5] = ost::io::StarLoopDataItemDO(res.GetNumber().GetNum());
+      }
+
+      if(res.HasProp("pdb_auth_ins_code")) {
+        data[6] = ost::io::StarLoopDataItemDO(res.GetStringProp("pdb_auth_ins_code"));
+      } else {
+        char ins_code = res.GetNumber().GetInsCode();      
+        if(ins_code == '\0') {
+          data[6] = ost::io::StarLoopDataItemDO("");
+        } else {
+          String tmp = " ";
+          tmp[0] = ins_code;
+          data[6] = ost::io::StarLoopDataItemDO(tmp);
+        }      
+      }
       pdbx_poly_seq_scheme_ptr->AddData(data);
       label_seq_id += 1;
     }
@@ -808,14 +1017,41 @@ namespace {
   void Feed_atom_site_(ost::io::StarLoop* atom_site_ptr,
                        const String& label_asym_id,
                        int label_entity_id,
-                       const ost::mol::ResidueHandleList& res_list,
-                       bool is_poly) {
-    int label_seq_id = 1;
+                       const EntityInfo& entity_info,
+                       const ost::mol::ResidueHandleList& res_list) {
+
+    int asym_idx = entity_info.GetAsymIdx(label_asym_id);
+    const std::vector<String>& aln = entity_info.asym_alns[asym_idx];
+    int label_seq_id = 0; // 0-based index
+
     for(auto res: res_list) {
       String comp_id = res.GetName();
+
+      while(aln[label_seq_id] == "-") {
+        ++label_seq_id;
+      }
+
+      if(comp_id != aln[label_seq_id]) {
+        throw "ksajdhfgjkaljshdfsfgd";
+      }
+
       ost::mol::AtomHandleList at_list = res.GetAtomList();
       String auth_asym_id = res.GetChain().GetName();
+      if(res.HasProp("pdb_auth_chain_name")) {
+        auth_asym_id = res.GetStringProp("pdb_auth_chain_name");
+      }
       String auth_seq_id = res.GetNumber().AsString();
+      if(res.HasProp("pdb_auth_resnum")) {
+        std::stringstream ss;
+        ss << res.GetStringProp("pdb_auth_resnum");
+        if(res.HasProp("pdb_auth_ins_code")) {
+          String ins_code = res.GetStringProp("pdb_auth_ins_code");
+          if(ins_code != "?") {
+            ss << ins_code;
+          }
+        }
+        auth_seq_id = ss.str();
+      }
       for(auto at: at_list) {
         std::vector<ost::io::StarLoopDataItemDO> at_data;
         // group_PDB
@@ -835,8 +1071,8 @@ namespace {
         // label_entity_id
         at_data.push_back(ost::io::StarLoopDataItemDO(label_entity_id));
         // label_seq_id
-        if(is_poly) {
-          at_data.push_back(ost::io::StarLoopDataItemDO(label_seq_id));
+        if(entity_info.is_poly) {
+          at_data.push_back(ost::io::StarLoopDataItemDO(label_seq_id+1));
         } else {
           at_data.push_back(ost::io::StarLoopDataItemDO("."));
         }
@@ -859,7 +1095,7 @@ namespace {
         // id
         at_data.push_back(ost::io::StarLoopDataItemDO(atom_site_ptr->GetN()));
         // pdbx_PDB_ins_code
-        at_data.push_back(ost::io::StarLoopDataItemDO(""));
+        at_data.push_back(ost::io::StarLoopDataItemDO("")); // CHECK THIS, ADD STUFF FROM AUTH_SEQ_ID?
         atom_site_ptr->AddData(at_data);
       }
       ++label_seq_id;
@@ -921,8 +1157,24 @@ namespace {
       if(entity_info[entity_idx].is_poly) {
         entity_poly_data[0] = ost::io::StarLoopDataItemDO(entity_idx);
         entity_poly_data[1] = ost::io::StarLoopDataItemDO(entity_info[entity_idx].poly_type);
-        entity_poly_data[2] = ost::io::StarLoopDataItemDO(entity_info[entity_idx].seq);
-        entity_poly_data[3] = ost::io::StarLoopDataItemDO(entity_info[entity_idx].seq_can);       
+        std::stringstream seq;
+        std::stringstream seq_can;
+        for(size_t idx = 0; idx < entity_info[entity_idx].mon_ids.size(); ++idx) {
+          if(entity_info[entity_idx].seq_olcs[idx] == "-") {
+            // X IS PROBABLY NOT THE RIGHT THING FOR
+            // pdbx_seq_one_letter_code
+            seq << "X";
+          } else {
+            seq << entity_info[entity_idx].seq_olcs[idx];
+          }
+          if(entity_info[entity_idx].seq_can_olcs[idx] == "-") {
+            seq_can << "X";
+          } else {
+            seq_can << entity_info[entity_idx].seq_can_olcs[idx];
+          }
+        }
+        entity_poly_data[2] = seq.str();
+        entity_poly_data[3] = seq_can.str();
         entity_poly_ptr->AddData(entity_poly_data);
       }
     }
@@ -955,12 +1207,13 @@ namespace {
       int entity_id = Setup_entity_(chain_name,
                                     ch.GetType(),
                                     res_list,
+                                    true,
                                     entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
-                      entity_info[entity_id].is_poly);
+      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
+                      res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id, res_list);
+                                  entity_id, entity_info[entity_id], res_list);
       }
     }
   }
@@ -1119,12 +1372,13 @@ namespace {
       String chain_name = chain_name_gen.Get();
       int entity_id = Setup_entity_(chain_name,
                                     res_list,
+                                    false,
                                     entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
-                      entity_info[entity_id].is_poly);
+      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
+                      res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id, res_list);
+                                  entity_id, entity_info[entity_id], res_list);
       }
     }
 
@@ -1133,12 +1387,13 @@ namespace {
       String chain_name = chain_name_gen.Get();
       int entity_id = Setup_entity_(chain_name,
                                     res_list,
+                                    false,
                                     entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
-                      entity_info[entity_id].is_poly);
+      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
+                      res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id, res_list);
+                                  entity_id, entity_info[entity_id], res_list);
       }
     }
 
@@ -1147,12 +1402,13 @@ namespace {
       String chain_name = chain_name_gen.Get();
       int entity_id = Setup_entity_(chain_name,
                                     res_list,
+                                    false,
                                     entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
-                      entity_info[entity_id].is_poly);
+      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
+                      res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id, res_list);
+                                  entity_id, entity_info[entity_id], res_list);
       }
     }
 
@@ -1161,12 +1417,13 @@ namespace {
       String chain_name = chain_name_gen.Get();
       int entity_id = Setup_entity_(chain_name,
                                     res_list,
+                                    false,
                                     entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
-                      entity_info[entity_id].is_poly);
+      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
+                      res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id, res_list);
+                                  entity_id, entity_info[entity_id], res_list);
       }
     }
 
@@ -1175,12 +1432,13 @@ namespace {
       String chain_name = chain_name_gen.Get();
       int entity_id = Setup_entity_(chain_name,
                                     res_list,
+                                    false,
                                     entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
-                      entity_info[entity_id].is_poly);
+      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
+                      res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id, res_list);
+                                  entity_id, entity_info[entity_id], res_list);
       }
     }
 
@@ -1189,12 +1447,13 @@ namespace {
       String chain_name = chain_name_gen.Get();
       int entity_id = Setup_entity_(chain_name,
                                     res_list,
+                                    false,
                                     entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
-                      entity_info[entity_id].is_poly);
+      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
+                      res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id, res_list);
+                                  entity_id, entity_info[entity_id], res_list);
       }
     }
 
@@ -1203,12 +1462,13 @@ namespace {
       String chain_name = chain_name_gen.Get();
       int entity_id = Setup_entity_(chain_name,
                                     res_list,
+                                    false,
                                     entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
-                      entity_info[entity_id].is_poly);
+      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
+                      res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id, res_list);
+                                  entity_id, entity_info[entity_id], res_list);
       }
     }
 
@@ -1219,12 +1479,13 @@ namespace {
       String chain_name = chain_name_gen.Get();
       int entity_id = Setup_entity_(chain_name,
                                     res_list,
+                                    false,
                                     entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, res_list,
-                      entity_info[entity_id].is_poly);
+      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
+                      res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id, res_list);
+                                  entity_id, entity_info[entity_id], res_list);
       }
     }
   }
