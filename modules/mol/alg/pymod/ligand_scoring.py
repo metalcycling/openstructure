@@ -249,7 +249,7 @@ class LigandScorer:
     :param unassigned: If True, unassigned model ligands are reported in
                        the output together with assigned ligands, with a score
                        of None, and reason for not being assigned in the
-                       \*_details matrix. Defaults to False.
+                       \\*_details matrix. Defaults to False.
     :type unassigned: :class:`bool`
     """
     def __init__(self, model, target, model_ligands=None, target_ligands=None,
