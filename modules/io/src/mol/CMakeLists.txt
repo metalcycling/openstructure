@@ -31,7 +31,6 @@ PARENT_SCOPE
 
 set(OST_IO_MOL_HEADERS
 chemdict_parser.hh
-star_base.hh
 star_parser.hh
 star_writer.hh
 mmcif_reader.hh

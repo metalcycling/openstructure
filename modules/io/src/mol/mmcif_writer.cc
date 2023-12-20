@@ -18,9 +18,7 @@
 //------------------------------------------------------------------------------
 
 #include <ost/mol/chem_class.hh>
-
 #include <ost/io/mol/mmcif_writer.hh>
-
 
 namespace {
 
@@ -286,7 +284,7 @@ namespace {
     String type;
   };
 
-  inline String chem_class_to_chem_comp_type(char chem_class) {
+  inline String ChemClassToChemCompType(char chem_class) {
     String type = "";
     switch(chem_class) {
       case 'P': {
@@ -342,7 +340,7 @@ namespace {
     return type;
   }
 
-  inline String mon_id_to_olc(char chem_class,
+  inline String MonIDToOLC(char chem_class,
                               const String& mon_id) {
 
     // hardcoded table according
@@ -527,11 +525,11 @@ namespace {
     return "(" + mon_id + ")";
   }
 
-  void Setup_chem_comp_(const ost::mol::ResidueHandleList& res_list,
+  void SetupChemComp(const ost::mol::ResidueHandleList& res_list,
                         std::map<String, CompInfo>& comp_infos) {
     for(auto res: res_list) {
       String res_name = res.GetName();
-      String type = chem_class_to_chem_comp_type(res.GetChemClass());
+      String type = ChemClassToChemCompType(res.GetChemClass());
       auto it = comp_infos.find(res_name);
       if(it != comp_infos.end()) {
         // check whether type is consistent
@@ -546,9 +544,9 @@ namespace {
     }
   }
 
-  bool Match_entity_resnum(const ost::mol::ResidueHandleList& res_list,
-                           const ost::io::MMCifWriterEntity& info,
-                           Real beyond_frac = 0.05) {
+  bool MatchEntityResnum(const ost::mol::ResidueHandleList& res_list,
+                         const ost::io::MMCifWriterEntity& info,
+                         Real beyond_frac = 0.05) {
     // Checks if res_list matches SEQRES given in info.mon_ids
     // It may be that res_list defines residues beyond this SEQRES or
     // has residues that are not yet defined, i.e. the respective mon_id is "-".
@@ -583,7 +581,7 @@ namespace {
     }
   }
 
-  bool Match_entity(const ost::mol::ResidueHandleList& res_list,
+  bool MatchEntity(const ost::mol::ResidueHandleList& res_list,
                     const ost::io::MMCifWriterEntity& info) {
     // checks if the residue names in res_list are an exact match
     // with mon_ids in info
@@ -594,7 +592,7 @@ namespace {
     return mon_ids == info.mon_ids;
   }
 
-  void Add_asym(const String& asym_chain_name,
+  void AddAsym(const String& asym_chain_name,
                 ost::io::MMCifWriterEntity& info) {
     // adds asym_chain_name to info under the assumption that mon_ids
     // exactly match => just add a copy of mon_ids to asym_alns
@@ -602,13 +600,13 @@ namespace {
     info.asym_alns.push_back(info.mon_ids);
   }
 
-  void Add_asym_resnum(const String& asym_chain_name,
+  void AddAsymResnum(const String& asym_chain_name,
                        const ost::mol::ResidueHandleList& res_list,
                        ost::io::MMCifWriterEntity& info) {
 
     if(!info.is_poly) {
       // no need for SEQRES alignment vodoo
-      Add_asym(asym_chain_name, info);
+      AddAsym(asym_chain_name, info);
       return;
     }
 
@@ -618,7 +616,7 @@ namespace {
 
     for(auto res: res_list) {
       int num = res.GetNumber().GetNum();
-      // assumes that Match_entity_resnum has already been run to check for
+      // assumes that MatchEntityResnum has already been run to check for
       // resnum < 1
       mon_ids.push_back(res.GetName());
       resnums.push_back(num);
@@ -647,8 +645,8 @@ namespace {
       if(info.mon_ids[resnums[i]-1] == "-") {
         info.mon_ids[resnums[i]-1] = mon_ids[i];
         const ost::mol::ResidueHandle& res = res_list[i];
-        info.seq_olcs[resnums[i]-1] = mon_id_to_olc(res.GetChemClass(),
-                                                    mon_ids[i]);
+        info.seq_olcs[resnums[i]-1] = MonIDToOLC(res.GetChemClass(),
+                                                 mon_ids[i]);
         char olc = res.GetOneLetterCode();
         if(olc < 'A' || olc > 'Z') {
           info.seq_can_olcs[resnums[i]-1] = "X";
@@ -663,12 +661,12 @@ namespace {
     info.asym_alns.push_back(aln_mon_ids);
   }
 
-  int Setup_entity(const String& asym_chain_name,
-                   const String& type,
-                   const String& poly_type,
-                   const ost::mol::ResidueHandleList& res_list,
-                   bool resnum_alignment,
-                   std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
+  int SetupEntity(const String& asym_chain_name,
+                  const String& type,
+                  const String& poly_type,
+                  const ost::mol::ResidueHandleList& res_list,
+                  bool resnum_alignment,
+                  std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
 
     bool is_poly = type == "polymer";
 
@@ -684,13 +682,13 @@ namespace {
       if(entity_infos[i].type == type &&
          entity_infos[i].poly_type == poly_type) {
         if(is_poly && resnum_alignment) {
-          if(Match_entity_resnum(res_list, entity_infos[i])) {
-            Add_asym_resnum(asym_chain_name, res_list, entity_infos[i]);
+          if(MatchEntityResnum(res_list, entity_infos[i])) {
+            AddAsymResnum(asym_chain_name, res_list, entity_infos[i]);
             return i;
           }   
         } else {
-           if(Match_entity(res_list, entity_infos[i])) {
-             Add_asym(asym_chain_name, entity_infos[i]);
+           if(MatchEntity(res_list, entity_infos[i])) {
+             AddAsym(asym_chain_name, entity_infos[i]);
              return i;
            }
         }
@@ -721,8 +719,8 @@ namespace {
       for(size_t i = 0; i < res_mon_ids.size(); ++i) {
         mon_ids[resnums[i]-1] = res_mon_ids[i];
         const ost::mol::ResidueHandle& res = res_list[i];
-        seq[resnums[i]-1] = mon_id_to_olc(res.GetChemClass(),
-                                          mon_ids[resnums[i]-1]);
+        seq[resnums[i]-1] = MonIDToOLC(res.GetChemClass(),
+                                       mon_ids[resnums[i]-1]);
         char olc = res.GetOneLetterCode();
         if(olc < 'A' || olc > 'Z') {
           seq_can[resnums[i]-1] = "X";
@@ -733,7 +731,7 @@ namespace {
     } else {
       for(auto res: res_list) {
         mon_ids.push_back(res.GetName());
-        seq.push_back(mon_id_to_olc(res.GetChemClass(), res.GetName()));
+        seq.push_back(MonIDToOLC(res.GetChemClass(), res.GetName()));
         char olc = res.GetOneLetterCode();
         if(olc < 'A' || olc > 'Z') {
           seq_can.push_back("X");
@@ -742,7 +740,6 @@ namespace {
         }
       }
     }
-
 
     int entity_idx = entity_infos.size();
     entity_infos.push_back(ost::io::MMCifWriterEntity());
@@ -754,18 +751,18 @@ namespace {
     entity_infos.back().is_poly = is_poly;
 
     if(is_poly && resnum_alignment) {
-      Add_asym_resnum(asym_chain_name, res_list, entity_infos.back());
+      AddAsymResnum(asym_chain_name, res_list, entity_infos.back());
     } else {
-      Add_asym(asym_chain_name, entity_infos.back());
+      AddAsym(asym_chain_name, entity_infos.back());
     }
 
     return entity_idx;
   }
 
-  int Setup_entity_(const String& asym_chain_name,
-                    const ost::mol::ResidueHandleList& res_list,
-                    bool resnum_alignment,
-                    std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
+  int SetupEntity(const String& asym_chain_name,
+                  const ost::mol::ResidueHandleList& res_list,
+                  bool resnum_alignment,
+                  std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
 
     String type = GuessEntityType(res_list);
     bool is_poly = type == "polymer";
@@ -773,15 +770,15 @@ namespace {
     if(is_poly) {
       poly_type = GuessEntityPolyType(res_list);
     }
-    return Setup_entity(asym_chain_name, type, poly_type, res_list,
-                        resnum_alignment, entity_infos);
+    return SetupEntity(asym_chain_name, type, poly_type, res_list,
+                       resnum_alignment, entity_infos);
   }
 
-  int Setup_entity_(const String& asym_chain_name,
-                    ost::mol::ChainType chain_type,
-                    const ost::mol::ResidueHandleList& res_list,
-                    bool resnum_alignment, 
-                    std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
+  int SetupEntity(const String& asym_chain_name,
+                  ost::mol::ChainType chain_type,
+                  const ost::mol::ResidueHandleList& res_list,
+                  bool resnum_alignment, 
+                  std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
     // use chain_type info attached to chain to determine
     // _entity.type and _entity_poly.type
     String type = GuessEntityType(chain_type);
@@ -801,20 +798,20 @@ namespace {
         throw ost::io::IOException(ss.str());
       }
     }
-    return Setup_entity(asym_chain_name, type, poly_type, res_list,
-                        resnum_alignment, entity_infos);
+    return SetupEntity(asym_chain_name, type, poly_type, res_list,
+                       resnum_alignment, entity_infos);
   }
 
-  ost::io::StarLoop* Setup_atom_type_ptr() {
-    ost::io::StarLoopDesc desc;
+  ost::io::StarWriterLoopPtr Setup_atom_type_ptr() {
+    ost::io::StarWriterLoopDesc desc;
     desc.SetCategory("_atom_type");
     desc.Add("symbol");
-    ost::io::StarLoop* sl = new ost::io::StarLoop(desc);
+    ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;
   }
 
-  ost::io::StarLoop* Setup_atom_site_ptr() {
-    ost::io::StarLoopDesc desc;
+  ost::io::StarWriterLoopPtr Setup_atom_site_ptr() {
+    ost::io::StarWriterLoopDesc desc;
     desc.SetCategory("_atom_site");
     desc.Add("group_PDB");
     desc.Add("type_symbol");
@@ -833,12 +830,12 @@ namespace {
     desc.Add("auth_asym_id");
     desc.Add("id");
     desc.Add("pdbx_PDB_ins_code");
-    ost::io::StarLoop* sl = new ost::io::StarLoop(desc);
+    ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;
   }
 
-  ost::io::StarLoop* Setup_pdbx_poly_seq_scheme_ptr() {
-    ost::io::StarLoopDesc desc;
+  ost::io::StarWriterLoopPtr Setup_pdbx_poly_seq_scheme_ptr() {
+    ost::io::StarWriterLoopDesc desc;
     desc.SetCategory("_pdbx_poly_seq_scheme");
     desc.Add("asym_id");
     desc.Add("entity_id");
@@ -847,92 +844,92 @@ namespace {
     desc.Add("pdb_strand_id");
     desc.Add("pdb_seq_num");
     desc.Add("pdb_ins_code");
-    ost::io::StarLoop* sl = new ost::io::StarLoop(desc);
+    ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;
   }
 
-  ost::io::StarLoop* Setup_entity_ptr() {
-    ost::io::StarLoopDesc desc;
+  ost::io::StarWriterLoopPtr Setup_entity_ptr() {
+    ost::io::StarWriterLoopDesc desc;
     desc.SetCategory("_entity");
     desc.Add("id");
     desc.Add("type");
-    ost::io::StarLoop* sl = new ost::io::StarLoop(desc);
+    ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;
   }
 
-  ost::io::StarLoop* Setup_struct_asym_ptr() {
-    ost::io::StarLoopDesc desc;
+  ost::io::StarWriterLoopPtr Setup_struct_asym_ptr() {
+    ost::io::StarWriterLoopDesc desc;
     desc.SetCategory("_struct_asym");
     desc.Add("id");
     desc.Add("entity_id");
-    ost::io::StarLoop* sl = new ost::io::StarLoop(desc);
+    ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;    
   }
 
-  ost::io::StarLoop* Setup_entity_poly_ptr() {
-    ost::io::StarLoopDesc desc;
+  ost::io::StarWriterLoopPtr Setup_entity_poly_ptr() {
+    ost::io::StarWriterLoopDesc desc;
     desc.SetCategory("_entity_poly");
     desc.Add("entity_id");
     desc.Add("type");
     desc.Add("pdbx_seq_one_letter_code");
     desc.Add("pdbx_seq_one_letter_code_can");
-    ost::io::StarLoop* sl = new ost::io::StarLoop(desc);
+    ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;    
   }
 
-  ost::io::StarLoop* Setup_entity_poly_seq_ptr() {
-    ost::io::StarLoopDesc desc;
+  ost::io::StarWriterLoopPtr Setup_entity_poly_seq_ptr() {
+    ost::io::StarWriterLoopDesc desc;
     desc.SetCategory("_entity_poly_seq");
     desc.Add("entity_id");
     desc.Add("mon_id");
     desc.Add("num");
-    ost::io::StarLoop* sl = new ost::io::StarLoop(desc);
+    ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;    
   }
 
-  ost::io::StarLoop* Setup_chem_comp_ptr() {
-    ost::io::StarLoopDesc desc;
+  ost::io::StarWriterLoopPtr Setup_chem_comp_ptr() {
+    ost::io::StarWriterLoopDesc desc;
     desc.SetCategory("_chem_comp");
     desc.Add("id");
     desc.Add("type");
-    ost::io::StarLoop* sl = new ost::io::StarLoop(desc);
+    ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;    
   }
 
-  void Feed_atom_type_(ost::io::StarLoop* atom_type_ptr,
-                       ost::io::StarLoop* atom_site_ptr) {
+  void Feed_atom_type(ost::io::StarWriterLoopPtr atom_type_ptr,
+                      ost::io::StarWriterLoopPtr atom_site_ptr) {
     // we're just extracting every type_symbol that we observed
     // in atom_site (this is a bit of circular stupidity...)
     std::set<String> symbols;
     int desc_size = atom_site_ptr->GetDesc().GetSize();
     int type_symbol_idx = atom_site_ptr->GetDesc().GetIndex("type_symbol");
     int N = atom_site_ptr->GetN();
-    const std::vector<ost::io::StarLoopDataItemDO>& data = atom_site_ptr->GetData();
+    const std::vector<ost::io::StarWriterLoopDataItem>& data = atom_site_ptr->GetData();
     for(int i = 0; i < N; ++i) {
       symbols.insert(data[i*desc_size + type_symbol_idx].GetValue());
     }
-    std::vector<ost::io::StarLoopDataItemDO> atom_type_data;
-    atom_type_data.push_back(ost::io::StarLoopDataItemDO(""));
+    std::vector<ost::io::StarWriterLoopDataItem> atom_type_data;
+    atom_type_data.push_back(ost::io::StarWriterLoopDataItem(""));
     for(auto symbol: symbols) {
-      atom_type_data[0] = ost::io::StarLoopDataItemDO(symbol);
+      atom_type_data[0] = ost::io::StarWriterLoopDataItem(symbol);
       atom_type_ptr->AddData(atom_type_data);
     }
   }
 
-  void Feed_pdbx_poly_seq_scheme(ost::io::StarLoop* pdbx_poly_seq_scheme_ptr,
+  void Feed_pdbx_poly_seq_scheme(ost::io::StarWriterLoopPtr pdbx_poly_seq_scheme_ptr,
                                  const String& label_asym_id,
                                  int label_entity_id,
                                  ost::io::MMCifWriterEntity& entity_info,
                                  const ost::mol::ResidueHandleList& res_list) {
 
-    std::vector<ost::io::StarLoopDataItemDO> data;
-    data.push_back(ost::io::StarLoopDataItemDO(label_asym_id));
-    data.push_back(ost::io::StarLoopDataItemDO(label_entity_id));
-    data.push_back(ost::io::StarLoopDataItemDO(""));
-    data.push_back(ost::io::StarLoopDataItemDO(0));
-    data.push_back(ost::io::StarLoopDataItemDO(""));
-    data.push_back(ost::io::StarLoopDataItemDO(0));
-    data.push_back(ost::io::StarLoopDataItemDO(""));
+    std::vector<ost::io::StarWriterLoopDataItem> data;
+    data.push_back(ost::io::StarWriterLoopDataItem(label_asym_id));
+    data.push_back(ost::io::StarWriterLoopDataItem(label_entity_id));
+    data.push_back(ost::io::StarWriterLoopDataItem(""));
+    data.push_back(ost::io::StarWriterLoopDataItem(0));
+    data.push_back(ost::io::StarWriterLoopDataItem(""));
+    data.push_back(ost::io::StarWriterLoopDataItem(0));
+    data.push_back(ost::io::StarWriterLoopDataItem(""));
 
     int asym_idx = entity_info.GetAsymIdx(label_asym_id);
     const std::vector<String>& aln = entity_info.asym_alns[asym_idx];
@@ -948,35 +945,35 @@ namespace {
         throw "ksajdhfgjkaljshdfsfgd";
       }
 
-      data[2] = ost::io::StarLoopDataItemDO(res_name);
-      data[3] = ost::io::StarLoopDataItemDO(label_seq_id + 1);
+      data[2] = ost::io::StarWriterLoopDataItem(res_name);
+      data[3] = ost::io::StarWriterLoopDataItem(label_seq_id + 1);
 
       // the remaining data items honor String properties if set:
       // pdb_auth_chain_name, pdb_auth_resnum and pdb_auth_ins_code
 
       if(res.GetChain().HasProp("pdb_auth_chain_name")) {
         data[4] = 
-        ost::io::StarLoopDataItemDO(res.GetChain().GetStringProp("pdb_auth_chain_name"));
+        ost::io::StarWriterLoopDataItem(res.GetChain().GetStringProp("pdb_auth_chain_name"));
       } else {
-        data[4] = ost::io::StarLoopDataItemDO(res.GetChain().GetName());  
+        data[4] = ost::io::StarWriterLoopDataItem(res.GetChain().GetName());  
       }
 
       if(res.HasProp("pdb_auth_resnum")) {
-        data[5] = ost::io::StarLoopDataItemDO(res.GetStringProp("pdb_auth_resnum"));
+        data[5] = ost::io::StarWriterLoopDataItem(res.GetStringProp("pdb_auth_resnum"));
       } else {
-        data[5] = ost::io::StarLoopDataItemDO(res.GetNumber().GetNum());
+        data[5] = ost::io::StarWriterLoopDataItem(res.GetNumber().GetNum());
       }
 
       if(res.HasProp("pdb_auth_ins_code")) {
-        data[6] = ost::io::StarLoopDataItemDO(res.GetStringProp("pdb_auth_ins_code"));
+        data[6] = ost::io::StarWriterLoopDataItem(res.GetStringProp("pdb_auth_ins_code"));
       } else {
         char ins_code = res.GetNumber().GetInsCode();      
         if(ins_code == '\0') {
-          data[6] = ost::io::StarLoopDataItemDO("");
+          data[6] = ost::io::StarWriterLoopDataItem("");
         } else {
           String tmp = " ";
           tmp[0] = ins_code;
-          data[6] = ost::io::StarLoopDataItemDO(tmp);
+          data[6] = ost::io::StarWriterLoopDataItem(tmp);
         }      
       }
       pdbx_poly_seq_scheme_ptr->AddData(data);
@@ -984,11 +981,11 @@ namespace {
     }
   }
 
-  void Feed_atom_site_(ost::io::StarLoop* atom_site_ptr,
-                       const String& label_asym_id,
-                       int label_entity_id,
-                       const ost::io::MMCifWriterEntity& entity_info,
-                       const ost::mol::ResidueHandleList& res_list) {
+  void Feed_atom_site(ost::io::StarWriterLoopPtr atom_site_ptr,
+                      const String& label_asym_id,
+                      int label_entity_id,
+                      const ost::io::MMCifWriterEntity& entity_info,
+                      const ost::mol::ResidueHandleList& res_list) {
 
     int asym_idx = entity_info.GetAsymIdx(label_asym_id);
     const std::vector<String>& aln = entity_info.asym_alns[asym_idx];
@@ -1023,110 +1020,110 @@ namespace {
         auth_seq_id = ss.str();
       }
       for(auto at: at_list) {
-        std::vector<ost::io::StarLoopDataItemDO> at_data;
+        std::vector<ost::io::StarWriterLoopDataItem> at_data;
         // group_PDB
         if(at.IsHetAtom()) {
-          at_data.push_back(ost::io::StarLoopDataItemDO("HETATM"));
+          at_data.push_back(ost::io::StarWriterLoopDataItem("HETATM"));
         } else {
-          at_data.push_back(ost::io::StarLoopDataItemDO("ATOM"));
+          at_data.push_back(ost::io::StarWriterLoopDataItem("ATOM"));
         }
         // type_symbol
-        at_data.push_back(ost::io::StarLoopDataItemDO(at.GetElement()));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(at.GetElement()));
         // label_atom_id
-        at_data.push_back(ost::io::StarLoopDataItemDO(at.GetName()));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(at.GetName()));
         // label_comp_id
-        at_data.push_back(ost::io::StarLoopDataItemDO(comp_id));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(comp_id));
         // label_asym_id
-        at_data.push_back(ost::io::StarLoopDataItemDO(label_asym_id));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(label_asym_id));
         // label_entity_id
-        at_data.push_back(ost::io::StarLoopDataItemDO(label_entity_id));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(label_entity_id));
         // label_seq_id
         if(entity_info.is_poly) {
-          at_data.push_back(ost::io::StarLoopDataItemDO(label_seq_id+1));
+          at_data.push_back(ost::io::StarWriterLoopDataItem(label_seq_id+1));
         } else {
-          at_data.push_back(ost::io::StarLoopDataItemDO("."));
+          at_data.push_back(ost::io::StarWriterLoopDataItem("."));
         }
         // label_alt_id
-        at_data.push_back(ost::io::StarLoopDataItemDO("."));
+        at_data.push_back(ost::io::StarWriterLoopDataItem("."));
         // Cartn_x
-        at_data.push_back(ost::io::StarLoopDataItemDO(at.GetPos().GetX(), 3));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(at.GetPos().GetX(), 3));
         // Cartn_y
-        at_data.push_back(ost::io::StarLoopDataItemDO(at.GetPos().GetY(), 3));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(at.GetPos().GetY(), 3));
         // Cartn_z
-        at_data.push_back(ost::io::StarLoopDataItemDO(at.GetPos().GetZ(), 3));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(at.GetPos().GetZ(), 3));
         // occupancy
-        at_data.push_back(ost::io::StarLoopDataItemDO(at.GetOccupancy(), 2));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(at.GetOccupancy(), 2));
         // B_iso_or_equiv
-        at_data.push_back(ost::io::StarLoopDataItemDO(at.GetBFactor(), 2));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(at.GetBFactor(), 2));
         // auth_seq_id
-        at_data.push_back(ost::io::StarLoopDataItemDO(auth_seq_id));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(auth_seq_id));
         // auth_asym_id
-        at_data.push_back(ost::io::StarLoopDataItemDO(auth_asym_id));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(auth_asym_id));
         // id
-        at_data.push_back(ost::io::StarLoopDataItemDO(atom_site_ptr->GetN()));
+        at_data.push_back(ost::io::StarWriterLoopDataItem(atom_site_ptr->GetN()));
         // pdbx_PDB_ins_code
-        at_data.push_back(ost::io::StarLoopDataItemDO("")); // CHECK THIS, ADD STUFF FROM AUTH_SEQ_ID?
+        at_data.push_back(ost::io::StarWriterLoopDataItem("")); // CHECK THIS, ADD STUFF FROM AUTH_SEQ_ID?
         atom_site_ptr->AddData(at_data);
       }
       ++label_seq_id;
     }
   }
 
-  void Feed_entity_(ost::io::StarLoop* entity_ptr,
-                    const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
+  void Feed_entity(ost::io::StarWriterLoopPtr entity_ptr,
+                   const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
-      std::vector<ost::io::StarLoopDataItemDO> ent_data;
-      ent_data.push_back(ost::io::StarLoopDataItemDO(entity_idx));
-      ent_data.push_back(ost::io::StarLoopDataItemDO(entity_info[entity_idx].type));
+      std::vector<ost::io::StarWriterLoopDataItem> ent_data;
+      ent_data.push_back(ost::io::StarWriterLoopDataItem(entity_idx));
+      ent_data.push_back(ost::io::StarWriterLoopDataItem(entity_info[entity_idx].type));
       entity_ptr->AddData(ent_data);
     }
   }
 
-  void Feed_struct_asym_(ost::io::StarLoop* struct_asym_ptr,
-                         const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
+  void Feed_struct_asym(ost::io::StarWriterLoopPtr struct_asym_ptr,
+                        const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       for(auto asym_id : entity_info[entity_idx].asym_ids) {
-        std::vector<ost::io::StarLoopDataItemDO> asym_data;
-        asym_data.push_back(ost::io::StarLoopDataItemDO(asym_id));
-        asym_data.push_back(ost::io::StarLoopDataItemDO(entity_idx));
+        std::vector<ost::io::StarWriterLoopDataItem> asym_data;
+        asym_data.push_back(ost::io::StarWriterLoopDataItem(asym_id));
+        asym_data.push_back(ost::io::StarWriterLoopDataItem(entity_idx));
         struct_asym_ptr->AddData(asym_data);
       }
     }
   }
 
-  void Feed_entity_poly_seq_(ost::io::StarLoop* entity_poly_seq_ptr,
-                             const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
+  void Feed_entity_poly_seq(ost::io::StarWriterLoopPtr entity_poly_seq_ptr,
+                            const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
     // reuse data vector for efficiency
-    std::vector<ost::io::StarLoopDataItemDO> entity_poly_seq_data;
-    entity_poly_seq_data.push_back(ost::io::StarLoopDataItemDO(0));
-    entity_poly_seq_data.push_back(ost::io::StarLoopDataItemDO("ALA"));
-    entity_poly_seq_data.push_back(ost::io::StarLoopDataItemDO(1));
+    std::vector<ost::io::StarWriterLoopDataItem> entity_poly_seq_data;
+    entity_poly_seq_data.push_back(ost::io::StarWriterLoopDataItem(0));
+    entity_poly_seq_data.push_back(ost::io::StarWriterLoopDataItem("ALA"));
+    entity_poly_seq_data.push_back(ost::io::StarWriterLoopDataItem(1));
 
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       if(entity_info[entity_idx].is_poly) {
         const std::vector<String>& mon_ids = entity_info[entity_idx].mon_ids;
         for(size_t mon_idx = 0; mon_idx < mon_ids.size(); ++mon_idx) {
-          entity_poly_seq_data[0] = ost::io::StarLoopDataItemDO(entity_idx);
-          entity_poly_seq_data[1] = ost::io::StarLoopDataItemDO(mon_ids[mon_idx]);
-          entity_poly_seq_data[2] = ost::io::StarLoopDataItemDO(mon_idx+1);
+          entity_poly_seq_data[0] = ost::io::StarWriterLoopDataItem(entity_idx);
+          entity_poly_seq_data[1] = ost::io::StarWriterLoopDataItem(mon_ids[mon_idx]);
+          entity_poly_seq_data[2] = ost::io::StarWriterLoopDataItem(mon_idx+1);
           entity_poly_seq_ptr->AddData(entity_poly_seq_data);
         }
       }
     }
   }
 
-  void Feed_entity_poly_(ost::io::StarLoop* entity_poly_ptr,
-                         const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
+  void Feed_entity_poly(ost::io::StarWriterLoopPtr entity_poly_ptr,
+                        const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
     // reuse data vector for efficiency
-    std::vector<ost::io::StarLoopDataItemDO> entity_poly_data;
-    entity_poly_data.push_back(ost::io::StarLoopDataItemDO(0));
-    entity_poly_data.push_back(ost::io::StarLoopDataItemDO("other"));
-    entity_poly_data.push_back(ost::io::StarLoopDataItemDO("A"));
-    entity_poly_data.push_back(ost::io::StarLoopDataItemDO("A"));
+    std::vector<ost::io::StarWriterLoopDataItem> entity_poly_data;
+    entity_poly_data.push_back(ost::io::StarWriterLoopDataItem(0));
+    entity_poly_data.push_back(ost::io::StarWriterLoopDataItem("other"));
+    entity_poly_data.push_back(ost::io::StarWriterLoopDataItem("A"));
+    entity_poly_data.push_back(ost::io::StarWriterLoopDataItem("A"));
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       if(entity_info[entity_idx].is_poly) {
-        entity_poly_data[0] = ost::io::StarLoopDataItemDO(entity_idx);
-        entity_poly_data[1] = ost::io::StarLoopDataItemDO(entity_info[entity_idx].poly_type);
+        entity_poly_data[0] = ost::io::StarWriterLoopDataItem(entity_idx);
+        entity_poly_data[1] = ost::io::StarWriterLoopDataItem(entity_info[entity_idx].poly_type);
         std::stringstream seq;
         std::stringstream seq_can;
         for(size_t idx = 0; idx < entity_info[entity_idx].mon_ids.size(); ++idx) {
@@ -1150,11 +1147,11 @@ namespace {
     }
   }
 
-  void Feed_chem_comp_(ost::io::StarLoop* chem_comp_ptr,
-                       const std::map<String, CompInfo>& comp_infos) {
-    std::vector<ost::io::StarLoopDataItemDO> comp_data;
-    comp_data.push_back(ost::io::StarLoopDataItemDO("ALA"));
-    comp_data.push_back(ost::io::StarLoopDataItemDO("L-peptide linking"));
+  void Feed_chem_comp(ost::io::StarWriterLoopPtr chem_comp_ptr,
+                      const std::map<String, CompInfo>& comp_infos) {
+    std::vector<ost::io::StarWriterLoopDataItem> comp_data;
+    comp_data.push_back(ost::io::StarWriterLoopDataItem("ALA"));
+    comp_data.push_back(ost::io::StarWriterLoopDataItem("L-peptide linking"));
     for(auto it = comp_infos.begin(); it != comp_infos.end(); ++it) {
       comp_data[0] = it->first;
       comp_data[1] = it->second.type;
@@ -1162,25 +1159,25 @@ namespace {
     }
   }
 
-  void SetStructure_(const ost::mol::EntityHandle& ent,
-                     std::map<String, CompInfo>& comp_infos,
-                     std::vector<ost::io::MMCifWriterEntity>& entity_info,
-                     ost::io::StarLoop* atom_site,
-                     ost::io::StarLoop* pdbx_poly_seq_scheme) {
+  void ProcessEnt(const ost::mol::EntityHandle& ent,
+                  std::map<String, CompInfo>& comp_infos,
+                  std::vector<ost::io::MMCifWriterEntity>& entity_info,
+                  ost::io::StarWriterLoopPtr atom_site,
+                  ost::io::StarWriterLoopPtr pdbx_poly_seq_scheme) {
     ost::mol::ChainHandleList chain_list = ent.GetChainList();
     for(auto ch: chain_list) {
 
       ost::mol::ResidueHandleList res_list = ch.GetResidueList();
 
-      Setup_chem_comp_(res_list, comp_infos);
+      SetupChemComp(res_list, comp_infos);
       String chain_name = ch.GetName();
-      int entity_id = Setup_entity_(chain_name,
-                                    ch.GetType(),
-                                    res_list,
-                                    true,
-                                    entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
-                      res_list);
+      int entity_id = SetupEntity(chain_name,
+                                  ch.GetType(),
+                                  res_list,
+                                  true,
+                                  entity_info);
+      Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+                     res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
                                   entity_id, entity_info[entity_id], res_list);
@@ -1188,11 +1185,11 @@ namespace {
     }
   }
 
-  void SetStructuremmCIFify_(const ost::mol::EntityHandle& ent,
-                             std::map<String, CompInfo>& comp_infos,
-                             std::vector<ost::io::MMCifWriterEntity>& entity_info,
-                             ost::io::StarLoop* atom_site,
-                             ost::io::StarLoop* pdbx_poly_seq_scheme) {
+  void ProcessEntmmCIFify(const ost::mol::EntityHandle& ent,
+                          std::map<String, CompInfo>& comp_infos,
+                          std::vector<ost::io::MMCifWriterEntity>& entity_info,
+                          ost::io::StarWriterLoopPtr atom_site,
+                          ost::io::StarWriterLoopPtr pdbx_poly_seq_scheme) {
 
     std::vector<std::vector<ost::mol::ResidueHandle> > L_chains; // L_PEPTIDE_LINKING
     std::vector<std::vector<ost::mol::ResidueHandle> > D_chains; // D_PEPTIDE_LINKING
@@ -1209,7 +1206,7 @@ namespace {
 
       ost::mol::ResidueHandleList res_list = ch.GetResidueList();
 
-      Setup_chem_comp_(res_list, comp_infos);
+      SetupChemComp(res_list, comp_infos);
 
       // we don't just go for chain type here...
       // just think of PDB entries that have a polypeptide, water and a ligand
@@ -1340,12 +1337,12 @@ namespace {
     // process L_PEPTIDE_LINKING
     for(auto res_list: L_chains) {
       String chain_name = chain_name_gen.Get();
-      int entity_id = Setup_entity_(chain_name,
-                                    res_list,
-                                    false,
-                                    entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
-                      res_list);
+      int entity_id = SetupEntity(chain_name,
+                                  res_list,
+                                  false,
+                                  entity_info);
+      Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+                     res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
                                   entity_id, entity_info[entity_id], res_list);
@@ -1355,12 +1352,12 @@ namespace {
     // process D_PEPTIDE_LINKING
     for(auto res_list: D_chains) {
       String chain_name = chain_name_gen.Get();
-      int entity_id = Setup_entity_(chain_name,
-                                    res_list,
-                                    false,
-                                    entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
-                      res_list);
+      int entity_id = SetupEntity(chain_name,
+                                  res_list,
+                                  false,
+                                  entity_info);
+      Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+                     res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
                                   entity_id, entity_info[entity_id], res_list);
@@ -1370,12 +1367,12 @@ namespace {
     // process PEPTIDE_LINKING
     for(auto res_list: P_chains) {
       String chain_name = chain_name_gen.Get();
-      int entity_id = Setup_entity_(chain_name,
-                                    res_list,
-                                    false,
-                                    entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
-                      res_list);
+      int entity_id = SetupEntity(chain_name,
+                                  res_list,
+                                  false,
+                                  entity_info);
+      Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+                     res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
                                   entity_id, entity_info[entity_id], res_list);
@@ -1385,12 +1382,12 @@ namespace {
     // process RNA_LINKING
     for(auto res_list: R_chains) {
       String chain_name = chain_name_gen.Get();
-      int entity_id = Setup_entity_(chain_name,
-                                    res_list,
-                                    false,
-                                    entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
-                      res_list);
+      int entity_id = SetupEntity(chain_name,
+                                  res_list,
+                                  false,
+                                  entity_info);
+      Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+                     res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
                                   entity_id, entity_info[entity_id], res_list);
@@ -1400,12 +1397,12 @@ namespace {
     // process DNA_LINKING
     for(auto res_list: S_chains) {
       String chain_name = chain_name_gen.Get();
-      int entity_id = Setup_entity_(chain_name,
-                                    res_list,
-                                    false,
-                                    entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
-                      res_list);
+      int entity_id = SetupEntity(chain_name,
+                                  res_list,
+                                  false,
+                                  entity_info);
+      Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+                     res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
                                   entity_id, entity_info[entity_id], res_list);
@@ -1415,12 +1412,12 @@ namespace {
     // process SACHARIDE
     for(auto res_list: Z_chains) {
       String chain_name = chain_name_gen.Get();
-      int entity_id = Setup_entity_(chain_name,
-                                    res_list,
-                                    false,
-                                    entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
-                      res_list);
+      int entity_id = SetupEntity(chain_name,
+                                  res_list,
+                                  false,
+                                  entity_info);
+      Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+                     res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
                                   entity_id, entity_info[entity_id], res_list);
@@ -1430,12 +1427,12 @@ namespace {
     // process WATER
     for(auto res_list: W_chains) {
       String chain_name = chain_name_gen.Get();
-      int entity_id = Setup_entity_(chain_name,
-                                    res_list,
-                                    false,
-                                    entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
-                      res_list);
+      int entity_id = SetupEntity(chain_name,
+                                  res_list,
+                                  false,
+                                  entity_info);
+      Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+                     res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
                                   entity_id, entity_info[entity_id], res_list);
@@ -1447,12 +1444,12 @@ namespace {
       ost::mol::ResidueHandleList res_list;
       res_list.push_back(res);
       String chain_name = chain_name_gen.Get();
-      int entity_id = Setup_entity_(chain_name,
-                                    res_list,
-                                    false,
-                                    entity_info);
-      Feed_atom_site_(atom_site, chain_name, entity_id, entity_info[entity_id],
-                      res_list);
+      int entity_id = SetupEntity(chain_name,
+                                  res_list,
+                                  false,
+                                  entity_info);
+      Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+                     res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
                                   entity_id, entity_info[entity_id], res_list);
@@ -1482,70 +1479,35 @@ int MMCifWriterEntity::GetAsymIdx(const String& asym_id) const {
 
 MMCifWriter::MMCifWriter(const String& filename, const IOProfile& profile):
   StarWriter(filename),
-  profile_(profile),
-  atom_type_(NULL),
-  atom_site_(NULL),
-  pdbx_poly_seq_scheme_(NULL),
-  entity_(NULL),
-  struct_asym_(NULL),
-  entity_poly_(NULL),
-  entity_poly_seq_(NULL),
-  chem_comp_(NULL) { }
-
-MMCifWriter::~MMCifWriter() {
-  if(atom_type_ != NULL) {
-    delete atom_type_;
-  }
-  if(atom_site_ != NULL) {
-    delete atom_site_;
-  }
-  if(pdbx_poly_seq_scheme_ != NULL) {
-    delete pdbx_poly_seq_scheme_;
-  }
-  if(entity_ != NULL) {
-    delete entity_;
-  }
-  if(struct_asym_ != NULL) {
-    delete struct_asym_;
-  }
-  if(entity_poly_ != NULL) {
-    delete entity_poly_;
-  }
-  if(entity_poly_seq_ != NULL) {
-    delete entity_poly_seq_;
-  }
-  if(chem_comp_ != NULL) {
-    delete chem_comp_;
-  }
-}
+  profile_(profile) { }
 
 void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
                                bool mmcif_conform) {
 
   // tabula rasa
-  if(atom_type_ != NULL) {
-    delete atom_type_;
+  if(atom_type_) {
+    atom_type_.reset();
   }
-  if(atom_site_ != NULL) {
-    delete atom_site_;
+  if(atom_site_) {
+    atom_site_.reset();
   }
-  if(pdbx_poly_seq_scheme_ != NULL) {
-    delete pdbx_poly_seq_scheme_;
+  if(pdbx_poly_seq_scheme_) {
+    pdbx_poly_seq_scheme_.reset();
   }
-  if(entity_ != NULL) {
-    delete entity_;
+  if(entity_) {
+    entity_.reset();
   }
-  if(struct_asym_ != NULL) {
-    delete struct_asym_;
+  if(struct_asym_) {
+    struct_asym_.reset();
   }
-  if(entity_poly_ != NULL) {
-    delete entity_poly_;
+  if(entity_poly_) {
+    entity_poly_.reset();
   }
-  if(entity_poly_seq_ != NULL) {
-    delete entity_poly_seq_;
+  if(entity_poly_seq_) {
+    entity_poly_seq_.reset();
   }
-  if(chem_comp_ != NULL) {
-    delete chem_comp_;
+  if(chem_comp_) {
+    chem_comp_.reset();
   }
 
   atom_type_ = Setup_atom_type_ptr();
@@ -1559,29 +1521,27 @@ void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
 
   std::map<String, CompInfo> comp_infos;
 
-  // The SetStructure functions fill comp_info and entity_info_, i.e. gather
+  // The ProcessEnt functions fill comp_info and entity_info_, i.e. gather
   // info on all unique compounds and entities observed in ent and relate the
   // entities with asym chain names that are directly written to
   // atom_site_/pdbx_poly_seq_scheme_.
   if(mmcif_conform) {
     // chains are assumed to be mmCIF conform - that means water in separate
     // chains, ligands in separate chains etc. Chain types are inferred from
-    // chain type property set to the chains in ent. If any of the residues in
-    // the respective chains is incompatible with the set chain type, an error
-    // is thrown.
-    SetStructure_(ent, comp_infos, entity_info_,
-                  atom_site_, pdbx_poly_seq_scheme_);
+    // chain type property set to the chains in ent.
+    ProcessEnt(ent, comp_infos, entity_info_,
+            atom_site_, pdbx_poly_seq_scheme_);
   } else {
     // rule based splitting of chains into mmCIF conform chains
-    SetStructuremmCIFify_(ent, comp_infos, entity_info_,
-                          atom_site_, pdbx_poly_seq_scheme_);
+    ProcessEntmmCIFify(ent, comp_infos, entity_info_,
+                       atom_site_, pdbx_poly_seq_scheme_);
   } 
-  Feed_entity_(entity_, entity_info_);
-  Feed_struct_asym_(struct_asym_, entity_info_);
-  Feed_entity_poly_(entity_poly_, entity_info_);
-  Feed_entity_poly_seq_(entity_poly_seq_, entity_info_);
-  Feed_chem_comp_(chem_comp_, comp_infos);
-  Feed_atom_type_(atom_type_, atom_site_); 
+  Feed_entity(entity_, entity_info_);
+  Feed_struct_asym(struct_asym_, entity_info_);
+  Feed_entity_poly(entity_poly_, entity_info_);
+  Feed_entity_poly_seq(entity_poly_seq_, entity_info_);
+  Feed_chem_comp(chem_comp_, comp_infos);
+  Feed_atom_type(atom_type_, atom_site_); 
 
   // finalize
   this->Push(chem_comp_);

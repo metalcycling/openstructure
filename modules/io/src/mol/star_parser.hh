@@ -31,9 +31,69 @@
 #include <map>
 #include <ost/string_ref.hh>
 #include <ost/io/module_config.hh>
-#include <ost/io/mol/star_base.hh>
 
 namespace ost { namespace io {
+
+
+typedef enum {
+  STAR_DIAG_WARNING,
+  STAR_DIAG_ERROR
+} StarDiagType;
+
+
+class DLLEXPORT_OST_IO StarDataItem {
+public:
+  StarDataItem(const StringRef& category, const StringRef& name, 
+                const StringRef& value): 
+    category_(category), name_(name), value_(value)
+  { }
+  const StringRef& GetCategory() const { return category_; }
+  const StringRef& GetName() const { return name_; }
+  const StringRef& GetValue() const { return value_; }
+private:
+  StringRef category_;
+  StringRef name_;
+  StringRef value_;
+};
+
+class DLLEXPORT_OST_IO StarLoopDesc {
+public:
+  StarLoopDesc():
+    category_("")
+  { }
+  
+  int GetIndex(const String& name) const
+  {
+    std::map<String, int>::const_iterator i=index_map_.find(name);
+    return i==index_map_.end() ? -1 : i->second;
+  }
+  
+  void SetCategory(const StringRef& category)
+  {
+    category_=category.str();
+  }
+  
+
+
+  void Add(const StringRef& name)
+  {
+    index_map_.insert(std::make_pair(name.str(), index_map_.size()));
+  }
+  size_t GetSize() const 
+  {
+    return index_map_.size();
+  }
+  void Clear()
+  {
+    category_.clear();
+    index_map_.clear();
+  }
+
+  const String& GetCategory() const { return category_; }
+private:
+  String                category_;
+  std::map<String, int> index_map_;
+};
 
 /// \brief parser for the STAR file format
 /// 

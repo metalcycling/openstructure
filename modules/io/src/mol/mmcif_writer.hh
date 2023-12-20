@@ -70,21 +70,21 @@ public:
 
   MMCifWriter(const String& filename, const IOProfile& profile);
 
-  virtual ~MMCifWriter();
+  virtual ~MMCifWriter() { }
 
   void SetStructure(const ost::mol::EntityHandle& ent, bool mmcif_conform=true);
 
 private:
   IOProfile profile_;
   std::vector<MMCifWriterEntity> entity_info_;
-  StarLoop* atom_type_;
-  StarLoop* atom_site_;
-  StarLoop* pdbx_poly_seq_scheme_;
-  StarLoop* entity_;
-  StarLoop* struct_asym_;
-  StarLoop* entity_poly_;
-  StarLoop* entity_poly_seq_;
-  StarLoop* chem_comp_;
+  StarWriterLoopPtr atom_type_;
+  StarWriterLoopPtr atom_site_;
+  StarWriterLoopPtr pdbx_poly_seq_scheme_;
+  StarWriterLoopPtr entity_;
+  StarWriterLoopPtr struct_asym_;
+  StarWriterLoopPtr entity_poly_;
+  StarWriterLoopPtr entity_poly_seq_;
+  StarWriterLoopPtr chem_comp_;
 };
 
 }} // ns
