@@ -341,7 +341,7 @@ namespace {
   }
 
   inline String MonIDToOLC(char chem_class,
-                              const String& mon_id) {
+                           const String& mon_id) {
 
     // hardcoded table according
     // https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_entity_poly.pdbx_seq_one_letter_code.html
@@ -526,7 +526,7 @@ namespace {
   }
 
   void SetupChemComp(const ost::mol::ResidueHandleList& res_list,
-                        std::map<String, CompInfo>& comp_infos) {
+                     std::map<String, CompInfo>& comp_infos) {
     for(auto res: res_list) {
       String res_name = res.GetName();
       String type = ChemClassToChemCompType(res.GetChemClass());
@@ -582,7 +582,7 @@ namespace {
   }
 
   bool MatchEntity(const ost::mol::ResidueHandleList& res_list,
-                    const ost::io::MMCifWriterEntity& info) {
+                   const ost::io::MMCifWriterEntity& info) {
     // checks if the residue names in res_list are an exact match
     // with mon_ids in info
     std::vector<String> mon_ids;
@@ -593,7 +593,7 @@ namespace {
   }
 
   void AddAsym(const String& asym_chain_name,
-                ost::io::MMCifWriterEntity& info) {
+               ost::io::MMCifWriterEntity& info) {
     // adds asym_chain_name to info under the assumption that mon_ids
     // exactly match => just add a copy of mon_ids to asym_alns
     info.asym_ids.push_back(asym_chain_name);
@@ -601,8 +601,8 @@ namespace {
   }
 
   void AddAsymResnum(const String& asym_chain_name,
-                       const ost::mol::ResidueHandleList& res_list,
-                       ost::io::MMCifWriterEntity& info) {
+                     const ost::mol::ResidueHandleList& res_list,
+                     ost::io::MMCifWriterEntity& info) {
 
     if(!info.is_poly) {
       // no need for SEQRES alignment vodoo
@@ -735,8 +735,8 @@ namespace {
     } else {
       if(type == "water") {
         mon_ids.push_back("HOH");
-        seq.push_back("X");
-        seq_can.push_back("X");
+        seq.push_back("(HOH)");
+        seq_can.push_back("?");
       } else {
         for(auto res: res_list) {
           mon_ids.push_back(res.GetName());
@@ -1330,7 +1330,60 @@ namespace {
       }
     }
   }
-}
+
+  void ProcessUnknowns(std::vector<ost::io::MMCifWriterEntity>& entity_infos,
+                       std::map<String, CompInfo>& comp_infos) {
+
+    for(size_t entity_idx = 0; entity_idx < entity_infos.size(); ++entity_idx) {
+      if(entity_infos[entity_idx].is_poly) {
+        // scan for "-" in mon_ids
+        for(size_t mon_id_idx = 0;
+            mon_id_idx < entity_infos[entity_idx].mon_ids.size(); ++entity_idx) {
+
+          if(entity_infos[entity_idx].mon_ids[mon_id_idx] == "-") {
+
+            if(entity_infos[entity_idx].poly_type == "polypeptide(D)" ||
+               entity_infos[entity_idx].poly_type == "polypeptide(L)" ||
+               entity_infos[entity_idx].poly_type == "cyclic-pseudo-peptide" ||
+               entity_infos[entity_idx].poly_type == "peptide nucleic acid") {
+              entity_infos[entity_idx].mon_ids[mon_id_idx] = "UNK"; 
+              entity_infos[entity_idx].seq_olcs[mon_id_idx] = "(UNK)"; 
+              entity_infos[entity_idx].seq_can_olcs[mon_id_idx] = "X";
+              if(comp_infos.find("UNK") == comp_infos.end()) {
+                CompInfo info;
+                info.type = "L-peptide linking";
+                comp_infos["UNK"] = info;
+              }
+            }
+
+            if(entity_infos[entity_idx].poly_type == "polydeoxyribonucleotide") {
+              entity_infos[entity_idx].mon_ids[mon_id_idx] = "DN"; 
+              entity_infos[entity_idx].seq_olcs[mon_id_idx] = "(DN)"; 
+              entity_infos[entity_idx].seq_can_olcs[mon_id_idx] = "N";
+              if(comp_infos.find("DN") == comp_infos.end()) {
+                CompInfo info;
+                info.type = "DNA linking";
+                comp_infos["DN"] = info;
+              }
+            }
+
+            if(entity_infos[entity_idx].poly_type == "polyribonucleotide") {
+              entity_infos[entity_idx].mon_ids[mon_id_idx] = "N"; 
+              entity_infos[entity_idx].seq_olcs[mon_id_idx] = "N"; 
+              entity_infos[entity_idx].seq_can_olcs[mon_id_idx] = "N";
+              if(comp_infos.find("N") == comp_infos.end()) {
+                CompInfo info;
+                info.type = "RNA linking";
+                comp_infos["N"] = info;
+              }
+            }
+          } 
+        }
+      }
+    }
+  }
+
+} // ns
 
 namespace ost { namespace io {
 
@@ -1410,6 +1463,14 @@ void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
     ProcessEntmmCIFify(ent, comp_infos, entity_info_,
                        atom_site_, pdbx_poly_seq_scheme_);
   } 
+
+  // depending on the strategy above, there might be gaps in the entities
+  // mon_ids/ seq_olcs/ seq_can_olcs
+  // The following function adds valid stuff depending on chain type
+  // (e.g. UNK if we're having a peptide linking chain and then adds
+  // that UNK directly to comp_info)
+  ProcessUnknowns(entity_info_, comp_infos);
+
   Feed_entity(entity_, entity_info_);
   Feed_struct_asym(struct_asym_, entity_info_);
   Feed_entity_poly(entity_poly_, entity_info_);
