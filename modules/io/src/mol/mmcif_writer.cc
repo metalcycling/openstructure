@@ -1338,7 +1338,7 @@ namespace {
       if(entity_infos[entity_idx].is_poly) {
         // scan for "-" in mon_ids
         for(size_t mon_id_idx = 0;
-            mon_id_idx < entity_infos[entity_idx].mon_ids.size(); ++entity_idx) {
+            mon_id_idx < entity_infos[entity_idx].mon_ids.size(); ++mon_id_idx) {
 
           if(entity_infos[entity_idx].mon_ids[mon_id_idx] == "-") {
 
