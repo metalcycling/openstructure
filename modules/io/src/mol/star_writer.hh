@@ -296,7 +296,6 @@ public:
   void Write(const String& data_name);
 private:
   String filename_;
-  bool file_open_;
   std::ofstream fstream_;
   boost::iostreams::filtering_stream<boost::iostreams::output> stream_;
   std::vector<StarWriterObjectPtr> categories_to_write_;

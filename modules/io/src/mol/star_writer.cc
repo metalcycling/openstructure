@@ -21,29 +21,29 @@
 
 namespace ost{ namespace io{
 
-StarWriter::StarWriter(std::ostream& stream): filename_("<stream>"),
-                                              file_open_(true) {
+StarWriter::StarWriter(std::ostream& stream): filename_("<stream>") {
   if(!stream) {
-    file_open_ = false;
+    std::stringstream ss;
+    ss << "Cannot open stream: [Errno " << errno << "] "
+       << strerror(errno) << std::endl;
+    throw IOException(ss.str());
   }
   stream_.push(stream);
 }
 
 
 StarWriter::StarWriter(const String& filename): filename_(filename),
-                                                file_open_(true),
                                                 fstream_(filename.c_str()) {
   if (!fstream_) {
-    file_open_ = false;
+    std::stringstream ss;
+    ss << "Cannot open " << filename_ << ": [Errno " << errno << "] "
+       << strerror(errno) << std::endl;
+    throw IOException(ss.str());
   }
   stream_.push(fstream_);
 }
 
 void StarWriter::Write(const String& data_name) {
-  if (!file_open_) {
-    throw IOException("yolo");
-  }
-
   // write data header
   stream_ << "data_" << data_name << std::endl;
 
