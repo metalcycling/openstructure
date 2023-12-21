@@ -68,17 +68,16 @@ namespace{
 namespace ost { namespace io {
 
 class StarWriterObject;
+class StarWriterValue;
 class StarWriterDataItem;
-class StarWriterDataCategory;
 class StarWriterLoopDesc;
-class StarWriterLoopDataItem;
 class StarWriterLoop;
 typedef boost::shared_ptr<StarWriterObject> StarWriterObjectPtr;
+typedef boost::shared_ptr<StarWriterValue> StarWriterValuePtr;
 typedef boost::shared_ptr<StarWriterDataItem> StarWriterDataItemPtr;
-typedef boost::shared_ptr<StarWriterDataCategory> StarWriterDataCategoryPtr;
 typedef boost::shared_ptr<StarWriterLoopDesc> StarWriterLoopDescPtr;
-typedef boost::shared_ptr<StarWriterLoopDataItem> StarWriterLoopDataItemPtr;
 typedef boost::shared_ptr<StarWriterLoop> StarWriterLoopPtr;
+
 
 class DLLEXPORT_OST_IO StarWriterObject {
 public:
@@ -86,92 +85,74 @@ public:
   virtual void ToStream(std::ostream& s) = 0;
 };
 
-class DLLEXPORT_OST_IO StarWriterDataItem : public StarWriterObject {
 
+class DLLEXPORT_OST_IO StarWriterValue{
 public:
-  StarWriterDataItem(const String& category, const String& name, 
-                     const String& value): category_(category), name_(name) {
+  static StarWriterValue FromInt(int int_value) {
+    StarWriterValue value;
+    value.value_ = std::to_string(int_value);
+    return value;
+  } 
+  static StarWriterValue FromFloat(Real float_value, int decimals) {
+    StarWriterValue value;
+    fts(float_value, decimals, value.value_);
+    return value;  
+ }
+  static StarWriterValue FromString(const String& string_value) {
+    StarWriterValue value;
     // cases we still need to deal with:
     // - special characters in strings (put in quotation marks)
     // - long strings (semicolon based syntax)
     // see https://mmcif.wwpdb.org/docs/tutorials/mechanics/pdbx-mmcif-syntax.html
-    if(value == "") {
-      value_ = ".";
+    if(string_value == "") {
+      value.value_ = ".";
     } else {
-      value_ = value;
+      value.value_ = string_value;
     }
+    return value;
   }
-
-  StarWriterDataItem(const String& category, const String& name, 
-                     Real value, int decimals):  category_(category),
-                                                 name_(name) {
-    fts(value, decimals, value_);
-  }
-
-  StarWriterDataItem(const String& category, const String& name, 
-                     int value): category_(category), name_(name) {
-    value_ = std::to_string(value);
-  }
-
-  virtual void ToStream(std::ostream& s) {
-    s << category_ << '.' << name_ << ' ' << value_ << std::endl;
-  }
-
-  const String& GetCategory() const { return category_; }
-  const String& GetName() const { return name_; }
   const String& GetValue() const { return value_; }
 private:
-  String category_;
-  String name_;
-  String value_;
+// force construction through static members
+StarWriterValue() { }
+String value_;
 };
 
-class DLLEXPORT_OST_IO StarWriterDataCategory : public StarWriterObject {
+
+class DLLEXPORT_OST_IO StarWriterDataItem : public StarWriterObject {
 public:
-  StarWriterDataCategory(const String& category): category_(category) { }
-
-  void Add(const StarWriterDataItem& data_item) {
-    if(data_item.GetCategory() != category_) {
-      throw ost::io::IOException("category mismatch");
-    }
-    data_items_.push_back(data_item);
-  }
-
+  StarWriterDataItem(const String& category, const String& attribute, 
+                     const StarWriterValue& value): category_(category),
+                                                    attribute_(attribute),
+                                                    value_(value) { }
   virtual void ToStream(std::ostream& s) {
-    for(auto it = data_items_.begin(); it != data_items_.end(); ++it) {
-      it->ToStream(s);
-    }
+    s << category_ << '.' << attribute_ << ' ' << value_.GetValue() << std::endl;
   }
-
+  const String& GetCategory() const { return category_; }
+  const String& GetAttribute() const { return attribute_; }
+  const StarWriterValue& GetValue() const { return value_; }
 private:
   String category_;
-  std::vector<StarWriterDataItem> data_items_;
+  String attribute_;
+  StarWriterValue value_;
 };
+
 
 class DLLEXPORT_OST_IO StarWriterLoopDesc : public StarWriterObject {
 public:
-  StarWriterLoopDesc(): category_("") { }
+  StarWriterLoopDesc(const String& category): category_(category) { }
   
-  int GetIndex(const String& name) const {
-    std::map<String, int>::const_iterator i=index_map_.find(name);
+  int GetIndex(const String& attribute) const {
+    std::map<String, int>::const_iterator i=index_map_.find(attribute);
     return i==index_map_.end() ? -1 : i->second;
   }
 
-  void SetCategory(const String& category) {
-    category_=category;
-  }  
-
-  void Add(const String& name) {
-    index_map_.insert(std::make_pair(name, index_map_.size()));
+  void Add(const String& attribute) {
+    index_map_.insert(std::make_pair(attribute, index_map_.size()));
   }
 
   size_t GetSize() const  {
     return index_map_.size();
-  }
-
-  void Clear() {
-    category_.clear();
-    index_map_.clear();
   }
 
   virtual void ToStream(std::ostream& s) {
@@ -191,76 +172,22 @@ private:
   std::map<String, int> index_map_;
 };
 
-class DLLEXPORT_OST_IO StarWriterLoopDataItem{
-public:
-
-  StarWriterLoopDataItem(const String& value) {
-    // cases we still need to deal with:
-    // - special characters in strings (put in quotation marks)
-    // - long strings (semicolon based syntax)
-    // see https://mmcif.wwpdb.org/docs/tutorials/mechanics/pdbx-mmcif-syntax.html
-
-
-    bool has_space = false;
-    for(char c: value) {
-      if(isspace(c)) {
-        has_space = true;
-        break;
-      }
-    }
-    if(value == "") {
-      value_ = ".";
-    } else if(has_space) {
-      value_ = "'" + value + "'";
-    }
-    else {
-      value_ = value;
-    }
-  }
-
-  StarWriterLoopDataItem(Real value, int decimals) {
-    fts(value, decimals, value_);
-  }
-
-  StarWriterLoopDataItem(int value) {
-    value_ = std::to_string(value);
-  }
-
-  const String& GetValue() const { return value_; }
-
-  virtual void ToStream(std::ostream& s) {
-    s << value_;
-  }
-
-private:
-  String value_;
-};
 
 class DLLEXPORT_OST_IO StarWriterLoop: public StarWriterObject {
 public:
 
-  StarWriterLoop() { }
-
   StarWriterLoop(const StarWriterLoopDesc& desc): desc_(desc) { }
-
-  void SetDesc(const StarWriterLoopDesc& desc) {
-    if(!data_.empty()) {
-      throw ost::io::IOException("Can only set new StarLoop desc in "
-                                 "in empty loop");
-    }
-    desc_ = desc;
-  }
 
   const StarWriterLoopDesc& GetDesc() { return desc_; }
 
-  void AddData(const std::vector<StarWriterLoopDataItem>& data) {
+  void AddData(const std::vector<StarWriterValue>& data) {
     if(data.size() != desc_.GetSize()) {
       throw ost::io::IOException("Invalid data size when adding to StarLoop");
     }
     data_.insert(data_.end(), data.begin(), data.end());
   }
 
-  const std::vector<StarWriterLoopDataItem>& GetData() { return data_; }
+  const std::vector<StarWriterValue>& GetData() { return data_; }
 
   int GetN() {
     return data_.size() / desc_.GetSize();
@@ -271,7 +198,7 @@ public:
     desc_.ToStream(s);
     int desc_size = desc_.GetSize();
     for(size_t i = 0; i < data_.size(); ++i) {
-      data_[i].ToStream(s);
+      s << data_[i].GetValue();
       if((i+1) % desc_size == 0) {
         s << std::endl;
       } else {
@@ -282,7 +209,7 @@ public:
 
 private:
   StarWriterLoopDesc desc_;
-  std::vector<StarWriterLoopDataItem> data_;
+  std::vector<StarWriterValue> data_;
 };
 
 
