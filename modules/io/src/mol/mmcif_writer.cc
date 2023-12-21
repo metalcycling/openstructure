@@ -178,6 +178,7 @@ namespace {
       case ost::mol::CHAINTYPE_POLY_DN_RN: return "polydeoxyribonucleotide/polyribonucleotide hybrid";
       case ost::mol::CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE: return "cyclic-pseudo-peptide";
       case ost::mol::CHAINTYPE_POLY_PEPTIDE_DN_RN: return "peptide nucleic acid";
+      case ost::mol::CHAINTYPE_OLIGOSACCHARIDE: return "other";
       default: return "unknown";
     }
   }
@@ -274,7 +275,7 @@ namespace {
       case ost::mol::CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE: return "polymer";
       case ost::mol::CHAINTYPE_POLY_PEPTIDE_DN_RN: return "polymer";
       case ost::mol::CHAINTYPE_BRANCHED: return "branched";
-      case ost::mol::CHAINTYPE_OLIGOSACCHARIDE: return "branched"; // poly?
+      case ost::mol::CHAINTYPE_OLIGOSACCHARIDE: return "polymer"; // branched?
       default: return "unknown";
     }
   }
