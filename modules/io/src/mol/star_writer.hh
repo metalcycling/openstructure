@@ -104,9 +104,19 @@ public:
     // - special characters in strings (put in quotation marks)
     // - long strings (semicolon based syntax)
     // see https://mmcif.wwpdb.org/docs/tutorials/mechanics/pdbx-mmcif-syntax.html
+    bool has_space = false;
+    for(char c: string_value) {
+      if(isspace(c)) {
+        has_space = true;
+        break;
+      }
+    }
     if(string_value == "") {
       value.value_ = ".";
-    } else {
+    } else if(has_space) {
+      value.value_ = "'" + string_value + "'";
+    }
+    else {
       value.value_ = string_value;
     }
     return value;
