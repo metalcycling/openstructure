@@ -1355,7 +1355,8 @@ namespace {
               }
             }
 
-            if(entity_infos[entity_idx].poly_type == "polyribonucleotide") {
+            if(entity_infos[entity_idx].poly_type == "polyribonucleotide" ||
+               entity_infos[entity_idx].poly_type == "polydeoxyribonucleotide/polyribonucleotide hybrid") {
               entity_infos[entity_idx].mon_ids[mon_id_idx] = "N"; 
               entity_infos[entity_idx].seq_olcs[mon_id_idx] = "N"; 
               entity_infos[entity_idx].seq_can_olcs[mon_id_idx] = "N";
