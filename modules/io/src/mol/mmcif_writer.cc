@@ -288,47 +288,48 @@ namespace {
     String type = "";
     switch(chem_class) {
       case 'P': {
-        type = "peptide linking";
+        type = "PEPTIDE LINKING";
         break;
       }
       case 'D': {
-        type = "D-peptide linking";
+        type = "D-PEPTIDE LINKING";
         break;
       }
       case 'L': {
-        type = "L-peptide linking";
+        type = "L-PEPTIDE LINKING";
         break;
       }
       case 'R': {
-        type = "RNA linking";
+        type = "RNA LINKING";
         break;
       }
       case 'S': {
-        type = "DNA linking";
+        type = "DNA LINKING";
         break;
       }
       case 'N': {
-        type = "non-polymer";
+        type = "NON-POLYMER";
         break;
       }
       case 'X': {
-        type = "L-saccharide";
+        type = "L-SACCHARIDE";
         break;
       }
       case 'Y': {
-        type = "D-saccharide";
+        type = "D-SACCHARIDE";
         break;
       }
       case 'Z': {
-        type = "saccharide";
+        type = "SACCHARIDE";
         break;
       }
       case 'W': {
-        type = "non-polymer";
+        type = "NON-POLYMER"; // yes, water is a non-polymer
+                              // https://www.rcsb.org/ligand/HOH
         break;
       }
       case 'U': {
-        type = "non-polymer";
+        type = "OTHER";
         break;
       }
       default: {
@@ -1164,7 +1165,7 @@ namespace {
                       const std::map<String, CompInfo>& comp_infos) {
     std::vector<ost::io::StarWriterLoopDataItem> comp_data;
     comp_data.push_back(ost::io::StarWriterLoopDataItem("ALA"));
-    comp_data.push_back(ost::io::StarWriterLoopDataItem("L-peptide linking"));
+    comp_data.push_back(ost::io::StarWriterLoopDataItem("L-PEPTIDE LINKING"));
     for(auto it = comp_infos.begin(); it != comp_infos.end(); ++it) {
       comp_data[0] = it->first;
       comp_data[1] = it->second.type;
@@ -1351,7 +1352,7 @@ namespace {
               entity_infos[entity_idx].seq_can_olcs[mon_id_idx] = "X";
               if(comp_infos.find("UNK") == comp_infos.end()) {
                 CompInfo info;
-                info.type = "L-peptide linking";
+                info.type = "L-PEPTIDE LINKING";
                 comp_infos["UNK"] = info;
               }
             }
@@ -1362,7 +1363,7 @@ namespace {
               entity_infos[entity_idx].seq_can_olcs[mon_id_idx] = "N";
               if(comp_infos.find("DN") == comp_infos.end()) {
                 CompInfo info;
-                info.type = "DNA linking";
+                info.type = "DNA LINKING";
                 comp_infos["DN"] = info;
               }
             }
@@ -1373,7 +1374,7 @@ namespace {
               entity_infos[entity_idx].seq_can_olcs[mon_id_idx] = "N";
               if(comp_infos.find("N") == comp_infos.end()) {
                 CompInfo info;
-                info.type = "RNA linking";
+                info.type = "RNA LINKING";
                 comp_infos["N"] = info;
               }
             }
