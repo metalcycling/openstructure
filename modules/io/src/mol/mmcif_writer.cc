@@ -1012,15 +1012,11 @@ namespace {
       }
       String auth_seq_id = res.GetNumber().AsString();
       if(res.HasProp("pdb_auth_resnum")) {
-        std::stringstream ss;
-        ss << res.GetStringProp("pdb_auth_resnum");
-        if(res.HasProp("pdb_auth_ins_code")) {
-          String ins_code = res.GetStringProp("pdb_auth_ins_code");
-          if(ins_code != "?") {
-            ss << ins_code;
-          }
-        }
-        auth_seq_id = ss.str();
+        auth_seq_id = res.GetStringProp("pdb_auth_resnum");
+      }
+      String ins_code = "";
+      if(res.HasProp("pdb_auth_ins_code")) {
+        ins_code = res.GetStringProp("pdb_auth_ins_code");
       }
 
       if(entity_info.is_poly) {
@@ -1075,7 +1071,7 @@ namespace {
         // id
         at_data.push_back(ost::io::StarWriterLoopDataItem(atom_site_ptr->GetN()));
         // pdbx_PDB_ins_code
-        at_data.push_back(ost::io::StarWriterLoopDataItem("")); // CHECK THIS, ADD STUFF FROM AUTH_SEQ_ID?
+        at_data.push_back(ost::io::StarWriterLoopDataItem(ins_code));
         atom_site_ptr->AddData(at_data);
       }
 
