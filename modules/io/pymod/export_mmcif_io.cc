@@ -26,6 +26,7 @@ using namespace boost::python;
 #include <ost/io/mol/io_profile.hh>
 #include <ost/io/mol/mmcif_reader.hh>
 #include <ost/io/mol/mmcif_info.hh>
+#include <ost/io/mol/star_writer.hh>
 #include <ost/io/mol/mmcif_writer.hh>
 #include <ost/io/mmcif_str.hh>
 using namespace ost;
@@ -56,6 +57,14 @@ boost::python::tuple WrapMMCifStringToEntity(const String& mmcif,
                                    std::get<2>(res));
 }
 
+void WrapStarLoopAddData(StarWriterLoop& sl, const boost::python::list& l) {
+  std::vector<StarWriterValue> v;
+  for (int i = 0; i < boost::python::len(l); ++i){
+    v.push_back(boost::python::extract<StarWriterValue>(l[i]));
+  }
+  sl.AddData(v);
+}
+
 void export_mmcif_io()
 {
   class_<MMCifReader, boost::noncopyable>("MMCifReader", init<const String&, EntityHandle&, const IOProfile&>())
@@ -76,10 +85,42 @@ void export_mmcif_io()
                                    return_value_policy<copy_const_reference>()))
     ;
 
-  class_<MMCifWriter, boost::noncopyable>("MMCifWriter", init<const String&, const IOProfile&>())
+  class_<StarWriterObject, boost::noncopyable>("StarWriterObject", no_init);
+
+  class_<StarWriterValue>("StarWriterValue", no_init)
+    .def("FromInt", &StarWriterValue::FromInt, (arg("int_val"))).staticmethod("FromInt")
+    .def("FromFloat", &StarWriterValue::FromFloat, (arg("float_val"), arg("decimals"))).staticmethod("FromFloat")
+    .def("FromString", &StarWriterValue::FromString, (arg("string_val"))).staticmethod("FromString")
+    .def("GetValue", &StarWriterValue::GetValue, return_value_policy<copy_const_reference>())
+  ;
+
+  class_<StarWriterDataItem, bases<StarWriterObject> >("StarWriterDataItem", init<const String&, const String&, const StarWriterValue&>())
+    .def("GetCategory", &StarWriterDataItem::GetCategory, return_value_policy<copy_const_reference>())
+    .def("GetAttribute", &StarWriterDataItem::GetAttribute, return_value_policy<copy_const_reference>())
+    .def("GetValue", &StarWriterDataItem::GetValue, return_value_policy<copy_const_reference>())
+  ;
+
+  class_<StarWriterLoopDesc, bases<StarWriterObject> >("StarWriterLoopDesc", init<const String&>())
+    .def("GetCategory", &StarWriterLoopDesc::GetCategory, return_value_policy<copy_const_reference>())
+    .def("GetSize", &StarWriterLoopDesc::GetSize)
+    .def("Add", &StarWriterLoopDesc::Add, (arg("attribute")))
+    .def("GetIndex", &StarWriterLoopDesc::GetIndex, (arg("attribute")))
+  ;
+
+  class_<StarWriterLoop, bases<StarWriterObject> >("StarWriterLoop", init<const StarWriterLoopDesc&>())
+    .def("GetDesc", &StarWriterLoop::GetDesc, return_value_policy<reference_existing_object>())
+    .def("GetN", &StarWriterLoop::GetN)
+    .def("AddData", &WrapStarLoopAddData, (arg("data_list")))
+  ;
+
+  class_<StarWriter, boost::noncopyable>("StarWriter", init<const String&>())
+    .def("Push", &StarWriter::Push, arg("star_writer_object"))
+    .def("Write", &StarWriter::Write, arg("data_name"))
+  ;
+
+  class_<MMCifWriter, boost::noncopyable, bases<StarWriter> >("MMCifWriter", init<const String&, const IOProfile&>())
     .def("SetStructure", &MMCifWriter::SetStructure, (arg("ent"), arg("mmcif_conform")=true))
-    .def("Write", &MMCifWriter::Write)
-    ;
+  ;
 
   enum_<MMCifInfoCitation::MMCifInfoCType>("MMCifInfoCType")
     .value("Journal", MMCifInfoCitation::JOURNAL)
