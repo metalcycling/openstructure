@@ -1344,7 +1344,7 @@ namespace {
               }
             }
 
-            if(entity_infos[entity_idx].poly_type == "polydeoxyribonucleotide") {
+            else if(entity_infos[entity_idx].poly_type == "polydeoxyribonucleotide") {
               entity_infos[entity_idx].mon_ids[mon_id_idx] = "DN"; 
               entity_infos[entity_idx].seq_olcs[mon_id_idx] = "(DN)"; 
               entity_infos[entity_idx].seq_can_olcs[mon_id_idx] = "N";
@@ -1355,7 +1355,7 @@ namespace {
               }
             }
 
-            if(entity_infos[entity_idx].poly_type == "polyribonucleotide" ||
+            else if(entity_infos[entity_idx].poly_type == "polyribonucleotide" ||
                entity_infos[entity_idx].poly_type == "polydeoxyribonucleotide/polyribonucleotide hybrid") {
               entity_infos[entity_idx].mon_ids[mon_id_idx] = "N"; 
               entity_infos[entity_idx].seq_olcs[mon_id_idx] = "N"; 
@@ -1365,6 +1365,13 @@ namespace {
                 info.type = "RNA LINKING";
                 comp_infos["N"] = info;
               }
+            }
+
+            else {
+              std::stringstream ss;
+              ss << "Gaps are not supported for polymer chains of type ";
+              ss << entity_infos[entity_idx].poly_type;
+              throw ost::io::IOException(ss.str());
             }
           } 
         }
