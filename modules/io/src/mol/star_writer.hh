@@ -204,6 +204,9 @@ public:
   }
 
   virtual void ToStream(std::ostream& s) {
+    if(data_.empty()) {
+      return; // skip loop, including header
+    }
     s << "loop_" << std::endl;
     desc_.ToStream(s);
     int desc_size = desc_.GetSize();
