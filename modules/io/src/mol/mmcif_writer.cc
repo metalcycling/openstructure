@@ -712,11 +712,21 @@ namespace {
       std::vector<int> resnums;
       for(auto res: res_list) {
         int num = res.GetNumber().GetNum();
+        char ins_code = res.GetNumber().GetInsCode();
         if(num < 1) {
           std::stringstream ss;
           ss << "Try to construct mmCIF entity from residues using resnum ";
           ss << "based alignments. Negative residue numbers are not allowed ";
           ss << "in this case. Got: " << num << " in residue " << res;
+          ss << ". You may set mmcif_conform flag to False to write something ";
+          ss << "but be aware of the consequences...";
+          throw ost::io::IOException(ss.str());
+        }
+        if(ins_code != '\0') {
+          std::stringstream ss;
+          ss << "Try to construct mmCIF entity from residues using resnum ";
+          ss << "based alignments. Insertion codes are not allowed ";
+          ss << "in this case. Got: " << ins_code << " in residue " << res;
           ss << ". You may set mmcif_conform flag to False to write something ";
           ss << "but be aware of the consequences...";
           throw ost::io::IOException(ss.str());
