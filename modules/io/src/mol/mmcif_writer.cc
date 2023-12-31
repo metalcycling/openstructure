@@ -194,7 +194,9 @@ namespace {
     // - polymer
     // - water
 
-    // this function won't identify macrolid
+    // this function is overly simplistic and won't identify macrolid or
+    // branched => explicitely checks for water, everything else is either
+    // non-polymer or polymer depending on number of residues
 
     std::set<char> chem_classes;
     for(auto res: res_list) {
@@ -207,39 +209,11 @@ namespace {
       return "water";
     }
 
-    // check for non-polymer
-    if(res_list.size() == 1) {
-      return "non-polymer";
-    }
-
-    // check for branched
-    std::set<char> sweet_set;
-    sweet_set.insert(ost::mol::ChemClass::L_SACCHARIDE);
-    sweet_set.insert(ost::mol::ChemClass::D_SACCHARIDE);
-    sweet_set.insert(ost::mol::ChemClass::SACCHARIDE);
-    // if the union of chem_classes and sweet_set has 3 elements, chem_classes
-    // only has sugars.
-    sweet_set.insert(chem_classes.begin(), chem_classes.end());
-    if(sweet_set.size() == 3) {
-      return "branched";
-    }
-
     // DISCUSS THIS OVER A BEER...
-    // when arriving here, we excluded the possibility of branched and single
-    // residue chains.
-    // BUT: entities must have at least 3 residues to be considered polymers
-    // for now, we just set entities with 2 residues as non-polymer
-    if(res_list.size() == 2) {
+    // Entities must have at least 3 residues to be considered polymers
+    // for now, we just set entities with 1 or 2 residues as non-polymer
+    if(res_list.size() == 1 || res_list.size() == 2) {
       return "non-polymer";
-    }
-
-    // If res_list represents a valid mmcif chain, chem_classes should only
-    // contain peptide- and nucleotide linking items 
-    for(auto it: chem_classes) {
-      ost::mol::ChemClass chem_class(it);
-      if(!(chem_class.IsPeptideLinking() || chem_class.IsNucleotideLinking())) {
-        throw ost::io::IOException("Could not guess entity type");
-      }
     }
 
     return "polymer";
