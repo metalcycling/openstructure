@@ -1402,35 +1402,15 @@ int MMCifWriterEntity::GetAsymIdx(const String& asym_id) const {
 
 MMCifWriter::MMCifWriter(const String& filename, const IOProfile& profile):
   StarWriter(filename),
-  profile_(profile) { }
+  profile_(profile),
+  structure_set_(false) { }
 
 void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
                                bool mmcif_conform) {
 
-  // tabula rasa
-  if(atom_type_) {
-    atom_type_.reset();
-  }
-  if(atom_site_) {
-    atom_site_.reset();
-  }
-  if(pdbx_poly_seq_scheme_) {
-    pdbx_poly_seq_scheme_.reset();
-  }
-  if(entity_) {
-    entity_.reset();
-  }
-  if(struct_asym_) {
-    struct_asym_.reset();
-  }
-  if(entity_poly_) {
-    entity_poly_.reset();
-  }
-  if(entity_poly_seq_) {
-    entity_poly_seq_.reset();
-  }
-  if(chem_comp_) {
-    chem_comp_.reset();
+  if(structure_set_) {
+    throw ost::io::IOException("SetStructure can be called only once on a "
+                               "given MMCifWriter instance");
   }
 
   atom_type_ = Setup_atom_type_ptr();
@@ -1483,6 +1463,8 @@ void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
   this->Push(pdbx_poly_seq_scheme_);
   this->Push(atom_type_);
   this->Push(atom_site_);
+
+  structure_set_ = true;
 }
 
 }} // ns

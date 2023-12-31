@@ -86,6 +86,7 @@ private:
   StarWriterLoopPtr entity_poly_;
   StarWriterLoopPtr entity_poly_seq_;
   StarWriterLoopPtr chem_comp_;
+  bool structure_set_;
 };
 
 }} // ns
