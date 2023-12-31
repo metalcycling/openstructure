@@ -60,7 +60,8 @@ struct MMCifWriterEntity {
 
   // One alignment to mon_ids for each element in asym_ids, i.e. SEQRES-ATOMSEQ
   // alignment. Contains "-" for residues that are missing in ATOMSEQ.
-  // irrelevant if is_poly is false.
+  // irrelevant if is_poly is false. The assumption is that aligned residues
+  // exactly match with the respective position in mon_ids.
   std::vector<std::vector<String> > asym_alns; 
 };
 

@@ -975,10 +975,6 @@ namespace {
         ++label_seq_id;
       }
 
-      if(res_name != aln[label_seq_id]) {
-        throw "ksajdhfgjkaljshdfsfgd";
-      }
-
       data[2] = ost::io::StarWriterValue::FromString(res_name);
       data[3] = ost::io::StarWriterValue::FromInt(label_seq_id + 1);
 
@@ -1044,9 +1040,6 @@ namespace {
       if(entity_info.is_poly) {
         while(aln[label_seq_id] == "-") {
           ++label_seq_id;
-        }
-        if(comp_id != aln[label_seq_id]) {
-          throw "ksajdhfgjkaljshdfsfgd";
         }
       }
 
