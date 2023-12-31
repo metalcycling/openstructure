@@ -559,12 +559,26 @@ namespace {
     int num_mon_ids = info.mon_ids.size();
     for(auto res: res_list) {
       int num = res.GetNumber().GetNum();
+      char ins_code = res.GetNumber().GetInsCode();
       if(num < 1) {
         std::stringstream ss;
-        ss << "Cannot perform resnum based alignment with invalid resnum in ";
-        ss << "residue " << res;
+        ss << "Try to construct resnum based alignments. Negative residue ";
+        ss << "numbers are not allowed in this case. Got: ";
+        ss << num << " in residue " << res;
+        ss << ". You may set mmcif_conform flag to False to write something ";
+        ss << "but be aware of the consequences...";
         throw ost::io::IOException(ss.str());
-      } else if (num > num_mon_ids) {
+      }
+      if(ins_code != '\0') {
+        std::stringstream ss;
+        ss << "Try to construct resnum based alignments. Insertion codes ";
+        ss << "are not allowed in this case. Got: ";
+        ss << ins_code << " in residue " << res;
+        ss << ". You may set mmcif_conform flag to False to write something ";
+        ss << "but be aware of the consequences...";
+        throw ost::io::IOException(ss.str());
+      }
+      if (num > num_mon_ids) {
         ++n_beyond;
       } else {
         if(info.mon_ids[num-1] == "-") {
