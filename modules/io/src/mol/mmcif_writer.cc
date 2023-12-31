@@ -1263,8 +1263,11 @@ namespace {
           Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
                          tmp);
         } else {
-          // TODO: make error message more insightful...
-          throw ost::io::IOException("Unsupported chem class...");
+          // this should not happen...
+          std::stringstream ss;
+          ss << "Unsupported chem class (" << res.GetChemClass();
+          ss << ") for residue "<< res;
+          throw ost::io::IOException(ss.str());
         }
       }
 
