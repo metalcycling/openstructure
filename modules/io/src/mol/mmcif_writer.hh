@@ -69,7 +69,7 @@ struct MMCifWriterEntity {
 class DLLEXPORT_OST_IO MMCifWriter : public StarWriter {
 public:
 
-  MMCifWriter(const String& filename);
+  MMCifWriter(): structure_set_(false) { }
 
   virtual ~MMCifWriter() { }
 

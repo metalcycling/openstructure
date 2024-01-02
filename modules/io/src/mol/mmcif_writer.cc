@@ -1400,10 +1400,6 @@ int MMCifWriterEntity::GetAsymIdx(const String& asym_id) const {
   throw ost::io::IOException(err);  
 }
 
-MMCifWriter::MMCifWriter(const String& filename):
-  StarWriter(filename),
-  structure_set_(false) { }
-
 void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
                                bool mmcif_conform) {
 

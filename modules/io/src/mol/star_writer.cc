@@ -25,39 +25,37 @@
 
 namespace ost{ namespace io{
 
-StarWriter::StarWriter(std::ostream& stream): filename_("<stream>") {
+void StarWriter::Write(const String& data_name, std::ostream& stream) {
   if(!stream) {
     std::stringstream ss;
     ss << "Cannot open stream: [Errno " << errno << "] "
        << strerror(errno) << std::endl;
     throw IOException(ss.str());
   }
-  stream_.push(stream);
+  // write data header
+  stream << "data_" << data_name << std::endl;
+  // write StarWriterObjects
+  for(auto star_obj : categories_to_write_) {
+    star_obj->ToStream(stream);
+    stream << String("#") << std::endl;
+  }
 }
 
 
-StarWriter::StarWriter(const String& filename): filename_(filename),
-                                                fstream_(filename.c_str()) {
-  if (!fstream_) {
+void StarWriter::Write(const String& data_name, const String& filename) {
+  std::ofstream fstream(filename.c_str());
+  if (!fstream) {
     std::stringstream ss;
-    ss << "Cannot open " << filename_ << ": [Errno " << errno << "] "
+    ss << "Cannot open " << filename << ": [Errno " << errno << "] "
        << strerror(errno) << std::endl;
     throw IOException(ss.str());
   }
+  boost::iostreams::filtering_stream<boost::iostreams::output> stream;
   if (boost::iequals(".gz", boost::filesystem::extension(filename))) {
-    stream_.push(boost::iostreams::gzip_compressor());
+    stream.push(boost::iostreams::gzip_compressor());
   }
-  stream_.push(fstream_);
-}
-
-void StarWriter::Write(const String& data_name) {
-  // write data header
-  stream_ << "data_" << data_name << std::endl;
-
-  for(auto star_obj : categories_to_write_) {
-    star_obj->ToStream(stream_);
-    stream_ << String("#") << std::endl;
-  }
+  stream.push(fstream);
+  this->Write(data_name, stream);
 }
 
 }} // ns

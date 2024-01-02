@@ -228,16 +228,15 @@ private:
 
 class DLLEXPORT_OST_IO StarWriter {
 public:
-  StarWriter(std::ostream& stream);
-  StarWriter(const String& filename);
+  StarWriter() { }
   virtual ~StarWriter() { }
 
   void Push(StarWriterObjectPtr obj) { categories_to_write_.push_back(obj); }
-  void Write(const String& data_name);
+
+  void Write(const String& data_name, const String& filename);
+  void Write(const String& data_name, std::ostream& stream);
+
 private:
-  String filename_;
-  std::ofstream fstream_;
-  boost::iostreams::filtering_stream<boost::iostreams::output> stream_;
   std::vector<StarWriterObjectPtr> categories_to_write_;
 };
 

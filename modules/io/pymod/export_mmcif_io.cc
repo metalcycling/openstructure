@@ -65,6 +65,11 @@ void WrapStarLoopAddData(StarWriterLoop& sl, const boost::python::list& l) {
   sl.AddData(v);
 }
 
+void WrapStarWriterWrite(StarWriter& writer, const String& data_name,
+                         const String& filename) {
+  writer.Write(data_name, filename);
+}
+
 void export_mmcif_io()
 {
   class_<MMCifReader, boost::noncopyable>("MMCifReader", init<const String&, EntityHandle&, const IOProfile&>())
@@ -113,12 +118,12 @@ void export_mmcif_io()
     .def("AddData", &WrapStarLoopAddData, (arg("data_list")))
   ;
 
-  class_<StarWriter, boost::noncopyable>("StarWriter", init<const String&>())
+  class_<StarWriter>("StarWriter", init<>())
     .def("Push", &StarWriter::Push, arg("star_writer_object"))
-    .def("Write", &StarWriter::Write, arg("data_name"))
+    .def("Write", &WrapStarWriterWrite, (arg("data_name"), arg("filename")))
   ;
 
-  class_<MMCifWriter, boost::noncopyable, bases<StarWriter> >("MMCifWriter", init<const String&>())
+  class_<MMCifWriter, bases<StarWriter> >("MMCifWriter", init<>())
     .def("SetStructure", &MMCifWriter::SetStructure, (arg("ent"), arg("mmcif_conform")=true))
   ;
 
