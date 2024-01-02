@@ -508,9 +508,25 @@ namespace {
       String type = ChemClassToChemCompType(res.GetChemClass());
       auto it = comp_infos.find(res_name);
       if(it != comp_infos.end()) {
-        // check whether type is consistent
         if(it->second.type != type) {
-          throw ost::io::IOException("There can be only one");
+          // If the already stored type or the incoming type are OTHER,
+          // we keep the one that is NOT OTHER => everything has preference over
+          // OTHER. However, if both types are NOT OTHER and they do not match,
+          // we throw an error.
+          if(type == "OTHER") {
+            continue; 
+          } else if (it->second.type == "OTHER") {
+            CompInfo info;
+            info.type = type;
+            comp_infos[res_name] = info;
+          } else {
+            std::stringstream ss;
+            ss << "Residue " << res << "has _chem_comp.type \"" << type;
+            ss << "\" which is derived from its chem class: " << res.GetChemClass();
+            ss << ". Observed already another _chem_comp.type for a residue of ";
+            ss << "the same name: " << it->second.type; 
+            throw ost::io::IOException(ss.str());
+          }
         }
       } else {
         CompInfo info;
@@ -1428,7 +1444,7 @@ void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
     // chains, ligands in separate chains etc. Chain types are inferred from
     // chain type property set to the chains in ent.
     ProcessEnt(ent, comp_infos, entity_info_,
-            atom_site_, pdbx_poly_seq_scheme_);
+               atom_site_, pdbx_poly_seq_scheme_);
   } else {
     // rule based splitting of chains into mmCIF conform chains
     ProcessEntmmCIFify(ent, comp_infos, entity_info_,
