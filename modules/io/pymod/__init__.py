@@ -462,6 +462,17 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
   except:
     raise
 
+
+def SaveMMCIF(ent, filename, data_name="OST_structure"):
+  """
+  Save entity - All fantastic documentation comes here
+  """
+  writer = MMCifWriter()
+  writer.SetStructure(ent)
+  writer.Write(data_name, filename)
+
+
+
 # this function uses a dirty trick: should be a member of MMCifInfoBioUnit
 # which is totally C++, but we want the method in Python... so we define it
 # here (__init__) and add it as a member to the class. With this, the first
