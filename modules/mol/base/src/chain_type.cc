@@ -59,7 +59,9 @@ ChainType ChainTypeFromString(StringRef identifier)
   } else if (StringRef("oligosaccharide", 15) == identifier) {
     return CHAINTYPE_OLIGOSACCHARIDE;
   } else if (StringRef("other", 5) == identifier) {
-    return CHAINTYPE_UNKNOWN;
+    // According to the mmCIF dictionary, "other" only exists in
+    // _entity_poly.type. Therefore, "other" can only be a generic polymer.
+    return CHAINTYPE_POLY;
   }
 
   throw Error("Unrecognised chain type descriptor found: '" +
