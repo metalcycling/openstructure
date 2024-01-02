@@ -118,7 +118,7 @@ void export_mmcif_io()
     .def("Write", &StarWriter::Write, arg("data_name"))
   ;
 
-  class_<MMCifWriter, boost::noncopyable, bases<StarWriter> >("MMCifWriter", init<const String&, const IOProfile&>())
+  class_<MMCifWriter, boost::noncopyable, bases<StarWriter> >("MMCifWriter", init<const String&>())
     .def("SetStructure", &MMCifWriter::SetStructure, (arg("ent"), arg("mmcif_conform")=true))
   ;
 

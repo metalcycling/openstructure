@@ -69,14 +69,13 @@ struct MMCifWriterEntity {
 class DLLEXPORT_OST_IO MMCifWriter : public StarWriter {
 public:
 
-  MMCifWriter(const String& filename, const IOProfile& profile);
+  MMCifWriter(const String& filename);
 
   virtual ~MMCifWriter() { }
 
   void SetStructure(const ost::mol::EntityHandle& ent, bool mmcif_conform=true);
 
 private:
-  IOProfile profile_;
   std::vector<MMCifWriterEntity> entity_info_;
   StarWriterLoopPtr atom_type_;
   StarWriterLoopPtr atom_site_;
