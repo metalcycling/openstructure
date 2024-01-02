@@ -30,8 +30,8 @@ namespace ost { namespace mol {
 /// \enum different kinds of chains
 ///
 /// Warning: this class mixes vocabulary from _entity.type and
-// _entity_poly.type, which is more detailed. As a result it cannot be used to
-/// to read/write mmCIF entity types accurately.
+// _entity_poly.type, which is more detailed. As a result it is not a 1:1
+// mapping and cannot be used to to read/write mmCIF entity types accurately.
 
 typedef enum {
   CHAINTYPE_POLY,           ///< polymer

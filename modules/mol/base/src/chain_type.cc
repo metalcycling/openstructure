@@ -78,6 +78,8 @@ String StringFromChainType(ChainType type)
 {
   // chain types as found in the entity category of a mmcif file
   if (CHAINTYPE_POLY == type) {
+    // "polymer" in _entity.type
+    // "other" in _entity_poly.type
     return "polymer";
   } else if (CHAINTYPE_NON_POLY == type) {
     return "non-polymer";
