@@ -17,6 +17,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //------------------------------------------------------------------------------
 
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem.hpp>
+
 #include <ost/io/mol/star_writer.hh>
 
 namespace ost{ namespace io{
@@ -39,6 +43,9 @@ StarWriter::StarWriter(const String& filename): filename_(filename),
     ss << "Cannot open " << filename_ << ": [Errno " << errno << "] "
        << strerror(errno) << std::endl;
     throw IOException(ss.str());
+  }
+  if (boost::iequals(".gz", boost::filesystem::extension(filename))) {
+    stream_.push(boost::iostreams::gzip_compressor());
   }
   stream_.push(fstream_);
 }
