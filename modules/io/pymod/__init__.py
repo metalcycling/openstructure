@@ -20,7 +20,6 @@ import os, tempfile, ftplib, http.client
 
 from ._ost_io import *
 from ost import mol, geom, conop, seq
-from ost import LogWarning
 
 class IOProfiles:
   def __init__(self):
@@ -447,11 +446,6 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
       reader.info.ConnectBranchLinks()
     #else:
     #  raise IOError("File doesn't contain any entities")
-
-    # Warn about info dependency on seqres
-    if info and not reader.seqres:
-      LogWarning("MMCifInfo is incomplete when seqres=False")
-
     if seqres and info:
       return ent, reader.seqres, reader.info
     if seqres:
