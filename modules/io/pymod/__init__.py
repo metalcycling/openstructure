@@ -457,12 +457,32 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
     raise
 
 
-def SaveMMCIF(ent, filename, data_name="OST_structure"):
+def SaveMMCIF(ent, filename, data_name="OST_structure", mmcif_conform = True):
   """
-  Save entity - All fantastic documentation comes here
+  Save OpenStructure entity in mmCIF format
+
+  :param ent:           OpenStructure Entity to be saved
+  :param filename:      Filename - .gz suffix triggers gzip compression
+  :param data_name:     Name of data block that will be written to
+                        mmCIF file. Typically, thats the PDB ID or some
+                        identifier.
+  :param mmcif_conform: Controls processing of structure, i.e. identification
+                        of mmCIF entities etc. before writing. Detailed
+                        description is in the documentation below. In short:
+                        If *mmcif_conform* is set to True, Chains in *ent* are
+                        expected to be valid mmCIF entities with residue numbers
+                        set according to underlying SEQRES. That should be the
+                        case when *ent* has been loaded with :func:`LoadMMCIF`.
+                        If *mmcif_conform* is set to False, heuristics kick in
+                        to identify and separate mmCIF entities based on
+                        :class:`ost.mol.ChemClass` of the residues in a chain.
+  :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+  :type filename: :class:`str`
+  :type data_name: :class:`str`
+  :type mmcif_conform: :class:`bool`
   """
   writer = MMCifWriter()
-  writer.SetStructure(ent)
+  writer.SetStructure(ent, mmcif_conform = mmcif_conform)
   writer.Write(data_name, filename)
 
 

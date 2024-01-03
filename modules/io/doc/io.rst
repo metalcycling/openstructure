@@ -67,8 +67,9 @@ and mmCIF files with :func:`LoadMMCIF` (this also gives you access to the
 :class:`MMCifInfo` class). It offers tighter control over the exact loading
 behaviour.
 
-
 .. autofunction:: ost.io.LoadPDB
+
+.. autofunction:: ost.io.LoadMMCIF
 
 .. function:: PDBStrToEntity(pdb_string, profile=IOProfile(), process=False)
 
@@ -294,6 +295,8 @@ file:
       file extension.
       
 .. autofunction:: ost.io.SavePDB
+
+.. autofunction:: ost.io.SaveMMCIF
 
 .. function:: EntityToPDBStr(ent, profile=IOProfile())
 

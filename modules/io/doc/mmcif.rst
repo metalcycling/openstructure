@@ -1,22 +1,21 @@
 mmCIF File Format
---------------------------------------------------------------------------------
+================================================================================
 
 .. currentmodule:: ost.io
 
 The mmCIF file format is a container for structural entities provided by the
-PDB. Here we describe how to load those files and how to deal with information
-provided above the legacy PDB format (:class:`MMCifInfo`,
+PDB. Saving/loading happens through dedicated convenient functions
+(:func:`ost.io.LoadMMCIF`/:func:`ost.io.SaveMMCIF`). Here provide more in-depth
+information on mmCIF IO and describe how to deal with information provided above
+the legacy PDB format (:class:`MMCifInfo`,
 :class:`MMCifInfoCitation`, :class:`MMCifInfoTransOp`,
 :class:`MMCifInfoBioUnit`, :class:`MMCifInfoStructDetails`,
 :class:`MMCifInfoObsolete`, :class:`MMCifInfoStructRef`,
 :class:`MMCifInfoStructRefSeq`, :class:`MMCifInfoStructRefSeqDif`,
 :class:`MMCifInfoRevisions`, :class:`MMCifInfoEntityBranchLink`).
 
-
-Loading mmCIF Files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autofunction:: ost.io.LoadMMCIF
+Reading mmCIF files
+--------------------------------------------------------------------------------
 
 
 Categories Available
@@ -1334,8 +1333,254 @@ of the annotation available.
 
     See :attr:`bond_order`
 
-Biounits
+
+Writing mmCIF files
+--------------------------------------------------------------------------------
+
+
+Star Writer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The syntax of mmCIF is a subset of the syntax of STAR files. OpenStructure
+implements a simple :class:`StarWriter` that is able to write data in two ways:
+
+* **key-value**: A category name and an attribute name that is linked to a value. Example:
+
+  .. code-block:: bash
+  
+    _citation.year 2024
+               
+  ``_citation.year`` is called an mmCIF token.
+* **tabular**: Represents several values for an mmCIF token. The tokens are written in a header which is followed by the respective values. Example:
+
+  .. code-block:: bash
+    
+    loop_
+    _atom_site.group_PDB
+    _atom_site.type_symbol
+    _atom_site.label_atom_id
+    _atom_site.label_comp_id
+    _atom_site.label_asym_id
+    _atom_site.label_entity_id
+    _atom_site.label_seq_id
+    _atom_site.label_alt_id
+    _atom_site.Cartn_x
+    _atom_site.Cartn_y
+    _atom_site.Cartn_z
+    _atom_site.occupancy
+    _atom_site.B_iso_or_equiv
+    _atom_site.auth_seq_id
+    _atom_site.auth_asym_id
+    _atom_site.id
+    _atom_site.pdbx_PDB_ins_code
+    ATOM N N  SER A 0 1 . -47.333 0.941 8.834 1.00 52.56 71 P 0 ?
+    ATOM C CA SER A 0 1 . -45.849 0.731 8.796 1.00 53.56 71 P 1 ?
+    ATOM C C  SER A 0 1 . -45.191 1.608 7.714 1.00 51.61 71 P 2 ?
+    ...
+
+What follows is an example of how to use the :class:`StarWriter` and its
+associated objects. In principle thats enough to write a full mmCIF file
+but you definitely want to check out the :class:`MMCifWriter` which extends
+:class:`StarWriter` and extracts the relevant data from an OpenStructure
+:class:`ost.mol.EntityHandle`.
+
+.. code-block:: python
+
+  from ost import io
+  import math
+
+  writer = io.StarWriter()
+
+  # Add key value pair
+  value = io.StarWriterValue.FromInt(42)
+  data_item = io.StarWriterDataItem("_the", "answer", value)
+  writer.Push(data_item)
+
+  # Add tabular data
+  loop_desc = io.StarWriterLoopDesc("_math_oper")
+  loop_desc.Add("num")
+  loop_desc.Add("sqrt")
+  loop_desc.Add("square")
+  loop = io.StarWriterLoop(loop_desc)
+  for i in range(10):
+    data = list()
+    data.append(io.StarWriterValue.FromInt(i))
+    data.append(io.StarWriterValue.FromFloat(math.sqrt(i), 3))
+    data.append(io.StarWriterValue.FromInt(i*i))
+    loop.AddData(data)
+  writer.Push(loop)
+  
+  # Write this groundbreaking data into a file with name numbers.gz
+  # and yes, its directly gzipped
+  writer.Write("numbers", "numbers.gz")
+
+
+The content of the written file:
+
+.. code-block:: bash
+
+  data_numbers
+  _the.answer 42
+  #
+  loop_
+  _math_oper.num
+  _math_oper.sqrt
+  _math_oper.square
+  0 0.000 0
+  1 1.000 1
+  2 1.414 4
+  3 1.732 9
+  4 2.000 16
+  5 2.236 25
+  6 2.449 36
+  7 2.646 49
+  8 2.828 64
+  9 3.000 81
+  #
+
+.. class:: StarWriterValue
+
+  A value which is stored as string - must be constructed from static
+  constructor functions
+
+  .. method:: FromInt(int_val)
+
+    Static constructor from an integer value
+
+    :param int_val: The value
+    :type int_val: :class:`int`
+    :returns: :class:`StarWriterValue`
+
+  .. method:: FromFloat(float_val, decimals)
+    
+    Static constructor from a float value
+
+    :param float_val: The value
+    :type float_val: :class:`float`
+    :param decimals: Number decimals that get stored in internal value
+    :returns: :class:`StarWriterValue`
+
+  .. method:: FromString(string_val)
+    
+    Static constructor from a string value, stores input as is
+    with the exception of the following processing:
+
+    * encapsulate string in brackets if *string_val* contains space character
+    * set to "." if *string_val* is an empty string    
+
+    :param string_val: The value
+    :type string_val: :class:`str`
+    :returns: :class:`StarWriterValue`
+
+
+  .. method:: GetValue
+
+    Returns the internal string representation
+
+
+.. class:: StarWriterDataItem(category, attribute, value)
+
+  key-value data representation
+
+  :param category: The category name of the data item
+  :type category: :class:`str`
+  :param attribute: The attribute name of the data item
+  :type attribute: :class:`str`
+  :param value: The value of the data item 
+  :type value: :class:`StarWriterValue`
+
+  .. method:: GetCategory
+
+    Returns *category*
+
+  .. method:: GetAttribute
+
+    Returns *attribute*
+
+  .. method:: GetValue
+
+    Returns *value*
+
+
+.. class:: StarWriterLoopDesc(category)
+
+  Defines header for tabular data representation for the specified *category*
+
+  :param category: The category
+  :type category: :class:`str`
+
+  .. method:: GetCategory
+
+    Returns *category*
+
+  .. method:: GetSize
+
+    Returns number of added attributes
+
+  .. method:: Add(attribute)
+
+    Adds an attribute
+
+    :param attribute: The attribute
+    :type attribute: :class:`str`
+
+  .. method:: GetIndex(attribute)
+
+    Returns index for specified *attribute*, -1 if not found
+
+    :param attribute: The attribute for which the index should be returned 
+    :type attribute: :class:`str`
+
+
+.. class:: StarWriterLoop(desc)
+
+  Allows to populate :class:`StarWriterLoopDesc` with data to get a full tabular
+  data representation
+
+  :param desc: The header
+  :type desc: :class:`StarWriterLoopDesc`
+
+  .. method:: GetDesc
+
+    Returns *desc*
+
+  .. method:: GetN
+
+    Returns number of added data lists
+
+  .. method:: AddData(data_list)
+
+    Add data for each attribute in *desc*.
+
+    :param data_list: Data to be added, length must match attributes in *desc*
+    :type data_list: :class:`list` of :class:`StarWriterValue`
+
+
+.. class:: StarWriter
+
+  Can be populated with data which can then be written to a file.
+
+  .. method:: Push(star_writer_object)
+
+    Push data to be written
+
+    :param star_writer_object: Data
+    :type star_writer_object: :class:`StarWriterDataItem`/:class:`StarWriterLoop`
+
+  .. method:: Write(data_name, filename)
+
+    Writes pushed data in specified file.
+
+    :param data_name: Name of data block, i.e. the written file starts with
+                      data\_<data_name>.
+    :type data_name: :class:`str`
+    :param filename: Name of generated file - applies gzip compression in case
+                     of .gz suffix.
+    :type filename: :class:`str`
+
+
+Biounits
+--------------------------------------------------------------------------------
 
 .. _Biounits:
 
