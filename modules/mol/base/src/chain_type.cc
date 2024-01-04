@@ -121,4 +121,58 @@ String StringFromChainType(ChainType type)
   throw Error(ss.str());
 }
 
+String EntityTypeFromChainType(ChainType type) {
+  switch(type) {
+     case ost::mol::CHAINTYPE_POLY: return "polymer";
+     case ost::mol::CHAINTYPE_NON_POLY: return "non-polymer";
+     case ost::mol::CHAINTYPE_WATER: return "water";
+     case ost::mol::CHAINTYPE_POLY_PEPTIDE_D: return "polymer";
+     case ost::mol::CHAINTYPE_POLY_PEPTIDE_L: return "polymer";
+     case ost::mol::CHAINTYPE_POLY_DN: return "polymer";
+     case ost::mol::CHAINTYPE_POLY_RN: return "polymer";
+     case ost::mol::CHAINTYPE_POLY_SAC_D: return "polymer";
+     case ost::mol::CHAINTYPE_POLY_SAC_L: return "polymer";
+     case ost::mol::CHAINTYPE_POLY_DN_RN: return "polymer";
+     case ost::mol::CHAINTYPE_MACROLIDE: return "macrolide";         
+     case ost::mol::CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE: return "polymer";
+     case ost::mol::CHAINTYPE_POLY_PEPTIDE_DN_RN: return "polymer";
+     case ost::mol::CHAINTYPE_BRANCHED: return "branched";
+     case ost::mol::CHAINTYPE_OLIGOSACCHARIDE: return "branched";
+  }
+
+  std::stringstream ss("Unknown ChainType item found: '");
+  ss << type << "'!";
+  throw Error(ss.str());
+}
+
+String EntityPolyTypeFromChainType(ChainType type) {
+  switch(type) {
+     case ost::mol::CHAINTYPE_POLY: return "other";
+     case ost::mol::CHAINTYPE_POLY_PEPTIDE_D: return "polypeptide(D)";
+     case ost::mol::CHAINTYPE_POLY_PEPTIDE_L: return "polypeptide(L)";
+     case ost::mol::CHAINTYPE_POLY_DN: return "polydeoxyribonucleotide";
+     case ost::mol::CHAINTYPE_POLY_RN: return "polyribonucleotide";
+     case ost::mol::CHAINTYPE_POLY_SAC_D: return "other"; // older dictionaries have "polysaccharide(D)"
+     case ost::mol::CHAINTYPE_POLY_SAC_L: return "other"; // older dictionaries have "polysaccharide(L)"
+     case ost::mol::CHAINTYPE_POLY_DN_RN: return "polydeoxyribonucleotide/polyribonucleotide hybrid";
+     case ost::mol::CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE: return "cyclic-pseudo-peptide";
+     case ost::mol::CHAINTYPE_POLY_PEPTIDE_DN_RN: return "peptide nucleic acid";
+  }
+
+  std::stringstream ss("Cannot return entity poly type from chain of type: '");
+  ss << type << "'!";
+  throw Error(ss.str());
+}
+
+String BranchedTypeFromChainType(ChainType type) {
+  switch(type) {
+     case ost::mol::CHAINTYPE_BRANCHED: return "oligosaccharide"; // the only one
+     case ost::mol::CHAINTYPE_OLIGOSACCHARIDE: return "oligosaccharide";
+  }
+
+  std::stringstream ss("Cannot return branched type from chain of type: '");
+  ss << type << "'!";
+  throw Error(ss.str());
+}
+
 }} //ns

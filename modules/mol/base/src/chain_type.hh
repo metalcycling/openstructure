@@ -79,6 +79,55 @@ ChainType DLLEXPORT_OST_MOL ChainTypeFromString(const String& identifier);
 ///         unknown type
 String DLLEXPORT_OST_MOL StringFromChainType(ChainType type);
 
+/// \brief Return _entity.type consistent with respective mmCIF vocabulary
+///        (mmcif_pdbx_v50):
+///        - branched
+///        - macrolide
+///        - non-polymer
+///        - polymer
+///        - water
+///
+///        For consistency with older vocabularies, CHAINTYPE_POLY_SAC_D
+///        and CHAINTYPE_POLY_SAC_L return "polymer"
+///
+/// \param type ChainType to be translated
+///
+/// \return String corresponding to the input, throws a ost::Error on
+///         unknown type
+String DLLEXPORT_OST_MOL EntityTypeFromChainType(ChainType type);
+
+/// \brief Return _entity_poly.type consistent with mmCIF dictionary
+///        (mmcif_pdbx_v50):
+///        - cyclic-pseudo-peptide 	
+///        - other 	
+///        - peptide nucleic acid 	
+///        - polydeoxyribonucleotide 	
+///        - polydeoxyribonucleotide/polyribonucleotide hybrid 	
+///        - polypeptide(D) 	
+///        - polypeptide(L) 	
+///        - polyribonucleotide
+///
+///        For consistency with older dictionaries, CHAINTYPE_POLY_SAC_D
+///        and CHAINTYPE_POLY_SAC_L are still accepted but return "other".
+///        Older dictionaries still had "polysaccharide(D)" and
+///        "polysaccharide(L)""
+///
+/// \param type ChainType to be translated
+///
+/// \return String corresponding to the input, throws a ost::Error on
+///         unknown type or if it's not of _entity.type polymer
+String DLLEXPORT_OST_MOL EntityPolyTypeFromChainType(ChainType type);
+
+/// \brief Return pdbx_entity_branch.type consistent with mmCIF dictionary
+///        (mmcif_pdbx_v50):
+///        - oligosaccharide	
+///
+/// \param type ChainType to be translated
+///
+/// \return String corresponding to the input, throws a ost::Error on
+///         unknown type or if it's not of _entity.type branched
+String DLLEXPORT_OST_MOL BranchedTypeFromChainType(ChainType type);
+
 }} //ns
 
 #endif

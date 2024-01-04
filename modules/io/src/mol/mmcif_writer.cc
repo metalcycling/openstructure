@@ -152,37 +152,6 @@ namespace {
     return "other";
   }
 
-  String GuessEntityPolyType(ost::mol::ChainType chain_type) {
-    // no real guessing but hardcoded response for every polymer chain type in
-    // ost::mol::ChainType
-
-    // allowed values according to mmcif_pdbx_v50.dic:
-    // - cyclic-pseudo-peptide 	
-    // - other 	
-    // - peptide nucleic acid 	
-    // - polydeoxyribonucleotide 	
-    // - polydeoxyribonucleotide/polyribonucleotide hybrid 	
-    // - polypeptide(D) 	
-    // - polypeptide(L) 	
-    // - polyribonucleotide
-
-    // added additional type: unknown
-    // must be handled by caller
-
-    switch(chain_type) {
-      case ost::mol::CHAINTYPE_POLY: return "other";
-      case ost::mol::CHAINTYPE_POLY_PEPTIDE_D: return "polypeptide(D)";
-      case ost::mol::CHAINTYPE_POLY_PEPTIDE_L: return "polypeptide(L)";
-      case ost::mol::CHAINTYPE_POLY_DN: return "polydeoxyribonucleotide";
-      case ost::mol::CHAINTYPE_POLY_RN: return "polyribonucleotide";
-      case ost::mol::CHAINTYPE_POLY_DN_RN: return "polydeoxyribonucleotide/polyribonucleotide hybrid";
-      case ost::mol::CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE: return "cyclic-pseudo-peptide";
-      case ost::mol::CHAINTYPE_POLY_PEPTIDE_DN_RN: return "peptide nucleic acid";
-      case ost::mol::CHAINTYPE_OLIGOSACCHARIDE: return "other";
-      default: return "unknown";
-    }
-  }
-
   String GuessEntityType(const ost::mol::ResidueHandleList& res_list) {
 
     // guesses _entity.type based on residue chem classes
@@ -217,41 +186,6 @@ namespace {
     }
 
     return "polymer";
-  }
-
-  String GuessEntityType(ost::mol::ChainType chain_type) {
-    // no real guessing but hardcoded response for every chain type in
-    // ost::mol::ChainType
-
-    // allowed values according to mmcif_pdbx_v50.dic:
-    // - branched
-    // - macrolide
-    // - non-polymer
-    // - polymer
-    // - water
-
-    // added additional type: unknown
-    // must be handled by caller
-
-    switch(chain_type) {
-      case ost::mol::CHAINTYPE_POLY: return "polymer";
-      case ost::mol::CHAINTYPE_NON_POLY: return "non-polymer";
-      case ost::mol::CHAINTYPE_WATER: return "water";
-      case ost::mol::CHAINTYPE_POLY_PEPTIDE_D: return "polymer";
-      case ost::mol::CHAINTYPE_POLY_PEPTIDE_L: return "polymer";
-      case ost::mol::CHAINTYPE_POLY_DN: return "polymer";
-      case ost::mol::CHAINTYPE_POLY_RN: return "polymer";
-      case ost::mol::CHAINTYPE_POLY_SAC_D: return "polymer";
-      case ost::mol::CHAINTYPE_POLY_SAC_L: return "polymer";
-      case ost::mol::CHAINTYPE_POLY_DN_RN: return "polymer";
-      case ost::mol::CHAINTYPE_UNKNOWN: return "unknown";
-      case ost::mol::CHAINTYPE_MACROLIDE: return "macrolide";         
-      case ost::mol::CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE: return "polymer";
-      case ost::mol::CHAINTYPE_POLY_PEPTIDE_DN_RN: return "polymer";
-      case ost::mol::CHAINTYPE_BRANCHED: return "branched";
-      case ost::mol::CHAINTYPE_OLIGOSACCHARIDE: return "branched";
-      default: return "unknown";
-    }
   }
 
   // internal object with all info to fill chem_comp_ category
@@ -813,22 +747,11 @@ namespace {
                   std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
     // use chain_type info attached to chain to determine
     // _entity.type and _entity_poly.type
-    String type = GuessEntityType(chain_type);
-    if(type == "unknown") {
-      std::stringstream ss;
-      ss << "Each chain must have valid chain type set, got " << chain_type;
-      throw ost::io::IOException(ss.str());
-    }
+    String type = ost::mol::EntityTypeFromChainType(chain_type);
     bool is_poly = type == "polymer";
     String poly_type = "";
     if(is_poly) {
-      poly_type = GuessEntityPolyType(chain_type);
-      if(poly_type == "unknown") {
-        std::stringstream ss;
-        ss << "Each polymer chain must have valid polymer chain type set, got ";
-        ss << chain_type;
-        throw ost::io::IOException(ss.str());
-      }
+      poly_type = ost::mol::EntityPolyTypeFromChainType(chain_type);
     }
     return SetupEntity(asym_chain_name, type, poly_type, res_list,
                        resnum_alignment, entity_infos);
