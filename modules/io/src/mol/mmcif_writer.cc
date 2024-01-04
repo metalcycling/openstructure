@@ -470,6 +470,25 @@ namespace {
     }
   }
 
+  bool MatchEntity(const ost::mol::ResidueHandleList& res_list,
+                   const ost::io::MMCifWriterEntity& info) {
+    // checks if the residue names in res_list are an exact match
+    // with mon_ids in info
+    std::vector<String> mon_ids;
+    for(auto res : res_list) {
+      mon_ids.push_back(res.GetName());
+    }
+    return mon_ids == info.mon_ids;
+  }
+
+  void AddAsym(const String& asym_chain_name,
+               ost::io::MMCifWriterEntity& info) {
+    // adds asym_chain_name to info under the assumption that mon_ids
+    // exactly match => just add a copy of mon_ids to asym_alns
+    info.asym_ids.push_back(asym_chain_name);
+    info.asym_alns.push_back(info.mon_ids);
+  }
+
   bool MatchEntityResnum(const ost::mol::ResidueHandleList& res_list,
                          const ost::io::MMCifWriterEntity& info,
                          Real beyond_frac = 0.05) {
@@ -519,25 +538,6 @@ namespace {
     } else {
       return n_beyond / n_matches <= beyond_frac;
     }
-  }
-
-  bool MatchEntity(const ost::mol::ResidueHandleList& res_list,
-                   const ost::io::MMCifWriterEntity& info) {
-    // checks if the residue names in res_list are an exact match
-    // with mon_ids in info
-    std::vector<String> mon_ids;
-    for(auto res : res_list) {
-      mon_ids.push_back(res.GetName());
-    }
-    return mon_ids == info.mon_ids;
-  }
-
-  void AddAsym(const String& asym_chain_name,
-               ost::io::MMCifWriterEntity& info) {
-    // adds asym_chain_name to info under the assumption that mon_ids
-    // exactly match => just add a copy of mon_ids to asym_alns
-    info.asym_ids.push_back(asym_chain_name);
-    info.asym_alns.push_back(info.mon_ids);
   }
 
   void AddAsymResnum(const String& asym_chain_name,
@@ -729,7 +729,8 @@ namespace {
                   const ost::mol::ResidueHandleList& res_list,
                   bool resnum_alignment,
                   std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
-
+    // use chem types in res_list to determine _entity.type and
+    // _entity_poly.type
     String type = GuessEntityType(res_list);
     bool is_poly = type == "polymer";
     String poly_type = "";
