@@ -246,6 +246,10 @@ class LigandScorer:
                         mapping solution space is enumerated to find the
                         the optimum. A heuristic is used otherwise.
     :type n_max_naive: :class:`int`
+    :param max_symmetries: If more than that many isomorphisms exist for
+                       a target-ligand pair, it will be ignored and reported
+                       as unassigned.
+    :type max_symmetries: :class:`int`
     :param unassigned: If True, unassigned model ligands are reported in
                        the output together with assigned ligands, with a score
                        of None, and reason for not being assigned in the
@@ -259,7 +263,7 @@ class LigandScorer:
                  coverage_delta=0.2,
                  radius=4.0, lddt_pli_radius=6.0, lddt_lp_radius=10.0,
                  binding_sites_topn=100000, global_chain_mapping=False,
-                 rmsd_assignment=False, n_max_naive=12,
+                 rmsd_assignment=False, n_max_naive=12, max_symmetries=1e5,
                  custom_mapping=None, unassigned=False):
 
         if isinstance(model, mol.EntityView):
@@ -310,6 +314,7 @@ class LigandScorer:
         self.global_chain_mapping = global_chain_mapping
         self.rmsd_assignment = rmsd_assignment
         self.n_max_naive = n_max_naive
+        self.max_symmetries = max_symmetries
         self.unassigned = unassigned
         self.coverage_delta = coverage_delta
 
@@ -670,14 +675,21 @@ class LigandScorer:
                         symmetries = _ComputeSymmetries(
                             model_ligand, target_ligand,
                             substructure_match=self.substructure_match,
-                            by_atom_index=True)
+                            by_atom_index=True,
+                            max_symmetries=self.max_symmetries)
                         LogVerbose("Ligands %s and %s symmetry match" % (
                             str(model_ligand), str(target_ligand)))
                     except NoSymmetryError:
                         # Ligands are different - skip
                         LogVerbose("No symmetry between %s and %s" % (
                             str(model_ligand), str(target_ligand)))
-                        self._assignment_isomorphisms[target_i, model_i] = 0
+                        self._assignment_isomorphisms[target_i, model_i] = 0.
+                        continue
+                    except TooManySymmetriesError:
+                        # Ligands are too symmetrical - skip
+                        LogVerbose("Too many symmetries between %s and %s" % (
+                            str(model_ligand), str(target_ligand)))
+                        self._assignment_isomorphisms[target_i, model_i] = -1.
                         continue
                     except DisconnectedGraphError:
                         # Disconnected graph is handled elsewhere
@@ -686,11 +698,10 @@ class LigandScorer:
                         model_ligand.atoms)
                     coverage = len(symmetries[0][0]) / len(model_ligand.atoms)
                     self._assignment_match_coverage[target_i, model_i] = coverage
-                    self._assignment_isomorphisms[target_i, model_i] = 1
+                    self._assignment_isomorphisms[target_i, model_i] = 1.
 
-                    rmsd = SCRMSD(model_ligand, target_ligand,
-                                  transformation=binding_site.transform,
-                                  substructure_match=self.substructure_match)
+                    rmsd = _SCRMSD_symmetries(symmetries, model_ligand, 
+                        target_ligand, transformation=binding_site.transform)
                     LogDebug("RMSD: %.4f" % rmsd)
 
                     # Save results?
@@ -1362,6 +1373,8 @@ class LigandScorer:
         * `stoichiometry`: there was a possible assignment in the model, but
           the model ligand was already assigned to a different target ligand.
           This indicates different stoichiometries.
+        * `symmetries`: too many symmetries were found (by graph isomorphisms).
+          Increase `max_symmetries`.
 
         Some of these reasons can be overlapping, but a single reason will be
         reported.
@@ -1422,6 +1435,8 @@ class LigandScorer:
         * `stoichiometry`: there was a possible assignment in the target, but
           the model target was already assigned to a different model ligand.
           This indicates different stoichiometries.
+        * `symmetries`: too many symmetries were found (by graph isomorphisms).
+          Increase `max_symmetries`.
 
         Some of these reasons can be overlapping, but a single reason will be
         reported.
@@ -1583,6 +1598,8 @@ class LigandScorer:
                         return_symmetries=False)
                 except (NoSymmetryError, DisconnectedGraphError):
                     assigned = 0.
+                except TooManySymmetriesError:
+                    assigned = -1.
                 else:
                     assigned = 1.
                 self._assignment_isomorphisms[trg_lig_idx,ligand_idx] = assigned
@@ -1601,6 +1618,10 @@ class LigandScorer:
                     return ("stoichiometry",
                             "Ligand was already assigned to an other "
                             "model ligand (different stoichiometry)")
+            elif assigned == -1:
+                # Symmetries / isomorphisms exceeded limit
+                return ("symmetries",
+                        "Too many symmetries were found.")
 
         # Could not be assigned to any ligand - must be different
         if self.substructure_match:
@@ -1653,14 +1674,20 @@ class LigandScorer:
                         return_symmetries=False)
                 except (NoSymmetryError, DisconnectedGraphError):
                     assigned = 0.
+                except TooManySymmetriesError:
+                    assigned = -1.
                 else:
                     assigned = 1.
                 self._assignment_isomorphisms[ligand_idx,model_lig_idx] = assigned
-            if assigned:
+            if assigned == 1:
                 # Could have been assigned but was assigned to a different ligand
                 return ("stoichiometry",
                         "Ligand was already assigned to an other "
                         "target ligand (different stoichiometry)")
+            elif assigned == -1:
+                # Symmetries / isomorphisms exceeded limit
+                return ("symmetries",
+                        "Too many symmetries were found.")
 
         # Could not be assigned to any ligand - must be different
         if self.substructure_match:
@@ -1706,7 +1733,7 @@ def _ResidueToGraph(residue, by_atom_index=False):
 
 
 def SCRMSD(model_ligand, target_ligand, transformation=geom.Mat4(),
-           substructure_match=False):
+           substructure_match=False, max_symmetries=1e6):
     """Calculate symmetry-corrected RMSD.
 
     Binding site superposition must be computed separately and passed as
@@ -1724,14 +1751,28 @@ def SCRMSD(model_ligand, target_ligand, transformation=geom.Mat4(),
     :param substructure_match: Set this to True to allow partial target
                                ligand.
     :type substructure_match: :class:`bool`
+    :param max_symmetries: If more than that many isomorphisms exist, raise
+      a :class:`TooManySymmetriesError`. This can only be assessed by
+      generating at least that many isomorphisms and can take some time.
+    :type max_symmetries: :class:`int`
     :rtype: :class:`float`
     :raises: :class:`NoSymmetryError` when no symmetry can be found,
-             :class:`DisconnectedGraphError` when ligand graph is disconnected.
+             :class:`DisconnectedGraphError` when ligand graph is disconnected,
+             :class:`TooManySymmetriesError` when more than `max_symmetries`
+             isomorphisms are found.
     """
 
     symmetries = _ComputeSymmetries(model_ligand, target_ligand,
                                     substructure_match=substructure_match,
-                                    by_atom_index=True)
+                                    by_atom_index=True,
+                                    max_symmetries=max_symmetries)
+    return _SCRMSD_symmetries(symmetries, model_ligand, target_ligand,
+                              transformation)
+
+
+def _SCRMSD_symmetries(symmetries, model_ligand, target_ligand, 
+                       transformation):
+    """Compute SCRMSD with pre-computed symmetries. Internal. """
 
     best_rmsd = np.inf
     for i, (trg_sym, mdl_sym) in enumerate(symmetries):
@@ -1767,7 +1808,8 @@ def SCRMSD(model_ligand, target_ligand, transformation=geom.Mat4(),
 
 
 def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
-                       by_atom_index=False, return_symmetries=True):
+                       by_atom_index=False, return_symmetries=True,
+                       max_symmetries=1e6):
     """Return a list of symmetries (isomorphisms) of the model onto the target
     residues.
 
@@ -1791,7 +1833,13 @@ def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
                              find out if a mapping exist without the expensive
                              step to find all the mappings.
     :type return_symmetries: :class:`bool`
-    :raises: :class:`NoSymmetryError` when no symmetry can be found.
+    :param max_symmetries: If more than that many isomorphisms exist, raise
+      a :class:`TooManySymmetriesError`. This can only be assessed by
+      generating at least that many isomorphisms and can take some time.
+    :type max_symmetries: :class:`int`
+    :raises: :class:`NoSymmetryError` when no symmetry can be found;
+             :class:`TooManySymmetriesError` when more than `max_symmetries`
+             isomorphisms are found.
 
     """
 
@@ -1814,16 +1862,25 @@ def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
     if gm.is_isomorphic():
         if not return_symmetries:
             return True
-        symmetries = [
-            (list(isomorphism.values()), list(isomorphism.keys()))
-            for isomorphism in gm.isomorphisms_iter()]
+        symmetries = []
+        for i, isomorphism in enumerate(gm.isomorphisms_iter()):
+            if i >= max_symmetries:
+                raise TooManySymmetriesError(
+                    "Too many symmetries between %s and %s" % (
+                        str(model_ligand), str(target_ligand)))
+            symmetries.append((list(isomorphism.values()), list(isomorphism.keys())))
         assert len(symmetries) > 0
         LogDebug("Found %s isomorphic mappings (symmetries)" % len(symmetries))
     elif gm.subgraph_is_isomorphic() and substructure_match:
         if not return_symmetries:
             return True
-        symmetries = [(list(isomorphism.values()), list(isomorphism.keys())) for isomorphism in
-                      gm.subgraph_isomorphisms_iter()]
+        symmetries = []
+        for i, isomorphism in enumerate(gm.subgraph_isomorphisms_iter()):
+            if i >= max_symmetries:
+                raise TooManySymmetriesError(
+                    "Too many symmetries between %s and %s" % (
+                        str(model_ligand), str(target_ligand)))
+            symmetries.append((list(isomorphism.values()), list(isomorphism.keys())))
         assert len(symmetries) > 0
         # Assert that all the atoms in the target are part of the substructure
         assert len(symmetries[0][0]) == len(target_ligand.atoms)
@@ -1841,15 +1898,22 @@ def _ComputeSymmetries(model_ligand, target_ligand, substructure_match=False,
     return symmetries
 
 
-class NoSymmetryError(Exception):
-    """Exception to be raised when no symmetry can be found.
+class NoSymmetryError(ValueError):
+    """Exception raised when no symmetry can be found.
+    """
+    pass
+
+
+class TooManySymmetriesError(ValueError):
+    """Exception raised when too many symmetries are found.
     """
     pass
 
 class DisconnectedGraphError(Exception):
-    """Exception to be raised when the ligand graph is disconnected.
+    """Exception raised when the ligand graph is disconnected.
     """
     pass
 
 
-__all__ = ["LigandScorer", "SCRMSD", "NoSymmetryError", "DisconnectedGraphError"]
+__all__ = ["LigandScorer", "SCRMSD", "NoSymmetryError", 
+           "TooManySymmetriesError", "DisconnectedGraphError"]
