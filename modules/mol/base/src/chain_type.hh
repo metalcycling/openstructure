@@ -50,7 +50,8 @@ typedef enum {
   CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE,  ///< cyclic-pseudo-peptide
   CHAINTYPE_POLY_PEPTIDE_DN_RN,     ///< peptide nucleic acid
   CHAINTYPE_BRANCHED,               ///< carbohydrate
-  CHAINTYPE_OLIGOSACCHARIDE,        ///< oligosaccharide (branched carbohydrate)
+  CHAINTYPE_OLIGOSACCHARIDE,        ///< oligosaccharide (branched carbohydrate,
+                                    ///< i.e. _entity.type is strictly 'branched')
   CHAINTYPE_N_CHAINTYPES    ///< no. of chain types
 } ChainType;
 

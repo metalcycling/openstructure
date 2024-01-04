@@ -108,8 +108,10 @@ String StringFromChainType(ChainType type)
     return "cyclic-pseudo-peptide";
   } else if (CHAINTYPE_POLY_PEPTIDE_DN_RN == type) {
     return "peptide nucleic acid";
+    // chain types as found in the pdbx_entity_branch category of a mmcif file
   } else if (CHAINTYPE_OLIGOSACCHARIDE == type) {
     return "oligosaccharide";
+    // other...
   } else if (CHAINTYPE_UNKNOWN == type) {
     return "other";
   }

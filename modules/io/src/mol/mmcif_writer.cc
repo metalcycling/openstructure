@@ -241,15 +241,15 @@ namespace {
       case ost::mol::CHAINTYPE_POLY_PEPTIDE_L: return "polymer";
       case ost::mol::CHAINTYPE_POLY_DN: return "polymer";
       case ost::mol::CHAINTYPE_POLY_RN: return "polymer";
-      case ost::mol::CHAINTYPE_POLY_SAC_D: return "polymer"; // branched?
-      case ost::mol::CHAINTYPE_POLY_SAC_L: return "polymer"; // branched?
+      case ost::mol::CHAINTYPE_POLY_SAC_D: return "polymer";
+      case ost::mol::CHAINTYPE_POLY_SAC_L: return "polymer";
       case ost::mol::CHAINTYPE_POLY_DN_RN: return "polymer";
       case ost::mol::CHAINTYPE_UNKNOWN: return "unknown";
       case ost::mol::CHAINTYPE_MACROLIDE: return "macrolide";         
       case ost::mol::CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE: return "polymer";
       case ost::mol::CHAINTYPE_POLY_PEPTIDE_DN_RN: return "polymer";
       case ost::mol::CHAINTYPE_BRANCHED: return "branched";
-      case ost::mol::CHAINTYPE_OLIGOSACCHARIDE: return "polymer"; // branched?
+      case ost::mol::CHAINTYPE_OLIGOSACCHARIDE: return "branched";
       default: return "unknown";
     }
   }
