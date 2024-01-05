@@ -17,8 +17,13 @@ bool ChemdictParser::OnBeginData(const StringRef& data_name)
     std::cout << last_ << std::flush;
   }
   atom_map_.clear();
-  insert_=true;
-  return true; 
+  if (ignore_reserved_ && IsNameReserved(data_name))  {
+    insert_=false;
+  }
+  else {
+    insert_=true;
+  }
+  return true;
 }
 
 bool ChemdictParser::OnBeginLoop(const StarLoopDesc& header)
@@ -250,6 +255,27 @@ void ChemdictParser::InitPDBXTypeMap()
   xtm_["HETAD"]=mol::ChemType(mol::ChemType::DRUGS);
   xtm_["HETAS"]=mol::ChemType(mol::ChemType::WATERS);
   xtm_["?"]=mol::ChemType(mol::ChemType::UNKNOWN);
+}
+
+bool ChemdictParser::IsNameReserved(const StringRef& data_name)
+{
+  // This checks if the compound name is one of the reserved name that will
+  // never be used in the PDB. See
+  // https://www.rcsb.org/news/feature/630fee4cebdf34532a949c34
+  if ( // Check if in range 01-99
+       (data_name.length() == 2 &&
+         data_name[0] >= '0' && data_name[0] <= '9' &&
+         data_name[1] >= '0' && data_name[1] <= '9' &&
+         data_name != StringRef("00", 2)) ||
+       data_name == StringRef("DRG", 3) ||
+       data_name == StringRef("INH", 3) ||
+       data_name == StringRef("LIG", 3)
+     )
+  {
+    std::cout << "Ignoring reserved compound " << data_name << std::endl;
+    return true;
+  }
+  return false;
 }
 
 }}

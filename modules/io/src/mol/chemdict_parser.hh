@@ -40,9 +40,11 @@ typedef enum {
 
 class DLLEXPORT_OST_IO ChemdictParser : public StarParser {
 public:
-  ChemdictParser(std::istream& stream, conop::Compound::Dialect dialect): 
+  ChemdictParser(std::istream& stream, conop::Compound::Dialect dialect,
+    bool ignore_reserved=false):
     StarParser(stream), compound_(new conop::Compound("UNK")), 
-    last_(0), loop_type_(DONT_KNOW), dialect_(dialect)
+    last_(0), loop_type_(DONT_KNOW), dialect_(dialect),
+    ignore_reserved_(ignore_reserved)
   {
     this->InitTypeMap();
     this->InitPDBXTypeMap();
@@ -66,6 +68,7 @@ public:
 private:
   void InitTypeMap();  
   void InitPDBXTypeMap();
+  bool IsNameReserved(const StringRef& data_name);
   conop::CompoundLibPtr                   lib_;
   conop::CompoundPtr                      compound_;
   typedef enum {
@@ -92,6 +95,7 @@ private:
   LoopType                                loop_type_;  
   conop::AtomSpec                         atom_;
   conop::Compound::Dialect                dialect_;
+  bool                                    ignore_reserved_;
 };
 
 
