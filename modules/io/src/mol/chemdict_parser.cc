@@ -1,4 +1,5 @@
 #include <ost/io/mol/chemdict_parser.hh>
+#include <ost/log.hh>
 
 namespace ost { namespace io {
 
@@ -75,9 +76,9 @@ void ChemdictParser::OnDataRow(const StarLoopDesc& header,
     if (columns[indices_[DESC_TYPE]] == StringRef("InChI", 5)) {
       // for type InChi check prefix 'InChI='
       if (columns[indices_[DESC]].substr(0, 6) != StringRef("InChI=", 6)) {
-        std::cout << "InChI problem: compound " << compound_->GetID()
-                  << " has an InChI descriptor not starting with the "
-                     "'InChI=' prefix." << std::endl;
+        LOG_WARNING("InChI problem: compound " << compound_->GetID()
+                    << " has an InChI descriptor not starting with the "
+                    << "'InChI=' prefix.");
         return;
       }
       compound_->SetInchi(columns[indices_[DESC]].str());
@@ -108,8 +109,8 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
         if (i!=tm_.end()) {
           compound_->SetChemClass(i->second);
         } else {
-          std::cout << "unknown type '" << type << "' for compound "
-                    << compound_->GetID() << std::endl;
+          LOG_WARNING("unknown type '" << type << "' for compound "
+                      << compound_->GetID());
         }
       }
     } else if (item.GetName()==StringRef("pdbx_type", 9)) {
@@ -121,14 +122,15 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
       if (i!=xtm_.end()) {
         compound_->SetChemType(i->second);
       } else {
-        std::cout << "unknown pdbx_type '" << type << "' for compound "
-                  << compound_->GetID() << std::endl;
+        std::cout << "ERR" << std::endl;
+        LOG_WARNING("unknown pdbx_type '" << type << "' for compound "
+                    << compound_->GetID());
       }
     } else if (item.GetName()==StringRef("name", 4)) {
       compound_->SetName(item.GetValue().str());
       if (compound_->GetName()==""){
-        std::cout << "unknown compound name, chemcomp.name field empty for compound: "
-                  << compound_->GetID() << std::endl;
+        LOG_WARNING("unknown compound name, chemcomp.name field empty for "
+                    "compound: " << compound_->GetID());
       }
     } else if (item.GetName()==StringRef("formula", 7)) {
       compound_->SetFormula(item.GetValue().str());
@@ -268,7 +270,7 @@ bool ChemdictParser::IsNameReserved(const String& data_name)
        data_name == "LIG"
      )
   {
-    std::cout << "Ignoring reserved compound " << data_name << std::endl;
+    LOG_SCRIPT("Ignoring reserved compound " << data_name);
     return true;
   }
   return false;

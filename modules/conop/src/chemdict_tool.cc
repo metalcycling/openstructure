@@ -30,6 +30,7 @@
 
 
 #include <ost/io/mol/chemdict_parser.hh>
+#include <ost/log.hh>
 
 using namespace ost;
 
@@ -43,6 +44,7 @@ void PrintUsage()
   std::cout << "supported options are:" << std::endl;
   std::cout << "  -i  - ignore compounds reserved by the PDB (01-99, DRG, INH, LIG)" << std::endl;
   std::cout << "  -o  - ignore obsolete compounds" << std::endl;
+  std::cout << "  -v  - be more verbose" << std::endl;
 }
 
 int main(int argc, char const *argv[])
@@ -51,6 +53,7 @@ int main(int argc, char const *argv[])
     PrintUsage();
     return 0;
   }
+  Logger::Instance().PushVerbosityLevel(1);
   conop::Compound::Dialect dialect=conop::Compound::PDB;
   bool ignore_reserved=false;
   bool ignore_obsolete=false;
@@ -69,6 +72,8 @@ int main(int argc, char const *argv[])
       ignore_reserved=true;
     } else if (param=="-o") {
       ignore_obsolete=true;
+    } else if (param=="-v") {
+      Logger::Instance().PushVerbosityLevel(4);
     } else {
       PrintUsage();
       return 0;
