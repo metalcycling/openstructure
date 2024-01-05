@@ -57,6 +57,18 @@ boost::python::tuple WrapMMCifStringToEntity(const String& mmcif,
                                    std::get<2>(res));
 }
 
+String WrapEntityToMMCifStringEnt(const ost::mol::EntityHandle& ent,
+                                 const String& data_name,
+                                 bool mmcif_conform) {
+  return EntityToMMCifString(ent, data_name, mmcif_conform);
+}
+
+String WrapEntityToMMCifStringView(const ost::mol::EntityView& ent,
+                                   const String& data_name,
+                                   bool mmcif_conform) {
+  return EntityToMMCifString(ent, data_name, mmcif_conform);
+}
+
 void WrapStarLoopAddData(StarWriterLoop& sl, const boost::python::list& l) {
   std::vector<StarWriterValue> v;
   for (int i = 0; i < boost::python::len(l); ++i){
@@ -516,4 +528,12 @@ void export_mmcif_io()
   def("MMCifStrToEntity", &WrapMMCifStringToEntity, (arg("pdb_string"),
                                                      arg("profile")=IOProfile(),
                                                      arg("process")=false));
+
+  def("EntityToMMCifString",  &WrapEntityToMMCifStringEnt, (arg("ent"),
+                                                            arg("data_name")="OST_structure",
+                                                            arg("mmcif_conform")=true));
+
+  def("EntityToMMCifString",  &WrapEntityToMMCifStringView, (arg("ent"),
+                                                             arg("data_name")="OST_structure",
+                                                             arg("mmcif_conform")=true));
 }

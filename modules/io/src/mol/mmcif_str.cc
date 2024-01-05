@@ -19,8 +19,27 @@
 #include <sstream>
 #include <ost/io/mol/mmcif_str.hh>
 #include <ost/io/mol/mmcif_reader.hh>
+#include <ost/io/mmcif_writer.hh>
 
 namespace ost { namespace io {
+
+String EntityToMMCifString(const ost::mol::EntityHandle& ent,
+                           const String& data_name, bool mmcif_conform) {
+  std::stringstream ss;
+  MMCifWriter writer;
+  writer.SetStructure(ent, mmcif_conform);
+  writer.Write(data_name, ss);
+  return ss.str();
+}
+
+String EntityToMMCifString(const ost::mol::EntityView& ent,
+                           const String& data_name, bool mmcif_conform) {
+  std::stringstream ss;
+  MMCifWriter writer;
+  writer.SetStructure(ent, mmcif_conform);
+  writer.Write(data_name, ss);
+  return ss.str();
+}
 
 std::tuple<mol::EntityHandle, MMCifInfo, ost::seq::SequenceList>
 MMCifStringToEntity(const String& mmcif, const IOProfile& profile, bool process) {
