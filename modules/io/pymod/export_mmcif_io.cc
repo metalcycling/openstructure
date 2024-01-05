@@ -70,6 +70,18 @@ void WrapStarWriterWrite(StarWriter& writer, const String& data_name,
   writer.Write(data_name, filename);
 }
 
+void WrapSetStructureHandle(MMCifWriter& writer,
+                            const ost::mol::EntityHandle& ent,
+                            bool mmcif_conform) {
+  writer.SetStructure(ent, mmcif_conform);
+}
+
+void WrapSetStructureView(MMCifWriter& writer,
+                          const ost::mol::EntityView& ent,
+                          bool mmcif_conform) {
+  writer.SetStructure(ent, mmcif_conform);
+}
+
 void export_mmcif_io()
 {
   class_<MMCifReader, boost::noncopyable>("MMCifReader", init<const String&, EntityHandle&, const IOProfile&>())
@@ -124,7 +136,8 @@ void export_mmcif_io()
   ;
 
   class_<MMCifWriter, bases<StarWriter> >("MMCifWriter", init<>())
-    .def("SetStructure", &MMCifWriter::SetStructure, (arg("ent"), arg("mmcif_conform")=true))
+    .def("SetStructure", &WrapSetStructureHandle, (arg("ent"), arg("mmcif_conform")=true))
+    .def("SetStructure", &WrapSetStructureView, (arg("ent"), arg("mmcif_conform")=true))
   ;
 
   enum_<MMCifInfoCitation::MMCifInfoCType>("MMCifInfoCType")

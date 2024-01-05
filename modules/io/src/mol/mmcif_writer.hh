@@ -66,6 +66,11 @@ struct MMCifWriterEntity {
 };
 
 
+struct MMCifWriterComp {
+  String type;
+};
+
+
 class DLLEXPORT_OST_IO MMCifWriter : public StarWriter {
 public:
 
@@ -75,8 +80,16 @@ public:
 
   void SetStructure(const ost::mol::EntityHandle& ent, bool mmcif_conform=true);
 
+  void SetStructure(const ost::mol::EntityView& ent, bool mmcif_conform=true);
+  
 private:
+
+  void Setup();
+
+  void Finalize();
+
   std::vector<MMCifWriterEntity> entity_info_;
+  std::map<String, MMCifWriterComp> comp_info_;
   StarWriterLoopPtr atom_type_;
   StarWriterLoopPtr atom_site_;
   StarWriterLoopPtr pdbx_poly_seq_scheme_;
