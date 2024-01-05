@@ -88,6 +88,9 @@ public:
 
 class DLLEXPORT_OST_IO StarWriterValue{
 public:
+
+  StarWriterValue() { }
+
   static StarWriterValue FromInt(int int_value) {
     StarWriterValue value;
     value.value_ = std::to_string(int_value);
@@ -123,8 +126,6 @@ public:
   }
   const String& GetValue() const { return value_; }
 private:
-// force construction through static members
-StarWriterValue() { }
 String value_;
 };
 

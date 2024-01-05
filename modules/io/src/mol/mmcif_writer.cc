@@ -898,8 +898,7 @@ namespace {
     for(int i = 0; i < N; ++i) {
       symbols.insert(data[i*desc_size + type_symbol_idx].GetValue());
     }
-    std::vector<ost::io::StarWriterValue> atom_type_data;
-    atom_type_data.push_back(ost::io::StarWriterValue::FromString(""));
+    std::vector<ost::io::StarWriterValue> atom_type_data(1);
     for(auto symbol: symbols) {
       atom_type_data[0] = ost::io::StarWriterValue::FromString(symbol);
       atom_type_ptr->AddData(atom_type_data);
@@ -914,14 +913,10 @@ namespace {
                                  ost::io::MMCifWriterEntity& entity_info,
                                  const T& res_list) {
 
-    std::vector<ost::io::StarWriterValue> data;
-    data.push_back(ost::io::StarWriterValue::FromString(label_asym_id));
-    data.push_back(ost::io::StarWriterValue::FromInt(label_entity_id));
-    data.push_back(ost::io::StarWriterValue::FromString(""));
-    data.push_back(ost::io::StarWriterValue::FromInt(0));
-    data.push_back(ost::io::StarWriterValue::FromString(""));
-    data.push_back(ost::io::StarWriterValue::FromInt(0));
-    data.push_back(ost::io::StarWriterValue::FromString(""));
+    std::vector<ost::io::StarWriterValue> data(7);
+    // processing chain by chain, label_asym_id and label_entity_id are constant
+    data[0] = ost::io::StarWriterValue::FromString(label_asym_id);
+    data[1] = ost::io::StarWriterValue::FromInt(label_entity_id);
 
     int asym_idx = entity_info.GetAsymIdx(label_asym_id);
     const std::vector<String>& aln = entity_info.asym_alns[asym_idx];
@@ -979,6 +974,7 @@ namespace {
     int asym_idx = entity_info.GetAsymIdx(label_asym_id);
     const std::vector<String>& aln = entity_info.asym_alns[asym_idx];
     int label_seq_id = 0; // 0-based index
+    std::vector<ost::io::StarWriterValue> at_data(17);
 
     for(auto res: res_list) {
       String comp_id = res.GetName();
@@ -1004,49 +1000,48 @@ namespace {
       }
 
       for(auto at: at_list) {
-        std::vector<ost::io::StarWriterValue> at_data;
         // group_PDB
         if(at.IsHetAtom()) {
-          at_data.push_back(ost::io::StarWriterValue::FromString("HETATM"));
+          at_data[0] = ost::io::StarWriterValue::FromString("HETATM");
         } else {
-          at_data.push_back(ost::io::StarWriterValue::FromString("ATOM"));
+          at_data[0] = ost::io::StarWriterValue::FromString("ATOM");
         }
         // type_symbol
-        at_data.push_back(ost::io::StarWriterValue::FromString(at.GetElement()));
+        at_data[1] = ost::io::StarWriterValue::FromString(at.GetElement());
         // label_atom_id
-        at_data.push_back(ost::io::StarWriterValue::FromString(at.GetName()));
+        at_data[2] = ost::io::StarWriterValue::FromString(at.GetName());
         // label_comp_id
-        at_data.push_back(ost::io::StarWriterValue::FromString(comp_id));
+        at_data[3] = ost::io::StarWriterValue::FromString(comp_id);
         // label_asym_id
-        at_data.push_back(ost::io::StarWriterValue::FromString(label_asym_id));
+        at_data[4] = ost::io::StarWriterValue::FromString(label_asym_id);
         // label_entity_id
-        at_data.push_back(ost::io::StarWriterValue::FromInt(label_entity_id));
+        at_data[5] = ost::io::StarWriterValue::FromInt(label_entity_id);
         // label_seq_id
         if(entity_info.is_poly) {
-          at_data.push_back(ost::io::StarWriterValue::FromInt(label_seq_id+1));
+          at_data[6] = ost::io::StarWriterValue::FromInt(label_seq_id+1);
         } else {
-          at_data.push_back(ost::io::StarWriterValue::FromString("."));
+          at_data[6] = ost::io::StarWriterValue::FromString(".");
         }
         // label_alt_id
-        at_data.push_back(ost::io::StarWriterValue::FromString("."));
+        at_data[7] = ost::io::StarWriterValue::FromString(".");
         // Cartn_x
-        at_data.push_back(ost::io::StarWriterValue::FromFloat(at.GetPos().GetX(), 3));
+        at_data[8] = ost::io::StarWriterValue::FromFloat(at.GetPos().GetX(), 3);
         // Cartn_y
-        at_data.push_back(ost::io::StarWriterValue::FromFloat(at.GetPos().GetY(), 3));
+        at_data[9] = ost::io::StarWriterValue::FromFloat(at.GetPos().GetY(), 3);
         // Cartn_z
-        at_data.push_back(ost::io::StarWriterValue::FromFloat(at.GetPos().GetZ(), 3));
+        at_data[10] = ost::io::StarWriterValue::FromFloat(at.GetPos().GetZ(), 3);
         // occupancy
-        at_data.push_back(ost::io::StarWriterValue::FromFloat(at.GetOccupancy(), 2));
+        at_data[11] = ost::io::StarWriterValue::FromFloat(at.GetOccupancy(), 2);
         // B_iso_or_equiv
-        at_data.push_back(ost::io::StarWriterValue::FromFloat(at.GetBFactor(), 2));
+        at_data[12] = ost::io::StarWriterValue::FromFloat(at.GetBFactor(), 2);
         // auth_seq_id
-        at_data.push_back(ost::io::StarWriterValue::FromString(auth_seq_id));
+        at_data[13] = ost::io::StarWriterValue::FromString(auth_seq_id);
         // auth_asym_id
-        at_data.push_back(ost::io::StarWriterValue::FromString(auth_asym_id));
+        at_data[14] = ost::io::StarWriterValue::FromString(auth_asym_id);
         // id
-        at_data.push_back(ost::io::StarWriterValue::FromInt(atom_site_ptr->GetN()));
+        at_data[15] = ost::io::StarWriterValue::FromInt(atom_site_ptr->GetN());
         // pdbx_PDB_ins_code
-        at_data.push_back(ost::io::StarWriterValue::FromString(ins_code));
+        at_data[16] = ost::io::StarWriterValue::FromString(ins_code);
         atom_site_ptr->AddData(at_data);
       }
       ++label_seq_id;
@@ -1055,21 +1050,21 @@ namespace {
 
   void Feed_entity(ost::io::StarWriterLoopPtr entity_ptr,
                    const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
+    std::vector<ost::io::StarWriterValue> ent_data(2);
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
-      std::vector<ost::io::StarWriterValue> ent_data;
-      ent_data.push_back(ost::io::StarWriterValue::FromInt(entity_idx));
-      ent_data.push_back(ost::io::StarWriterValue::FromString(entity_info[entity_idx].type));
+      ent_data[0] = ost::io::StarWriterValue::FromInt(entity_idx);
+      ent_data[1] = ost::io::StarWriterValue::FromString(entity_info[entity_idx].type);
       entity_ptr->AddData(ent_data);
     }
   }
 
   void Feed_struct_asym(ost::io::StarWriterLoopPtr struct_asym_ptr,
                         const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
+    std::vector<ost::io::StarWriterValue> asym_data(2);
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       for(auto asym_id : entity_info[entity_idx].asym_ids) {
-        std::vector<ost::io::StarWriterValue> asym_data;
-        asym_data.push_back(ost::io::StarWriterValue::FromString(asym_id));
-        asym_data.push_back(ost::io::StarWriterValue::FromInt(entity_idx));
+        asym_data[0] = ost::io::StarWriterValue::FromString(asym_id);
+        asym_data[1] = ost::io::StarWriterValue::FromInt(entity_idx);
         struct_asym_ptr->AddData(asym_data);
       }
     }
@@ -1077,12 +1072,7 @@ namespace {
 
   void Feed_entity_poly_seq(ost::io::StarWriterLoopPtr entity_poly_seq_ptr,
                             const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
-    // reuse data vector for efficiency
-    std::vector<ost::io::StarWriterValue> entity_poly_seq_data;
-    entity_poly_seq_data.push_back(ost::io::StarWriterValue::FromInt(0));
-    entity_poly_seq_data.push_back(ost::io::StarWriterValue::FromString("ALA"));
-    entity_poly_seq_data.push_back(ost::io::StarWriterValue::FromInt(1));
-
+    std::vector<ost::io::StarWriterValue> entity_poly_seq_data(3);
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       if(entity_info[entity_idx].is_poly) {
         const std::vector<String>& mon_ids = entity_info[entity_idx].mon_ids;
@@ -1098,12 +1088,7 @@ namespace {
 
   void Feed_entity_poly(ost::io::StarWriterLoopPtr entity_poly_ptr,
                         const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
-    // reuse data vector for efficiency
-    std::vector<ost::io::StarWriterValue> entity_poly_data;
-    entity_poly_data.push_back(ost::io::StarWriterValue::FromInt(0));
-    entity_poly_data.push_back(ost::io::StarWriterValue::FromString("other"));
-    entity_poly_data.push_back(ost::io::StarWriterValue::FromString("A"));
-    entity_poly_data.push_back(ost::io::StarWriterValue::FromString("A"));
+    std::vector<ost::io::StarWriterValue> entity_poly_data(4);
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       if(entity_info[entity_idx].is_poly) {
         entity_poly_data[0] = ost::io::StarWriterValue::FromInt(entity_idx);
@@ -1133,9 +1118,7 @@ namespace {
 
   void Feed_chem_comp(ost::io::StarWriterLoopPtr chem_comp_ptr,
                       const std::map<String, ost::io::MMCifWriterComp>& comp_infos) {
-    std::vector<ost::io::StarWriterValue> comp_data;
-    comp_data.push_back(ost::io::StarWriterValue::FromString("ALA"));
-    comp_data.push_back(ost::io::StarWriterValue::FromString("L-PEPTIDE LINKING"));
+    std::vector<ost::io::StarWriterValue> comp_data(2);
     for(auto it = comp_infos.begin(); it != comp_infos.end(); ++it) {
       comp_data[0] = ost::io::StarWriterValue::FromString(it->first);
       comp_data[1] = ost::io::StarWriterValue::FromString(it->second.type);
@@ -1145,9 +1128,7 @@ namespace {
 
   void Feed_pdbx_entity_branch(ost::io::StarWriterLoopPtr pdbx_entity_branch_ptr,
                                const std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
-    std::vector<ost::io::StarWriterValue> branch_data;
-    branch_data.push_back(ost::io::StarWriterValue::FromInt(0));
-    branch_data.push_back(ost::io::StarWriterValue::FromString("oligosaccharide"));
+    std::vector<ost::io::StarWriterValue> branch_data(2);
     for(size_t i = 0; i < entity_infos.size(); ++i) {
       if(entity_infos[i].type == "branched") {
         branch_data[0] = ost::io::StarWriterValue::FromInt(i);
