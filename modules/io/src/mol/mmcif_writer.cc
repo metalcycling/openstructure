@@ -156,6 +156,16 @@ namespace {
 
   // template to allow ost::mol::ResidueHandleList and ost::mol::ResidueViewList
   template<class T>
+  String GuessEntityBranchType(const T& res_list) {
+    // guesses _pdbx_entity_branch.type based on residue chem classes
+    //
+    // Thats a hard one... only allowed value according to mmcif_pdbx_v50.dic:
+    // oligosaccharide
+    return "oligosaccharide";
+  }
+
+  // template to allow ost::mol::ResidueHandleList and ost::mol::ResidueViewList
+  template<class T>
   String GuessEntityType(const T& res_list) {
 
     // guesses _entity.type based on residue chem classes
@@ -612,13 +622,14 @@ namespace {
   int SetupEntity(const String& asym_chain_name,
                   const String& type,
                   const String& poly_type,
+                  const String& branch_type,
                   const T& res_list,
                   bool resnum_alignment,
                   std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
 
     bool is_poly = type == "polymer";
 
-    if(!is_poly && res_list.size() != 1 && type != "water") {
+    if(!is_poly && res_list.size() != 1 && type != "water" && type != "branched") {
       std::stringstream ss;
       ss << "Cannot setup entity with " << res_list.size() << " residues ";
       ss << "but is of type: " << type;
@@ -632,7 +643,8 @@ namespace {
         return i;
       }
       if(entity_infos[i].type == type &&
-         entity_infos[i].poly_type == poly_type) {
+         entity_infos[i].poly_type == poly_type &&
+         entity_infos[i].branch_type == branch_type) {
         if(is_poly && resnum_alignment) {
           if(MatchEntityResnum(res_list, entity_infos[i])) {
             AddAsymResnum(asym_chain_name, res_list, entity_infos[i]);
@@ -718,6 +730,7 @@ namespace {
     entity_infos.push_back(ost::io::MMCifWriterEntity());
     entity_infos.back().type = type;
     entity_infos.back().poly_type = poly_type;
+    entity_infos.back().branch_type = branch_type;
     entity_infos.back().mon_ids = mon_ids;
     entity_infos.back().seq_olcs = seq;
     entity_infos.back().seq_can_olcs = seq_can;
@@ -746,7 +759,12 @@ namespace {
     if(is_poly) {
       poly_type = GuessEntityPolyType(res_list);
     }
-    return SetupEntity(asym_chain_name, type, poly_type, res_list,
+    bool is_branched = type == "branched";
+    String branch_type = "";
+    if(is_branched) {
+      branch_type = GuessEntityBranchType(res_list);
+    }
+    return SetupEntity(asym_chain_name, type, poly_type, branch_type, res_list,
                        resnum_alignment, entity_infos);
   }
 
@@ -765,7 +783,12 @@ namespace {
     if(is_poly) {
       poly_type = ost::mol::EntityPolyTypeFromChainType(chain_type);
     }
-    return SetupEntity(asym_chain_name, type, poly_type, res_list,
+    bool is_branched = type == "branched";
+    String branch_type = "";
+    if(is_branched) {
+      branch_type = ost::mol::BranchedTypeFromChainType(chain_type);
+    }
+    return SetupEntity(asym_chain_name, type, poly_type, branch_type, res_list,
                        resnum_alignment, entity_infos);
   }
 
@@ -850,6 +873,14 @@ namespace {
   ost::io::StarWriterLoopPtr Setup_chem_comp_ptr() {
     ost::io::StarWriterLoopDesc desc("_chem_comp");
     desc.Add("id");
+    desc.Add("type");
+    ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
+    return sl;    
+  }
+
+  ost::io::StarWriterLoopPtr Setup_pdbx_entity_branch_ptr() {
+    ost::io::StarWriterLoopDesc desc("_pdbx_entity_branch");
+    desc.Add("entity_id");
     desc.Add("type");
     ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;    
@@ -1109,6 +1140,20 @@ namespace {
       comp_data[0] = ost::io::StarWriterValue::FromString(it->first);
       comp_data[1] = ost::io::StarWriterValue::FromString(it->second.type);
       chem_comp_ptr->AddData(comp_data);
+    }
+  }
+
+  void Feed_pdbx_entity_branch(ost::io::StarWriterLoopPtr pdbx_entity_branch_ptr,
+                               const std::vector<ost::io::MMCifWriterEntity>& entity_infos) {
+    std::vector<ost::io::StarWriterValue> branch_data;
+    branch_data.push_back(ost::io::StarWriterValue::FromInt(0));
+    branch_data.push_back(ost::io::StarWriterValue::FromString("oligosaccharide"));
+    for(size_t i = 0; i < entity_infos.size(); ++i) {
+      if(entity_infos[i].type == "branched") {
+        branch_data[0] = ost::io::StarWriterValue::FromInt(i);
+        branch_data[1] = ost::io::StarWriterValue::FromString(entity_infos[i].branch_type);
+        pdbx_entity_branch_ptr->AddData(branch_data);
+      }
     }
   }
 
@@ -1418,6 +1463,7 @@ void MMCifWriter::Setup() {
   entity_poly_ = Setup_entity_poly_ptr();
   entity_poly_seq_ = Setup_entity_poly_seq_ptr();
   chem_comp_ = Setup_chem_comp_ptr();
+  pdbx_entity_branch_ = Setup_pdbx_entity_branch_ptr();
 }
 
 void MMCifWriter::Finalize() {
@@ -1433,7 +1479,8 @@ void MMCifWriter::Finalize() {
   Feed_entity_poly(entity_poly_, entity_info_);
   Feed_entity_poly_seq(entity_poly_seq_, entity_info_);
   Feed_chem_comp(chem_comp_, comp_info_);
-  Feed_atom_type(atom_type_, atom_site_); 
+  Feed_atom_type(atom_type_, atom_site_);
+  Feed_pdbx_entity_branch(pdbx_entity_branch_, entity_info_);
 
   // finalize
   this->Push(chem_comp_);
@@ -1443,6 +1490,7 @@ void MMCifWriter::Finalize() {
   this->Push(entity_poly_seq_);
   this->Push(pdbx_poly_seq_scheme_);
   this->Push(atom_type_);
+  this->Push(pdbx_entity_branch_);
   this->Push(atom_site_);
 
   structure_set_ = true;

@@ -40,6 +40,9 @@ struct MMCifWriterEntity {
   // _entity_poly.type
   String poly_type;  
 
+  // __pdbx_entity_branch.type
+  String branch_type;
+
   // Names of chains in AU that are assigned to this entity
   std::vector<String> asym_ids;
 
@@ -98,6 +101,7 @@ private:
   StarWriterLoopPtr entity_poly_;
   StarWriterLoopPtr entity_poly_seq_;
   StarWriterLoopPtr chem_comp_;
+  StarWriterLoopPtr pdbx_entity_branch_;
   bool structure_set_;
 };
 
