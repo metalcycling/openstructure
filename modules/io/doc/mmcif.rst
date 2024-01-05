@@ -1579,6 +1579,95 @@ The content of the written file:
     :type filename: :class:`str`
 
 
+mmCIF Writer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The OpenStructure mmCIF writer considers the following data categories. The
+listed attributes are written which fulfills all dependencies in an mmCIF
+file according to `mmcif_pdbx_v50 <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Index/>`_.
+
+* `_atom_site <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/atom_site.html>`_
+
+  * group_PDB
+  * type_symbol
+  * label_atom_id
+  * label_asym_id
+  * label_entity_id
+  * label_seq_id
+  * label_alt_id
+  * Cartn_x
+  * Cartn_y
+  * Cartn_z
+  * occupancy
+  * B_iso_or_equiv
+  * auth_seq_id
+  * auth_asym_id
+  * id
+  * pdbx_PDB_ins_code
+
+
+* `_entity <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity.html>`_
+
+  * id
+  * type
+
+* `_struct_asym <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/struct_asym.html>`_
+
+  * id
+  * entity_id
+
+* `_entity_poly <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity_poly.html>`_
+
+  * entity_id
+  * type
+  * pdbx_seq_one_letter_code
+  * pdbx_seq_one_letter_code_can
+
+* `_pdbx_poly_seq_scheme <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/pdbx_poly_seq_scheme.html>`_
+
+  * asym_id
+  * entity_id
+  * mon_id
+  * seq_id
+  * pdb_strand_id
+  * pdb_seq_num
+  * pdb_ins_code
+
+
+* `_entity_poly_seq <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/pdbx_reference_entity_poly_seq.html>`_
+
+  * entity_id
+  * mon_id
+  * num
+
+
+* `_chem_comp <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/chem_comp.html>`_
+
+  * id
+  * type
+
+* `_atom_type <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/atom_type.html>`_
+
+  * symbol
+
+The writer is designed to only require an OpenStructure
+:class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView` as input but
+optionally performs preprocessing in order to separate residues of chains into
+valid mmCIF entities. This is controlled by the *mmcif_conform* flag which has
+significant impact on how chains are assigned to mmCIF entities, chain names and
+residue numbers. Ideally, the input is *mmcif_conform*. That means each chain
+has a :class:`ost.mol.ChainType` attached and all of its residues are consistent
+with that :class:`ost.mol.ChainType`. E.g.
+:func:`ost.mol.ResidueHandle.GetChemClass` evaluates to
+:class:`PEPTIDE_LINKING` or :class:`L_PEPTIDE_LINKING` for a
+chain of type :class:`CHAINTYPE_POLY_PEPTIDE_L`. These requirements are
+fulfilled for structures loaded from mmCIF files.
+Structures loaded from PDB files may have peptide residues, water and
+non-polymers in the same chain. They are not *mmcif_conform* and thus
+require preprocessing. 
+
+* Chains represent valid mmCIF entities, e.g.
+
 Biounits
 --------------------------------------------------------------------------------
 
