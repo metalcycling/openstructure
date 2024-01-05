@@ -367,7 +367,7 @@ BOOST_AUTO_TEST_CASE(chain_type)
    BOOST_CHECK(ChainTypeFromString(
                       "polydeoxyribonucleotide/polyribonucleotide hybrid") ==
                CHAINTYPE_POLY_DN_RN);
-   BOOST_CHECK(ChainTypeFromString("other") == CHAINTYPE_UNKNOWN);
+   BOOST_CHECK(ChainTypeFromString("other") == CHAINTYPE_POLY);
    BOOST_CHECK(ChainTypeFromString("macrolide") == CHAINTYPE_MACROLIDE);
    BOOST_CHECK(ChainTypeFromString("cyclic-pseudo-peptide") ==
                CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE);

@@ -26,61 +26,60 @@ namespace ost { namespace mol {
 
 struct DLLEXPORT ChemClass {
 
-  const static char PEPTIDE_LINKING   ='P';
-  const static char D_PEPTIDE_LINKING ='D';
-  const static char L_PEPTIDE_LINKING ='L';
-  const static char RNA_LINKING       ='R';
-  const static char DNA_LINKING       ='S';
-  const static char NON_POLYMER       ='N';
-  const static char L_SACCHARIDE      ='X';
-  const static char D_SACCHARIDE      ='Y';
-  const static char SACCHARIDE        ='Z';
-  const static char WATER             ='W';
-  const static char UNKNOWN           ='U';
+  typedef enum {
+    PEPTIDE_LINKING   ='P',
+    D_PEPTIDE_LINKING ='D',
+    L_PEPTIDE_LINKING ='L',
+    RNA_LINKING       ='R',
+    DNA_LINKING       ='S',
+    NON_POLYMER       ='N',
+    L_SACCHARIDE      ='X',
+    D_SACCHARIDE      ='Y',
+    SACCHARIDE        ='Z',
+    WATER             ='W',
+    UNKNOWN           ='U'
+  } Type;
   
-  // for backward compatibility to 1.1 and earlier
-  const static char PeptideLinking   =PEPTIDE_LINKING;
-  const static char DPeptideLinking  =D_PEPTIDE_LINKING;
-  const static char LPeptideLinking  =L_PEPTIDE_LINKING;
-  const static char RNALinking       =RNA_LINKING;  
-  const static char DNALinking       =DNA_LINKING;    
-  const static char NonPolymer       =NON_POLYMER;
-  const static char LSaccharide      =L_SACCHARIDE;
-  const static char DSaccharide      =D_SACCHARIDE;    
-  const static char Saccharide       =SACCHARIDE;
-  const static char Water            =WATER;
-  const static char Unknown          =UNKNOWN;
-  explicit ChemClass(char chem_class)
-    : chem_class_(chem_class) {
-  }
+  explicit ChemClass(Type chem_class): chem_class_(chem_class) { }
 
-  ChemClass()
-    : chem_class_(UNKNOWN) {
-  }
+  explicit ChemClass(char type): chem_class_(Type(type)) { }
+
+  ChemClass(): chem_class_(UNKNOWN) { }
+
   bool operator==(const ChemClass& cc) const {
-    return cc.chem_class_==chem_class_;
+    return cc.chem_class_ == chem_class_;
   }
 
   bool operator!=(const ChemClass& cc) const {
-    return !this->operator==(cc);
+    return !this->operator == (cc);
   }
 
   bool IsPeptideLinking() const {
-    return (chem_class_==ChemClass::PEPTIDE_LINKING ||
-            chem_class_==ChemClass::D_PEPTIDE_LINKING ||
-            chem_class_==ChemClass::L_PEPTIDE_LINKING);
+    return (chem_class_ == PEPTIDE_LINKING ||
+            chem_class_ == D_PEPTIDE_LINKING ||
+            chem_class_ == L_PEPTIDE_LINKING);
   }
   bool IsNucleotideLinking() const {
-    return (chem_class_==ChemClass::DNA_LINKING || 
-            chem_class_==ChemClass::RNA_LINKING);
+    return (chem_class_ == DNA_LINKING || 
+            chem_class_ == RNA_LINKING);
   }
   
-  bool IsWater() const { return chem_class_==ChemClass::WATER; }
+  bool IsWater() const {
+    return chem_class_ == WATER;
+  }
+
   operator char() const {
     return chem_class_;
   }
+
+  bool IsSaccharide() const {
+    return (chem_class_ == SACCHARIDE ||
+            chem_class_ == L_SACCHARIDE ||
+            chem_class_ == D_SACCHARIDE);
+  }
+
 private:
-  char chem_class_;
+  Type chem_class_;
 };
 
 }} // ns

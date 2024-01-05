@@ -27,6 +27,14 @@
 
 namespace ost { namespace io {
 
+String DLLEXPORT_OST_IO
+EntityToMMCifString(const ost::mol::EntityHandle& ent, const String& data_name,
+                    bool mmcif_conform);
+
+String DLLEXPORT_OST_IO
+EntityToMMCifString(const ost::mol::EntityView& ent, const String& data_name,
+                    bool mmcif_conform);
+
 std::tuple<mol::EntityHandle, MMCifInfo, ost::seq::SequenceList> DLLEXPORT_OST_IO
 MMCifStringToEntity(const String& mmcif, const IOProfile& profile, bool process);
 

@@ -17,8 +17,10 @@ chemdict_parser.cc
 io_profile.cc
 dcd_io.cc
 star_parser.cc
+star_writer.cc
 mmcif_reader.cc
 mmcif_info.cc
+mmcif_writer.cc
 pdb_str.cc
 sdf_str.cc
 mmcif_str.cc
@@ -30,8 +32,10 @@ PARENT_SCOPE
 set(OST_IO_MOL_HEADERS
 chemdict_parser.hh
 star_parser.hh
+star_writer.hh
 mmcif_reader.hh
 mmcif_info.hh
+mmcif_writer.hh
 io_profile.hh
 dcd_io.hh
 entity_io_crd_handler.hh

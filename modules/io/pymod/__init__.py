@@ -20,7 +20,6 @@ import os, tempfile, ftplib, http.client
 
 from ._ost_io import *
 from ost import mol, geom, conop, seq
-from ost import LogWarning
 
 class IOProfiles:
   def __init__(self):
@@ -447,11 +446,6 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
       reader.info.ConnectBranchLinks()
     #else:
     #  raise IOError("File doesn't contain any entities")
-
-    # Warn about info dependency on seqres
-    if info and not reader.seqres:
-      LogWarning("MMCifInfo is incomplete when seqres=False")
-
     if seqres and info:
       return ent, reader.seqres, reader.info
     if seqres:
@@ -461,6 +455,37 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
     return ent
   except:
     raise
+
+
+def SaveMMCIF(ent, filename, data_name="OST_structure", mmcif_conform = True):
+  """
+  Save OpenStructure entity in mmCIF format
+
+  :param ent:           OpenStructure Entity to be saved
+  :param filename:      Filename - .gz suffix triggers gzip compression
+  :param data_name:     Name of data block that will be written to
+                        mmCIF file. Typically, thats the PDB ID or some
+                        identifier.
+  :param mmcif_conform: Controls processing of structure, i.e. identification
+                        of mmCIF entities etc. before writing. Detailed
+                        description is in the documentation below. In short:
+                        If *mmcif_conform* is set to True, Chains in *ent* are
+                        expected to be valid mmCIF entities with residue numbers
+                        set according to underlying SEQRES. That should be the
+                        case when *ent* has been loaded with :func:`LoadMMCIF`.
+                        If *mmcif_conform* is set to False, heuristics kick in
+                        to identify and separate mmCIF entities based on
+                        :class:`ost.mol.ChemClass` of the residues in a chain.
+  :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+  :type filename: :class:`str`
+  :type data_name: :class:`str`
+  :type mmcif_conform: :class:`bool`
+  """
+  writer = MMCifWriter()
+  writer.SetStructure(ent, mmcif_conform = mmcif_conform)
+  writer.Write(data_name, filename)
+
+
 
 # this function uses a dirty trick: should be a member of MMCifInfoBioUnit
 # which is totally C++, but we want the method in Python... so we define it
