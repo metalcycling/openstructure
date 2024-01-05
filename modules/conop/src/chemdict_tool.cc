@@ -42,16 +42,18 @@ void PrintUsage()
   std::cout << "supported dialects are: pdb, charmm, amber, opls" << std::endl;
   std::cout << "supported options are:" << std::endl;
   std::cout << "  -i  - ignore compounds reserved by the PDB (01-99, DRG, INH, LIG)" << std::endl;
+  std::cout << "  -o  - ignore obsolete compounds" << std::endl;
 }
 
 int main(int argc, char const *argv[])
 {
-  if (argc!=4 && argc!=5 && argc!=6) {
+  if (argc < 4) {
     PrintUsage();
     return 0;
   }
   conop::Compound::Dialect dialect=conop::Compound::PDB;
   bool ignore_reserved=false;
+  bool ignore_obsolete=false;
   for (int i = 4; i < argc; i++) {
     String param=argv[i];
 
@@ -65,6 +67,8 @@ int main(int argc, char const *argv[])
       dialect=conop::Compound::AMBER;
     } else if (param=="-i") {
       ignore_reserved=true;
+    } else if (param=="-o") {
+      ignore_obsolete=true;
     } else {
       PrintUsage();
       return 0;
@@ -81,7 +85,7 @@ int main(int argc, char const *argv[])
     filtered_istream.push(boost::iostreams::gzip_decompressor());
   }
   filtered_istream.push(istream);  
-  io::ChemdictParser cdp(filtered_istream, dialect, ignore_reserved);
+  io::ChemdictParser cdp(filtered_istream, dialect, ignore_reserved, ignore_obsolete);
   conop::CompoundLibPtr compound_lib;
   bool in_mem=false;
   if (!strncmp(argv[1], "create", 6)) {

@@ -5,11 +5,7 @@ namespace ost { namespace io {
 using namespace ost::conop;
   
 bool ChemdictParser::OnBeginData(const StringRef& data_name) 
-{    
-  if (data_name==StringRef("UNL",3)) {
-    compound_=CompoundPtr();
-    return false;    
-  }
+{
   compound_.reset(new Compound(data_name.str()));
   compound_->SetDialect(dialect_);
   if (last_!=data_name[0]) {
@@ -17,12 +13,6 @@ bool ChemdictParser::OnBeginData(const StringRef& data_name)
     std::cout << last_ << std::flush;
   }
   atom_map_.clear();
-  if (ignore_reserved_ && IsNameReserved(data_name))  {
-    insert_=false;
-  }
-  else {
-    insert_=true;
-  }
   return true;
 }
 
@@ -183,11 +173,17 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
 
 void ChemdictParser::OnEndData()
 {
-  if (insert_ && compound_) {
-    if (compound_->GetAtomSpecs().empty()) {
-      compound_->AddAtom(atom_);
+  if (compound_)
+  {
+    if (compound_->GetID() != "UNL" &&
+        ! (ignore_reserved_ && IsNameReserved(compound_->GetID())) &&
+        ! (ignore_obsolete_ && compound_->GetObsolete()))
+    {
+      if (compound_->GetAtomSpecs().empty()) {
+        compound_->AddAtom(atom_);
+      }
+      lib_->AddCompound(compound_);
     }
-    lib_->AddCompound(compound_);      
   }
 }
 
@@ -257,7 +253,7 @@ void ChemdictParser::InitPDBXTypeMap()
   xtm_["?"]=mol::ChemType(mol::ChemType::UNKNOWN);
 }
 
-bool ChemdictParser::IsNameReserved(const StringRef& data_name)
+bool ChemdictParser::IsNameReserved(const String& data_name)
 {
   // This checks if the compound name is one of the reserved name that will
   // never be used in the PDB. See
@@ -266,10 +262,10 @@ bool ChemdictParser::IsNameReserved(const StringRef& data_name)
        (data_name.length() == 2 &&
          data_name[0] >= '0' && data_name[0] <= '9' &&
          data_name[1] >= '0' && data_name[1] <= '9' &&
-         data_name != StringRef("00", 2)) ||
-       data_name == StringRef("DRG", 3) ||
-       data_name == StringRef("INH", 3) ||
-       data_name == StringRef("LIG", 3)
+         data_name != "00") ||
+       data_name == "DRG" ||
+       data_name == "INH" ||
+       data_name == "LIG"
      )
   {
     std::cout << "Ignoring reserved compound " << data_name << std::endl;
