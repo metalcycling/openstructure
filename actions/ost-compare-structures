@@ -81,6 +81,7 @@ import json
 import time
 import sys
 import traceback
+import math
 
 from ost import io
 from ost.mol.alg import scoring
@@ -497,7 +498,7 @@ def _ParseArgs():
 def _RoundOrNone(num, decimals = 3):
     """ Helper to create valid JSON output
     """
-    if num is None:
+    if num is None or math.isnan(num) or math.isinf(num):
         return None
     return round(num, decimals)
 
