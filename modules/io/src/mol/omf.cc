@@ -5398,7 +5398,7 @@ void OMF::FromStream(std::istream& stream) {
   if(version < 3) {
     std::stringstream ss;
     ss << "Old OMF versions are deprecated. Can only load versions >= 3, ";
-    ss << "got "<<version;
+    ss << "got "<< static_cast<int>(version);
     throw ost::Error(ss.str());
   }
 
