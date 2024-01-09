@@ -1623,7 +1623,7 @@ class Scorer:
                 trg_ch2 = interface[1]
                 res = dockq.DockQ(self.target, self.target,
                                   trg_ch1, trg_ch2, trg_ch1, trg_ch2)
-                not_covered_counts.apend(res["nnat"])
+                not_covered_counts.append(res["nnat"])
   
         # there are 4 types of combined scores
         # - simple average
