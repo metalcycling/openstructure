@@ -1627,14 +1627,14 @@ class Scorer:
                 trg_ch2 = interface[1]
                 res = dockq.DockQ(self.target, self.target,
                                   trg_ch1, trg_ch2, trg_ch1, trg_ch2)
-                not_covered_counts.apend(res["nnat"])
+                not_covered_counts.append(res["nnat"])
   
         # there are 4 types of combined scores
         # - simple average
         # - average weighted by native_contacts
         # - the two above including nonmapped_contact_interfaces => set DockQ to 0.0
-        scores = np.array([self._dockq_scores])
-        weights = np.array([self._nnat])
+        scores = np.array(self._dockq_scores)
+        weights = np.array(self._nnat)
         if len(scores) > 0:
             self._dockq_ave = np.mean(scores)
         else:
