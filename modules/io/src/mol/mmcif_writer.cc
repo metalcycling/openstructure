@@ -17,6 +17,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //------------------------------------------------------------------------------
 
+#include <unordered_set>
+
 #include <ost/mol/chem_class.hh>
 #include <ost/io/mol/mmcif_writer.hh>
 
@@ -67,6 +69,26 @@ namespace {
     int n_chain_names;
     std::vector<int> indices;
   };
+
+  void CheckValidEntityPolyType(const String& entity_poly_type) {
+    std::unordered_set<std::string> s = {"other",
+                                         "polydeoxyribonucleotide",
+                                         "polypeptide(D)",
+                                         "polypeptide(L)",
+                                         "polyribonucleotide",
+                                         "polysaccharide(D)",
+                                         "polysaccharide(L)"};
+    if(s.find(entity_poly_type) == s.end()) {
+      std::stringstream ss;
+      ss << "Observed value is no valid entity_poly.type: \"";
+      ss << entity_poly_type << "\". Allowed values: ";
+      for(auto type: s) {
+        ss << type << ", ";
+      }
+      String err = ss.str();
+      throw ost::io::IOException(err.substr(0, err.size() - 2));
+    }
+  }
 
   // template to allow ost::mol::ResidueHandleList and ost::mol::ResidueViewList
   template<class T>
@@ -1394,6 +1416,32 @@ namespace {
 } // ns
 
 namespace ost { namespace io {
+
+MMCifWriterEntity MMCifWriterEntity::FromPolymer(const String& entity_poly_type,
+                                                 const std::vector<String>& mon_ids,
+                                                 conop::CompoundLibPtr compound_lib) {
+  CheckValidEntityPolyType(entity_poly_type);
+  MMCifWriterEntity ent;
+  ent.type = "polymer";
+  ent.is_poly = true;
+  ent.poly_type = entity_poly_type;
+  ent.branch_type = "";
+  ent.mon_ids = mon_ids;
+  for(auto mon_id: mon_ids) {
+    // one letter codes rely on compound library
+    ost::conop::CompoundPtr compound = 
+    compound_lib->FindCompound(mon_id, ost::conop::Compound::PDB);
+    if(compound) {
+      char chem_class = compound->GetChemClass();
+      ent.seq_olcs.push_back(MonIDToOLC(chem_class, mon_id));
+      ent.seq_can_olcs.push_back(String(1, compound->GetOneLetterCode()));
+    } else {
+      ent.seq_olcs.push_back("(" + mon_id + ")");
+      ent.seq_can_olcs.push_back("(" + mon_id + ")");
+    }
+  }
+  return ent;
+}
 
 int MMCifWriterEntity::GetAsymIdx(const String& asym_id) const {
   for(size_t i = 0; i < asym_ids.size(); ++i) {

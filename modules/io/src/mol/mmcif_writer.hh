@@ -22,6 +22,7 @@
 #include <fstream>
 
 #include <ost/mol/entity_handle.hh>
+#include <ost/conop/compound_lib.hh>
 
 #include <ost/io/mol/mmcif_info.hh>
 #include <ost/io/mol/io_profile.hh>
@@ -31,6 +32,12 @@ namespace ost { namespace io {
 
 
 struct MMCifWriterEntity {
+
+  MMCifWriterEntity() { }
+
+  static MMCifWriterEntity FromPolymer(const String& entity_poly_type,
+                                       const std::vector<String>& mon_ids,
+                                       conop::CompoundLibPtr compound_lib);
 
   int GetAsymIdx(const String& asym_id) const;
 

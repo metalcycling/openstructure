@@ -147,6 +147,18 @@ void export_mmcif_io()
     .def("Write", &WrapStarWriterWrite, (arg("data_name"), arg("filename")))
   ;
 
+  class_<MMCifWriterEntity>("MMCifWriterEntity", no_init)
+    .def("FromPolymer", &MMCifWriterEntity::FromPolymer).staticmethod("FromPolymer")
+    .add_property("type", &MMCifWriterEntity::type)
+    .add_property("poly_type", &MMCifWriterEntity::poly_type)
+    .add_property("branch_type", &MMCifWriterEntity::branch_type)
+    .add_property("is_poly", &MMCifWriterEntity::is_poly)
+    .add_property("mon_ids", &MMCifWriterEntity::mon_ids)
+    .add_property("seq_olcs", &MMCifWriterEntity::seq_olcs)
+    .add_property("seq_can_olcs", &MMCifWriterEntity::seq_can_olcs)
+    .add_property("asym_ids", &MMCifWriterEntity::asym_ids)
+  ;
+
   class_<MMCifWriter, bases<StarWriter> >("MMCifWriter", init<>())
     .def("SetStructure", &WrapSetStructureHandle, (arg("ent"), arg("mmcif_conform")=true))
     .def("SetStructure", &WrapSetStructureView, (arg("ent"), arg("mmcif_conform")=true))
