@@ -1461,18 +1461,21 @@ int MMCifWriterEntity::GetAsymIdx(const String& asym_id) const {
 }
 
 void MMCifWriter::SetStructure(const ost::mol::EntityHandle& ent,
-                               bool mmcif_conform) {
-
+                               bool mmcif_conform,
+                               const std::vector<MMCifWriterEntity>& entity_info) {
   this->Setup();
+  entity_info_ = entity_info;
   ProcessEnt(ent, mmcif_conform, comp_info_, entity_info_, atom_site_,
              pdbx_poly_seq_scheme_);
   this->Finalize();
 }
 
 void MMCifWriter::SetStructure(const ost::mol::EntityView& ent,
-                               bool mmcif_conform) {
+                               bool mmcif_conform,
+                               const std::vector<MMCifWriterEntity>& entity_info) {
 
   this->Setup();
+  entity_info_ = entity_info;
   ProcessEnt(ent, mmcif_conform, comp_info_, entity_info_, atom_site_,
              pdbx_poly_seq_scheme_);
   this->Finalize();

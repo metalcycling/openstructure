@@ -41,6 +41,22 @@ struct MMCifWriterEntity {
 
   int GetAsymIdx(const String& asym_id) const;
 
+  bool operator==(const MMCifWriterEntity& rhs) const {
+       return (type == rhs.type)
+           && (poly_type == rhs.poly_type)
+           && (branch_type == rhs.branch_type)
+           && (asym_ids == rhs.asym_ids)
+           && (is_poly == rhs.is_poly)
+           && (mon_ids == rhs.mon_ids)
+           && (seq_olcs == rhs.seq_olcs)
+           && (seq_can_olcs == rhs.seq_can_olcs)
+           && (asym_alns == rhs.asym_alns);
+  }
+
+  bool operator!=(const MMCifWriterEntity& rhs) const {
+    return !(*this == rhs);
+  }
+
   // _entity.type
   String type;
 
@@ -88,9 +104,11 @@ public:
 
   virtual ~MMCifWriter() { }
 
-  void SetStructure(const ost::mol::EntityHandle& ent, bool mmcif_conform=true);
+  void SetStructure(const ost::mol::EntityHandle& ent, bool mmcif_conform=true,
+                    const std::vector<MMCifWriterEntity>& entity_info=std::vector<MMCifWriterEntity>());
 
-  void SetStructure(const ost::mol::EntityView& ent, bool mmcif_conform=true);
+  void SetStructure(const ost::mol::EntityView& ent, bool mmcif_conform=true,
+                    const std::vector<MMCifWriterEntity>& entity_info=std::vector<MMCifWriterEntity>());
   
 private:
 

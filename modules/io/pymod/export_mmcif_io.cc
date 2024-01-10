@@ -84,14 +84,16 @@ void WrapStarWriterWrite(StarWriter& writer, const String& data_name,
 
 void WrapSetStructureHandle(MMCifWriter& writer,
                             const ost::mol::EntityHandle& ent,
-                            bool mmcif_conform) {
-  writer.SetStructure(ent, mmcif_conform);
+                            bool mmcif_conform,
+                            const std::vector<MMCifWriterEntity>& entity_info) {
+  writer.SetStructure(ent, mmcif_conform, entity_info);
 }
 
 void WrapSetStructureView(MMCifWriter& writer,
                           const ost::mol::EntityView& ent,
-                          bool mmcif_conform) {
-  writer.SetStructure(ent, mmcif_conform);
+                          bool mmcif_conform,
+                          const std::vector<MMCifWriterEntity>& entity_info) {
+  writer.SetStructure(ent, mmcif_conform, entity_info);
 }
 
 void export_mmcif_io()
@@ -159,9 +161,15 @@ void export_mmcif_io()
     .add_property("asym_ids", &MMCifWriterEntity::asym_ids)
   ;
 
+  class_<std::vector<MMCifWriterEntity> >("MMCifWriterEntityList", init<>())
+    .def(vector_indexing_suite<std::vector<MMCifWriterEntity> >())
+  ;
+
   class_<MMCifWriter, bases<StarWriter> >("MMCifWriter", init<>())
-    .def("SetStructure", &WrapSetStructureHandle, (arg("ent"), arg("mmcif_conform")=true))
-    .def("SetStructure", &WrapSetStructureView, (arg("ent"), arg("mmcif_conform")=true))
+    .def("SetStructure", &WrapSetStructureHandle, (arg("ent"), arg("mmcif_conform")=true,
+                                                   arg("entity_info")=std::vector<MMCifWriterEntity>()))
+    .def("SetStructure", &WrapSetStructureView, (arg("ent"), arg("mmcif_conform")=true,
+                                                 arg("entity_info")=std::vector<MMCifWriterEntity>()))
   ;
 
   enum_<MMCifInfoCitation::MMCifInfoCType>("MMCifInfoCType")
