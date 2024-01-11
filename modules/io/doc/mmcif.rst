@@ -1665,6 +1665,11 @@ file according to `mmcif_pdbx_v50 <https://mmcif.wwpdb.org/dictionaries/mmcif_pd
 
   * symbol
 
+* `_pdbx_entity_branch <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/pdbx_entity_branch.html>`_
+
+  * entity_id
+  * type
+
 The writer is designed to only require an OpenStructure
 :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView` as input but
 optionally performs preprocessing in order to separate residues of chains into
