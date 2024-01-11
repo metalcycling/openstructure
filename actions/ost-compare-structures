@@ -57,6 +57,8 @@ results:
  * "cad_exec"
  * "usalign_exec"
  * "lddt_no_stereochecks"
+ * "min_pep_length"
+ * "min_nuc_length"
 
 The pairwise sequence alignments are computed with Needleman-Wunsch using
 BLOSUM62 (NUC44 for nucleotides). Many benchmarking scenarios preprocess the
@@ -492,6 +494,36 @@ def _ParseArgs():
         action="store_true",
         help=("Dump additional info on model and reference residues that occur "
               "in pepnuc alignments."))
+    
+    parser.add_argument(
+        "--min-pep-length",
+        dest="min_pep_length",
+        default = 10,
+        type=int,
+        help=("Relevant parameter if short peptides are involved in scoring."
+              "Minimum peptide length for a chain in the target structure to "
+              "be considered in chain mapping. The chain mapping algorithm "
+              "first performs an all vs. all pairwise sequence alignment to "
+              "identify \"equal\" chains within the target structure. We go "
+              "for simple sequence identity there. Short sequences can be "
+              "problematic as they may produce high sequence identity "
+              "alignments by pure chance.")
+    )
+
+    parser.add_argument(
+        "--min-nuc-length",
+        dest="min_nuc_length",
+        default = 4,
+        type=int,
+        help=("Relevant parameter if short nucleotides are involved in scoring."
+              "Minimum nucleotide length for a chain in the target structure to "
+              "be considered in chain mapping. The chain mapping algorithm "
+              "first performs an all vs. all pairwise sequence alignment to "
+              "identify \"equal\" chains within the target structure. We go "
+              "for simple sequence identity there. Short sequences can be "
+              "problematic as they may produce high sequence identity "
+              "alignments by pure chance.")
+    )
  
     return parser.parse_args()
 
@@ -695,7 +727,9 @@ def _Process(model, reference, args):
                             usalign_exec = args.usalign_exec,
                             lddt_no_stereochecks = args.lddt_no_stereochecks,
                             n_max_naive = args.n_max_naive,
-                            oum = args.oum)
+                            oum = args.oum,
+                            min_pep_length = args.min_pep_length,
+                            min_nuc_length = args.min_nuc_length)
 
     ir = _GetInconsistentResidues(scorer.aln)
     if len(ir) > 0 and args.enforce_consistency:
@@ -876,6 +910,8 @@ def _Main():
         out["cad_exec"] = args.cad_exec
         out["usalign_exec"] = args.usalign_exec
         out["lddt_no_stereochecks"] = args.lddt_no_stereochecks
+        out["min_pep_length"] = args.min_pep_length
+        out["min_nuc_length"] = args.min_nuc_length
         out["status"] = "SUCCESS"
         with open(args.output, 'w') as fh:
             json.dump(out, fh, indent=4, sort_keys=False)

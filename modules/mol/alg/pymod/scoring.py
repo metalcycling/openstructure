@@ -141,12 +141,33 @@ class Scorer:
                 object into USalign to compute TM-score. Experimental feature
                 with limitations.
     :type oum: :class:`bool`
+    :param min_pep_length: Relevant parameter if short peptides are involved in
+                           scoring. Minimum peptide length for a chain in the
+                           target structure to be considered in chain mapping.
+                           The chain mapping algorithm first performs an all vs.
+                           all pairwise sequence alignment to identify \"equal\"
+                           chains within the target structure. We go for simple
+                           sequence identity there. Short sequences can be
+                           problematic as they may produce high sequence identity
+                           alignments by pure chance.
+    :type min_pep_length: :class:`int`
+    :param min_nuc_length: Relevant parameter if short nucleotides are involved
+                           in scoring. Minimum nucleotide length for a chain in
+                           the target structure to be considered in chain
+                           mapping. The chain mapping algorithm first performs
+                           an all vs. all pairwise sequence alignment to
+                           identify \"equal\" chains within the target
+                           structure. We go for simple sequence identity there.
+                           Short sequences can be problematic as they may
+                           produce high sequence identity alignments by pure
+                           chance.
+    :type min_nuc_length: :class:`int`
     """
     def __init__(self, model, target, resnum_alignments=False,
                  molck_settings = None, cad_score_exec = None,
                  custom_mapping=None, usalign_exec = None,
                  lddt_no_stereochecks=False, n_max_naive=40320,
-                 oum=False):
+                 oum=False, min_pep_length = 10, min_nuc_length = 4):
 
         self._target_orig = target
         self._model_orig = model
@@ -231,6 +252,8 @@ class Scorer:
         self.lddt_no_stereochecks = lddt_no_stereochecks
         self.n_max_naive = n_max_naive
         self.oum = oum
+        self.min_pep_length = min_pep_length
+        self.min_nuc_length = min_nuc_length
 
         # lazily evaluated attributes
         self._stereochecked_model = None
@@ -491,7 +514,9 @@ class Scorer:
         if self._chain_mapper is None:
             self._chain_mapper = chain_mapping.ChainMapper(self.target,
                                                            n_max_naive=1e9,
-                                                           resnum_alignments=self.resnum_alignments)
+                                                           resnum_alignments=self.resnum_alignments,
+                                                           min_pep_length=self.min_pep_length,
+                                                           min_nuc_length=self.min_nuc_length)
         return self._chain_mapper
 
     @property
