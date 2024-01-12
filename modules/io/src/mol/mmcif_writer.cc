@@ -1006,11 +1006,14 @@ namespace {
       if(res.HasProp("pdb_auth_chain_name")) {
         auth_asym_id = res.GetStringProp("pdb_auth_chain_name");
       }
-      String auth_seq_id = res.GetNumber().AsString();
+      
+      String auth_seq_id = std::to_string(res.GetNumber().GetNum());
       if(res.HasProp("pdb_auth_resnum")) {
         auth_seq_id = res.GetStringProp("pdb_auth_resnum");
       }
-      String ins_code = "";
+
+      char c_ins_code = res.GetNumber().GetInsCode();
+      String ins_code = c_ins_code == '\0' ? "" : String(1, c_ins_code);
       if(res.HasProp("pdb_auth_ins_code")) {
         ins_code = res.GetStringProp("pdb_auth_ins_code");
       }
