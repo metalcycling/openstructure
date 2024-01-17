@@ -822,6 +822,7 @@ def _Process(model, reference, args):
         out["dockq_interfaces"] = scorer.dockq_interfaces 
         out["dockq"] = [_RoundOrNone(x) for x in scorer.dockq_scores]
         out["fnat"] = [_RoundOrNone(x) for x in scorer.fnat]
+        out["fnonnat"] = [_RoundOrNone(x) for x in scorer.fnonnat]
         out["irmsd"] = [_RoundOrNone(x) for x in scorer.irmsd]
         out["lrmsd"] = [_RoundOrNone(x) for x in scorer.lrmsd]
         out["nnat"] = scorer.nnat
