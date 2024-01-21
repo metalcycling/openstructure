@@ -1675,18 +1675,147 @@ The writer is designed to only require an OpenStructure
 optionally performs preprocessing in order to separate residues of chains into
 valid mmCIF entities. This is controlled by the *mmcif_conform* flag which has
 significant impact on how chains are assigned to mmCIF entities, chain names and
-residue numbers. Ideally, the input is *mmcif_conform*. That means each chain
-has a :class:`ost.mol.ChainType` attached and all of its residues are consistent
-with that :class:`ost.mol.ChainType`. E.g.
-:func:`ost.mol.ResidueHandle.GetChemClass` evaluates to
-:class:`PEPTIDE_LINKING` or :class:`L_PEPTIDE_LINKING` for a
-chain of type :class:`CHAINTYPE_POLY_PEPTIDE_L`. These requirements are
-fulfilled for structures loaded from mmCIF files.
-Structures loaded from PDB files may have peptide residues, water and
-non-polymers in the same chain. They are not *mmcif_conform* and thus
-require preprocessing. 
+residue numbers. Ideally, the input is *mmcif_conform* which is the case
+when loading a structure from a valid mmCIF file with :func:`ost.io.LoadMMCIF`.
 
-* Chains represent valid mmCIF entities, e.g.
+Expected properties when *mmcif_conform* is enabled:
+
+* The residues in a chain all represent the same mmCIF entity. That is for
+  example a polypeptide chain with all residues being peptide linking. In mmCIF
+  lingo: An entity of type "polymer" which is of entity poly type
+  "polypeptide(L)" and all residues being "L-PEPTIDE LINKING". Well, some
+  glycines might be "PEPTIDE LINKING".
+  Another example might be a ligand where the chain refers to an entity of 
+  type "non-polymer" and only contains that particular ligand.
+* Each chain must have a chain type assigned (available as 
+  :func:`ost.mol.ChainHandle.GetType`) which refers to the entity type.
+  For entity type "polymer" and "branched", the chain type also encodes
+  the subtypes. If you for example have a polymer chain, not the general
+  CHAINTYPE_POLY is expected but the more finegrained polymer specific type.
+  That could be CHAINTYPE_POLY_PEPTIDE_D. This is also true for entities of
+  type "branched". There, a subtype such as CHAINTYPE_OLIGOSACCHARIDE is
+  expected.
+* The residue numbers in "polymer" chains must match the SEQRES of the
+  underlying entity with 1-based indexing.Insertion codes are not allowed
+  and raise an error.
+* Each residue must have a valid chem class assigned (available as
+  :func:`ost.mol.ResidueHandle.GetChemClass`). Even though this information
+  would be available when reading valid mmCIF files, OpenStructure delegates
+  this to the :class:`ost.conop.Processor` and thus requires a valid
+  :class:`ost.conop.CompoundLib` when reading in order to correctly set them.
+
+There is one quirk remaining: The assignment of
+underlying mmCIF entities. This is a challenge primarily for polymers. The
+current logic starts with and empty internal entity list and successively
+processes chains. If no match is found, a new entity gets generated and the
+SEQRES is set to what we observe in the chain residues given their residue
+numbers (i.e. the ATOMSEQ). If the first residue has residue number 10, the
+SEQRES gets prefixed by 9 elements using a default value (e.g. UNK for a 
+chain of type CHAINTYPE_POLY_PEPTIDE_D). The same is done for gaps.
+Matching requires an exact match for ALL residues given their residue number
+with that SEQRES. However, there might be the case that one chain resolves
+more residues than another. So you may have residues at locations that are
+undefined in the current SEQRES. If the fraction of matches with undefined
+locations does not exceed 5%, we still assume an overall match and fill
+in the previsouly undefined locations in the SEQRES with the newly gained
+information. This is a heuristic that works in most cases but potentially
+introduces errors in entity assignment. If you want to avoid that, you
+must set your entities manually and pass a list of :class:`MMCifWriterEntity`
+when calling :func:`MMCifWriter.SetStructure`.
+
+if *mmcif_conform* is enabled, there is pretty much everything in place
+and the previously listed mmCIF categories/attributes are written with
+a few special cases:
+
+* _atom_site.auth_asym_id: Honours the residue string property
+  "pdb_auth_chain_name" if set, uses the actual chain name otherwise. The string
+  property is set in the mmCIF reader.
+* _pdbx_poly_seq_scheme.pdb_strand_id: Same behaviour as _atom_site.auth_asym_id
+* _atom_site.auth_seq_id: Honours the residue string property
+  "pdb_auth_resnum" if set, uses the actual residue number otherwise. The string
+  property is set in the mmCIF reader.
+* _pdbx_poly_seq_scheme.pdb_seq_num: Same behaviour as _atom_site.auth_seq_id
+* _atom_site.pdbx_PDB_ins_code: Honours the residue string property
+  "pdb_auth_ins_code" if set, uses the actual residue insertion code otherwise.
+  The string property is set in the mmCIF reader. If *mmcif_conform* is enabled,
+  the actual residue insertion code can expected to be empty though.
+* _pdbx_poly_seq_scheme.pdb_ins_code: Same behaviour as
+  _atom_site.pdbx_PDB_ins_code
+
+
+.. class:: MMCifWriterEntity
+
+  Defines mmCIF entity which will be written in :class:`MMCifWriter`
+  Must be created from static constructor function.
+
+  .. method:: FromPolymer(entity_poly_type, mon_ids, compound_lib)
+
+    Static constructor function for entities of type "polymer"
+
+    :param entity_poly_type: Entity poly type from restricted alphabet for
+                             `_entity_poly.type <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_entity_poly.type.html>`_
+    :type entity_poly_type: :class:`str`
+    :param mon_ids: Full names of all compounds defining the SEQRES of that
+                    entity
+    :type mon_ids: :class:`list` of :class:`str`
+    :param compound_lib: Components dictionary from which chem classes are
+                         fetched
+    :type compound_lib: :class:`ost.conop.CompoundLib`
+  
+  .. attribute:: type
+
+    (:class:`str`) The _entity.type
+   
+  .. attribute:: poly_type
+
+    (:class:`str`) The _entity_poly.type - empty string if type is not "polymer"
+
+  .. attribute:: branch_type
+
+    (:class:`str`) The _pdbx_entity_branch.type - empty string if type is not
+                   "branched"
+  
+  .. attribute:: mon_ids
+
+    (:class:`ost.StringList`) The compound names making up this entity
+
+  .. attribute:: seq_olcs
+
+    (:class:`ost.StringList`) The one letter codes for :attr:`mon_ids` which
+    will be written to pdbx_seq_one_letter_code - invalid if type is not
+    "polymer"
+
+  .. attribute:: seq_can_olcs
+
+    (:class:`ost.StringList`) The one letter codes for :attr:`mon_ids` which
+    will be written to pdbx_seq_one_letter_code_can - invalid if type is not
+    "polymer"
+
+  .. attribute:: asym_ids
+
+    (:class:`ost.StringList`) Asym chain names that are assigned to this entity
+
+
+
+.. class:: MMCifWriter
+
+  Inherits all functionality from :class:`StarWriter` and provides functionality
+  to extract relevant mmCIF information from
+  :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+
+  .. method:: SetStructure(ent, mmcif_conform=True, entity_info=list())
+
+    Extracts mmCIF categories/attributes based on the description above.
+    An object of type :class:`MMCifWriter` can only be associated to one
+    Structure. Calling this function more than once raises an error.
+
+    :param ent: The stucture to write
+    :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+    :param mmcif_conform: Determines data extraction strategy as described above
+    :type mmcif_conform: :class:`bool`
+    :param entity_info: Predefine mmCIF entities - guarantees complete SEQRES
+                        info. Starts from empty list if not given.
+    :type entity_info: :class:`list` of :class:`MMCifWriterEntity`
 
 Biounits
 --------------------------------------------------------------------------------
