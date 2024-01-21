@@ -199,9 +199,7 @@ namespace {
     // - polymer
     // - water
 
-    // this function is overly simplistic and won't identify macrolid or
-    // branched => explicitely checks for water, everything else is either
-    // non-polymer or polymer depending on number of residues
+    // this function is overly simplistic and won't identify macrolid
 
     std::set<char> chem_classes;
     for(auto res: res_list) {
@@ -219,6 +217,15 @@ namespace {
     // for now, we just set entities with 1 or 2 residues as non-polymer
     if(res_list.size() == 1 || res_list.size() == 2) {
       return "non-polymer";
+    }
+
+    std::set<char> branched_set;
+    branched_set.insert(ost::mol::ChemClass::L_SACCHARIDE);
+    branched_set.insert(ost::mol::ChemClass::D_SACCHARIDE);
+    branched_set.insert(ost::mol::ChemClass::SACCHARIDE);
+    branched_set.insert(chem_classes.begin(), chem_classes.end());
+    if(branched_set.size() == 3) {
+      return "branched";
     }
 
     return "polymer";
