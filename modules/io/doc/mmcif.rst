@@ -1794,6 +1794,45 @@ The special cases listed above (_atom_site.auth_asym_id,
 _pdbx_poly_seq_scheme.pdb_strand_id, _atom_site.auth_seq_id etc.) are
 treated the same as if *mmcif_conform* was true.
 
+To see it all in action:
+
+.. code-block:: python
+
+  from ost import io
+  
+  ent = io.LoadMMCIF("1a0s", remote=True)
+  
+  writer = io.MMCifWriter()
+  
+  # The MMCifWriter is still object of type StarWriter
+  # I can decorate my mmCIF file with any data I want
+  val = io.StarWriterValue.FromInt(42)
+  data_item = io.StarWriterDataItem("_the", "answer", val)
+  writer.Push(data_item)
+  
+  # pre-define mmCIF entity which is total nonsense
+  entity_info = io.MMCifWriterEntityList()
+  mon_ids = ost.StringList()
+  mon_ids.append("ALA")
+  mon_ids.append("GLU")
+  mon_ids.append("ALA")
+  lib = conop.GetDefaultLib()
+  mmcif_ent = io.MMCifWriterEntity.FromPolymer("polypeptide(L)",
+                                               mon_ids, lib)
+  entity_info.append(mmcif_ent)
+  
+  # The actual relevant part... mmcif_conform can be set to
+  # True, as we loaded from mmCIF file
+  writer.SetStructure(ent, mmcif_conform = True,
+                      entity_info = entity_info)
+  
+  # And write...
+  writer.Write("1a0s", "1a0s.cif.gz")
+  
+  # The written mmCIF file will contain _the.answer and
+  # writes out the mmCIF entity we defined above in 
+  # _entity_poly. However, nothing matches that entity...
+
 .. class:: MMCifWriterEntity
 
   Defines mmCIF entity which will be written in :class:`MMCifWriter`
