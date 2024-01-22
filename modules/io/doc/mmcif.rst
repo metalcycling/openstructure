@@ -1594,6 +1594,8 @@ The content of the written file:
     :type filename: :class:`str`
 
 
+.. _MMCif writing:
+
 mmCIF Writer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

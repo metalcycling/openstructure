@@ -468,7 +468,7 @@ def SaveMMCIF(ent, filename, data_name="OST_structure", mmcif_conform = True):
                         identifier.
   :param mmcif_conform: Controls processing of structure, i.e. identification
                         of mmCIF entities etc. before writing. Detailed
-                        description is in the documentation below. In short:
+                        description in :ref:`MMCif writing`. In short:
                         If *mmcif_conform* is set to True, Chains in *ent* are
                         expected to be valid mmCIF entities with residue numbers
                         set according to underlying SEQRES. That should be the
