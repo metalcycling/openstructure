@@ -338,6 +338,11 @@ protected:
   /// \param columns data row
   void ParsePdbxEntityBranchLink(const std::vector<StringRef>& columns);
 
+  /// \brief Fetch mmCIF entity_poly_seq information
+  ///
+  /// \param columns data row
+  void ParseEntityPolySeq(const std::vector<StringRef>& columns);
+
   /// \struct types of secondary structure
   typedef enum {
     MMCIF_HELIX,
@@ -595,6 +600,13 @@ private:
     BL_VALUE_ORDER               /// < bond order
   } EntityBranchLinkItems;
 
+  /// \enum items of the entity_poly_seq category
+  typedef enum {
+    EPS_ENTITY_ID,
+    EPS_MON_ID,
+    EPS_NUM
+  } EntityPolySeqItems;
+
   /// \enum categories of the mmcif format
   typedef enum {
     ATOM_SITE,
@@ -620,16 +632,9 @@ private:
     PDBX_DATABASE_STATUS,
     PDBX_ENTITY_BRANCH,
     PDBX_ENTITY_BRANCH_LINK,
+    ENTITY_POLY_SEQ,
     DONT_KNOW
   } MMCifCategory;
-
-  /// \struct keeping track of entity information
-  typedef struct {
-    mol::ChainType type; ///< characterise entity
-    String details;      ///< description of this entity
-    String seqres;       ///< chain of monomers
-  } MMCifEntityDesc;
-  typedef std::map<String, MMCifEntityDesc> MMCifEntityDescMap;
 
   /// \brief Get an iterator for MMCifEntityDescMap by finding an element or
   ///        inserting a new one into the map.
@@ -729,6 +734,8 @@ private:
   bool database_PDB_rev_added_;
   // for entity_branch connections
   MMCifPdbxEntityBranchLinkMap entity_branch_link_map_;
+  // for storing entity_poly_seq
+  std::map<String, std::map<int, String> > entity_poly_seq_map_;
 };
 
 /// \brief Translate mmCIF info on bond type (e.g.

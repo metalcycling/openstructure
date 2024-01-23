@@ -959,6 +959,20 @@ private:
 };
 typedef std::map<String, std::vector<MMCifInfoEntityBranchLink> > MMCifInfoEntityBranchLinkMap;
 
+
+/// \struct keeping track of entity information
+typedef struct {
+  mol::ChainType type;         ///< characterise entity
+  String entity_type;          ///< value of _entity.type
+  String entity_poly_type;     ///< value of _entity_poly.type
+  String branched_type;        ///< value of _pdbx_entity_branch.type
+  String details;              ///< description of this entity
+  String seqres;               ///< chain of monomers
+  std::vector<String> mon_ids; ///< list of full monomer names
+} MMCifEntityDesc;
+typedef std::map<String, MMCifEntityDesc> MMCifEntityDescMap;
+
+
 /// \brief container class for additional information from MMCif files
 /// 
 /// \section mmcif annotation information
@@ -1201,6 +1215,11 @@ public:
   ///
   void ConnectBranchLinks();
 
+  const MMCifEntityDesc& GetEntityDesc(const String& entity_id) const;
+
+  void SetEntityDesc(const String& entity_id,
+                     const MMCifEntityDesc& entity_desc);
+
 //protected:
 
 private:
@@ -1216,6 +1235,7 @@ private:
   std::vector<MMCifInfoBioUnit>  biounits_;   ///< list of biounits
   std::vector<MMCifInfoTransOpPtr> transops_;
   MMCifInfoStructRefs            struct_refs_;
+  MMCifEntityDescMap entity_desc_;
   std::map<String, String> cif_2_pdb_chain_id_;
   std::map<String, String> pdb_2_cif_chain_id_;
   std::map<String, String> cif_2_entity_id_;

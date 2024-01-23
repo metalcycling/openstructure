@@ -293,6 +293,23 @@ void MMCifInfo::ConnectBranchLinks()
   }
 }
 
+const MMCifEntityDesc& MMCifInfo::GetEntityDesc(const String& entity_id) const {
+  MMCifEntityDescMap::const_iterator it = entity_desc_.find(entity_id);
+  if(it == entity_desc_.end()) {
+    throw IOException("No EntityDesc for entity id \""+entity_id+"\"");
+  }
+  return it->second;
+}
+
+void MMCifInfo::SetEntityDesc(const String& entity_id,
+                              const MMCifEntityDesc& entity_desc)
+{
+  if(entity_desc_.find(entity_id) != entity_desc_.end()) {
+    throw IOException("EntityDesc for entity_id \""+entity_id+"\" already set");
+  }
+  entity_desc_[entity_id] = entity_desc;
+}
+
 std::ostream& operator<<(std::ostream& os, const MMCifInfoEntityBranchLink& eb)
 {
   os << "<MMCifInfoEntityBranchLink atom1:" << eb.GetAtom1() << " atom2:"

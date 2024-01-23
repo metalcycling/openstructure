@@ -397,6 +397,14 @@ of the annotation available.
 
     Establish all bonds stored for branched entities.
 
+  .. method:: GetEntityDesc(entity_id)
+
+    Get info of type :class:`MMCifEntityDesc` for specified *entity_id*.
+    The entity id for a chain can be fetched with :func:`GetMMCifEntityIdTr`.
+
+    :param entity_id: ID of entity
+    :type entity_id: :class:`str`
+
 .. class:: MMCifInfoCitation
 
   This stores citation information from an input file.
@@ -1348,6 +1356,62 @@ of the annotation available.
 
     See :attr:`bond_order`
 
+
+.. class:: MMCifEntityDesc
+
+  Data collected for certain mmCIF entity
+
+  .. attribute:: type
+
+    The ost chain type which can be assigned to :class:`ost.mol.ChainHandle`
+
+    :type: :class:`ost.mol.ChainType`
+
+  .. attribute:: entity_type
+
+    value of _entity.type token
+
+    :class:`str`
+
+  .. attribute:: entity_poly_type
+
+    value of _entity_poly.type token - empty string if entity is not of type
+    "polymer"
+
+    :class:`str`
+
+  .. attribute:: branched_type
+
+    value of _pdbx_entity_branch.type token - empty string if entity is not of
+    type "branched"
+
+    :type: :class:`str`
+
+  .. attribute:: details
+
+    value of _entity.pdbx_description token
+
+    :class:`str`
+
+  .. attribute:: seqres
+
+    SEQRES with gentle preprocessing - empty string if entity is not of type
+    "polymer". By default, the :class:`ost.io.MMCifReader` reads the value of the
+    _entity_poly.pdbx_seq_one_letter_code token. Copies all letters but
+    searches a :class:`ost.conop.CompoundLib` for compound names in brackets.
+    *seqres* gets an 'X' if no compound is found or the respective compound has
+    one letter code '?'. Uses the one letter code of the found compound
+    otherwise. So it's basically a canonical SEQRES with exactly one character
+    per residue.
+
+    :type: :class:`str`
+
+  .. attribute:: mon_ids
+
+    Monomer ids of all residues in a polymer - empty if entity is not of
+    type "polymer". Read from _entity_poly_seq category.
+
+    :type: :class:`ost.base.StringList`
 
 Writing mmCIF files
 --------------------------------------------------------------------------------

@@ -485,6 +485,16 @@ void export_mmcif_io()
     .def(self_ns::str(self))
   ;
 
+  class_<MMCifEntityDesc>("MMCifEntityDesc", init<>())
+   .add_property("type", &MMCifEntityDesc::type)
+   .add_property("entity_type", &MMCifEntityDesc::entity_type)
+   .add_property("entity_poly_type", &MMCifEntityDesc::entity_poly_type)
+   .add_property("branched_type", &MMCifEntityDesc::branched_type)
+   .add_property("details", &MMCifEntityDesc::details)
+   .add_property("seqres", &MMCifEntityDesc::seqres)
+   .add_property("mon_ids", &MMCifEntityDesc::mon_ids)
+  ;
+
   class_<MMCifInfo>("MMCifInfo", init<>())
     .def("AddCitation", &MMCifInfo::AddCitation)
     .def("GetCitations", make_function(&MMCifInfo::GetCitations,
@@ -525,6 +535,8 @@ void export_mmcif_io()
     .def("ConnectBranchLinks", &MMCifInfo::ConnectBranchLinks)
     .def("GetEntityBranchChainNames", &WrapGetNames)
     .def("GetEntityBranchChains", &MMCifInfo::GetEntityBranchChains)
+    .def("SetEntityDesc", &MMCifInfo::SetEntityDesc)
+    .def("GetEntityDesc", &MMCifInfo::GetEntityDesc, return_value_policy<copy_const_reference>())
     .add_property("citations", make_function(&MMCifInfo::GetCitations,
                                    return_value_policy<copy_const_reference>()))
     .add_property("biounits", make_function(&MMCifInfo::GetBioUnits,

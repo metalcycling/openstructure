@@ -92,6 +92,7 @@ void MMCifReader::ClearState()
   revision_types_.clear();
   database_PDB_rev_added_ = false;
   entity_branch_link_map_.clear();
+  entity_poly_seq_map_.clear();
 }
 
 void MMCifReader::SetRestrictChains(const String& restrict_chains)
@@ -389,6 +390,13 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
     indices_[BL_ATOM_STEREO_CONFIG_2] = header.GetIndex("atom_stereo_config_2");
     indices_[BL_VALUE_ORDER] = header.GetIndex("value_order");
     cat_available = true;
+ } else if(header.GetCategory() == "entity_poly_seq") {
+  category_ = ENTITY_POLY_SEQ;
+  // mandatory
+  this->TryStoreIdx(EPS_ENTITY_ID, "entity_id", header);
+  this->TryStoreIdx(EPS_MON_ID, "mon_id", header);
+  this->TryStoreIdx(EPS_NUM, "num", header);
+  cat_available = true;
  }
   category_counts_[category_]++;
   return cat_available;
@@ -710,15 +718,19 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
                 columns[indices_[GROUP_PDB]][0]=='H');
 }
 
-MMCifReader::MMCifEntityDescMap::iterator MMCifReader::GetEntityDescMapIterator(
+MMCifEntityDescMap::iterator MMCifReader::GetEntityDescMapIterator(
   const String& entity_id)
 {
   MMCifEntityDescMap::iterator edm_it = entity_desc_map_.find(entity_id);
   // if the entity ID is not already stored, insert it with empty values
   if (edm_it == entity_desc_map_.end()) {
     MMCifEntityDesc desc = {.type=mol::CHAINTYPE_N_CHAINTYPES,
+                            .entity_type = "",
+                            .entity_poly_type = "",
+                            .branched_type = "",
                             .details="",
-                            .seqres=""};
+                            .seqres="",
+                            .mon_ids=std::vector<String>()};
     edm_it = entity_desc_map_.insert(entity_desc_map_.begin(),
                                      MMCifEntityDescMap::value_type(entity_id,
                                                                     desc));
@@ -738,6 +750,8 @@ void MMCifReader::ParseEntity(const std::vector<StringRef>& columns)
     if (edm_it->second.type == mol::CHAINTYPE_N_CHAINTYPES) {
       edm_it->second.type = mol::ChainTypeFromString(columns[indices_[E_TYPE]]);
     }
+    // but set entity_type anyways
+    edm_it->second.entity_type = columns[indices_[E_TYPE]].str();
   } else {
     // don't deal with entities without type
     entity_desc_map_.erase(edm_it);
@@ -758,6 +772,7 @@ void MMCifReader::ParseEntityPoly(const std::vector<StringRef>& columns)
   // store type
   if (indices_[EP_TYPE] != -1) {
     edm_it->second.type = mol::ChainTypeFromString(columns[indices_[EP_TYPE]]);
+    edm_it->second.entity_poly_type = columns[indices_[EP_TYPE]].str();
   }
 
   // store seqres
@@ -1633,6 +1648,10 @@ void MMCifReader::OnDataRow(const StarLoopDesc& header,
     LOG_TRACE("processing pdbx_entity_branch_link entry");
     this->ParsePdbxEntityBranchLink(columns);
     break;
+  case ENTITY_POLY_SEQ:
+    LOG_TRACE("processing entity_poly_seq entry");
+    this->ParseEntityPolySeq(columns);
+    break;
   default:
     throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
                        "Uncatched category '"+ header.GetCategory() +"' found.",
@@ -1780,6 +1799,7 @@ void MMCifReader::ParsePdbxEntityBranch(const std::vector<StringRef>& columns)
   // store type
   if (indices_[BR_ENTITY_TYPE] != -1) {
     edm_it->second.type = mol::ChainTypeFromString(columns[indices_[EP_TYPE]]);
+    edm_it->second.branched_type = columns[indices_[EP_TYPE]].str();
   }
 }
 
@@ -1831,6 +1851,45 @@ void MMCifReader::ParsePdbxEntityBranchLink(const std::vector<StringRef>& column
 
   // add the link pair
   blm_it->second.push_back(link_pair);
+}
+
+void MMCifReader::ParseEntityPolySeq(const std::vector<StringRef>& columns)
+{
+  std::pair<bool, int> tmp = columns[indices_[EPS_NUM]].to_int();
+  if(!tmp.first) {
+    throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
+                                             "Could not cast "
+                                             "_entity_poly_seq.num to integer: "
+                                             + columns[indices_[EPS_NUM]].str(),
+                                             this->GetCurrentLinenum())); 
+  }
+  int num = tmp.second;
+
+  if(num < 1) {
+    throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
+                                             "_entity_poly_seq.num are "
+                                             "expected to be ints >= 1. Got:"
+                                             + columns[indices_[EPS_NUM]].str(),
+                                             this->GetCurrentLinenum())); 
+  }
+
+  // [] inserts new value if not present in container
+  std::map<int, String>& entity_map =
+  entity_poly_seq_map_[columns[indices_[EPS_ENTITY_ID]].str()];
+
+  if(entity_map.find(num) != entity_map.end()) {
+    throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
+                                             "_entity_poly_seq.num must be "
+                                             "unique in same "
+                                             "_entity_poly_seq.entity_id. "
+                                             "entity_id: " +
+                                             columns[indices_[EPS_ENTITY_ID]].str() +
+                                             ", num: " +
+                                             columns[indices_[EPS_ENTITY_ID]].str(),
+                                             this->GetCurrentLinenum()));    
+  }
+
+  entity_map[num] = columns[indices_[EPS_MON_ID]].str();
 }
 
 void MMCifReader::OnEndData()
@@ -1970,6 +2029,21 @@ void MMCifReader::OnEndData()
         info_.AddRevision(num, r_it->date, "?", r_it->major, r_it->minor);
       }
     }
+  }
+
+  // conclude EntityDesc (add entity_poly_seq if present) and add to MMCifInfo
+  for(auto entity_it: entity_desc_map_) {
+    if(entity_poly_seq_map_.find(entity_it.first) != entity_poly_seq_map_.end()) {
+      int max_num = 1;
+      for(auto seqres_it: entity_poly_seq_map_[entity_it.first]) {
+        max_num = std::max(max_num, seqres_it.first);
+      }
+      entity_it.second.mon_ids.assign(max_num, "?");
+      for(auto seqres_it: entity_poly_seq_map_[entity_it.first]) {
+        entity_it.second.mon_ids[seqres_it.first-1] = seqres_it.second;
+      }
+    }
+    info_.SetEntityDesc(entity_it.first, entity_it.second);
   }
 
   LOG_INFO("imported "
