@@ -109,6 +109,8 @@ public:
 
   void SetStructure(const ost::mol::EntityView& ent, bool mmcif_conform=true,
                     const std::vector<MMCifWriterEntity>& entity_info=std::vector<MMCifWriterEntity>());
+
+  const std::vector<MMCifWriterEntity>& GetEntities() const { return entity_info_; }
   
 private:
 

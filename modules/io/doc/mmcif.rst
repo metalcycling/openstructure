@@ -1974,9 +1974,19 @@ To see it all in action:
     :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
     :param mmcif_conform: Determines data extraction strategy as described above
     :type mmcif_conform: :class:`bool`
-    :param entity_info: Predefine mmCIF entities - guarantees complete SEQRES
-                        info. Starts from empty list if not given.
+    :param entity_info: Predefine mmCIF entities - useful to define complete
+                        SEQRES. If given, the provided list serves as a
+                        starting point, i.e. chains in *ent* are matched to
+                        entities in *entity_info*. In case of no match, this
+                        list gets extended. Starts from empty list if not given.
     :type entity_info: :class:`list` of :class:`MMCifWriterEntity`
+  
+  .. method:: GetEntities()
+
+    Returns :class:`list` of :class:`MMCifWriterEntity`. Useful to check after
+    :func:`SetStructure` has been called. Order in this list defines entity
+    ids in written mmCIF file with zero based indexing.
+
 
 Biounits
 --------------------------------------------------------------------------------

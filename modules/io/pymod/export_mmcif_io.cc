@@ -170,6 +170,7 @@ void export_mmcif_io()
                                                    arg("entity_info")=std::vector<MMCifWriterEntity>()))
     .def("SetStructure", &WrapSetStructureView, (arg("ent"), arg("mmcif_conform")=true,
                                                  arg("entity_info")=std::vector<MMCifWriterEntity>()))
+    .def("GetEntities", &MMCifWriter::GetEntities, return_value_policy<copy_const_reference>())
   ;
 
   enum_<MMCifInfoCitation::MMCifInfoCType>("MMCifInfoCType")
