@@ -1420,17 +1420,22 @@ Writing mmCIF files
 Star Writer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The syntax of mmCIF is a subset of the syntax of STAR files. OpenStructure
+The syntax of `mmCIF <https://mmcif.wwpdb.org/pdbx-mmcif-home-page.html>`_ is a
+subset of the
+`CIF file syntax <https://www.iucr.org/resources/cif/spec/version1.1>`_, that by
+itself is a subset of STAR file syntax. OpenStructure
 implements a simple :class:`StarWriter` that is able to write data in two ways:
 
 * **key-value**: A category name and an attribute name that is linked to a value. Example:
 
   .. code-block:: bash
-  
+
     _citation.year 2024
-               
-  ``_citation.year`` is called an mmCIF token.
-* **tabular**: Represents several values for an mmCIF token. The tokens are written in a header which is followed by the respective values. Example:
+
+  ``_citation.year`` is called a mmCIF token. It consists of a data category
+  (``_citation``) and a data item (``year``), delimited by a "``.``".
+
+* **tabular**: Represents several values for a mmCIF token. The tokens are written in a header which is followed by the respective values. Example:
 
   .. code-block:: bash
     
@@ -1494,7 +1499,7 @@ but you definitely want to check out the :class:`MMCifWriter` which extends
   writer.Write("numbers", "numbers.gz")
 
 
-The content of the written file:
+The content of the file written:
 
 .. code-block:: bash
 
@@ -1536,7 +1541,7 @@ The content of the written file:
 
     :param float_val: The value
     :type float_val: :class:`float`
-    :param decimals: Number decimals that get stored in internal value
+    :param decimals: Number decimals that get stored as internal value
     :returns: :class:`StarWriterValue`
 
   .. method:: FromString(string_val)
@@ -1545,7 +1550,8 @@ The content of the written file:
     with the exception of the following processing:
 
     * encapsulate string in brackets if *string_val* contains space character
-    * set to "." if *string_val* is an empty string    
+    * set to "?" if *string_val* is an empty string (in mmCIF, "?" marks
+      "unknown" values)
 
     :param string_val: The value
     :type string_val: :class:`str`
