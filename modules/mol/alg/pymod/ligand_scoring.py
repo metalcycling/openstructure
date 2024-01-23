@@ -854,7 +854,7 @@ class LigandScorer:
                 if np.any(alternative_matches):
                     # Get the scores of these matches
                     LogVerbose("Found match with lower coverage but better score")
-                    min_mat1 = np.min(mat1[alternative_matches])
+                    min_mat1 = np.nanmin(mat1[alternative_matches])
                     max_i_trg, max_i_mdl = _get_best_match(min_mat1, min_coverage - coverage_delta)
 
                 # Disable row and column
