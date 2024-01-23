@@ -1669,9 +1669,9 @@ The content of the file written:
 mmCIF Writer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The OpenStructure mmCIF writer considers the following data categories. The
-listed attributes are written which fulfills all dependencies in an mmCIF
-file according to `mmcif_pdbx_v50 <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Index/>`_.
+Data categories considered by the OpenStructure mmCIF writer are described in
+the following. The listed attributes are written to fulfill all dependencies in
+a mmCIF file according to `mmcif_pdbx_v50 <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Index/>`_.
 
 * `_atom_site <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/atom_site.html>`_
 
@@ -1710,6 +1710,12 @@ file according to `mmcif_pdbx_v50 <https://mmcif.wwpdb.org/dictionaries/mmcif_pd
   * pdbx_seq_one_letter_code
   * pdbx_seq_one_letter_code_can
 
+* `_entity_poly_seq <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/pdbx_reference_entity_poly_seq.html>`_
+
+  * entity_id
+  * mon_id
+  * num
+
 * `_pdbx_poly_seq_scheme <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/pdbx_poly_seq_scheme.html>`_
 
   * asym_id
@@ -1719,13 +1725,6 @@ file according to `mmcif_pdbx_v50 <https://mmcif.wwpdb.org/dictionaries/mmcif_pd
   * pdb_strand_id
   * pdb_seq_num
   * pdb_ins_code
-
-
-* `_entity_poly_seq <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/pdbx_reference_entity_poly_seq.html>`_
-
-  * entity_id
-  * mon_id
-  * num
 
 
 * `_chem_comp <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/chem_comp.html>`_
