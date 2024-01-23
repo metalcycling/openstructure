@@ -115,7 +115,7 @@ public:
       }
     }
     if(string_value == "") {
-      value.value_ = ".";
+      value.value_ = "?";
     } else if(has_space) {
       value.value_ = "'" + string_value + "'";
     }
