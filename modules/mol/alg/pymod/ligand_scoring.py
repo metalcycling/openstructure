@@ -886,9 +886,6 @@ class LigandScorer:
             else:
                 return min
 
-
-
-
     @staticmethod
     def _reverse_lddt(lddt):
         """Reverse lDDT means turning it from a number between 0 and 1 to a
