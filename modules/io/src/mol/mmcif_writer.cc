@@ -1418,15 +1418,18 @@ MMCifWriterEntity MMCifWriterEntity::FromPolymer(const String& entity_poly_type,
   ent.branch_type = "";
   ent.mon_ids = mon_ids;
   for(auto mon_id: mon_ids) {
-    // one letter codes rely on compound library
-    ost::conop::CompoundPtr compound = 
-    compound_lib->FindCompound(mon_id, ost::conop::Compound::PDB);
-    if(compound) {
-      ent.seq_olcs.push_back(MonIDToOLC(mon_id));
-      ent.seq_can_olcs.push_back(String(1, compound->GetOneLetterCode()));
+    ent.seq_olcs.push_back(MonIDToOLC(mon_id));
+    if(ent.seq_olcs.back().size() == 1) {
+      ent.seq_can_olcs.push_back(ent.seq_olcs.back());
     } else {
-      ent.seq_olcs.push_back("(" + mon_id + ")");
-      ent.seq_can_olcs.push_back("(" + mon_id + ")");
+      ost::conop::CompoundPtr compound = 
+      compound_lib->FindCompound(mon_id, ost::conop::Compound::PDB);
+      char olc = compound->GetOneLetterCode();
+      if(olc < 'A' || olc > 'Z') {
+        ent.seq_can_olcs.push_back("(" + mon_id + ")");  
+      } else {
+        ent.seq_can_olcs.push_back(String(1, olc));
+      }
     }
   }
   return ent;
