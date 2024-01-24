@@ -457,7 +457,8 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
     raise
 
 
-def SaveMMCIF(ent, filename, data_name="OST_structure", mmcif_conform = True):
+def SaveMMCIF(ent, filename, data_name="OST_structure", mmcif_conform = True,
+              entity_info = MMCifWriterEntityList()):
   """
   Save OpenStructure entity in mmCIF format
 
@@ -477,12 +478,16 @@ def SaveMMCIF(ent, filename, data_name="OST_structure", mmcif_conform = True):
                         to identify and separate mmCIF entities based on
                         :class:`ost.mol.ChemClass` of the residues in a chain.
   :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+  :param entity_info: Advanced usage - passed as *entity_info* parameter to
+                      :func:`MMCifWriter.SetStructure`
   :type filename: :class:`str`
   :type data_name: :class:`str`
   :type mmcif_conform: :class:`bool`
+  :type entity_info: :class:`MMCifWriterEntityList`
   """
   writer = MMCifWriter()
-  writer.SetStructure(ent, mmcif_conform = mmcif_conform)
+  writer.SetStructure(ent, mmcif_conform = mmcif_conform,
+                      entity_info = entity_info)
   writer.Write(data_name, filename)
 
 

@@ -1956,7 +1956,9 @@ To see it all in action:
 
     (:class:`ost.StringList`) Asym chain names that are assigned to this entity
 
+.. class:: MMCifWriterEntityList
 
+  A list for :class:`MMCifWriterEntity`
 
 .. class:: MMCifWriter
 
@@ -1979,11 +1981,11 @@ To see it all in action:
                         starting point, i.e. chains in *ent* are matched to
                         entities in *entity_info*. In case of no match, this
                         list gets extended. Starts from empty list if not given.
-    :type entity_info: :class:`list` of :class:`MMCifWriterEntity`
+    :type entity_info: :class:`MMCifWriterEntityList`
   
   .. method:: GetEntities()
 
-    Returns :class:`list` of :class:`MMCifWriterEntity`. Useful to check after
+    Returns :class:`MMCifWriterEntityList`. Useful to check after
     :func:`SetStructure` has been called. Order in this list defines entity
     ids in written mmCIF file with zero based indexing.
 
