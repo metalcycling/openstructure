@@ -288,187 +288,169 @@ namespace {
     return type;
   }
 
-  inline String MonIDToOLC(char chem_class,
-                           const String& mon_id) {
+  inline String MonIDToOLC(const String& mon_id) {
 
     // hardcoded table according
     // https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_entity_poly.pdbx_seq_one_letter_code.html
 
-    if(ost::mol::ChemClass(chem_class).IsPeptideLinking()) {
-      switch(mon_id[0]) {
-        case 'A': {
-          if(mon_id == "ALA") {
-            return "A";
-          }
-          if(mon_id == "ACE") {
-            return "(ACE)";
-          }
-          if(mon_id == "ASP") {
-            return "D";
-          }
-          if(mon_id == "ASN") {
-            return "N";
-          }
-          if(mon_id == "ARG") {
-            return "R";
-          }
-          break;
+    switch(mon_id[0]) {
+      case 'A': {
+        if(mon_id == "ALA") {
+          return "A";
         }
-        case 'C': {
-          if(mon_id == "CYS") {
-            return "C";
-          }
-          break;
+        if(mon_id == "ACE") {
+          return "(ACE)";
         }
-        case 'G': {
-          if(mon_id == "GLU") {
-            return "E";
-          }
-          if(mon_id == "GLY") {
-            return "G";
-          }
-          if(mon_id == "GLN") {
-            return "Q";
-          }
-          break;
+        if(mon_id == "ASP") {
+          return "D";
         }
-        case 'H': {
-          if(mon_id == "HIS") {
-            return "H";
-          }
-          break;
+        if(mon_id == "ASN") {
+          return "N";
         }
-        case 'I': {
-          if(mon_id == "ILE") {
-            return "I";
-          }
-          break;
+        if(mon_id == "ARG") {
+          return "R";
         }
-        case 'L': {
-          if(mon_id == "LEU") {
-            return "L";
-          }
-          if(mon_id == "LYS") {
-            return "K";
-          }
-          break;
+        if(mon_id == "A") {
+          return "A";
         }
-        case 'M': {
-          if(mon_id == "MET") {
-            return "M";
-          }
-          if(mon_id == "MSE") {
-            return "(MSE)";
-          }
-          break;
-        }
-        case 'N': {
-          if(mon_id == "NH2") {
-            return "(NH2)";
-          }
-          break;
-        }
-        case 'P': {
-          if(mon_id == "PHE") {
-            return "F";
-          }
-          if(mon_id == "PYL") {
-            return "O";
-          }
-          if(mon_id == "PRO") {
-            return "P";
-          }
-          if(mon_id == "PTR") {
-            return "(PTR)";
-          }
-          if(mon_id == "PCA") {
-            return "(PCA)";
-          }
-          break;
-        }
-        case 'S': {
-          if(mon_id == "SER") {
-            return "S";
-          }
-          if(mon_id == "SEC") {
-            return "U";
-          }
-          if(mon_id == "SEP") {
-            return "(SEP)";
-          }
-          break;
-        }
-        case 'T': {
-          if(mon_id == "THR") {
-            return "T";
-          }
-          if(mon_id == "TRP") {
-            return "W";
-          }
-          if(mon_id == "TYR") {
-            return "Y";
-          }
-          if(mon_id == "TPO") {
-            return "(TPO)"; 
-          }
-          break;
-        }
-        case 'V': {
-          if(mon_id == "VAL") {
-            return "V";
-          }
-          break;
-        }
+        break;
       }
-    } else if(ost::mol::ChemClass(chem_class).IsNucleotideLinking()) {
-      switch(mon_id[0]) {
-        case 'A': {
-          if(mon_id == "A") {
-            return "A";
-          }
-          break;
+      case 'C': {
+        if(mon_id == "CYS") {
+          return "C";
         }
-        case 'C': {
-          if(mon_id == "C") {
-            return "C";
-          }
-          break;
+        if(mon_id == "C") {
+          return "C";
         }
-        case 'D': {
-          if(mon_id == "DA") {
-            return "(DA)";
-          }
-          if(mon_id == "DC") {
-            return "(DC)";
-          }
-          if(mon_id == "DG") {
-            return "(DG)";
-          }
-          if(mon_id == "DT") {
-            return "(DT)";
-          }
-          break;
-        }
-        case 'G': {
-          if(mon_id == "G") {
-            return "G";
-          }
-          break;
-        }
-        case 'I': {
-          if(mon_id == "I") {
-            return "I";
-          }
-          break;
-        } 
-        case 'U': {
-          if(mon_id == "U") {
-            return "U";
-          }
-          break;
-        } 
+        break;
       }
-    } 
+      case 'D': {
+        if(mon_id == "DA") {
+          return "(DA)";
+        }
+        if(mon_id == "DC") {
+          return "(DC)";
+        }
+        if(mon_id == "DG") {
+          return "(DG)";
+        }
+        if(mon_id == "DT") {
+          return "(DT)";
+        }
+        break;
+      }
+      case 'G': {
+        if(mon_id == "GLU") {
+          return "E";
+        }
+        if(mon_id == "GLY") {
+          return "G";
+        }
+        if(mon_id == "GLN") {
+          return "Q";
+        }
+        if(mon_id == "G") {
+          return "G";
+        }
+        break;
+      }
+      case 'H': {
+        if(mon_id == "HIS") {
+          return "H";
+        }
+        break;
+      }
+      case 'I': {
+        if(mon_id == "ILE") {
+          return "I";
+        }
+        if(mon_id == "I") {
+          return "I";
+        }
+        break;
+      }
+      case 'L': {
+        if(mon_id == "LEU") {
+          return "L";
+        }
+        if(mon_id == "LYS") {
+          return "K";
+        }
+        break;
+      }
+      case 'M': {
+        if(mon_id == "MET") {
+          return "M";
+        }
+        if(mon_id == "MSE") {
+          return "(MSE)";
+        }
+        break;
+      }
+      case 'N': {
+        if(mon_id == "NH2") {
+          return "(NH2)";
+        }
+        break;
+      }
+      case 'P': {
+        if(mon_id == "PHE") {
+          return "F";
+        }
+        if(mon_id == "PYL") {
+          return "O";
+        }
+        if(mon_id == "PRO") {
+          return "P";
+        }
+        if(mon_id == "PTR") {
+          return "(PTR)";
+        }
+        if(mon_id == "PCA") {
+          return "(PCA)";
+        }
+        break;
+      }
+      case 'S': {
+        if(mon_id == "SER") {
+          return "S";
+        }
+        if(mon_id == "SEC") {
+          return "U";
+        }
+        if(mon_id == "SEP") {
+          return "(SEP)";
+        }
+        break;
+      }
+      case 'T': {
+        if(mon_id == "THR") {
+          return "T";
+        }
+        if(mon_id == "TRP") {
+          return "W";
+        }
+        if(mon_id == "TYR") {
+          return "Y";
+        }
+        if(mon_id == "TPO") {
+          return "(TPO)"; 
+        }
+        break;
+      }
+      case 'U': {
+        if(mon_id == "U") {
+          return "U";
+        }
+        break;
+      } 
+      case 'V': {
+        if(mon_id == "VAL") {
+          return "V";
+        }
+        break;
+      }
+    }
 
     return "(" + mon_id + ")";
   }
@@ -630,8 +612,7 @@ namespace {
     for(size_t i = 0; i < resnums.size(); ++i) {
       if(info.mon_ids[resnums[i]-1] == "-") {
         info.mon_ids[resnums[i]-1] = mon_ids[i];
-        info.seq_olcs[resnums[i]-1] = MonIDToOLC(res_list[i].GetChemClass(),
-                                                 mon_ids[i]);
+        info.seq_olcs[resnums[i]-1] = MonIDToOLC(mon_ids[i]);
         char olc = res_list[i].GetOneLetterCode();
         if(olc < 'A' || olc > 'Z') {
           info.seq_can_olcs[resnums[i]-1] = "X";
@@ -727,8 +708,7 @@ namespace {
       seq_can.assign(max_resnum, "-");
       for(size_t i = 0; i < res_mon_ids.size(); ++i) {
         mon_ids[resnums[i]-1] = res_mon_ids[i];
-        seq[resnums[i]-1] = MonIDToOLC(res_list[i].GetChemClass(),
-                                       mon_ids[resnums[i]-1]);
+        seq[resnums[i]-1] = MonIDToOLC(mon_ids[resnums[i]-1]);
         char olc = res_list[i].GetOneLetterCode();
         if(olc < 'A' || olc > 'Z') {
           seq_can[resnums[i]-1] = "X";
@@ -744,7 +724,7 @@ namespace {
       } else {
         for(auto res: res_list) {
           mon_ids.push_back(res.GetName());
-          seq.push_back(MonIDToOLC(res.GetChemClass(), res.GetName()));
+          seq.push_back(MonIDToOLC(res.GetName()));
           char olc = res.GetOneLetterCode();
           if(olc < 'A' || olc > 'Z') {
             seq_can.push_back("X");
@@ -1442,8 +1422,7 @@ MMCifWriterEntity MMCifWriterEntity::FromPolymer(const String& entity_poly_type,
     ost::conop::CompoundPtr compound = 
     compound_lib->FindCompound(mon_id, ost::conop::Compound::PDB);
     if(compound) {
-      char chem_class = compound->GetChemClass();
-      ent.seq_olcs.push_back(MonIDToOLC(chem_class, mon_id));
+      ent.seq_olcs.push_back(MonIDToOLC(mon_id));
       ent.seq_can_olcs.push_back(String(1, compound->GetOneLetterCode()));
     } else {
       ent.seq_olcs.push_back("(" + mon_id + ")");
