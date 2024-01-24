@@ -160,6 +160,8 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
 
   :param seqres: Whether to read SEQRES records. If set to True, the loaded 
                  entity and seqres entry will be returned as a tuple.
+                 If file doesnt contain SEQRES records, the returned
+                 :class:`ost.seq.SequenceList` will be invalid.
   :type seqres: :class:`bool`
 
   :param bond_feasibility_check: Flag for :attr:`IOProfile.processor`. If
