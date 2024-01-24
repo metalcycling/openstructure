@@ -1549,9 +1549,16 @@ The content of the file written:
     Static constructor from a string value, stores input as is
     with the exception of the following processing:
 
-    * encapsulate string in brackets if *string_val* contains space character
     * set to "?" if *string_val* is an empty string (in mmCIF, "?" marks
       "unknown" values)
+    * encapsulate string in quotes if *string_val* contains space character
+    * encapsulate string in quotes if *string_val* starts with any of the
+      following special characters: _, #, $, ', ", [, ], ;
+    * encapsulate string in quotes if *string_val* starts with any of the
+      following special strings:  "data\_" (case insensitive),
+      "save\_" (case insensitive)
+    * encapsulate string in quotes if *string_val* is equal to any of the
+      following reserved words (case insensitive): "loop\_", "stop\_", "global\_"
 
     :param string_val: The value
     :type string_val: :class:`str`

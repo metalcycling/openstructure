@@ -100,33 +100,136 @@ public:
     StarWriterValue value;
     fts(float_value, decimals, value.value_);
     return value;  
- }
+  }
   static StarWriterValue FromString(const String& string_value) {
     StarWriterValue value;
-    // cases we still need to deal with:
-    // - special characters in strings (put in quotation marks)
-    // - long strings (semicolon based syntax)
-    // see https://mmcif.wwpdb.org/docs/tutorials/mechanics/pdbx-mmcif-syntax.html
-    bool has_space = false;
-    for(char c: string_value) {
-      if(isspace(c)) {
-        has_space = true;
-        break;
-      }
-    }
+   
     if(string_value == "") {
       value.value_ = "?";
-    } else if(has_space) {
-      value.value_ = "'" + string_value + "'";
-    }
-    else {
-      value.value_ = string_value;
+    } else {
+      // string requires quotes if any of the following is True
+      // information from https://www.iucr.org/resources/cif/spec/version1.1/cifsyntax
+      // * space in string
+      // * any string that starts with any of the following strings
+      //   * _
+      //   * #
+      //   * $
+      //   * '
+      //   * "
+      //   * [
+      //   * ]
+      //   * ;
+      //   * data_ (case insensitive)
+      //   * save_ (case insensitive)
+      // * any string that is equal to any of the following reserved words 
+      //   * loop_ (case insensitive)
+      //   * stop_ (case insensitive)
+      //   * global_ (case insensitive)
+      bool needs_quotes = false;
+
+      // space in string
+      for(char c: string_value) {
+        if(isspace(c)) {
+          needs_quotes = true;
+          break;
+        }
+      }
+
+      // any string that starts with any of the special single characters
+      if(!needs_quotes) {
+        switch(string_value[0]) {
+          case '_': {
+            needs_quotes = true;
+            break;
+          }
+          case '#': {
+            needs_quotes = true;
+            break;
+          }
+          case '$': {
+            needs_quotes = true;
+            break;
+          }
+          case '\'': {
+            needs_quotes = true;
+            break;
+          }
+          case '\"': {
+            needs_quotes = true;
+            break;
+          }
+          case '[': {
+            needs_quotes = true;
+            break;
+          }
+          case ']': {
+            needs_quotes = true;
+            break;
+          }
+          case ';': {
+            needs_quotes = true;
+            break;
+          }
+        }
+      }
+
+      // any string that starts with any of the special multi character thingies
+      if(!needs_quotes && string_value.size() >= 5 && string_value[4] == '_') {
+        // need to do case insensitive checking
+        if((string_value[0] == 'd' || string_value[0] == 'D') &&
+           (string_value[1] == 'a' || string_value[1] == 'A') &&
+           (string_value[2] == 't' || string_value[2] == 'T') &&
+           (string_value[3] == 'a' || string_value[3] == 'A')) {
+            needs_quotes = true;
+        }
+        if((string_value[0] == 's' || string_value[0] == 'S') &&
+           (string_value[1] == 'a' || string_value[1] == 'A') &&
+           (string_value[2] == 'v' || string_value[2] == 'V') &&
+           (string_value[3] == 'e' || string_value[3] == 'E')) {
+            needs_quotes = true;
+        }
+      }
+
+      // any string that is exactly one of the reserved words
+      if(!needs_quotes && string_value.size() == 5 && string_value[4] == '_') {
+        // need to do case insensitive checking
+        if((string_value[0] == 'l' || string_value[0] == 'L') &&
+           (string_value[1] == 'o' || string_value[1] == 'O') &&
+           (string_value[2] == 'o' || string_value[2] == 'O') &&
+           (string_value[3] == 'p' || string_value[3] == 'P')) {
+            needs_quotes = true;
+        }
+        if((string_value[0] == 's' || string_value[0] == 'S') &&
+           (string_value[1] == 't' || string_value[1] == 'T') &&
+           (string_value[2] == 'o' || string_value[2] == 'O') &&
+           (string_value[3] == 'p' || string_value[3] == 'P')) {
+            needs_quotes = true;
+        }
+      }
+
+      if(!needs_quotes && string_value.size() == 7 && string_value[6] == '_') {
+        // need to do case insensitive checking
+        if((string_value[0] == 'g' || string_value[0] == 'G') &&
+           (string_value[1] == 'l' || string_value[1] == 'L') &&
+           (string_value[2] == 'o' || string_value[2] == 'O') &&
+           (string_value[3] == 'b' || string_value[3] == 'B') &&
+           (string_value[4] == 'a' || string_value[4] == 'A') &&
+           (string_value[5] == 'l' || string_value[5] == 'L')) {
+            needs_quotes = true;
+        }
+      }
+
+      if(needs_quotes) {
+        value.value_ = "\"" + string_value + "\"";
+      } else {
+        value.value_ = string_value;
+      }
     }
     return value;
   }
   const String& GetValue() const { return value_; }
 private:
-String value_;
+  String value_;
 };
 
 
