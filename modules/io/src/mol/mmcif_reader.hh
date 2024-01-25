@@ -343,6 +343,11 @@ protected:
   /// \param columns data row
   void ParseEntityPolySeq(const std::vector<StringRef>& columns);
 
+  /// \brief Fetch mmCIF entity_poly_seq information
+  ///
+  /// \param columns data row
+  void ParseEm3DReconstruction(const std::vector<StringRef>& columns);
+
   /// \struct types of secondary structure
   typedef enum {
     MMCIF_HELIX,
@@ -607,6 +612,11 @@ private:
     EPS_NUM
   } EntityPolySeqItems;
 
+  /// \enum items of the entity_poly_seq category
+  typedef enum {
+    EM_RESOLUTION
+  } Em3DReconstructionItems;
+
   /// \enum categories of the mmcif format
   typedef enum {
     ATOM_SITE,
@@ -633,6 +643,7 @@ private:
     PDBX_ENTITY_BRANCH,
     PDBX_ENTITY_BRANCH_LINK,
     ENTITY_POLY_SEQ,
+    EM_3D_RECONSTRUCTION,
     DONT_KNOW
   } MMCifCategory;
 

@@ -397,7 +397,12 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
   this->TryStoreIdx(EPS_MON_ID, "mon_id", header);
   this->TryStoreIdx(EPS_NUM, "num", header);
   cat_available = true;
- }
+ } else if (header.GetCategory() == "em_3d_reconstruction") {
+    category_ = EM_3D_RECONSTRUCTION;
+    // optional items
+    indices_[EM_RESOLUTION] = header.GetIndex("resolution");
+    cat_available = true;
+  }
   category_counts_[category_]++;
   return cat_available;
 }
@@ -1022,6 +1027,14 @@ void MMCifReader::ParseRefine(const std::vector<StringRef>& columns)
     if (col.size()!=1 || (col[0]!='?' && col[0]!='.')) {
       info_.SetRFree(this->TryGetReal(col, "refine.ls_R_factor_R_free"));
     }
+  }
+}
+
+void MMCifReader::ParseEm3DReconstruction(const std::vector<StringRef>& columns)
+{
+  StringRef col = columns[indices_[EM_RESOLUTION]];
+  if (col.size()!=1 || (col[0]!='?' && col[0]!='.')) {
+    info_.SetEMResolution(this->TryGetReal(col, "em_3d_reconstruction.resolution"));
   }
 }
 
@@ -1651,6 +1664,10 @@ void MMCifReader::OnDataRow(const StarLoopDesc& header,
   case ENTITY_POLY_SEQ:
     LOG_TRACE("processing entity_poly_seq entry");
     this->ParseEntityPolySeq(columns);
+    break;
+  case EM_3D_RECONSTRUCTION:
+    LOG_TRACE("processing em_3d_reconstruction entry");
+    this->ParseEm3DReconstruction(columns);
     break;
   default:
     throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,

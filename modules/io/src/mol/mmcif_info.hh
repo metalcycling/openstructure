@@ -989,7 +989,8 @@ typedef std::map<String, MMCifEntityDesc> MMCifEntityDescMap;
 class DLLEXPORT_OST_IO MMCifInfo {
 public:
   /// \brief Create an info object.
-  MMCifInfo(): exptl_method_(""), resolution_(0), r_free_(0), r_work_(0) { }
+  MMCifInfo(): exptl_method_(""), resolution_(0), em_resolution_(0), r_free_(0),
+    r_work_(0) { }
 
   /// \brief Add an item to the list of citations
   ///
@@ -1036,6 +1037,16 @@ public:
   ///
   /// \return experiment resolution
   Real GetResolution() const { return resolution_; }
+
+  /// \brief Set EM resolution.
+  ///
+  /// \param res EM experiment resolution
+  void SetEMResolution(Real res) { em_resolution_ = res; }
+
+  /// \brief Get EM resolution.
+  ///
+  /// \return EM experiment resolution
+  Real GetEMResolution() const { return em_resolution_; }
 
   /// \brief Set R-free value.
   ///
@@ -1226,6 +1237,7 @@ private:
   // members
   String exptl_method_;
   Real resolution_;
+  Real em_resolution_;
   Real r_free_;
   Real r_work_;
   MMCifInfoStructDetails struct_details_;     ///< mmCIF struct category

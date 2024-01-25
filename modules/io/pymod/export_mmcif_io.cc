@@ -507,6 +507,8 @@ void export_mmcif_io()
     .def("GetMethod", &MMCifInfo::GetMethod)
     .def("SetResolution", &MMCifInfo::SetResolution)
     .def("GetResolution", &MMCifInfo::GetResolution)
+    .def("SetEMResolution", &MMCifInfo::SetEMResolution)
+    .def("GetEMResolution", &MMCifInfo::GetEMResolution)
     .def("SetRFree", &MMCifInfo::SetRFree)
     .def("GetRFree", &MMCifInfo::GetRFree)
     .def("SetRWork", &MMCifInfo::SetRWork)
@@ -545,6 +547,8 @@ void export_mmcif_io()
     .add_property("method", &MMCifInfo::GetMethod, &MMCifInfo::SetMethod)
     .add_property("resolution", &MMCifInfo::GetResolution,
                   &MMCifInfo::SetResolution)
+    .add_property("em_resolution", &MMCifInfo::GetEMResolution,
+                  &MMCifInfo::SetEMResolution)
     .add_property("r_free", &MMCifInfo::GetRFree, &MMCifInfo::SetRFree)
     .add_property("r_work", &MMCifInfo::GetRWork, &MMCifInfo::SetRWork)
     .add_property("operations", make_function(&MMCifInfo::GetOperations,
