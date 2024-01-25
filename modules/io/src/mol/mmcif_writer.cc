@@ -200,7 +200,7 @@ namespace {
     // - polymer
     // - water
 
-    // this function is overly simplistic and won't identify macrolid
+    // this function is overly simplistic and won't identify macrolide
 
     std::set<char> chem_classes;
     for(auto res: res_list) {
@@ -213,20 +213,25 @@ namespace {
       return "water";
     }
 
-    // DISCUSS THIS OVER A BEER...
-    // Entities must have at least 3 residues to be considered polymers
-    // for now, we just set entities with 1 or 2 residues as non-polymer
-    if(res_list.size() == 1 || res_list.size() == 2) {
-      return "non-polymer";
-    }
-
     std::set<char> branched_set;
     branched_set.insert(ost::mol::ChemClass::L_SACCHARIDE);
     branched_set.insert(ost::mol::ChemClass::D_SACCHARIDE);
     branched_set.insert(ost::mol::ChemClass::SACCHARIDE);
     branched_set.insert(chem_classes.begin(), chem_classes.end());
-    if(branched_set.size() == 3) {
+    // Single saccharides are non-poly (handled in next conditional), from 2
+    // accharides covalently bound onwards, its called a 'branched' molecular
+    // entity. Check 3AXH & 1A4G from RCSB for examples.
+    if(branched_set.size() == 3 && res_list.size() > 1) {
       return "branched";
+    }
+
+    // Entities must have at least 3 residues to be considered polymers
+    // For now, we just set entities with 1 or 2 residues as non-polymer
+    // For examples from RCSB, check 1E8K (dipeptide), 4K9A (dinucleotide), BUT
+    // watch out for oligosaccharides like 3AXH, 2 sugars are already of type
+    // `branched` and single sugars are non-polymer (1A4G)
+    if(res_list.size() == 1 || res_list.size() == 2) {
+      return "non-polymer";
     }
 
     return "polymer";
