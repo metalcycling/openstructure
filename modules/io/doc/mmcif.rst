@@ -1369,27 +1369,27 @@ of the annotation available.
 
   .. attribute:: entity_type
 
-    value of _entity.type token
+    value of ``_entity.type`` token
 
     :class:`str`
 
   .. attribute:: entity_poly_type
 
-    value of _entity_poly.type token - empty string if entity is not of type
+    value of ``_entity_poly.type`` token - empty string if entity is not of type
     "polymer"
 
     :class:`str`
 
   .. attribute:: branched_type
 
-    value of _pdbx_entity_branch.type token - empty string if entity is not of
+    value of ``_pdbx_entity_branch.type`` token - empty string if entity is not of
     type "branched"
 
     :type: :class:`str`
 
   .. attribute:: details
 
-    value of _entity.pdbx_description token
+    value of ``_entity.pdbx_description`` token
 
     :class:`str`
 
@@ -1397,7 +1397,7 @@ of the annotation available.
 
     SEQRES with gentle preprocessing - empty string if entity is not of type
     "polymer". By default, the :class:`ost.io.MMCifReader` reads the value of the
-    _entity_poly.pdbx_seq_one_letter_code token. Copies all letters but
+    ``_entity_poly.pdbx_seq_one_letter_code`` token. Copies all letters but
     searches a :class:`ost.conop.CompoundLib` for compound names in brackets.
     *seqres* gets an 'X' if no compound is found or the respective compound has
     one letter code '?'. Uses the one letter code of the found compound
@@ -1409,7 +1409,7 @@ of the annotation available.
   .. attribute:: mon_ids
 
     Monomer ids of all residues in a polymer - empty if entity is not of
-    type "polymer". Read from _entity_poly_seq category.
+    type "polymer". Read from ``_entity_poly_seq`` category.
 
     :type: :class:`ost.base.StringList`
 
@@ -1749,7 +1749,7 @@ a mmCIF file according to `mmcif_pdbx_v50 <https://mmcif.wwpdb.org/dictionaries/
   * type
 
 The writer is designed to only require an OpenStructure
-:class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView` as input but
+:class:`ost.mol.EntityHandle`/ :class:`ost.mol.EntityView` as input but
 optionally performs preprocessing in order to separate residues of chains into
 valid mmCIF entities. This is controlled by the *mmcif_conform* flag which has
 significant impact on how chains are assigned to mmCIF entities, chain names and
@@ -1761,9 +1761,9 @@ Behaviour when *mmcif_conform* is True
 
 Expected properties when *mmcif_conform* is enabled:
 
-* The residues in a chain all represent the same mmCIF entity. That is for
-  example a polypeptide chain with all residues being peptide linking. In mmCIF
-  lingo: An entity of type "polymer" which is of entity poly type
+* The residues in a chain all belong to the same mmCIF molecular entity. That
+  is for example a polypeptide chain with all residues being peptide linking.
+  In mmCIF lingo: An entity of type "polymer" which is of |entity_poly|_ type
   "polypeptide(L)" and all residues being "L-PEPTIDE LINKING". Well, some
   glycines might be "PEPTIDE LINKING".
   Another example might be a ligand where the chain refers to an entity of 
@@ -1787,7 +1787,7 @@ Expected properties when *mmcif_conform* is enabled:
 
 There is one quirk remaining: The assignment of
 underlying mmCIF entities. This is a challenge primarily for polymers. The
-current logic starts with and empty internal entity list and successively
+current logic starts with an empty internal entity list and successively
 processes chains. If no match is found, a new entity gets generated and the
 SEQRES is set to what we observe in the chain residues given their residue
 numbers (i.e. the ATOMSEQ). If the first residue has residue number 10, the
@@ -1834,8 +1834,8 @@ delegates this to the :class:`ost.conop.Processor` and thus requires a valid
 significant preprocessing involving the split of chains which is purely based
 on the set chem classes. Each chain gets split with the following rules:
 
-* separate chain of _entity.type "non-polymer" for each residue with chem class
-  :class:`NON_POLYMER`/:class:`UNKNOWN`
+* separate chain of ``_entity.type`` "non-polymer" for each residue with chem
+  class :class:`NON_POLYMER`/:class:`UNKNOWN`
 * if any residue has chem class :class:`WATER`, all of them are collected
   into one separate chain with _entity.type "water"
 * if any residue is a saccharide, i.e. has chem class
@@ -2011,8 +2011,10 @@ constructing biounits, check out :func:`ost.mol.alg.CreateBU` in the
 *ost.mol.alg* module.
 
 
-.. |exptl.method| replace:: ``exptl.method``
+.. |exptl.method| replace:: ``_exptl.method``
 .. _exptl.method: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_exptl.method.html
+.. |entity_poly| replace:: ``_entity_poly``
+.. _entity_poly: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity_poly.html
 
 ..  LocalWords:  cas isbn pubmed asu seqres conop ConnectAll casp COMPND OBSLTE
 ..  LocalWords:  SPRSDE pdb func autofunction exptl attr pdbx oper conf spr dif
