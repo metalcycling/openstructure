@@ -61,7 +61,7 @@ Notes:
 * Structures in mmCIF format can have two chain names. The "new" chain name
   extracted from ``atom_site.label_asym_id`` is used to name the chains in the
   :class:`~ost.mol.EntityHandle`. The "old" (author provided) chain name is
-  extracted from ``atom_site.auth_asym_id`` for the first atom of the chain.
+  extracted from |atom_site.auth_asym_id|_ for the first atom of the chain.
   It is added as string property named "pdb_auth_chain_name" to the
   :class:`~ost.mol.ChainHandle`. The mapping is also stored in
   :class:`MMCifInfo` as :meth:`~MMCifInfo.GetMMCifPDBChainTr` and
@@ -77,17 +77,17 @@ Notes:
   we also store :class:`string properties<ost.GenericPropContainer>` on a
   per-residue level.
   For mmCIF files from the PDB, there is a unique mapping between
-  ("label_asym_id", "label_seq_id") and ("auth_asym_id", "auth_seq_id",
-  "pdbx_PDB_ins_code").
+  (``label_asym_id``, ``label_seq_id``) and (``auth_asym_id``, ``auth_seq_id``,
+  ``pdbx_PDB_ins_code``).
   The following data items are available:
 
     * ``atom_site.label_asym_id``: ``residue.chain.name``
-    * ``atom_site.label_seq_id``: ``residue.GetStringProp("resnum")``
+    * |atom_site.label_seq_id|_: ``residue.GetStringProp("resnum")``
       (this is the same as ``residue.number`` for residues in polymer chains.
       However, for ligands ``residue.number`` is unset in mmCIF, but it
       is set to 1 by openstructure.)
     * ``atom_site.label_entity_id``: ``residue.GetStringProp("entity_id")``
-    * ``atom_site.auth_asym_id``: ``residue.GetStringProp("pdb_auth_chain_name")``
+    * |atom_site.auth_asym_id|_: ``residue.GetStringProp("pdb_auth_chain_name")``
     * ``atom_site.auth_seq_id``: ``residue.GetStringProp("pdb_auth_resnum")``
     * ``atom_site.pdbx_PDB_ins_code``: ``residue.GetStringProp("pdb_auth_ins_code")``
 
@@ -98,7 +98,7 @@ Notes:
 * Author residue numbers (``atom_site.auth_seq_id``) and insertion codes 
   (``atom_site.pdbx_PDB_ins_code``) are optional according to the mmCIF 
   dictionary. The data items (whole columns) can be omitted in structures where
-  the "new" residue numbers (``atom_site.label_seq_id``) are defined (to valid
+  the "new" residue numbers (|atom_site.label_seq_id|_) are defined (to valid
   values). This is usually the case for polymer chains. However non-polymer and
   water chains do not have valid "new" residue numbers. In structures 
   containing such missing data, OST requires the presence of both "old" residue
@@ -292,7 +292,7 @@ of the annotation available.
 
     :param cif_chain_id: atom_site.label_asym_id
     :type cif_chain_id: :class:`str`
-    :param pdb_chain_id: atom_site.auth_asym_id
+    :param pdb_chain_id: |atom_site.auth_asym_id|_
     :type pdb_chain_id: :class:`str`
 
   .. method:: GetMMCifPDBChainTr(cif_chain_id)
@@ -302,13 +302,13 @@ of the annotation available.
 
     :param cif_chain_id: atom_site.label_asym_id
     :type cif_chain_id: :class:`str`
-    :returns: atom_site.auth_asym_id as :class:`str` (empty if no mapping)
+    :returns: |atom_site.auth_asym_id|_ as :class:`str` (empty if no mapping)
 
   .. method:: AddPDBMMCifChainTr(pdb_chain_id, cif_chain_id)
 
     Set up a translation for a certain PDB chain name to the mmCIF chain name.
 
-    :param pdb_chain_id: atom_site.auth_asym_id
+    :param pdb_chain_id: |atom_site.auth_asym_id|_
     :type pdb_chain_id: :class:`str`
     :param cif_chain_id: atom_site.label_asym_id
     :type cif_chain_id: :class:`str`
@@ -317,7 +317,7 @@ of the annotation available.
 
     Get the translation of a certain PDB chain name to the mmCIF chain name.
 
-    :param pdb_chain_id: atom_site.auth_asym_id
+    :param pdb_chain_id: |atom_site.auth_asym_id|_
     :type pdb_chain_id: :class:`str`
     :returns: atom_site.label_asym_id as :class:`str` (empty if no mapping)
 
@@ -1381,7 +1381,7 @@ of the annotation available.
 
   .. attribute:: entity_type
 
-    value of ``_entity.type`` token
+    value of |entity.type|_ token
 
     :class:`str`
 
@@ -1820,10 +1820,11 @@ if *mmcif_conform* is enabled, there is pretty much everything in place
 and the previously listed mmCIF categories/attributes are written with
 a few special cases:
 
-* _atom_site.auth_asym_id: Honours the residue string property
+* |atom_site.auth_asym_id|_: Honours the residue string property
   "pdb_auth_chain_name" if set, uses the actual chain name otherwise. The string
   property is set in the mmCIF reader.
-* _pdbx_poly_seq_scheme.pdb_strand_id: Same behaviour as _atom_site.auth_asym_id
+* _pdbx_poly_seq_scheme.pdb_strand_id: Same behaviour as
+  |atom_site.auth_asym_id|_
 * _atom_site.auth_seq_id: Honours the residue string property
   "pdb_auth_resnum" if set, uses the actual residue number otherwise. The string
   property is set in the mmCIF reader.
@@ -1846,26 +1847,26 @@ delegates this to the :class:`ost.conop.Processor` and thus requires a valid
 significant preprocessing involving the split of chains which is purely based
 on the set chem classes. Each chain gets split with the following rules:
 
-* separate chain of ``_entity.type`` "non-polymer" for each residue with chem
-  class :class:`NON_POLYMER`/:class:`UNKNOWN`
+* separate chain of |entity.type|_ "non-polymer" for each residue with chem
+  class :class:`NON_POLYMER`/ :class:`UNKNOWN`
 * if any residue has chem class :class:`WATER`, all of them are collected
-  into one separate chain with _entity.type "water"
+  into one separate chain with |entity.type|_ "water"
 * if any residue is a saccharide, i.e. has chem class
-  :class:`SACCHARIDE`/:class:`L_SACCHARIDE`/:class:`D_SACCHARIDE`, all of them
-  are collected into one separate chain of _entity.type "branched" and
+  :class:`SACCHARIDE`/ :class:`L_SACCHARIDE`/ :class:`D_SACCHARIDE`, all of them
+  are gathered into a single separated chain of |entity.type|_ "branched" and
   _pdbx_entity_branch.type "oligosaccharide".
 * if any residue has chem class :class:`RNA_LINKING`, all of them are collected
-  into one separate chain of _entity.type "polymer" and
+  into one separate chain of |entity.type|_ "polymer" and
   _entity_poly.type "polyribonucleotide".
 * if any residue has chem class :class:`DNA_LINKING`, all of them are collected
-  into one separate chainof _entity.type "polymer" and
+  into one separate chain of |entity.type|_ "polymer" and
   _entity_poly.type "polydeoxyribonucleotide".
 * if any residue is peptide linking, all of them are collected into one separate
-  chain of _entity.type "polymer" and _entity_poly.type
+  chain of |entity.type|_ "polymer" and _entity_poly.type
   "polypeptide(L)"/"polypeptide(D)". We only allow the following
   combinations of chem classes. Either
-  :class:`L_PEPTIDE_LINKING`/:class:`PEPTIDE_LINKING` or
-  :class:`D_PEPTIDE_LINKING`/:class:`PEPTIDE_LINKING`. Mixing
+  :class:`L_PEPTIDE_LINKING`/ :class:`PEPTIDE_LINKING` or
+  :class:`D_PEPTIDE_LINKING`/ :class:`PEPTIDE_LINKING`. Mixing
   :class:`L_PEPTIDE_LINKING` and :class:`D_PEPTIDE_LINKING` raises an error.
 
 Chain names are generated by iterating over
@@ -1873,14 +1874,14 @@ Chain names are generated by iterating over
 AA, AB, AC etc. once the first cycle is through. There can therefore be as many 
 chains as needed. The mmCIF entities are built the same way as for
 *mmcif_conform* with two differences: 1) the extracted SEQRES of a chain is the
-ATOMSEQ, i.e. the exact sequence of its residues 2) Entity matching happens
+ATOMSEQ, i.e. the exact sequence of its residues 2) entity matching happens
 through exact matches of SEQRES and is independent from residue numbers. As a
-consequence, the residue numbers written as _atom_site.label_seq_id do not
+consequence, the residue numbers written as |atom_site.label_seq_id|_ do not
 correspond anymore to the actual residue numbers but refer to the location in
 ATOMSEQ.
 
-Once split and new chain names assigned, the rest is straightforward.
-The special cases listed above (_atom_site.auth_asym_id,
+Once split and new chain names are assigned, the rest is straightforward.
+The special cases listed above (|atom_site.auth_asym_id|_,
 _pdbx_poly_seq_scheme.pdb_strand_id, _atom_site.auth_seq_id etc.) are
 treated the same as if *mmcif_conform* was true.
 
@@ -1894,7 +1895,7 @@ To see it all in action:
   
   writer = io.MMCifWriter()
   
-  # The MMCifWriter is still object of type StarWriter
+  # The MMCifWriter is still an object of type StarWriter
   # I can decorate my mmCIF file with any data I want
   val = io.StarWriterValue.FromInt(42)
   data_item = io.StarWriterDataItem("_the", "answer", val)
@@ -1912,9 +1913,9 @@ To see it all in action:
   entity_info.append(mmcif_ent)
   
   # The actual relevant part... mmcif_conform can be set to
-  # True, as we loaded from mmCIF file
-  writer.SetStructure(ent, mmcif_conform = True,
-                      entity_info = entity_info)
+  # True, as we loaded a mmCIF file
+  writer.SetStructure(ent, mmcif_conform=True,
+                      entity_info=entity_info)
   
   # And write...
   writer.Write("1a0s", "1a0s.cif.gz")
@@ -1925,7 +1926,7 @@ To see it all in action:
 
 .. class:: MMCifWriterEntity
 
-  Defines mmCIF entity which will be written in :class:`MMCifWriter`
+  Defines mmCIF entity which will be written in :class:`MMCifWriter`.
   Must be created from static constructor function.
 
   .. method:: FromPolymer(entity_poly_type, mon_ids, compound_lib)
@@ -1944,7 +1945,7 @@ To see it all in action:
   
   .. attribute:: type
 
-    (:class:`str`) The _entity.type
+    (:class:`str`) The |entity.type|_
    
   .. attribute:: poly_type
 
@@ -1962,14 +1963,14 @@ To see it all in action:
   .. attribute:: seq_olcs
 
     (:class:`ost.StringList`) The one letter codes for :attr:`mon_ids` which
-    will be written to pdbx_seq_one_letter_code - invalid if type is not
+    will be written to ``_pdbx_seq_one_letter_code`` - invalid if type is not
     "polymer"
 
   .. attribute:: seq_can_olcs
 
     (:class:`ost.StringList`) The one letter codes for :attr:`mon_ids` which
-    will be written to pdbx_seq_one_letter_code_can - invalid if type is not
-    "polymer"
+    will be written to ``_pdbx_seq_one_letter_code_can`` - invalid if type is
+    not "polymer"
 
   .. attribute:: asym_ids
 
@@ -1983,7 +1984,7 @@ To see it all in action:
 
   Inherits all functionality from :class:`StarWriter` and provides functionality
   to extract relevant mmCIF information from
-  :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+  :class:`ost.mol.EntityHandle`/ :class:`ost.mol.EntityView`
 
   .. method:: SetStructure(ent, mmcif_conform=True, entity_info=list())
 
@@ -1992,7 +1993,7 @@ To see it all in action:
     Structure. Calling this function more than once raises an error.
 
     :param ent: The stucture to write
-    :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+    :type ent: :class:`ost.mol.EntityHandle`/ :class:`ost.mol.EntityView`
     :param mmcif_conform: Determines data extraction strategy as described above
     :type mmcif_conform: :class:`bool`
     :param entity_info: Predefine mmCIF entities - useful to define complete
@@ -2023,10 +2024,16 @@ constructing biounits, check out :func:`ost.mol.alg.CreateBU` in the
 *ost.mol.alg* module.
 
 
+.. |atom_site.label_seq_id| replace:: ``_atom_site.label_seq_id``
+.. _atom_site.label_seq_id: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_atom_site.label_seq_id.html
+.. |atom_site.auth_asym_id| replace:: ``_atom_site.auth_asym_id``
+.. _atom_site.auth_asym_id: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_atom_site.auth_asym_id.html
 .. |exptl.method| replace:: ``_exptl.method``
 .. _exptl.method: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_exptl.method.html
 .. |entity_poly| replace:: ``_entity_poly``
 .. _entity_poly: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity_poly.html
+.. |entity.type| replace:: ``_entity.type``
+.. _entity.type: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_entity.type.html
 
 ..  LocalWords:  cas isbn pubmed asu seqres conop ConnectAll casp COMPND OBSLTE
 ..  LocalWords:  SPRSDE pdb func autofunction exptl attr pdbx oper conf spr dif
