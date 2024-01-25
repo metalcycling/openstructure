@@ -1431,7 +1431,7 @@ of the annotation available.
   .. attribute:: hetero_num
 
     Residue numbers of heterogeneous compounds - empty if entity is not
-    of type "polymer". Read from _entity_poly_seq category. If a residue is
+    of type "polymer". Read from ``_entity_poly_seq`` category. If a residue is
     heterogeneous, the monomer id that comes first in the CIF file ends up
     in :attr:`mon_ids`. The remnant is listed here.
     This list specifies the residue numbers for the respective monomer ids
@@ -1440,7 +1440,7 @@ of the annotation available.
   .. attribute:: hetero_ids
 
     Monomer ids of heterogeneous compounds - empty if entity is not
-    of type "polymer". Read from _entity_poly_seq category. If a residue is
+    of type "polymer". Read from ``_entity_poly_seq`` category. If a residue is
     heterogeneous, the monomer id that comes first in the CIF file ends up
     in :attr:`mon_ids`. The remnant is listed here.
     This list specifies the monomer ids for the respective locations in
