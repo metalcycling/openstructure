@@ -140,6 +140,9 @@ of the annotation available.
     Also available as :meth:`GetMethod`. May also be modified by
     :meth:`SetMethod`.
 
+    Some PDB entries have multiple experimental methods. This function
+    only a single one of them.
+
   .. attribute:: resolution
 
     Stores the resolution of the crystal structure, obtained from the
