@@ -71,13 +71,14 @@ namespace {
   };
 
   void CheckValidEntityPolyType(const String& entity_poly_type) {
-    std::unordered_set<std::string> s = {"other",
+    std::unordered_set<std::string> s = {"cyclic-pseudo-peptide",
+                                         "other",
+                                         "peptide nucleic acid",
                                          "polydeoxyribonucleotide",
+                                         "polydeoxyribonucleotide/polyribonucleotide hybrid",
                                          "polypeptide(D)",
                                          "polypeptide(L)",
-                                         "polyribonucleotide",
-                                         "polysaccharide(D)",
-                                         "polysaccharide(L)"};
+                                         "polyribonucleotide"};
     if(s.find(entity_poly_type) == s.end()) {
       std::stringstream ss;
       ss << "Observed value is no valid entity_poly.type: \"";
