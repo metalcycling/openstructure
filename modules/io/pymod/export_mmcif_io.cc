@@ -494,6 +494,8 @@ void export_mmcif_io()
    .add_property("details", &MMCifEntityDesc::details)
    .add_property("seqres", &MMCifEntityDesc::seqres)
    .add_property("mon_ids", &MMCifEntityDesc::mon_ids)
+   .add_property("hetero_num", &MMCifEntityDesc::hetero_num)
+   .add_property("hetero_ids", &MMCifEntityDesc::hetero_ids)
   ;
 
   class_<MMCifInfo>("MMCifInfo", init<>())

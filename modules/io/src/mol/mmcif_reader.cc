@@ -396,6 +396,9 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
   this->TryStoreIdx(EPS_ENTITY_ID, "entity_id", header);
   this->TryStoreIdx(EPS_MON_ID, "mon_id", header);
   this->TryStoreIdx(EPS_NUM, "num", header);
+
+  // optional items
+  indices_[EPS_HETERO] = header.GetIndex("hetero");
   cat_available = true;
  } else if (header.GetCategory() == "em_3d_reconstruction") {
     category_ = EM_3D_RECONSTRUCTION;
@@ -735,7 +738,9 @@ MMCifEntityDescMap::iterator MMCifReader::GetEntityDescMapIterator(
                             .branched_type = "",
                             .details="",
                             .seqres="",
-                            .mon_ids=std::vector<String>()};
+                            .mon_ids=std::vector<String>(),
+                            .hetero_num=std::vector<int>(),
+                            .hetero_ids=std::vector<String>()};
     edm_it = entity_desc_map_.insert(entity_desc_map_.begin(),
                                      MMCifEntityDescMap::value_type(entity_id,
                                                                     desc));
@@ -1895,15 +1900,28 @@ void MMCifReader::ParseEntityPolySeq(const std::vector<StringRef>& columns)
   entity_poly_seq_map_[columns[indices_[EPS_ENTITY_ID]].str()];
 
   if(entity_map.find(num) != entity_map.end()) {
-    throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
-                                             "_entity_poly_seq.num must be "
-                                             "unique in same "
-                                             "_entity_poly_seq.entity_id. "
-                                             "entity_id: " +
-                                             columns[indices_[EPS_ENTITY_ID]].str() +
-                                             ", num: " +
-                                             columns[indices_[EPS_ENTITY_ID]].str(),
-                                             this->GetCurrentLinenum()));    
+
+    if(indices_[EPS_HETERO] != -1 && columns[indices_[EPS_HETERO]][0] == 'y') {
+      // controlled vocabulary: "y", "yes", "n", "no"
+      // the first two mark hetereogeneous compounds
+
+      // [] inserts new value if not present
+      std::vector<std::pair<int, String> >& hetero_list =
+      entity_poly_seq_h_map_[columns[indices_[EPS_ENTITY_ID]].str()];
+
+      hetero_list.push_back(std::make_pair(num, columns[indices_[EPS_MON_ID]].str()));
+    } else {
+
+      throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
+                                               "_entity_poly_seq.num must be "
+                                               "unique in same "
+                                               "_entity_poly_seq.entity_id. "
+                                               "entity_id: " +
+                                               columns[indices_[EPS_ENTITY_ID]].str() +
+                                               ", num: " +
+                                               columns[indices_[EPS_ENTITY_ID]].str(),
+                                               this->GetCurrentLinenum()));
+    }
   }
 
   entity_map[num] = columns[indices_[EPS_MON_ID]].str();
@@ -2058,6 +2076,12 @@ void MMCifReader::OnEndData()
       entity_it.second.mon_ids.assign(max_num, "?");
       for(auto seqres_it: entity_poly_seq_map_[entity_it.first]) {
         entity_it.second.mon_ids[seqres_it.first-1] = seqres_it.second;
+      }
+    }
+    if(entity_poly_seq_h_map_.find(entity_it.first) != entity_poly_seq_h_map_.end()) {
+      for(auto hetero_it: entity_poly_seq_h_map_[entity_it.first]) {
+        entity_it.second.hetero_num.push_back(hetero_it.first);
+        entity_it.second.hetero_ids.push_back(hetero_it.second);
       }
     }
     info_.SetEntityDesc(entity_it.first, entity_it.second);

@@ -962,13 +962,15 @@ typedef std::map<String, std::vector<MMCifInfoEntityBranchLink> > MMCifInfoEntit
 
 /// \struct keeping track of entity information
 typedef struct {
-  mol::ChainType type;         ///< characterise entity
-  String entity_type;          ///< value of _entity.type
-  String entity_poly_type;     ///< value of _entity_poly.type
-  String branched_type;        ///< value of _pdbx_entity_branch.type
-  String details;              ///< description of this entity
-  String seqres;               ///< chain of monomers
-  std::vector<String> mon_ids; ///< list of full monomer names
+  mol::ChainType type;           ///< characterise entity
+  String entity_type;            ///< value of _entity.type
+  String entity_poly_type;       ///< value of _entity_poly.type
+  String branched_type;          ///< value of _pdbx_entity_branch.type
+  String details;                ///< description of this entity
+  String seqres;                 ///< chain of monomers
+  std::vector<String> mon_ids;   ///< list of monomer names from _entity_poly_seq
+  std::vector<int> hetero_num;   ///< res num of heterogeneous compounds
+  std::vector<String> hetero_ids;///< names of heterogeneous compounds
 } MMCifEntityDesc;
 typedef std::map<String, MMCifEntityDesc> MMCifEntityDescMap;
 

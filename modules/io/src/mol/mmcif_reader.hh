@@ -609,7 +609,8 @@ private:
   typedef enum {
     EPS_ENTITY_ID,
     EPS_MON_ID,
-    EPS_NUM
+    EPS_NUM,
+    EPS_HETERO
   } EntityPolySeqItems;
 
   /// \enum items of the entity_poly_seq category
@@ -747,6 +748,7 @@ private:
   MMCifPdbxEntityBranchLinkMap entity_branch_link_map_;
   // for storing entity_poly_seq
   std::map<String, std::map<int, String> > entity_poly_seq_map_;
+  std::map<String, std::vector<std::pair<int, String> > > entity_poly_seq_h_map_;
 };
 
 /// \brief Translate mmCIF info on bond type (e.g.

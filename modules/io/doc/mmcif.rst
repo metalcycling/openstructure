@@ -1421,9 +1421,31 @@ of the annotation available.
   .. attribute:: mon_ids
 
     Monomer ids of all residues in a polymer - empty if entity is not of
-    type "polymer". Read from ``_entity_poly_seq`` category.
+    type "polymer". Read from ``_entity_poly_seq`` category. If a residue is
+    heterogeneous, this list contains the monomer id that comes first in
+    the CIF file. The other variants end up in
+    :attr:`hetero_num` / :attr:`hetero_ids`.
 
     :type: :class:`ost.base.StringList`
+
+  .. attribute:: hetero_num
+
+    Residue numbers of heterogeneous compounds - empty if entity is not
+    of type "polymer". Read from _entity_poly_seq category. If a residue is
+    heterogeneous, the monomer id that comes first in the CIF file ends up
+    in :attr:`mon_ids`. The remnant is listed here.
+    This list specifies the residue numbers for the respective monomer ids
+    in :attr:`hetero_ids`.
+
+  .. attribute:: hetero_ids
+
+    Monomer ids of heterogeneous compounds - empty if entity is not
+    of type "polymer". Read from _entity_poly_seq category. If a residue is
+    heterogeneous, the monomer id that comes first in the CIF file ends up
+    in :attr:`mon_ids`. The remnant is listed here.
+    This list specifies the monomer ids for the respective locations in
+    :attr:`hetero_num`.
+
 
 Writing mmCIF files
 --------------------------------------------------------------------------------
@@ -1805,15 +1827,17 @@ SEQRES is set to what we observe in the chain residues given their residue
 numbers (i.e. the ATOMSEQ). If the first residue has residue number 10, the
 SEQRES gets prefixed by 9 elements using a default value (e.g. UNK for a 
 chain of type CHAINTYPE_POLY_PEPTIDE_D). The same is done for gaps.
-Matching requires an exact match for ALL residues given their residue number
-with that SEQRES. However, there might be the case that one chain resolves
+A chain is considered matching an mmCIF entity, if all of its residue names
+are an exact match at the respective location in the SEQRES. Location is 
+determined with residue numbers which follow a 1-based indexing scheme.
+However, there might be the case that one chain resolves
 more residues than another. So you may have residues at locations that are
 undefined in the current SEQRES. If the fraction of matches with undefined
 locations does not exceed 5%, we still assume an overall match and fill
 in the previsouly undefined locations in the SEQRES with the newly gained
 information. This is a heuristic that works in most cases but potentially
 introduces errors in entity assignment. If you want to avoid that, you
-must set your entities manually and pass a list of :class:`MMCifWriterEntity`
+must set your entities manually and pass a :class:`MMCifWriterEntityList`
 when calling :func:`MMCifWriter.SetStructure`.
 
 if *mmcif_conform* is enabled, there is pretty much everything in place
