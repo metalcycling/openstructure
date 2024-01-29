@@ -59,14 +59,18 @@ boost::python::tuple WrapMMCifStringToEntity(const String& mmcif,
 
 String WrapEntityToMMCifStringEnt(const ost::mol::EntityHandle& ent,
                                  const String& data_name,
+                                 ost::conop::CompoundLibPtr compound_lib,
                                  bool mmcif_conform) {
-  return EntityToMMCifString(ent, data_name, mmcif_conform);
+  return EntityToMMCifString(ent, data_name, compound_lib,
+                             mmcif_conform);
 }
 
 String WrapEntityToMMCifStringView(const ost::mol::EntityView& ent,
                                    const String& data_name,
+                                   ost::conop::CompoundLibPtr compound_lib,
                                    bool mmcif_conform) {
-  return EntityToMMCifString(ent, data_name, mmcif_conform);
+  return EntityToMMCifString(ent, data_name, compound_lib,
+                             mmcif_conform);
 }
 
 void WrapStarLoopAddData(StarWriterLoop& sl, const boost::python::list& l) {
@@ -84,16 +88,18 @@ void WrapStarWriterWrite(StarWriter& writer, const String& data_name,
 
 void WrapSetStructureHandle(MMCifWriter& writer,
                             const ost::mol::EntityHandle& ent,
+                            ost::conop::CompoundLibPtr compound_lib,
                             bool mmcif_conform,
                             const std::vector<MMCifWriterEntity>& entity_info) {
-  writer.SetStructure(ent, mmcif_conform, entity_info);
+  writer.SetStructure(ent, compound_lib, mmcif_conform, entity_info);
 }
 
 void WrapSetStructureView(MMCifWriter& writer,
                           const ost::mol::EntityView& ent,
+                          ost::conop::CompoundLibPtr compound_lib,
                           bool mmcif_conform,
                           const std::vector<MMCifWriterEntity>& entity_info) {
-  writer.SetStructure(ent, mmcif_conform, entity_info);
+  writer.SetStructure(ent, compound_lib, mmcif_conform, entity_info);
 }
 
 void export_mmcif_io()
@@ -166,9 +172,11 @@ void export_mmcif_io()
   ;
 
   class_<MMCifWriter, bases<StarWriter> >("MMCifWriter", init<>())
-    .def("SetStructure", &WrapSetStructureHandle, (arg("ent"), arg("mmcif_conform")=true,
+    .def("SetStructure", &WrapSetStructureHandle, (arg("ent"), arg("compound_lib"),
+                                                   arg("mmcif_conform")=true,
                                                    arg("entity_info")=std::vector<MMCifWriterEntity>()))
-    .def("SetStructure", &WrapSetStructureView, (arg("ent"), arg("mmcif_conform")=true,
+    .def("SetStructure", &WrapSetStructureView, (arg("ent"), arg("compound_lib"),
+                                                 arg("mmcif_conform")=true,
                                                  arg("entity_info")=std::vector<MMCifWriterEntity>()))
     .def("GetEntities", &MMCifWriter::GetEntities, return_value_policy<copy_const_reference>())
   ;
@@ -569,10 +577,12 @@ void export_mmcif_io()
                                                      arg("process")=false));
 
   def("EntityToMMCifString",  &WrapEntityToMMCifStringEnt, (arg("ent"),
-                                                            arg("data_name")="OST_structure",
-                                                            arg("mmcif_conform")=true));
+                                                            arg("data_name"),
+                                                            arg("compound_lib"),
+                                                            arg("mmcif_conform")));
 
   def("EntityToMMCifString",  &WrapEntityToMMCifStringView, (arg("ent"),
-                                                             arg("data_name")="OST_structure",
-                                                             arg("mmcif_conform")=true));
+                                                             arg("data_name"),
+                                                             arg("compound_lib"),
+                                                             arg("mmcif_conform")));
 }

@@ -24,19 +24,23 @@
 namespace ost { namespace io {
 
 String EntityToMMCifString(const ost::mol::EntityHandle& ent,
-                           const String& data_name, bool mmcif_conform) {
+                           const String& data_name, 
+                           ost::conop::CompoundLibPtr compound_lib,
+                           bool mmcif_conform) {
   std::stringstream ss;
   MMCifWriter writer;
-  writer.SetStructure(ent, mmcif_conform);
+  writer.SetStructure(ent, compound_lib, mmcif_conform);
   writer.Write(data_name, ss);
   return ss.str();
 }
 
 String EntityToMMCifString(const ost::mol::EntityView& ent,
-                           const String& data_name, bool mmcif_conform) {
+                           const String& data_name,
+                           ost::conop::CompoundLibPtr compound_lib,
+                           bool mmcif_conform) {
   std::stringstream ss;
   MMCifWriter writer;
-  writer.SetStructure(ent, mmcif_conform);
+  writer.SetStructure(ent, compound_lib, mmcif_conform);
   writer.Write(data_name, ss);
   return ss.str();
 }

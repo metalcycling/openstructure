@@ -1816,11 +1816,12 @@ Expected properties when *mmcif_conform* is enabled:
 * The residue numbers in "polymer" chains must match the SEQRES of the
   underlying entity with 1-based indexing. Insertion codes are not allowed
   and raise an error.
-* Each residue must have a valid chem class assigned (available as
-  :func:`ost.mol.ResidueHandle.GetChemClass`). Even though this information
-  would be available when reading valid mmCIF files, OpenStructure delegates
-  this to the :class:`ost.conop.Processor` and thus requires a valid
-  :class:`ost.conop.CompoundLib` when reading in order to correctly set them.
+* Each residue must be named according to the entries in the
+  :class:`ost.conop.CompoundLib` which is provided when calling
+  :func:`MMCifWriter.SetStructure`. This is relevant for the _chem_comp
+  category. If the respective compound cannot be found, the type for that
+  compound is set to "OTHER"
+
 
 There is one quirk remaining: The assignment of
 underlying mmCIF entities. This is a challenge primarily for polymers. The
@@ -1867,12 +1868,14 @@ a few special cases:
 Behaviour when *mmcif_conform* is False
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-If *mmcif_conform* is not enabled, the only expectation is that chem classes
-(available as :func:`ost.mol.ResidueHandle.GetChemClass`) are set. OpenStructure
-delegates this to the :class:`ost.conop.Processor` and thus requires a valid
-:class:`ost.conop.CompoundLib` when reading a structure. There will be
-significant preprocessing involving the split of chains which is purely based
-on the set chem classes. Each chain gets split with the following rules:
+If *mmcif_conform* is not enabled, the only expectation is that residues are
+named according to the :class:`ost.conop.CompoundLib` which is provided when
+calling :func:`MMCifWriter.SetStructure`. The :class:`ost.conop.CompoundLib` is
+used to extract the respective chem classes (see :class:`ost.mol.ChemClass`).
+Residues with no entry in the :class:`ost.conop.CompoundLib` are set to
+:class:`UNKNOWN`. There will be significant preprocessing involving the split of
+chains which is purely based on these chem classes. Each chain gets split with
+the following rules:
 
 * separate chain of |entity.type|_ "non-polymer" for each residue with chem
   class :class:`NON_POLYMER`/ :class:`UNKNOWN`
@@ -2013,7 +2016,8 @@ To see it all in action:
   to extract relevant mmCIF information from
   :class:`ost.mol.EntityHandle`/ :class:`ost.mol.EntityView`
 
-  .. method:: SetStructure(ent, mmcif_conform=True, entity_info=list())
+  .. method:: SetStructure(ent, compound_lib, mmcif_conform=True,
+                           entity_info=list())
 
     Extracts mmCIF categories/attributes based on the description above.
     An object of type :class:`MMCifWriter` can only be associated with one
@@ -2021,6 +2025,8 @@ To see it all in action:
 
     :param ent: The stucture to write
     :type ent: :class:`ost.mol.EntityHandle`/ :class:`ost.mol.EntityView`
+    :param compound_lib: The compound library
+    :type compound_lib: :class:`ost.conop.CompoundLib`
     :param mmcif_conform: Determines data extraction strategy as described above
     :type mmcif_conform: :class:`bool`
     :param entity_info: Predefine mmCIF entities - useful to define complete

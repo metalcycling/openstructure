@@ -459,13 +459,16 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
     raise
 
 
-def SaveMMCIF(ent, filename, data_name="OST_structure", mmcif_conform = True,
+def SaveMMCIF(ent, filename, compound_lib = conop.GetDefaultLib(),
+              data_name="OST_structure", mmcif_conform = True,
               entity_info = MMCifWriterEntityList()):
   """
   Save OpenStructure entity in mmCIF format
 
   :param ent:           OpenStructure Entity to be saved
   :param filename:      Filename - .gz suffix triggers gzip compression
+  :param compound_lib:  Compound library required when writing, uses
+                        :func:`ost.conop.GetDefaultLib` if not given
   :param data_name:     Name of data block that will be written to
                         mmCIF file. Typically, thats the PDB ID or some
                         identifier.
@@ -483,12 +486,15 @@ def SaveMMCIF(ent, filename, data_name="OST_structure", mmcif_conform = True,
   :param entity_info: Advanced usage - passed as *entity_info* parameter to
                       :func:`MMCifWriter.SetStructure`
   :type filename: :class:`str`
+  :type compound_lib: :class:`ost.conop.CompoundLib`
   :type data_name: :class:`str`
   :type mmcif_conform: :class:`bool`
   :type entity_info: :class:`MMCifWriterEntityList`
   """
+  if compound_lib is None:
+    raise RuntimeError("Require valid compound library to write mmCIF format")
   writer = MMCifWriter()
-  writer.SetStructure(ent, mmcif_conform = mmcif_conform,
+  writer.SetStructure(ent, compound_lib, mmcif_conform = mmcif_conform,
                       entity_info = entity_info)
   writer.Write(data_name, filename)
 

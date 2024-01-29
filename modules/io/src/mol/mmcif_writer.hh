@@ -104,10 +104,12 @@ public:
 
   virtual ~MMCifWriter() { }
 
-  void SetStructure(const ost::mol::EntityHandle& ent, bool mmcif_conform=true,
+  void SetStructure(const ost::mol::EntityHandle& ent, conop::CompoundLibPtr compound_lib,
+                    bool mmcif_conform=true,
                     const std::vector<MMCifWriterEntity>& entity_info=std::vector<MMCifWriterEntity>());
 
-  void SetStructure(const ost::mol::EntityView& ent, bool mmcif_conform=true,
+  void SetStructure(const ost::mol::EntityView& ent, conop::CompoundLibPtr compound_lib,
+                    bool mmcif_conform=true,
                     const std::vector<MMCifWriterEntity>& entity_info=std::vector<MMCifWriterEntity>());
 
   const std::vector<MMCifWriterEntity>& GetEntities() const { return entity_info_; }
@@ -116,10 +118,9 @@ private:
 
   void Setup();
 
-  void Finalize();
+  void Finalize(ost::conop::CompoundLibPtr compound_lib);
 
   std::vector<MMCifWriterEntity> entity_info_;
-  std::map<String, MMCifWriterComp> comp_info_;
   StarWriterLoopPtr atom_type_;
   StarWriterLoopPtr atom_site_;
   StarWriterLoopPtr pdbx_poly_seq_scheme_;
