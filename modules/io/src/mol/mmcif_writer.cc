@@ -973,6 +973,23 @@ namespace {
 
     ChainNameGenerator chain_name_gen;
 
+    std::set<String> unique_compounds;
+    for(auto res_list: res_lists) {
+      for(auto res: res_list) {
+        unique_compounds.insert(res.GetName());
+      }
+    }
+    std::map<String, ost::mol::ChemClass> chem_class_mapping;
+    for(auto mon_id: unique_compounds) {
+      ost::conop::CompoundPtr comp = compound_lib->FindCompound(mon_id,
+                                                                ost::conop::Compound::PDB);
+      if(comp) {
+        chem_class_mapping[mon_id] = comp->GetChemClass();
+      } else {
+        chem_class_mapping[mon_id] = ost::mol::ChemClass(ost::mol::ChemClass::UNKNOWN);
+      }
+    }
+
     for(auto res_list: res_lists) {
 
       T L_chain;
@@ -986,13 +1003,7 @@ namespace {
       std::vector<ost::mol::ChemClass> chem_classes;
       chem_classes.reserve(res_list.size());
       for(auto res: res_list) {
-        ost::conop::CompoundPtr comp = compound_lib->FindCompound(res.GetName(),
-                                                                  ost::conop::Compound::PDB);
-        if(comp) {
-          chem_classes.push_back(comp->GetChemClass());
-        } else {
-          chem_classes.push_back(ost::mol::ChemClass(ost::mol::ChemClass::UNKNOWN));
-        }
+        chem_classes.push_back(chem_class_mapping[res.GetName()]);
       }
 
       // first scan only concerning peptides...
@@ -1311,6 +1322,7 @@ void MMCifWriter::SetStructure(const ost::mol::EntityView& ent,
                                conop::CompoundLibPtr compound_lib,
                                bool mmcif_conform,
                                const std::vector<MMCifWriterEntity>& entity_info) {
+
 
   this->Setup();
   entity_info_ = entity_info;
