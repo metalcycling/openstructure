@@ -1352,15 +1352,15 @@ void MMCifWriter::Finalize(ost::conop::CompoundLibPtr compound_lib) {
   Feed_pdbx_entity_branch(pdbx_entity_branch_, entity_info_);
 
   // finalize
-  this->Push(chem_comp_);
   this->Push(entity_);
-  this->Push(struct_asym_);
   this->Push(entity_poly_);
   this->Push(entity_poly_seq_);
-  this->Push(pdbx_poly_seq_scheme_);
-  this->Push(atom_type_);
+  this->Push(chem_comp_);
+  this->Push(struct_asym_);
   this->Push(pdbx_entity_branch_);
+  this->Push(atom_type_);
   this->Push(atom_site_);
+  this->Push(pdbx_poly_seq_scheme_);
 
   structure_set_ = true;
 }
