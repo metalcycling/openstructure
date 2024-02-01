@@ -141,11 +141,11 @@ def _ParseArgs():
         dest="model_biounit",
         required=False,
         default=None,
-        type=int,
+        type=str,
         help=("Only has an effect if model is in mmcif format. By default, "
               "the asymmetric unit (AU) is used for scoring. If there are "
               "biounits defined in the mmcif file, you can specify the "
-              "(0-based) index of the one which should be used."))
+              "ID (as a string) of the one which should be used."))
 
     parser.add_argument(
         "-rb",
@@ -153,11 +153,11 @@ def _ParseArgs():
         dest="reference_biounit",
         required=False,
         default=None,
-        type=int,
+        type=str,
         help=("Only has an effect if reference is in mmcif format. By default, "
               "the asymmetric unit (AU) is used for scoring. If there are "
               "biounits defined in the mmcif file, you can specify the "
-              "(0-based) index of the one which should be used."))
+              "ID (as a string) of the one which should be used."))
 
     parser.add_argument(
         "-rna",
@@ -563,7 +563,7 @@ def _GetStructureFormat(structure_path, sformat=None):
         raise Exception(f"Unknown/unsupported file format found for "
                         f"file {structure_path}.")
 
-def _LoadStructure(structure_path, sformat, fault_tolerant, bu_idx):
+def _LoadStructure(structure_path, sformat, fault_tolerant, bu_id):
     """Read OST entity either from mmCIF or PDB.
 
     The returned structure has structure_path attached as structure name
@@ -575,24 +575,19 @@ def _LoadStructure(structure_path, sformat, fault_tolerant, bu_idx):
     ost.PushVerbosityLevel(ost.LogLevel.Error)
     # Load the structure
     if sformat == "mmcif":
-        if bu_idx is not None:
+        if bu_id is not None:
             cif_entity, cif_seqres, cif_info = \
             io.LoadMMCIF(structure_path, info=True, seqres=True,
                          fault_tolerant=fault_tolerant)
-            if len(cif_info.biounits) == 0:
-                raise RuntimeError(f"No biounit found - requested index"
-                                   f" {bu_idx}.")
-            elif bu_idx < 0:
-                raise RuntimeError(f"Invalid biounit - requested index {bu_idx}, "
-                                   f"must be a positive integer or 0.")
-            elif bu_idx >= len(cif_info.biounits):
-                raise RuntimeError(f"Invalid biounit - requested index {bu_idx}, "
-                                   f"must be < {len(cif_info.biounits)}.")
-            biounit = cif_info.biounits[bu_idx]
-            entity = ost.mol.alg.CreateBU(cif_entity, biounit)
-            if not entity.IsValid():
-                raise IOError(
-                    "Provided file does not contain valid entity.")
+            for biounit in cif_info.biounits:
+                if biounit.id == bu_id:
+                    entity = ost.mol.alg.CreateBU(cif_entity, biounit)
+                    if not entity.IsValid():
+                        raise IOError(
+                            "Provided file does not contain valid entity.")
+                    break
+            else:
+                raise RuntimeError(f"No biounit found with ID '{bu_id}'.")
         else:
             entity = io.LoadMMCIF(structure_path,
                                   fault_tolerant = fault_tolerant)
@@ -870,13 +865,13 @@ def _Main():
                                                sformat=args.reference_format)
         reference = _LoadStructure(args.reference,
                                    sformat=reference_format,
-                                   bu_idx=args.reference_biounit,
+                                   bu_id=args.reference_biounit,
                                    fault_tolerant = args.fault_tolerant)
         model_format = _GetStructureFormat(args.model,
                                            sformat=args.model_format)
         model = _LoadStructure(args.model,
                                sformat=model_format,
-                               bu_idx=args.model_biounit,
+                               bu_id=args.model_biounit,
                                fault_tolerant = args.fault_tolerant)
         out = _Process(model, reference, args, model_format, reference_format)
 
