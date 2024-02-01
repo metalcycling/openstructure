@@ -336,9 +336,6 @@ def _LoadStructure(structure_path, sformat, fault_tolerant, bu_id):
             for biounit in cif_info.biounits:
                 if biounit.id == bu_id:
                     entity = ost.mol.alg.CreateBU(cif_entity, biounit)
-                    if not entity.IsValid():
-                        raise IOError(
-                            "Provided file does not contain valid entity.")
                     break
             else:
                 raise RuntimeError(f"No biounit found with ID '{bu_id}'.")
