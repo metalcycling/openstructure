@@ -864,7 +864,7 @@ namespace {
                    const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
     std::vector<ost::io::StarWriterValue> ent_data(2);
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
-      ent_data[0] = ost::io::StarWriterValue::FromInt(entity_idx);
+      ent_data[0] = ost::io::StarWriterValue::FromInt(entity_idx+1);
       ent_data[1] = ost::io::StarWriterValue::FromString(entity_info[entity_idx].type);
       entity_ptr->AddData(ent_data);
     }
@@ -876,7 +876,7 @@ namespace {
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       for(auto asym_id : entity_info[entity_idx].asym_ids) {
         asym_data[0] = ost::io::StarWriterValue::FromString(asym_id);
-        asym_data[1] = ost::io::StarWriterValue::FromInt(entity_idx);
+        asym_data[1] = ost::io::StarWriterValue::FromInt(entity_idx+1);
         struct_asym_ptr->AddData(asym_data);
       }
     }
@@ -889,7 +889,7 @@ namespace {
       if(entity_info[entity_idx].is_poly) {
         const std::vector<String>& mon_ids = entity_info[entity_idx].mon_ids;
         for(size_t mon_idx = 0; mon_idx < mon_ids.size(); ++mon_idx) {
-          entity_poly_seq_data[0] = ost::io::StarWriterValue::FromInt(entity_idx);
+          entity_poly_seq_data[0] = ost::io::StarWriterValue::FromInt(entity_idx+1);
           entity_poly_seq_data[1] = ost::io::StarWriterValue::FromString(mon_ids[mon_idx]);
           entity_poly_seq_data[2] = ost::io::StarWriterValue::FromInt(mon_idx+1);
           entity_poly_seq_ptr->AddData(entity_poly_seq_data);
@@ -903,7 +903,7 @@ namespace {
     std::vector<ost::io::StarWriterValue> entity_poly_data(4);
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       if(entity_info[entity_idx].is_poly) {
-        entity_poly_data[0] = ost::io::StarWriterValue::FromInt(entity_idx);
+        entity_poly_data[0] = ost::io::StarWriterValue::FromInt(entity_idx+1);
         entity_poly_data[1] = ost::io::StarWriterValue::FromString(entity_info[entity_idx].poly_type);
         std::stringstream seq;
         std::stringstream seq_can;
@@ -956,7 +956,7 @@ namespace {
     std::vector<ost::io::StarWriterValue> branch_data(2);
     for(size_t i = 0; i < entity_infos.size(); ++i) {
       if(entity_infos[i].type == "branched") {
-        branch_data[0] = ost::io::StarWriterValue::FromInt(i);
+        branch_data[0] = ost::io::StarWriterValue::FromInt(i+1);
         branch_data[1] = ost::io::StarWriterValue::FromString(entity_infos[i].branch_type);
         pdbx_entity_branch_ptr->AddData(branch_data);
       }
@@ -1066,7 +1066,7 @@ namespace {
                                       tmp,
                                       false,
                                       entity_info);
-          Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+          Feed_atom_site(atom_site, chain_name, entity_id+1, entity_info[entity_id],
                          tmp);
         } else {
           // this should not happen...
@@ -1100,14 +1100,14 @@ namespace {
                                       *poly_chains[i],
                                       false,
                                       entity_info);
-          Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+          Feed_atom_site(atom_site, chain_name, entity_id+1, entity_info[entity_id],
                          *poly_chains[i]);
           // still check whether we're dealing with poly here, we could have a
           // lonely amino acid that ends up as non-poly and doesn't need
           // pdbx_poly_seq_scheme
           if(entity_info[entity_id].is_poly) {
             Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                      entity_id, entity_info[entity_id], *poly_chains[i]);
+                                      entity_id+1, entity_info[entity_id], *poly_chains[i]);
           }
         }
       }
@@ -1125,7 +1125,7 @@ namespace {
                                     W_chain,
                                     false,
                                     entity_info);
-        Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+        Feed_atom_site(atom_site, chain_name, entity_id+1, entity_info[entity_id],
                        W_chain);
       }
       // process sugar chain
@@ -1147,7 +1147,7 @@ namespace {
                                     Z_chain,
                                     false,
                                     entity_info);
-        Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+        Feed_atom_site(atom_site, chain_name, entity_id+1, entity_info[entity_id],
                        Z_chain);
       }
     }
@@ -1200,11 +1200,11 @@ namespace {
                                     res_list,
                                     true,
                                     entity_info);
-        Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+        Feed_atom_site(atom_site, chain_name, entity_id+1, entity_info[entity_id],
                        res_list);
         if(entity_info[entity_id].is_poly) {
           Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                    entity_id, entity_info[entity_id], res_list);
+                                    entity_id+1, entity_info[entity_id], res_list);
         }
       }
     } else {
