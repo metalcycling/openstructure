@@ -1247,8 +1247,8 @@ namespace {
             throw ost::io::IOException(ss.str());
           }
           AddAsymResnum(ai, res_list, entity_info[ei_idx], true);
-          Feed_atom_site(atom_site, ai, ei_idx, entity_info[ei_idx], res_list);
-          Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, ai, ei_idx,
+          Feed_atom_site(atom_site, ai, ei_idx+1, entity_info[ei_idx], res_list);
+          Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, ai, ei_idx+1,
                                     entity_info[ei_idx], res_list);
           preprocessed_chains.insert(ai);
         } else if(entity_info[ei_idx].type == "branched") {
@@ -1268,12 +1268,12 @@ namespace {
             throw ost::io::IOException(ss.str());
           }
           AddAsym(ai, entity_info[ei_idx], true);
-          Feed_atom_site(atom_site, ai, ei_idx, entity_info[ei_idx], res_list);
+          Feed_atom_site(atom_site, ai, ei_idx+1, entity_info[ei_idx], res_list);
           preprocessed_chains.insert(ai);
         } else if (entity_info[ei_idx].type == "water") {
           auto res_list = chain.GetResidueList();
           AddAsym(ai, entity_info[ei_idx], true);
-          Feed_atom_site(atom_site, ai, ei_idx, entity_info[ei_idx], res_list);
+          Feed_atom_site(atom_site, ai, ei_idx+1, entity_info[ei_idx], res_list);
           preprocessed_chains.insert(ai);
         } else {
           auto res_list = chain.GetResidueList();
@@ -1284,7 +1284,7 @@ namespace {
             throw ost::io::IOException(ss.str());
           }
           AddAsym(ai, entity_info[ei_idx], true);
-          Feed_atom_site(atom_site, ai, ei_idx, entity_info[ei_idx], res_list);
+          Feed_atom_site(atom_site, ai, ei_idx+1, entity_info[ei_idx], res_list);
           preprocessed_chains.insert(ai);
         }
       }
@@ -1302,11 +1302,11 @@ namespace {
                                   res_list,
                                   true,
                                   entity_info);
-      Feed_atom_site(atom_site, chain_name, entity_id, entity_info[entity_id],
+      Feed_atom_site(atom_site, chain_name, entity_id+1, entity_info[entity_id],
                      res_list);
       if(entity_info[entity_id].is_poly) {
         Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id, entity_info[entity_id], res_list);
+                                  entity_id+1, entity_info[entity_id], res_list);
       }
     }
   }
