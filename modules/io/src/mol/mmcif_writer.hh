@@ -91,12 +91,6 @@ struct MMCifWriterEntity {
   std::vector<std::vector<String> > asym_alns; 
 };
 
-
-struct MMCifWriterComp {
-  String type;
-};
-
-
 class DLLEXPORT_OST_IO MMCifWriter : public StarWriter {
 public:
 

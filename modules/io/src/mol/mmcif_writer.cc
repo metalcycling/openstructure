@@ -1322,8 +1322,6 @@ void MMCifWriter::SetStructure(const ost::mol::EntityView& ent,
                                conop::CompoundLibPtr compound_lib,
                                bool mmcif_conform,
                                const std::vector<MMCifWriterEntity>& entity_info) {
-
-
   this->Setup();
   entity_info_ = entity_info;
   ProcessEnt(ent, compound_lib, mmcif_conform, entity_info_,
