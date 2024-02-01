@@ -43,10 +43,30 @@ def _LoadEntity(filename):
 
 class TestLigandScoring(unittest.TestCase):
 
+    def setUp(self):
+        # Silence expected warnings about ignoring of ligands in binding site
+        ost.PushVerbosityLevel(ost.LogLevel.Error)
+
+    def tearDown(self):
+        ost.PopVerbosityLevel()
+
     def test_extract_ligands_mmCIF(self):
         """Test that we can extract ligands from mmCIF files.
         """
         trg = _LoadMMCIF("1r8q.cif.gz")
+        mdl = _LoadMMCIF("P84080_model_02.cif.gz")
+
+        sc = LigandScorer(mdl, trg, None, None)
+
+        self.assertEqual(len(sc.target_ligands),  7)
+        self.assertEqual(len(sc.model_ligands), 1)
+        self.assertEqual(len([r for r in sc.target.residues if r.is_ligand]), 7)
+        self.assertEqual(len([r for r in sc.model.residues if r.is_ligand]), 1)
+
+    def test_extract_ligands_PDB(self):
+        """Test that we can extract ligands from PDB files containing HET records.
+        """
+        trg = _LoadPDB("1R8Q.pdb")
         mdl = _LoadMMCIF("P84080_model_02.cif.gz")
 
         sc = LigandScorer(mdl, trg, None, None)

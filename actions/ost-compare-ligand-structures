@@ -16,9 +16,10 @@ Ligands can be given as path to SDF files containing the ligand for both model
 ligands will be detected in the model and reference structures. For structures
 given in mmCIF format, this is based on the annotation as "non polymer entity"
 (i.e. ligands in the _pdbx_entity_nonpoly mmCIF category) and works reliably.
-For structures given in PDB format, this is based on the HET records and is
-normally not what you want. You should always give ligands as SDF for
-structures in PDB format.
+For structures given in legacy PDB format, this is based on the HET records
+which is usually only set properly on files downloaded from the PDB (and even
+then, this is not always the case). This is normally not what you want. You
+should always give ligands as SDF for structures in legacy PDB format.
 
 Polymer/oligomeric ligands (saccharides, peptides, nucleotides) are not
 supported.

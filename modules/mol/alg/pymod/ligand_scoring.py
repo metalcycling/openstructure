@@ -86,8 +86,8 @@ class LigandScorer:
     :attr:`~ost.mol.ResidueHandle.is_ligand` property is properly set on all
     the ligand atoms, and only ligand atoms. This is typically the case for
     entities loaded from mmCIF (tested with mmCIF files from the PDB and
-    SWISS-MODEL), but it will most likely not work for most entities loaded
-    from PDB files.
+    SWISS-MODEL). Legacy PDB files must contain `HET` headers (which is usually
+    the case for files downloaded from the PDB but not elsewhere).
 
     The class doesn't perform any cleanup of the provided structures.
     It is up to the caller to ensure that the data is clean and suitable for
@@ -170,19 +170,18 @@ class LigandScorer:
                   entity. Can be instantiated with either a :class:list of
                   :class:`~ost.mol.ResidueHandle`/:class:`ost.mol.ResidueView`
                   or of :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`.
-                  If `None`, ligands will be extracted from the `model` entity,
-                  from chains with :class:`~ost.mol.ChainType`
-                  `CHAINTYPE_NON_POLY` (this is normally set properly in
-                  entities loaded from mmCIF).
+                  If `None`, ligands will be extracted based on the
+                  :attr:`~ost.mol.ResidueHandle.is_ligand` flag (this is
+                  normally set properly in entities loaded from mmCIF).
     :type model_ligands: :class:`list`
     :param target_ligands: Target ligands, as a list of
                   :class:`~ost.mol.ResidueHandle` belonging to the target
                   entity. Can be instantiated either a :class:list of
                   :class:`~ost.mol.ResidueHandle`/:class:`ost.mol.ResidueView`
                   or of :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
-                  containing a single residue each. If `None`, ligands will be
-                  extracted from the `target` entity, from chains with
-                  :class:`~ost.mol.ChainType` `CHAINTYPE_NON_POLY` (this is
+                  containing a single residue each.
+                  If `None`, ligands will be extracted based on the
+                  :attr:`~ost.mol.ResidueHandle.is_ligand` flag (this is
                   normally set properly in entities loaded from mmCIF).
     :type target_ligands: :class:`list`
     :param resnum_alignments: Whether alignments between chemically equivalent
@@ -377,21 +376,15 @@ class LigandScorer:
     def _extract_ligands(entity):
         """Extract ligands from entity. Return a list of residues.
 
-        Assumes that ligands are contained in one or more chain with chain type
-        `mol.ChainType.CHAINTYPE_NON_POLY`. This is typically the case
-        for entities loaded from mmCIF (tested with mmCIF files from the PDB
-        and SWISS-MODEL), but it will most likely not work for most entities
-        loaded from PDB files.
+        Assumes that ligands have the :attr:`~ost.mol.ResidueHandle.is_ligand`
+        flag set. This is typically the case for entities loaded from mmCIF
+        (tested with mmCIF files from the PDB and SWISS-MODEL).
+        Legacy PDB files must contain `HET` headers (which is usually the
+        case for files downloaded from the PDB but not elsewhere).
 
-        As a deviation from the mmCIF semantics, we allow a chain, set as
-        `CHAINTYPE_NON_POLY`, to contain more than one ligand. This function
-        performs basic checks to ensure that the residues in this chain are
-        not forming polymer bonds (ie peptide/nucleotide ligands) and will
-        raise a RuntimeError if this assumption is broken.
-
-        Note: This will not extract ligands based on the HET record in the old
-        PDB style, as this is not a reliable indicator and depends on how the
-        entity was loaded.
+        This function performs basic checks to ensure that the residues in this
+        chain are not forming polymer bonds (ie peptide/nucleotide ligands) and
+        will raise a RuntimeError if this assumption is broken.
 
         :param entity: the entity to extract ligands from
         :type entity: :class:`~ost.mol.EntityHandle`
@@ -399,15 +392,13 @@ class LigandScorer:
 
         """
         extracted_ligands = []
-        for chain in entity.chains:
-            if chain.chain_type == mol.ChainType.CHAINTYPE_NON_POLY:
-                for residue in chain.residues:
-                    if mol.InSequence(residue, residue.next):
-                        raise RuntimeError("Connected residues in non polymer "
-                                           "chain %s" % (chain.name))
-                    residue.SetIsLigand(True)  # just in case
-                    extracted_ligands.append(residue)
-                    LogVerbose("Detected residue %s as ligand" % residue)
+        for residue in entity.residues:
+            if residue.is_ligand:
+                if mol.InSequence(residue, residue.next):
+                    raise RuntimeError("Residue %s connected in polymer sequen"
+                                       "ce %s" % (residue.qualified_name))
+                extracted_ligands.append(residue)
+                LogVerbose("Detected residue %s as ligand" % residue)
         return extracted_ligands
 
     @staticmethod
@@ -627,7 +618,7 @@ class LigandScorer:
                 ed.SetResidueNumber(new_res, mol.ResNum(resnum))
         # Add the ligand in chain _
         ligand_chain = ed.InsertChain("_")
-        ligand_res = ed.AppendResidue(ligand_chain, ligand,
+        ligand_res = ed.AppendResidue(ligand_chain, ligand.handle,
                                       deep=True)
         ed.RenameResidue(ligand_res, "LIG")
         ed.SetResidueNumber(ligand_res, mol.ResNum(1))
@@ -963,7 +954,6 @@ class LigandScorer:
                 trg_idx, mdl_idx][main_key]
             out_details[mdl_cname][mdl_resnum] = data[
                 trg_idx, mdl_idx]
-
 
         unassigned_trg, unassigned_mdl = self._assign_unassigned(
             assigned_trg, assigned_mdl, [out_main], [out_details], [main_key])
