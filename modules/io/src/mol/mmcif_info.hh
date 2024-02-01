@@ -1233,6 +1233,10 @@ public:
   void SetEntityDesc(const String& entity_id,
                      const MMCifEntityDesc& entity_desc);
 
+  std::vector<String> GetEntityIds() const;
+
+  std::vector<String> GetEntityIdsOfType(const String& type) const;
+
 //protected:
 
 private:

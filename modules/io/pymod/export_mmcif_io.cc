@@ -550,6 +550,8 @@ void export_mmcif_io()
     .def("GetEntityBranchChains", &MMCifInfo::GetEntityBranchChains)
     .def("SetEntityDesc", &MMCifInfo::SetEntityDesc)
     .def("GetEntityDesc", &MMCifInfo::GetEntityDesc, return_value_policy<copy_const_reference>())
+    .def("GetEntityIds", &MMCifInfo::GetEntityIds)
+    .def("GetEntityIdsOfType", &MMCifInfo::GetEntityIdsOfType)
     .add_property("citations", make_function(&MMCifInfo::GetCitations,
                                    return_value_policy<copy_const_reference>()))
     .add_property("biounits", make_function(&MMCifInfo::GetBioUnits,

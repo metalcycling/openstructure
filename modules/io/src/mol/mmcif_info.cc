@@ -310,6 +310,24 @@ void MMCifInfo::SetEntityDesc(const String& entity_id,
   entity_desc_[entity_id] = entity_desc;
 }
 
+std::vector<String> MMCifInfo::GetEntityIds() const {
+  std::vector<String> vec;
+  for(auto it: entity_desc_) {
+    vec.push_back(it.first);
+  }
+  return vec;
+}
+
+std::vector<String> MMCifInfo::GetEntityIdsOfType(const String& entity_type) const {
+  std::vector<String> vec;
+  for(auto it: entity_desc_) {
+    if(it.second.entity_type == entity_type) {
+      vec.push_back(it.first);
+    }
+  }
+  return vec;
+}
+
 std::ostream& operator<<(std::ostream& os, const MMCifInfoEntityBranchLink& eb)
 {
   os << "<MMCifInfoEntityBranchLink atom1:" << eb.GetAtom1() << " atom2:"
