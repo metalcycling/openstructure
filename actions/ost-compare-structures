@@ -579,8 +579,14 @@ def _LoadStructure(structure_path, sformat, fault_tolerant, bu_idx):
             cif_entity, cif_seqres, cif_info = \
             io.LoadMMCIF(structure_path, info=True, seqres=True,
                          fault_tolerant=fault_tolerant)
-            if bu_idx >= len(cif_info.biounits):
-                raise RuntimeError(f"Invalid biounit index - requested {bu_idx} "
+            if len(cif_info.biounits) == 0:
+                raise RuntimeError(f"No biounit found - requested index"
+                                   f" {bu_idx}.")
+            elif bu_idx < 0:
+                raise RuntimeError(f"Invalid biounit - requested index {bu_idx}, "
+                                   f"must be a positive integer or 0.")
+            elif bu_idx >= len(cif_info.biounits):
+                raise RuntimeError(f"Invalid biounit - requested index {bu_idx}, "
                                    f"must be < {len(cif_info.biounits)}.")
             biounit = cif_info.biounits[bu_idx]
             entity = ost.mol.alg.CreateBU(cif_entity, biounit)
