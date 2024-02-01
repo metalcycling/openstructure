@@ -1,0 +1,8 @@
+p=gfx.PrimList("p")
+p.AddLine(geom.Vec3(0,0,0),geom.Vec3(5,0,0))
+p.AddLine(geom.Vec3(0,0,0),geom.Vec3(0,5,0))
+p.AddLine(geom.Vec3(0,0,0),geom.Vec3(0,0,5))
+p.SetColor(gfx.YELLOW)
+scene.Add(p)
+p.SetLineWidth(5)
+p.SetAALines(True)

@@ -1,0 +1,5 @@
+add_subdirectory(base)
+add_subdirectory(alg)
+if (ENABLE_MM)
+  add_subdirectory(mm)
+endif()

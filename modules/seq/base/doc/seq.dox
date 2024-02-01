@@ -1,0 +1,35 @@
+namespace ost { namespace seq {
+
+/*!
+  \page module_seq The Sequence Module
+  
+  \section seq_mod The seq Module
+  
+  In bioinformatics, biological sequence data occurs in 3 different ways: As a 
+  single sequences, lists of sequences and in form of sequence alignments. These 
+  3 ways of looking at sequence data is encoded in the seq module by 3 different 
+  classes. The simplest of this classes is the SequenceHandle, representing a 
+  single sequence. To represent a list of sequences, the module provides the
+  SequenceList class and alignment-based data is represented by AlignmentHandle.  
+  The main difference between the SequenceList and AlignmentHandle classes is,
+  that the sequence list classes are mainly used sequence-wise, while in
+  Alignments one often looks at an aligned column. This results in a drastically
+  different interface, even if both of them work on lists of sequences.
+  
+  \subsection seq_io Sequence IO
+  
+  Sequence IO is dealt-with in the io module. To load single sequences, use
+  ost::io::LoadSequence(), sequence lists use ost::io::LoadSequenceList(), 
+  and alignments use ost::io::LoadAlignment().
+  
+  
+  \subsection seq_conv Converting between alignments and sequence lists
+  
+  AlignmentHandle::GetSequences() provides read-only access to a sequence-based 
+  view. To create an alignment from a list of sequences, use 
+  \ref AlignmentFromSequenceList(const SequenceList&). This method will fail when 
+  not  all of the sequences have the same length. If the sequence lengths differ, 
+  they have to be padded accordingly.
+  
+ */
+}}

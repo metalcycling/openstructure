@@ -1,0 +1,23 @@
+data_multiline_loop
+loop_
+_a.u
+_a.v
+_a.w
+_a.x
+_a.y
+_a.z
+A B C 
+D 
+E F
+G 
+H
+I 
+J 
+K 
+L
+M 
+N 
+O 
+P 
+Q 
+R

@@ -1,0 +1,25 @@
+COMPND    MOL_ID: 1;                                                            
+COMPND   2 MOLECULE: INHIBIN BETA A CHAIN;                                      
+COMPND   3 CHAIN: A, B;                                                         
+COMPND   4 SYNONYM: ACTIVIN BETA-A CHAIN, ERYTHROID DIFFERENTIATION             
+COMPND   5 PROTEIN, EDF;                                                        
+COMPND   6 ENGINEERED: YES;                                                     
+COMPND   7 MOL_ID: 2;                                                           
+COMPND   8 MOLECULE: FOLLISTATIN;                                               
+COMPND   9 CHAIN: D, C;                                                         
+COMPND  10 SYNONYM: FS, ACTIVIN-BINDING PROTEIN;                                
+COMPND  11 ENGINEERED: YES;                                                     
+COMPND  12 MOL_ID: 3;                                                           
+COMPND  13 MOLECULE:;                                                           
+COMPND  14 CHAIN: E;                                                            
+COMPND  15 ENGINEERED: YES
+ATOM    882  OXT SER A 116      15.399  37.353  44.611  1.00 73.37           O  
+TER     883      SER A 116                                                      
+ATOM   3870  OXT SER B 116      13.780  40.357  30.274  1.00 27.95           O  
+TER    3871      SER B 116                                                      
+ATOM   2987  OE2 GLU D 299      33.348  36.499   4.332  1.00 81.88           O  
+TER    2988      GLU D 299                                                      
+ATOM   5905  CB  ILE C 290      46.026  -9.354  55.435  1.00233.79           C  
+TER    5906      ILE C 290                                                      
+ATOM   5956  CB  ALA E  10      30.651  13.129  53.296  1.00191.07           C  
+TER    5957      ALA E  10  

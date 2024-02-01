@@ -1,0 +1,78 @@
+namespace ost { namespace gfx {
+
+/*!
+
+ \page gfx_ent Graphical Entity
+ 
+ \section gfx_ent_intro Introduction
+ 
+ The main bunch of functionality to render molecular entities is provided by the
+ Entity class. The rendering is very flexible: The coloring and render style of
+ every atom and bond can be configured independently. 
+ 
+ 
+ \section gfx_color Coloring
+ 
+ The graphical entity has a sophisticated interface to modify the color of an
+ entity. A very common use-case is to color an entity based on the atom
+ elements with Entity::ColorByElement(). Entity::SetColor() is used to set the
+ color of one or more atoms to a uniform color. To set the full entity to a nice
+ red color, use
+ 
+ \code
+  gfx::Entity gfx_ent=...;
+  gfx_ent->SetColor(gfx::RED)
+ \endcode
+
+It is also possible to only change the color of certain parts:
+
+\code
+  gfx::Entity gfx_ent=...;
+  gfx_ent->SetColor(gfx::RED, "rname=ARG");
+\endcode
+
+
+ One of the most powerful features is the functionality offered by
+ Entity::ColorBy(). These functions allow you to map numeric properties to
+ colors. For example, to color an entity from N- to C-terminus in a gradient
+ from RED to BLUE, use the following code:
+
+\code
+  gfx::Entity gfx_ent=...;
+  gfx_ent->ColorBy('rnum', gfx::RED, gfx::BLUE);
+\endcode
+ 
+ Here, rnum refers to residue number. All numeric properties that are undestood
+ by the query language can be used as an argument to ColorBy. In addition,
+ ColorBy can also use generic properties.
+ 
+ The color operations are remembered, even after changing the render mode. If
+ you plan to change the color of an entity repeatedly it is of importance to
+ reset the color state of the entity to remove unneccessary color operations by
+ calling Entity::CleanColorOps().
+ 
+ \subsection gfx_detail_color Fine-tuning the coloring
+ 
+ The \ref RenderMode::HSC "cartoon" render mode uses two colors to color the
+ secondary structure elements. The main color affects the top and bottom of
+ extended  and the outside of helical elements. The %detail color is used for
+ the inner side of helices and the rim of extended elements. This color is
+ changed with Entity::SetDetailColor(). 
+ 
+\section gfx_rm Render Modes
+
+Render modes broadly fall into categories: Render modes at full connectivity level such as the \ref RenderMode::SIMPLE "simple", \ref RenderMode::CPK "spheres" and  \ref RenderMode::CUSTOM "balls & sticks" render modes and render modes that simplify the geometry of molecular entities. The latter class is represented by the \ref RenderMode::LINE_TRACE "trace", \ref RenderMode::SLINE "smooth line", \ref RenderMode::TUBE "tube" and \ref RenderMode::HSC "cartoon" render modes. Each of the entities can have more than one render mode at the same time, for example rendering one part at full connectivity level and one part at reduced %detail level. The following Python code snippet shows how to display an entity with a smooth backbone and showing sidechains that are close to the bound HEM at full connectivity. This example makes heavy use of the query language, for reference \ref query "see here".
+
+\code
+myo_go.SetRenderMode(gfx.SLINE)
+near_hem=myo_go.view.Select('5.0 <> [rname=HEM]', mol.MATCH_RESIDUES)
+ss_near_hem=near_hem.Select('aname!=CA,C,N,O', mol.EXCLUSIVE_BONDS)
+myo_go.SetRenderMode(gfx.SIMPLE, ss_near_hem)
+\endcode
+
+\section gfx_sel Selection
+
+Graphical entities have a selection. By default, the selection is rendered using a green halo. The view that describes the selection can be obtained with gfx::Entity::GetSelection() and changed with gfx::Entity::SetSelection().
+ */
+
+}}

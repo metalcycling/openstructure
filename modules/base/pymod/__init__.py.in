@@ -1,0 +1,135 @@
+#------------------------------------------------------------------------------
+# This file is part of the OpenStructure project <www.openstructure.org>
+#
+# Copyright (C) 2008-2020 by the OpenStructure authors
+#
+# This library is free software; you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation; either version 3.0 of the License, or (at your option)
+# any later version.
+# This library is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this library; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+#------------------------------------------------------------------------------
+import os
+
+__all__=['CharList','Correl', 'FileLogSink', 'FloatList', 'FloatMatrix', 'FloatMatrix3', 'FloatMatrix4', 'GetCurrentLogSink', 'GetPrefixPath', 'GetSharedDataPath', 'GetVerbosityLevel', 'Histogram', 'IntList', 'LogDebug', 'LogError', 'LogInfo', 'LogScript', 'LogSink', 'LogTrace', 'LogVerbose', 'LogWarning', 'Max', 'Mean', 'Median', 'Min', 'MultiLogSink', 'PopLogSink', 'PopVerbosityLevel', 'PushLogSink', 'PushVerbosityLevel', 'Range', 'SetPrefixPath', 'StdDev', 'StreamLogSink', 'StringList', 'StringLogSink', 'Units', 'VERSION', 'VERSION_MAJOR', 'VERSION_MINOR', 'VERSION_PATCH', 'WITH_NUMPY', 'conop', 'geom', 'io', 'mol', 'seq', 'stutil' @ALL_ADDITIONAL_MODULES@]
+
+from ._ost_base import *
+from .stutil import *
+from ost import conop
+
+__version__ = _ost_base.VERSION
+
+class StreamLogSink(LogSink):
+  def __init__(self, stream):
+    LogSink.__init__(self)
+    self._stream=stream
+  def LogMessage(self, message, level):
+    self._stream.write(message)
+
+
+def _GetPrefixFromPythonPath():
+  """Get the prefix from this file's path"""
+  prefix_path = __file__
+  for _ in range(5):
+    prefix_path = os.path.dirname(prefix_path)
+  return prefix_path
+
+
+def _SetupOstPrefix():
+  """ This function attempts to set the OST prefix path if $OST_ROOT was not
+  set already.
+
+  It does so by assuming that the __init__.py file is located under
+  $OST_ROOT/lib(64)?/pythonX.XX/site-packages/ost. This might not be the case
+  in all settings (conda, pip?). In that case this function should be
+  adapted.
+  """
+
+  try:
+    # $OST_ROOT was set
+    # Note: this doesn't mean set to a valid prefix
+    GetPrefixPath()
+  except RuntimeError:
+    # Setup from this file's path
+    prefix_path = _GetPrefixFromPythonPath()
+    SetPrefixPath(prefix_path)
+
+
+def _TrySetCompoundsLib(path):
+  """Tries to set the compound lib to 'path', or raises a ValueError."""
+  if path is not None and os.path.exists(path):
+    compound_lib = conop.CompoundLib.Load(path)
+    if compound_lib is not None:
+      conop.SetDefaultLib(compound_lib)
+      return
+  raise ValueError("Could not load %s" % path)
+
+
+def _SetupCompoundsLib():
+  """ This function sets up the compound lib.
+
+  By order of priority, the following heuristics are used:
+
+  1. The $OST_COMPOUNDS_CHEMLIB environment variable
+  2. The 'compounds.chemlib' file in the shared path under the folder pointed
+    by the $OST_ROOT environment variable
+  3. The 'compounds.chemlib' file in the shared path under the OST prefix where
+    the ost python module is installed.
+
+  If no compound library can be loaded with any of these strategies, a warning
+  message is issued.
+
+  """
+  # Try with the $OST_COMPOUNDS_CHEMLIB environment variable
+  compound_lib_path = os.getenv("OST_COMPOUNDS_CHEMLIB")
+  if compound_lib_path:
+    compound_lib = conop.CompoundLib.Load(compound_lib_path)
+    if compound_lib is None:
+      raise RuntimeError("Could not load $OST_COMPOUNDS_CHEMLIB as a compound "
+                         "library: '%s'." % compound_lib_path)
+    else:
+      conop.SetDefaultLib(compound_lib)
+      return
+
+  # Try from GetSharedDataPath() - requires $OST_ROOT to be set.
+  try:
+    compound_lib_path = os.path.join(GetSharedDataPath(), 'compounds.chemlib')
+    _TrySetCompoundsLib(compound_lib_path)
+  except (RuntimeError, ValueError):
+    pass
+  else:
+    return
+
+  # If OST_ROOT was pointing to a root with no compound lib or to an invalid
+  # root, try
+  try:
+    old_prefix = GetPrefixPath()  # This is set by now and won't raise
+    prefix_path = _GetPrefixFromPythonPath()
+    SetPrefixPath(prefix_path)
+    compound_lib_path = os.path.join(GetSharedDataPath(), 'compounds.chemlib')
+    _TrySetCompoundsLib(compound_lib_path)
+  except  (RuntimeError, ValueError):
+    SetPrefixPath(old_prefix)
+  else:
+    # If we're here, OST root was set but the prefix did not contain a compound
+    # lib, but the root obtained from the python path contained one.
+    # Most likely OST_ROOT was set incorrectly
+    LogWarning("$OST_ROOT is pointing to an invalid OST prefix: '%s'" % (
+      os.getenv("OST_ROOT")))
+    return
+
+  LogWarning("Compound library not available. Some functionality may not " \
+             "work as expected.")
+
+
+# Setup OST
+PushVerbosityLevel(LogLevel.Script)
+_SetupOstPrefix()
+_SetupCompoundsLib()

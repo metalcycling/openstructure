@@ -1,0 +1,98 @@
+namespace ost { namespace conop {
+/**
+\page module_conop The conop module
+
+\section conop_module_intro The conop module
+
+The main task of the conop module is to connect atoms with bonds. While the 
+bond class is also part of the base module, the conop module deals with setting
+up the correct bonds between atoms.
+
+\subsection conop_motivation Motivation
+
+Traditionally the connectivity between atoms has not been reliably described in
+ a PDB file. Different programs adopted various ways of finding out if two atoms
+ are connected. One way chosen is to rely on proper naming of the atoms. For 
+example, the backbone atoms of the standard amino acids are named as N, CA, C 
+and O and if atoms with these name appear in the same residue they are shown 
+connected. Another way is to apply additional heuristics to find out if a peptide
+ bond between two consecutive residues is formed. Breaks in the backbone are 
+indicated, e.g., by introducing a discontinuity in the numbering of the residue.
+
+Loader heuristics are great if you are the one that implemented them but are 
+problematic if you are just the user of a software that has them. As time goes 
+on, these heuristics become buried in thousands of lines of code and they are 
+often hard yet impossible to trace back.
+
+Different clients of the framework have different requirements. A visualisation 
+software wants to read in a PDB files as is without making any changes. A 
+script in an automated pipeline, however, does want to either strictly reject 
+files that are incomplete or fill-in missing structural features. All these 
+aspects are implemented in the conop module, separated from the loading of the 
+PDB file, giving clients a fine grained control over the loading process. 
+
+\subsection builder_interface The Builder interface
+
+The conop module defines a Builder interface, to run connectivity algorithms, 
+that is to connect the atoms with bonds and perform basic clean up of 
+errorneous structures. The clients of the conop module can specify how the 
+Builder should treat unknown amino acids, missing atoms and chemically 
+infeasible bonds.
+
+So far, two classes implement the Builder interface: A heuristic and a 
+rule-based processor. The builders mainly differ in the source of their 
+connectivity information. The HeuristicBuilder uses a hard-coded heuristic 
+connectivity table for the 20 standard amino acids as well as nucleotides. 
+For other compounds such as ligands the HeuristicBuilder runs a distance-based 
+connectivity algorithm that connects two atoms if they are closer than a 
+certain threshold. The RuleBasedBuilder uses a connectivity library containing 
+all molecular components present in the PDB files on PDB.org. The library can 
+easily be extended with custom connectivity information, if required. By 
+default the heuristic builder is used, however the builder may be switched by
+setting the !RuleBasedBuilder as the default. To do so, one has first to 
+create a new instance of a !RuleBasedBuilder and register it in the builder 
+registry of the conop module. In Python, this can be achieved with
+
+\code
+from ost import conop
+compound_lib=conop.CompoundLib.Load('...')
+rbb=conop.RuleBasedBuilder(compound_lib)
+conop.Conopology.Instance().RegisterBuilder(rbb,'rbb')
+conop.Conopology.Instance().SetDefaultBuilder('rbb')
+\endcode
+
+All subsequent calls to io::LoadEntity will make use of the RuleBasedBuilder 
+instead of the heuristic builder. See \ref convert_mmcif "here" for more 
+information on how to create the neccessary files to use the rule-based processor.
+
+\subsection connecting_atoms Connecting atoms
+
+The high level interface is exposed by the Conopoloy singleton instance:
+
+\code
+from ost import conop
+
+cc=conop.Conopology.Instance()
+
+ent=BuildRawModel(...)
+cc.ConnectAll(cc.GetBuilder(), ent)
+\endcode
+
+
+For fine grained control, the builder interface may be used directly.
+
+
+\subsection convert_mmcif Convert MM CIF dictionary
+
+The CompoundLib may be created from a MM CIF dictionary. The latest dictionary 
+can be found on the <a href="http://www.wwpdb.org/ccd.html">wwPDB site</a>. 
+
+After downloading the file in MM CIF use the chemdict_tool to convert the MM CIF 
+dictionary into our internal format.
+
+\code
+chemdict_tool create components.cif compounds.chemlib
+\endcode
+
+*/
+}}

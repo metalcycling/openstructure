@@ -1,0 +1,4 @@
+first[unknown] second[int] third[float]
+x 3 NA
+foo NA 2.2
+NA 9 3.3

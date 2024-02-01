@@ -1,0 +1,235 @@
+HEADER    HYDROLASE                               12-JUN-01   1JD2              
+TITLE     CRYSTAL STRUCTURE OF THE YEAST 20S PROTEASOME:TMC-95A                 
+TITLE    2 COMPLEX: A NON-COVALENT PROTEASOME INHIBITOR                         
+COMPND    MOL_ID: 1;                                                            
+COMPND   2 MOLECULE: PROTEASOME COMPONENT Y7;                                   
+COMPND   3 CHAIN: A, V;                                                         
+COMPND   4 SYNONYM: MACROPAIN SUBUNIT Y7, PROTEINASE YSCE SUBUNIT 7,            
+COMPND   5 MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT Y7;                     
+COMPND   6 EC: 3.4.99.46;                                                       
+COMPND   7 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND   8 MOL_ID: 2;                                                           
+COMPND   9 MOLECULE: PROTEASOME COMPONENT Y13;                                  
+COMPND  10 CHAIN: B, W;                                                         
+COMPND  11 SYNONYM: MACROPAIN SUBUNIT Y13, PROTEINASE YSCE SUBUNIT 13,          
+COMPND  12 MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT Y13;                    
+COMPND  13 EC: 3.4.99.46;                                                       
+COMPND  14 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  15 MOL_ID: 3;                                                           
+COMPND  16 MOLECULE: PROTEASOME COMPONENT PRE6;                                 
+COMPND  17 CHAIN: C, X;                                                         
+COMPND  18 SYNONYM: MACROPAIN SUBUNIT PRE6, PROTEINASE YSCE SUBUNIT             
+COMPND  19 PRE6, MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT PRE6;             
+COMPND  20 EC: 3.4.99.46;                                                       
+COMPND  21 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  22 MOL_ID: 4;                                                           
+COMPND  23 MOLECULE: PROTEASOME COMPONENT PUP2;                                 
+COMPND  24 CHAIN: D, Y;                                                         
+COMPND  25 SYNONYM: MACROPAIN SUBUNIT PUP2, PROTEINASE YSCE SUBUNIT             
+COMPND  26 PUP2, MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT PUP2;             
+COMPND  27 EC: 3.4.99.46;                                                       
+COMPND  28 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  29 MOL_ID: 5;                                                           
+COMPND  30 MOLECULE: PROTEASOME COMPONENT PRE5;                                 
+COMPND  31 CHAIN: E, Z;                                                         
+COMPND  32 SYNONYM: MACROPAIN SUBUNIT PRE5, PROTEINASE YSCE SUBUNIT             
+COMPND  33 PRE5, MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT PRE5;             
+COMPND  34 EC: 3.4.99.46;                                                       
+COMPND  35 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  36 MOL_ID: 6;                                                           
+COMPND  37 MOLECULE: PROTEASOME COMPONENT C1;                                   
+COMPND  38 CHAIN: F, 1;                                                         
+COMPND  39 SYNONYM: MACROPAIN SUBUNIT C1, PROTEINASE YSCE SUBUNIT 1,            
+COMPND  40 MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT C1;                     
+COMPND  41 EC: 3.4.99.46;                                                       
+COMPND  42 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  43 MOL_ID: 7;                                                           
+COMPND  44 MOLECULE: PROTEASOME COMPONENT C7-ALPHA;                             
+COMPND  45 CHAIN: G, 2;                                                         
+COMPND  46 SYNONYM: MACROPAIN SUBUNIT C7-ALPHA, PROTEINASE YSCE                 
+COMPND  47 SUBUNIT 7, MULTICATALYTIC ENDOPEPTIDASE COMPLEX C7,                  
+COMPND  48 COMPONENT Y8, SCL1 SUPPRESSOR PROTEIN;                               
+COMPND  49 EC: 3.4.99.46;                                                       
+COMPND  50 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  51 MOL_ID: 8;                                                           
+COMPND  52 MOLECULE: PROTEASOME COMPONENT PUP1;                                 
+COMPND  53 CHAIN: H, O;                                                         
+COMPND  54 SYNONYM: MACROPAIN SUBUNIT PUP1, PROTEINASE YSCE SUBUNIT             
+COMPND  55 PUP1, MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT PUP1;             
+COMPND  56 EC: 3.4.99.46;                                                       
+COMPND  57 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  58 MOL_ID: 9;                                                           
+COMPND  59 MOLECULE: PROTEASOME COMPONENT PUP3;                                 
+COMPND  60 CHAIN: I, P;                                                         
+COMPND  61 SYNONYM: MACROPAIN SUBUNIT PUP3, MULTICATALYTIC                      
+COMPND  62 ENDOPEPTIDASE COMPLEX SUBUNIT PUP3;                                  
+COMPND  63 EC: 3.4.99.46;                                                       
+COMPND  64 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  65 MOL_ID: 10;                                                          
+COMPND  66 MOLECULE: PROTEASOME COMPONENT C11;                                  
+COMPND  67 CHAIN: J, Q;                                                         
+COMPND  68 SYNONYM: MACROPAIN SUBUNIT C11, PROTEINASE YSCE SUBUNIT 11,          
+COMPND  69 MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT C11;                    
+COMPND  70 EC: 3.4.99.46;                                                       
+COMPND  71 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  72 MOL_ID: 11;                                                          
+COMPND  73 MOLECULE: PROTEASOME COMPONENT PRE2;                                 
+COMPND  74 CHAIN: K, R;                                                         
+COMPND  75 SYNONYM: MACROPAIN SUBUNIT PRE2, PROTEINASE YSCE SUBUNIT             
+COMPND  76 PRE2, MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT PRE2;             
+COMPND  77 EC: 3.4.99.46;                                                       
+COMPND  78 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  79 MOL_ID: 12;                                                          
+COMPND  80 MOLECULE: PROTEASOME COMPONENT C5;                                   
+COMPND  81 CHAIN: L, S;                                                         
+COMPND  82 SYNONYM: MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT C5;            
+COMPND  83 EC: 3.4.99.46;                                                       
+COMPND  84 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  85 MOL_ID: 13;                                                          
+COMPND  86 MOLECULE: PROTEASOME COMPONENT PRE4;                                 
+COMPND  87 CHAIN: M, T;                                                         
+COMPND  88 SYNONYM: MACROPAIN SUBUNIT PRE4, PROTEINASE YSCE SUBUNIT             
+COMPND  89 PRE4, MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT PRE4;             
+COMPND  90 EC: 3.4.99.46;                                                       
+COMPND  91 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND  92 MOL_ID: 14;                                                          
+COMPND  93 MOLECULE: PROTEASOME COMPONENT PRE3;                                 
+COMPND  94 CHAIN: N, U;                                                         
+COMPND  95 SYNONYM: MACROPAIN SUBUNIT PRE3, PROTEINASE YSCE SUBUNIT             
+COMPND  96 PRE3, MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT PRE3;             
+COMPND  97 EC: 3.4.99.46;                                                       
+COMPND  98 OTHER_DETAILS: PART OF 20S SUBUNIT                                   
+SOURCE    MOL_ID: 1;                                                            
+SOURCE   2 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE   3 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE   4 ORGANISM_TAXID: 4932;                                                
+SOURCE   5 VARIANT: SUB61;                                                      
+SOURCE   6 MOL_ID: 2;                                                           
+SOURCE   7 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE   8 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE   9 ORGANISM_TAXID: 4932;                                                
+SOURCE  10 VARIANT: SUB61;                                                      
+SOURCE  11 MOL_ID: 3;                                                           
+SOURCE  12 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  13 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  14 ORGANISM_TAXID: 4932;                                                
+SOURCE  15 VARIANT: SUB61;                                                      
+SOURCE  16 MOL_ID: 4;                                                           
+SOURCE  17 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  18 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  19 ORGANISM_TAXID: 4932;                                                
+SOURCE  20 VARIANT: SUB61;                                                      
+SOURCE  21 MOL_ID: 5;                                                           
+SOURCE  22 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  23 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  24 ORGANISM_TAXID: 4932;                                                
+SOURCE  25 VARIANT: SUB61;                                                      
+SOURCE  26 MOL_ID: 6;                                                           
+SOURCE  27 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  28 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  29 ORGANISM_TAXID: 4932;                                                
+SOURCE  30 VARIANT: SUB61;                                                      
+SOURCE  31 MOL_ID: 7;                                                           
+SOURCE  32 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  33 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  34 ORGANISM_TAXID: 4932;                                                
+SOURCE  35 VARIANT: SUB61;                                                      
+SOURCE  36 MOL_ID: 8;                                                           
+SOURCE  37 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  38 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  39 ORGANISM_TAXID: 4932;                                                
+SOURCE  40 VARIANT: SUB61;                                                      
+SOURCE  41 MOL_ID: 9;                                                           
+SOURCE  42 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  43 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  44 ORGANISM_TAXID: 4932;                                                
+SOURCE  45 VARIANT: SUB61;                                                      
+SOURCE  46 MOL_ID: 10;                                                          
+SOURCE  47 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  48 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  49 ORGANISM_TAXID: 4932;                                                
+SOURCE  50 VARIANT: SUB61;                                                      
+SOURCE  51 MOL_ID: 11;                                                          
+SOURCE  52 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  53 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  54 ORGANISM_TAXID: 4932;                                                
+SOURCE  55 VARIANT: SUB61;                                                      
+SOURCE  56 MOL_ID: 12;                                                          
+SOURCE  57 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  58 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  59 ORGANISM_TAXID: 4932;                                                
+SOURCE  60 VARIANT: SUB61;                                                      
+SOURCE  61 MOL_ID: 13;                                                          
+SOURCE  62 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  63 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  64 ORGANISM_TAXID: 4932;                                                
+SOURCE  65 VARIANT: SUB61;                                                      
+SOURCE  66 MOL_ID: 14;                                                          
+SOURCE  67 ORGANISM_SCIENTIFIC: SACCHAROMYCES CEREVISIAE;                       
+SOURCE  68 ORGANISM_COMMON: BAKER'S YEAST;                                      
+SOURCE  69 ORGANISM_TAXID: 4932;                                                
+SOURCE  70 VARIANT: SUB61                                                       
+CRYST1  135.200  301.300  144.800  90.00 112.60  90.00 P 1 21 1      4          
+ORIGX1      1.000000  0.000000  0.000000        0.00000                         
+ORIGX2      0.000000  1.000000  0.000000        0.00000                         
+ORIGX3      0.000000  0.000000  1.000000        0.00000                         
+SCALE1      0.007396  0.000000  0.003079        0.00000                         
+SCALE2      0.000000  0.003319  0.000000        0.00000                         
+SCALE3      0.000000  0.000000  0.007481        0.00000                         
+ATOM      1  N   MET A   4      28.301 -95.477  46.502  1.00 96.45           N  
+TER    1916      LEU A 236                                                      
+ATOM   1917  N   GLY B   4      27.994 -84.448  44.740  1.00 50.33           N  
+TER    3822      THR B 239                                                      
+ATOM   3823  N   GLY C   7      34.208 -97.009  33.201  1.00 50.31           N  
+TER    5714      GLN C 243                                                      
+ATOM   5715  N   ASP D   9      28.219 -78.631  37.237  1.00 76.77           N  
+TER    7577      GLU D 244                                                      
+ATOM   7578  N   PHE E   4      21.993 -69.916  47.141  1.00100.00           N  
+TER    9373      ILE E 233
+ATOM   9679  O   VAL F  46      13.418-102.584  77.389  1.00 32.17           O 
+TER   11271      ASN F 241                                                      
+ATOM  12005  CZ  PHE G  99      53.723-109.880  59.884  1.00 14.71           C 
+TER   13193      ASP G 240                                                      
+ATOM  13935  CD2 LEU H  99      60.124-128.103  48.517  1.00 16.80           C
+TER   14879      ASP H 223
+ATOM  15705  CD  PRO I  99      62.097-127.644  25.580  1.00 18.81           C  
+TER   16461      ASP I 194
+ATOM  17263  CG2 VAL J  99      45.047-124.714   5.794  1.00 18.57           C  
+TER   18047      GLN J 193
+ATOM  18799  CG2 THR K  99      17.404-128.009   7.979  1.00 19.48           C 
+TER   19692      GLY K 211
+ATOM  20562  CG2 THR L  99       4.134-131.267  28.073  1.00 19.48           C 
+TER   21450      ASP L 194
+ATOM  22337  CD1 ILE M  99      12.638-131.616  53.659  1.00 26.08           C 
+TER   23275      ILE M 211
+ATOM  24739  OD2 ASP N 187E     59.768-149.472  77.487  1.00 64.02           O  
+TER   24788      LEU N 187J
+ATOM  26473  OXT ASP O 223      -5.907-188.758   6.722  1.00 98.61           O 
+TER   26474      ASP O 223
+ATOM  28055  OXT ASP P 194       3.657-149.037   7.823  1.00 34.45           O 
+TER   28056      ASP P 194
+ATOM  29641  OXT GLN Q 193      24.140-152.348 -24.022  1.00100.00           O 
+TER   29642      GLN Q 193
+ATOM  31286  OXT GLY R 211      74.016-134.906  -3.438  1.00 48.67           O  
+TER   31287      GLY R 211
+ATOM  33044  OXT ASP S 194      71.741-145.661  42.116  1.00 34.69           O 
+TER   33045      ASP S 194
+ATOM  34869  OXT ILE T 211      52.121-126.985  73.857  1.00 56.59           O 
+TER   34870      ILE T 211
+ATOM  36382  OXT LEU U 187J     25.540-152.618  82.141  1.00 53.12           O 
+TER   36383      LEU U 187J                                                     
+ATOM  38298  OXT LEU V 236     -19.191-220.702  46.673  1.00100.00           O  
+TER   38299      LEU V 236                                                      
+ATOM  40204  OXT THR W 239     -14.887-218.292   6.390  1.00100.00           O  
+TER   40205      THR W 239                                                      
+ATOM  42096  OXT GLN X 243      34.177-224.401 -37.697  1.00100.00           O  
+TER   42097      GLN X 243                                                      
+ATOM  43959  OXT GLU Y 244      85.893-218.074 -11.687  1.00100.00           O  
+TER   43960      GLU Y 244                                                      
+ATOM  45755  OXT ILE Z 233      93.033-209.747  28.343  1.00 95.44           O  
+TER   45756      ILE Z 233                                                      
+ATOM  47653  OXT ASN 1 241      71.482-223.811  75.194  1.00100.00           O  
+TER   47654      ASN 1 241                                                      
+ATOM  49575  OXT ASP 2 240      18.452-223.885  86.624  1.00100.00           O  
+TER   49576      ASP 2 240                                           
+END                                                                             

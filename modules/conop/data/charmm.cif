@@ -1,0 +1,2247 @@
+data_ALA
+_chem_comp.id                                    ALA 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C3 H11 N O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       A
+_chem_comp.three_letter_code                     ALA 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+ALA N N N 0 N N N N ALA 1
+ALA CA CA C 0 N N N CA ALA 2
+ALA C C C 0 N N N C ALA 3
+ALA O O O 0 N Y N O ALA 4
+ALA CB CB C 0 N N N CB ALA 5
+ALA HA HA H 0 N N N HA ALA 6
+ALA HN HN H 0 N N N HN ALA 7
+ALA HB1 HB1 H 0 N N N HB1 ALA 8
+ALA HB2 HB2 H 0 N N N HB2 ALA 9
+ALA HB3 HB3 H 0 N N N HB3 ALA 10
+ALA OT1 OT1 O 0 N Y N OT1 ALA 11
+ALA OT2 OT2 O 0 N Y N OT2 ALA 12
+ALA HT1 HT1 H 0 N N N HT1 ALA 13
+ALA HT2 HT2 H 0 N N N HT2 ALA 14
+ALA HT3 HT3 H 0 N N N HT3 ALA 15
+ALA HT1 HT1 H 0 N N N HT1 ALA 16
+ALA HT2 HT2 H 0 N N N HT2 ALA 17
+ALA HT3 HT3 H 0 N N N HT3 ALA 18
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+ALA CB CA SING N N 1
+ALA N HN SING N N 2
+ALA N CA SING N N 3
+ALA C CA SING N N 4
+ALA CA HA SING N N 5
+ALA CB HB1 SING N N 6
+ALA CB HB2 SING N N 7
+ALA CB HB3 SING N N 8
+ALA O C SING N N 9
+ALA OT1 C SING N N 10
+ALA OT2 C SING N N 11
+ALA HT1 NH SING N N 12
+ALA HT2 NH SING N N 13
+ALA HT3 NH SING N N 14
+data_ARG
+_chem_comp.id                                    ARG 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C6 H16 N4 O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       R
+_chem_comp.three_letter_code                     ARG 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+ARG N N N 0 N N N N ARG 1
+ARG CA CA C 0 N N N CA ARG 2
+ARG C C C 0 N N N C ARG 3
+ARG O O O 0 N Y N O ARG 4
+ARG CB CB C 0 N N N CB ARG 5
+ARG CG CG C 0 N N N CG ARG 6
+ARG CD CD C 0 N N N CD ARG 7
+ARG NE NE N 0 N N N NE ARG 8
+ARG CZ CZ C 0 N N N CZ ARG 9
+ARG NH1 NH1 N 0 N N N NH1 ARG 10
+ARG NH2 NH2 N 0 N N N NH2 ARG 11
+ARG HN HN H 0 N N N HN ARG 12
+ARG HB1 HB1 H 0 N N N HB1 ARG 13
+ARG HB2 HB2 H 0 N N N HB2 ARG 14
+ARG HA HA H 0 N N N HA ARG 15
+ARG HG1 HG1 H 0 N N N HG1 ARG 16
+ARG HG2 HG2 H 0 N N N HG2 ARG 17
+ARG HD1 HD1 H 0 N N N HD1 ARG 18
+ARG HD2 HD2 H 0 N N N HD2 ARG 19
+ARG HH11 HH11 H 0 N N N HH11 ARG 20
+ARG HH12 HH12 H 0 N N N HH12 ARG 21
+ARG HH21 HH21 H 0 N N N HH21 ARG 22
+ARG HH22 HH22 H 0 N N N HH22 ARG 23
+ARG HE HE H 0 N N N HE ARG 24
+ARG OT1 OT1 O 0 N Y N OT1 ARG 25
+ARG OT2 OT2 O 0 N Y N OT2 ARG 26
+ARG HT1 HT1 H 0 N N N HT1 ARG 27
+ARG HT2 HT2 H 0 N N N HT2 ARG 28
+ARG HT3 HT3 H 0 N N N HT3 ARG 29
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+ARG CB CA SING N N 1
+ARG CG CB SING N N 2
+ARG CD CG SING N N 3
+ARG NE CD SING N N 4
+ARG CZ NE SING N N 5
+ARG NH2 CZ SING N N 6
+ARG N HN SING N N 7
+ARG N CA SING N N 8
+ARG C CA SING N N 9
+ARG CA HA SING N N 10
+ARG CB HB1 SING N N 11
+ARG CB HB2 SING N N 12
+ARG CG HG1 SING N N 13
+ARG CG HG2 SING N N 14
+ARG CD HD1 SING N N 15
+ARG CD HD2 SING N N 16
+ARG NE HE SING N N 17
+ARG NH1 HH11 SING N N 18
+ARG NH1 HH12 SING N N 19
+ARG NH2 HH21 SING N N 20
+ARG NH2 HH22 SING N N 21
+ARG O C SING N N 22
+ARG CZ NH1 SING N N 23
+ARG OT1 C SING N N 24
+ARG OT2 C SING N N 25
+ARG HT1 NH SING N N 26
+ARG HT2 NH SING N N 27
+ARG HT3 NH SING N N 28
+data_ASN
+_chem_comp.id                                    ASN 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C4 H9 N2 O4" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       N
+_chem_comp.three_letter_code                     ASN 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+ASN N N N 0 N N N N ASN 1
+ASN CA CA C 0 N N N CA ASN 2
+ASN C C C 0 N N N C ASN 3
+ASN O O O 0 N Y N O ASN 4
+ASN CB CB C 0 N N N CB ASN 5
+ASN CG CG C 0 N N N CG ASN 6
+ASN OD1 OD1 O 0 N N N OD1 ASN 7
+ASN ND2 ND2 N 0 N N N ND2 ASN 8
+ASN HN HN H 0 N N N HN ASN 9
+ASN HA HA H 0 N N N HA ASN 10
+ASN HB1 HB1 H 0 N N N HB1 ASN 11
+ASN HB2 HB2 H 0 N N N HB2 ASN 12
+ASN HD21 HD21 H 0 N N N HD21 ASN 13
+ASN HD22 HD22 H 0 N N N HD22 ASN 14
+ASN OT1 OT1 O 0 N Y N OT1 ASN 15
+ASN OT2 OT2 O 0 N Y N OT2 ASN 16
+ASN HT1 HT1 H 0 N N N HT1 ASN 17
+ASN HT2 HT2 H 0 N N N HT2 ASN 18
+ASN HT3 HT3 H 0 N N N HT3 ASN 19
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+ASN CB CA SING N N 1
+ASN CG CB SING N N 2
+ASN ND2 CG SING N N 3
+ASN N HN SING N N 4
+ASN N CA SING N N 5
+ASN C CA SING N N 6
+ASN CA HA SING N N 7
+ASN CB HB1 SING N N 8
+ASN CB HB2 SING N N 9
+ASN ND2 HD21 SING N N 10
+ASN ND2 HD22 SING N N 11
+ASN C O SING N N 12
+ASN CG OD1 SING N N 13
+ASN OT1 C SING N N 14
+ASN OT2 C SING N N 15
+ASN HT1 NH SING N N 16
+ASN HT2 NH SING N N 17
+ASN HT3 NH SING N N 18
+data_ASP
+_chem_comp.id                                    ASP 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C4 H7 N O5" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       D
+_chem_comp.three_letter_code                     ASP 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+ASP N N N 0 N N N N ASP 1
+ASP CA CA C 0 N N N CA ASP 2
+ASP C C C 0 N N N C ASP 3
+ASP O O O 0 N Y N O ASP 4
+ASP CB CB C 0 N N N CB ASP 5
+ASP CG CG C 0 N N N CG ASP 6
+ASP OD1 OD1 O 0 N N N OD1 ASP 7
+ASP OD2 OD2 O 0 N N N OD2 ASP 8
+ASP HA HA H 0 N N N HA ASP 9
+ASP HB1 HB1 H 0 N N N HB1 ASP 10
+ASP HB2 HB2 H 0 N N N HB2 ASP 11
+ASP HN HN H 0 N N N HN ASP 12
+ASP OT1 OT1 O 0 N Y N OT1 ASP 13
+ASP OT2 OT2 O 0 N Y N OT2 ASP 14
+ASP HT1 HT1 H 0 N N N HT1 ASP 15
+ASP HT2 HT2 H 0 N N N HT2 ASP 16
+ASP HT3 HT3 H 0 N N N HT3 ASP 17
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+ASP CB CA SING N N 1
+ASP CG CB SING N N 2
+ASP OD2 CG SING N N 3
+ASP N HN SING N N 4
+ASP N CA SING N N 5
+ASP C CA SING N N 6
+ASP CA HA SING N N 7
+ASP CB HB1 SING N N 8
+ASP CB HB2 SING N N 9
+ASP O C SING N N 10
+ASP CG OD1 SING N N 11
+ASP OT1 C SING N N 12
+ASP OT2 C SING N N 13
+ASP HT1 NH SING N N 14
+ASP HT2 NH SING N N 15
+ASP HT3 NH SING N N 16
+data_ASPP
+_chem_comp.id                                    ASPP 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C4 H8 N O5" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       D
+_chem_comp.three_letter_code                     ASPP 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+ASPP N N N 0 N N N N ASPP 1
+ASPP CA CA C 0 N N N CA ASPP 2
+ASPP C C C 0 N N N C ASPP 3
+ASPP O O O 0 N Y N O ASPP 4
+ASPP CB CB C 0 N N N CB ASPP 5
+ASPP CG CG C 0 N N N CG ASPP 6
+ASPP OD1 OD1 O 0 N N N OD1 ASPP 7
+ASPP OD2 OD2 O 0 N N N OD2 ASPP 8
+ASPP HN HN H 0 N N N HN ASPP 9
+ASPP HA HA H 0 N N N HA ASPP 10
+ASPP HB1 HB1 H 0 N N N HB1 ASPP 11
+ASPP HB2 HB2 H 0 N N N HB2 ASPP 12
+ASPP HD2 HD2 H 0 N N N HD2 ASPP 13
+ASPP OT1 OT1 O 0 N Y N OT1 ASPP 14
+ASPP OT2 OT2 O 0 N Y N OT2 ASPP 15
+ASPP HT1 HT1 H 0 N N N HT1 ASPP 16
+ASPP HT2 HT2 H 0 N N N HT2 ASPP 17
+ASPP HT3 HT3 H 0 N N N HT3 ASPP 18
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+ASPP CB CA SING N N 1
+ASPP CG CB SING N N 2
+ASPP OD2 CG SING N N 3
+ASPP OD2 HD2 SING N N 4
+ASPP N HN SING N N 5
+ASPP N CA SING N N 6
+ASPP C CA SING N N 7
+ASPP CA HA SING N N 8
+ASPP CB HB1 SING N N 9
+ASPP CB HB2 SING N N 10
+ASPP O C SING N N 11
+ASPP CG OD1 SING N N 12
+ASPP OT1 C SING N N 13
+ASPP OT2 C SING N N 14
+ASPP HT1 NH SING N N 15
+ASPP HT2 NH SING N N 16
+ASPP HT3 NH SING N N 17
+data_CYS
+_chem_comp.id                                    CYS 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C3 H8 N O3 S" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       C
+_chem_comp.three_letter_code                     CYS 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+CYS N N N 0 N N N N CYS 1
+CYS CA CA C 0 N N N CA CYS 2
+CYS C C C 0 N N N C CYS 3
+CYS O O O 0 N Y N O CYS 4
+CYS CB CB C 0 N N N CB CYS 5
+CYS SG SG S 0 N N N SG CYS 6
+CYS HA HA H 0 N N N HA CYS 7
+CYS HN HN H 0 N N N HN CYS 8
+CYS HB1 HB1 H 0 N N N HB1 CYS 9
+CYS HB2 HB2 H 0 N N N HB2 CYS 10
+CYS HG1 HG1 H 0 N N N HG1 CYS 11
+CYS OT1 OT1 O 0 N Y N OT1 CYS 12
+CYS OT2 OT2 O 0 N Y N OT2 CYS 13
+CYS HT1 HT1 H 0 N N N HT1 CYS 14
+CYS HT2 HT2 H 0 N N N HT2 CYS 15
+CYS HT3 HT3 H 0 N N N HT3 CYS 16
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+CYS CB CA SING N N 1
+CYS SG CB SING N N 2
+CYS N HN SING N N 3
+CYS N CA SING N N 4
+CYS C CA SING N N 5
+CYS CA HA SING N N 6
+CYS CB HB1 SING N N 7
+CYS CB HB2 SING N N 8
+CYS SG HG1 SING N N 9
+CYS O C SING N N 10
+CYS OT1 C SING N N 11
+CYS OT2 C SING N N 12
+CYS HT1 NH SING N N 13
+CYS HT2 NH SING N N 14
+CYS HT3 NH SING N N 15
+data_CYS2
+_chem_comp.id                                    CYS2 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C3 H7 N O3 S" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       C
+_chem_comp.three_letter_code                     CYS2 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+CYS2 N N N 0 N N N N CYS2 1
+CYS2 CA CA C 0 N N N CA CYS2 2
+CYS2 C C C 0 N N N C CYS2 3
+CYS2 O O O 0 N Y N O CYS2 4
+CYS2 CB CB C 0 N N N CB CYS2 5
+CYS2 SG SG S 0 N N N SG CYS2 6
+CYS2 HN HN H 0 N N N HN CYS2 7
+CYS2 HA HA H 0 N N N HA CYS2 8
+CYS2 HB1 HB1 H 0 N N N HB1 CYS2 9
+CYS2 HB2 HB2 H 0 N N N HB2 CYS2 10
+CYS2 OT1 OT1 O 0 N Y N OT1 CYS2 11
+CYS2 OT2 OT2 O 0 N Y N OT2 CYS2 12
+CYS2 HT1 HT1 H 0 N N N HT1 CYS2 13
+CYS2 HT2 HT2 H 0 N N N HT2 CYS2 14
+CYS2 HT3 HT3 H 0 N N N HT3 CYS2 15
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+CYS2 CB CA SING N N 1
+CYS2 SG CB SING N N 2
+CYS2 N HN SING N N 3
+CYS2 N CA SING N N 4
+CYS2 C CA SING N N 5
+CYS2 CA HA SING N N 6
+CYS2 CB HB1 SING N N 7
+CYS2 CB HB2 SING N N 8
+CYS2 O C SING N N 9
+CYS2 OT1 C SING N N 10
+CYS2 OT2 C SING N N 11
+CYS2 HT1 NH SING N N 12
+CYS2 HT2 NH SING N N 13
+CYS2 HT3 NH SING N N 14
+data_GLN
+_chem_comp.id                                    GLN 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C5 H11 N2 O4" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       N
+_chem_comp.three_letter_code                     GLN 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+GLN N N N 0 N N N N GLN 1
+GLN CA CA C 0 N N N CA GLN 2
+GLN C C C 0 N N N C GLN 3
+GLN O O O 0 N Y N O GLN 4
+GLN CB CB C 0 N N N CB GLN 5
+GLN CG CG C 0 N N N CG GLN 6
+GLN CD CD C 0 N N N CD GLN 7
+GLN OE1 OE1 O 0 N N N OE1 GLN 8
+GLN NE2 NE2 N 0 N N N NE2 GLN 9
+GLN HN HN H 0 N N N HN GLN 10
+GLN HA HA H 0 N N N HA GLN 11
+GLN HB1 HB1 H 0 N N N HB1 GLN 12
+GLN HB2 HB2 H 0 N N N HB2 GLN 13
+GLN HG1 HG1 H 0 N N N HG1 GLN 14
+GLN HG2 HG2 H 0 N N N HG2 GLN 15
+GLN HE21 HE21 H 0 N N N HE21 GLN 16
+GLN HE22 HE22 H 0 N N N HE22 GLN 17
+GLN OT1 OT1 O 0 N Y N OT1 GLN 18
+GLN OT2 OT2 O 0 N Y N OT2 GLN 19
+GLN HT1 HT1 H 0 N N N HT1 GLN 20
+GLN HT2 HT2 H 0 N N N HT2 GLN 21
+GLN HT3 HT3 H 0 N N N HT3 GLN 22
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+GLN CB CA SING N N 1
+GLN CG CB SING N N 2
+GLN CD CG SING N N 3
+GLN NE2 CD SING N N 4
+GLN N HN SING N N 5
+GLN N CA SING N N 6
+GLN C CA SING N N 7
+GLN CA HA SING N N 8
+GLN CB HB1 SING N N 9
+GLN CB HB2 SING N N 10
+GLN CG HG1 SING N N 11
+GLN CG HG2 SING N N 12
+GLN NE2 HE21 SING N N 13
+GLN NE2 HE22 SING N N 14
+GLN O C SING N N 15
+GLN CD OE1 SING N N 16
+GLN OT1 C SING N N 17
+GLN OT2 C SING N N 18
+GLN HT1 NH SING N N 19
+GLN HT2 NH SING N N 20
+GLN HT3 NH SING N N 21
+data_GLU
+_chem_comp.id                                    GLU 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C5 H9 N O5" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       E
+_chem_comp.three_letter_code                     GLU 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+GLU N N N 0 N N N N GLU 1
+GLU CA CA C 0 N N N CA GLU 2
+GLU C C C 0 N N N C GLU 3
+GLU O O O 0 N Y N O GLU 4
+GLU CB CB C 0 N N N CB GLU 5
+GLU CG CG C 0 N N N CG GLU 6
+GLU CD CD C 0 N N N CD GLU 7
+GLU OE1 OE1 O 0 N N N OE1 GLU 8
+GLU OE2 OE2 O 0 N N N OE2 GLU 9
+GLU HN HN H 0 N N N HN GLU 10
+GLU HA HA H 0 N N N HA GLU 11
+GLU HB1 HB1 H 0 N N N HB1 GLU 12
+GLU HB2 HB2 H 0 N N N HB2 GLU 13
+GLU HG1 HG1 H 0 N N N HG1 GLU 14
+GLU HG2 HG2 H 0 N N N HG2 GLU 15
+GLU OT1 OT1 O 0 N Y N OT1 GLU 16
+GLU OT2 OT2 O 0 N Y N OT2 GLU 17
+GLU HT1 HT1 H 0 N N N HT1 GLU 18
+GLU HT2 HT2 H 0 N N N HT2 GLU 19
+GLU HT3 HT3 H 0 N N N HT3 GLU 20
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+GLU CB CA SING N N 1
+GLU CG CB SING N N 2
+GLU CD CG SING N N 3
+GLU OE2 CD SING N N 4
+GLU N HN SING N N 5
+GLU N CA SING N N 6
+GLU C CA SING N N 7
+GLU CA HA SING N N 8
+GLU CB HB1 SING N N 9
+GLU CB HB2 SING N N 10
+GLU CG HG1 SING N N 11
+GLU CG HG2 SING N N 12
+GLU O C SING N N 13
+GLU CD OE1 SING N N 14
+GLU OT1 C SING N N 15
+GLU OT2 C SING N N 16
+GLU HT1 NH SING N N 17
+GLU HT2 NH SING N N 18
+GLU HT3 NH SING N N 19
+data_GLUP
+_chem_comp.id                                    GLUP 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C5 H10 N O5" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       E
+_chem_comp.three_letter_code                     GLUP 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+GLUP N N N 0 N N N N GLUP 1
+GLUP CA CA C 0 N N N CA GLUP 2
+GLUP C C C 0 N N N C GLUP 3
+GLUP O O O 0 N Y N O GLUP 4
+GLUP CB CB C 0 N N N CB GLUP 5
+GLUP CG CG C 0 N N N CG GLUP 6
+GLUP CD CD C 0 N N N CD GLUP 7
+GLUP OE1 OE1 O 0 N N N OE1 GLUP 8
+GLUP OE2 OE2 O 0 N N N OE2 GLUP 9
+GLUP HN HN H 0 N N N HN GLUP 10
+GLUP HA HA H 0 N N N HA GLUP 11
+GLUP HB1 HB1 H 0 N N N HB1 GLUP 12
+GLUP HB2 HB2 H 0 N N N HB2 GLUP 13
+GLUP HG1 HG1 H 0 N N N HG1 GLUP 14
+GLUP HG2 HG2 H 0 N N N HG2 GLUP 15
+GLUP HE2 HE2 H 0 N N N HE2 GLUP 16
+GLUP OT1 OT1 O 0 N Y N OT1 GLUP 17
+GLUP OT2 OT2 O 0 N Y N OT2 GLUP 18
+GLUP HT1 HT1 H 0 N N N HT1 GLUP 19
+GLUP HT2 HT2 H 0 N N N HT2 GLUP 20
+GLUP HT3 HT3 H 0 N N N HT3 GLUP 21
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+GLUP CB CA SING N N 1
+GLUP CG CB SING N N 2
+GLUP CD CG SING N N 3
+GLUP OE2 CD SING N N 4
+GLUP OE2 HE2 SING N N 5
+GLUP N HN SING N N 6
+GLUP N CA SING N N 7
+GLUP C CA SING N N 8
+GLUP CA HA SING N N 9
+GLUP CB HB1 SING N N 10
+GLUP CB HB2 SING N N 11
+GLUP CG HG1 SING N N 12
+GLUP CG HG2 SING N N 13
+GLUP O C SING N N 14
+GLUP CD OE1 SING N N 15
+GLUP OT1 C SING N N 16
+GLUP OT2 C SING N N 17
+GLUP HT1 NH SING N N 18
+GLUP HT2 NH SING N N 19
+GLUP HT3 NH SING N N 20
+data_GLY
+_chem_comp.id                                    GLY 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C2 H6 N O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       G
+_chem_comp.three_letter_code                     GLY 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+GLY N N N 0 N N N N GLY 1
+GLY HN HN H 0 N N N HN GLY 2
+GLY CA CA C 0 N N N CA GLY 3
+GLY HA1 HA1 H 0 N N N HA1 GLY 4
+GLY HA2 HA2 H 0 N N N HA2 GLY 5
+GLY C C C 0 N N N C GLY 6
+GLY O O O 0 N Y N O GLY 7
+GLY OT1 OT1 O 0 N Y N OT1 GLY 8
+GLY OT2 OT2 O 0 N Y N OT2 GLY 9
+GLY HT1 HT1 H 0 N N N HT1 GLY 10
+GLY HT2 HT2 H 0 N N N HT2 GLY 11
+GLY HT3 HT3 H 0 N N N HT3 GLY 12
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+GLY N HN SING N N 1
+GLY N CA SING N N 2
+GLY C CA SING N N 3
+GLY CA HA1 SING N N 4
+GLY CA HA2 SING N N 5
+GLY O C SING N N 6
+GLY OT1 C SING N N 7
+GLY OT2 C SING N N 8
+GLY HT1 NH SING N N 9
+GLY HT2 NH SING N N 10
+GLY HT3 NH SING N N 11
+data_HSD
+_chem_comp.id                                    HSD 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C6 H10 N3 O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       H
+_chem_comp.three_letter_code                     HSD 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+HSD N N N 0 N N N N HSD 1
+HSD CA CA C 0 N N N CA HSD 2
+HSD C C C 0 N N N C HSD 3
+HSD O O O 0 N Y N O HSD 4
+HSD CB CB C 0 N N N CB HSD 5
+HSD ND1 ND1 N 0 N N N ND1 HSD 6
+HSD CG CG C 0 N N N CG HSD 7
+HSD CE1 CE1 C 0 N N N CE1 HSD 8
+HSD NE2 NE2 N 0 N N N NE2 HSD 9
+HSD CD2 CD2 C 0 N N N CD2 HSD 10
+HSD HA HA H 0 N N N HA HSD 11
+HSD HN HN H 0 N N N HN HSD 12
+HSD HB1 HB1 H 0 N N N HB1 HSD 13
+HSD HB2 HB2 H 0 N N N HB2 HSD 14
+HSD HD1 HD1 H 0 N N N HD1 HSD 15
+HSD HE1 HE1 H 0 N N N HE1 HSD 16
+HSD HD2 HD2 H 0 N N N HD2 HSD 17
+HSD OT1 OT1 O 0 N Y N OT1 HSD 18
+HSD OT2 OT2 O 0 N Y N OT2 HSD 19
+HSD HT1 HT1 H 0 N N N HT1 HSD 20
+HSD HT2 HT2 H 0 N N N HT2 HSD 21
+HSD HT3 HT3 H 0 N N N HT3 HSD 22
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+HSD CB CA SING N N 1
+HSD CG CB SING N N 2
+HSD ND1 CG SING N N 3
+HSD CE1 ND1 SING N N 4
+HSD NE2 CD2 SING N N 5
+HSD N HN SING N N 6
+HSD N CA SING N N 7
+HSD C CA SING N N 8
+HSD CA HA SING N N 9
+HSD CB HB1 SING N N 10
+HSD CB HB2 SING N N 11
+HSD ND1 HD1 SING N N 12
+HSD CD2 HD2 SING N N 13
+HSD CE1 HE1 SING N N 14
+HSD O C SING N N 15
+HSD CG CD2 SING N N 16
+HSD CE1 NE2 SING N N 17
+HSD OT1 C SING N N 18
+HSD OT2 C SING N N 19
+HSD HT1 NH SING N N 20
+HSD HT2 NH SING N N 21
+HSD HT3 NH SING N N 22
+data_HSE
+_chem_comp.id                                    HSE 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C6 H10 N3 O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       H
+_chem_comp.three_letter_code                     HSE 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+HSE N N N 0 N N N N HSE 1
+HSE CA CA C 0 N N N CA HSE 2
+HSE C C C 0 N N N C HSE 3
+HSE O O O 0 N Y N O HSE 4
+HSE HA HA H 0 N N N HA HSE 5
+HSE CB CB C 0 N N N CB HSE 6
+HSE CG CG C 0 N N N CG HSE 7
+HSE ND1 ND1 N 0 N N N ND1 HSE 8
+HSE CE1 CE1 C 0 N N N CE1 HSE 9
+HSE NE2 NE2 N 0 N N N NE2 HSE 10
+HSE CD2 CD2 C 0 N N N CD2 HSE 11
+HSE HB1 HB1 H 0 N N N HB1 HSE 12
+HSE HB2 HB2 H 0 N N N HB2 HSE 13
+HSE HN HN H 0 N N N HN HSE 14
+HSE HE1 HE1 H 0 N N N HE1 HSE 15
+HSE HE2 HE2 H 0 N N N HE2 HSE 16
+HSE HD2 HD2 H 0 N N N HD2 HSE 17
+HSE OT1 OT1 O 0 N Y N OT1 HSE 18
+HSE OT2 OT2 O 0 N Y N OT2 HSE 19
+HSE HT1 HT1 H 0 N N N HT1 HSE 20
+HSE HT2 HT2 H 0 N N N HT2 HSE 21
+HSE HT3 HT3 H 0 N N N HT3 HSE 22
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+HSE CB CA SING N N 1
+HSE CG CB SING N N 2
+HSE ND1 CG SING N N 3
+HSE NE2 CD2 SING N N 4
+HSE N HN SING N N 5
+HSE N CA SING N N 6
+HSE C CA SING N N 7
+HSE NE2 CE1 SING N N 8
+HSE CA HA SING N N 9
+HSE CB HB1 SING N N 10
+HSE CB HB2 SING N N 11
+HSE NE2 HE2 SING N N 12
+HSE CD2 HD2 SING N N 13
+HSE CE1 HE1 SING N N 14
+HSE O C SING N N 15
+HSE CD2 CG SING N N 16
+HSE CE1 ND1 SING N N 17
+HSE OT1 C SING N N 18
+HSE OT2 C SING N N 19
+HSE HT1 NH SING N N 20
+HSE HT2 NH SING N N 21
+HSE HT3 NH SING N N 22
+data_HSP
+_chem_comp.id                                    HSP 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C6 H11 N3 O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       H
+_chem_comp.three_letter_code                     HSP 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+HSP N N N 0 N N N N HSP 1
+HSP CA CA C 0 N N N CA HSP 2
+HSP C C C 0 N N N C HSP 3
+HSP O O O 0 N Y N O HSP 4
+HSP CB CB C 0 N N N CB HSP 5
+HSP CD2 CD2 C 0 N N N CD2 HSP 6
+HSP CG CG C 0 N N N CG HSP 7
+HSP NE2 NE2 N 0 N N N NE2 HSP 8
+HSP ND1 ND1 N 0 N N N ND1 HSP 9
+HSP CE1 CE1 C 0 N N N CE1 HSP 10
+HSP HB1 HB1 H 0 N N N HB1 HSP 11
+HSP HB2 HB2 H 0 N N N HB2 HSP 12
+HSP HA HA H 0 N N N HA HSP 13
+HSP HD2 HD2 H 0 N N N HD2 HSP 14
+HSP HE2 HE2 H 0 N N N HE2 HSP 15
+HSP HD1 HD1 H 0 N N N HD1 HSP 16
+HSP HE1 HE1 H 0 N N N HE1 HSP 17
+HSP HN HN H 0 N N N HN HSP 18
+HSP OT1 OT1 O 0 N Y N OT1 HSP 19
+HSP OT2 OT2 O 0 N Y N OT2 HSP 20
+HSP HT1 HT1 H 0 N N N HT1 HSP 21
+HSP HT2 HT2 H 0 N N N HT2 HSP 22
+HSP HT3 HT3 H 0 N N N HT3 HSP 23
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+HSP CB CA SING N N 1
+HSP CG CB SING N N 2
+HSP ND1 CG SING N N 3
+HSP CE1 ND1 SING N N 4
+HSP NE2 CD2 SING N N 5
+HSP N HN SING N N 6
+HSP N CA SING N N 7
+HSP C CA SING N N 8
+HSP CA HA SING N N 9
+HSP CB HB1 SING N N 10
+HSP CB HB2 SING N N 11
+HSP ND1 HD1 SING N N 12
+HSP NE2 HE2 SING N N 13
+HSP CD2 HD2 SING N N 14
+HSP CE1 HE1 SING N N 15
+HSP O C SING N N 16
+HSP CD2 CG SING N N 17
+HSP NE2 CE1 SING N N 18
+HSP OT1 C SING N N 19
+HSP OT2 C SING N N 20
+HSP HT1 NH SING N N 21
+HSP HT2 NH SING N N 22
+HSP HT3 NH SING N N 23
+data_ILE
+_chem_comp.id                                    ILE 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C6 H14 N O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       I
+_chem_comp.three_letter_code                     ILE 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+ILE N N N 0 N N N N ILE 1
+ILE CA CA C 0 N N N CA ILE 2
+ILE C C C 0 N N N C ILE 3
+ILE O O O 0 N Y N O ILE 4
+ILE CB CB C 0 N N N CB ILE 5
+ILE CG2 CG2 C 0 N N N CG2 ILE 6
+ILE CG1 CG1 C 0 N N N CG1 ILE 7
+ILE CD CD1 C 0 N N N CD ILE 8
+ILE HA HA H 0 N N N HA ILE 9
+ILE HB HB H 0 N N N HB ILE 10
+ILE HG21 HG21 H 0 N N N HG21 ILE 11
+ILE HG22 HG22 H 0 N N N HG22 ILE 12
+ILE HG23 HG23 H 0 N N N HG23 ILE 13
+ILE HG11 HG11 H 0 N N N HG11 ILE 14
+ILE HG12 HG12 H 0 N N N HG12 ILE 15
+ILE HD1 HD1 H 0 N N N HD1 ILE 16
+ILE HD2 HD2 H 0 N N N HD2 ILE 17
+ILE HD3 HD3 H 0 N N N HD3 ILE 18
+ILE HN HN H 0 N N N HN ILE 19
+ILE OT1 OT1 O 0 N Y N OT1 ILE 20
+ILE OT2 OT2 O 0 N Y N OT2 ILE 21
+ILE HT1 HT1 H 0 N N N HT1 ILE 22
+ILE HT2 HT2 H 0 N N N HT2 ILE 23
+ILE HT3 HT3 H 0 N N N HT3 ILE 24
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+ILE CB CA SING N N 1
+ILE CG1 CB SING N N 2
+ILE CG2 CB SING N N 3
+ILE CD CG1 SING N N 4
+ILE N HN SING N N 5
+ILE N CA SING N N 6
+ILE C CA SING N N 7
+ILE CA HA SING N N 8
+ILE CB HB SING N N 9
+ILE CG1 HG11 SING N N 10
+ILE CG1 HG12 SING N N 11
+ILE CG2 HG21 SING N N 12
+ILE CG2 HG22 SING N N 13
+ILE CG2 HG23 SING N N 14
+ILE CD HD1 SING N N 15
+ILE CD HD2 SING N N 16
+ILE CD HD3 SING N N 17
+ILE O C SING N N 18
+ILE OT1 C SING N N 19
+ILE OT2 C SING N N 20
+ILE HT1 NH SING N N 21
+ILE HT2 NH SING N N 22
+ILE HT3 NH SING N N 23
+data_LEU
+_chem_comp.id                                    LEU 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C6 H14 N O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       L
+_chem_comp.three_letter_code                     LEU 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+LEU N N N 0 N N N N LEU 1
+LEU CA CA C 0 N N N CA LEU 2
+LEU C C C 0 N N N C LEU 3
+LEU O O O 0 N Y N O LEU 4
+LEU CB CB C 0 N N N CB LEU 5
+LEU CG CG C 0 N N N CG LEU 6
+LEU CD1 CD1 C 0 N N N CD1 LEU 7
+LEU CD2 CD2 C 0 N N N CD2 LEU 8
+LEU HB1 HB1 H 0 N N N HB1 LEU 9
+LEU HB2 HB2 H 0 N N N HB2 LEU 10
+LEU HA HA H 0 N N N HA LEU 11
+LEU HG HG H 0 N N N HG LEU 12
+LEU HD11 HD11 H 0 N N N HD11 LEU 13
+LEU HD12 HD12 H 0 N N N HD12 LEU 14
+LEU HD13 HD13 H 0 N N N HD13 LEU 15
+LEU HD21 HD21 H 0 N N N HD21 LEU 16
+LEU HD22 HD22 H 0 N N N HD22 LEU 17
+LEU HD23 HD23 H 0 N N N HD23 LEU 18
+LEU HN HN H 0 N N N HN LEU 19
+LEU OT1 OT1 O 0 N Y N OT1 LEU 20
+LEU OT2 OT2 O 0 N Y N OT2 LEU 21
+LEU HT1 HT1 H 0 N N N HT1 LEU 22
+LEU HT2 HT2 H 0 N N N HT2 LEU 23
+LEU HT3 HT3 H 0 N N N HT3 LEU 24
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+LEU CB CA SING N N 1
+LEU CG CB SING N N 2
+LEU CD1 CG SING N N 3
+LEU CD2 CG SING N N 4
+LEU N HN SING N N 5
+LEU N CA SING N N 6
+LEU C CA SING N N 7
+LEU CA HA SING N N 8
+LEU CB HB1 SING N N 9
+LEU CB HB2 SING N N 10
+LEU CG HG SING N N 11
+LEU CD1 HD11 SING N N 12
+LEU CD1 HD12 SING N N 13
+LEU CD1 HD13 SING N N 14
+LEU CD2 HD21 SING N N 15
+LEU CD2 HD22 SING N N 16
+LEU CD2 HD23 SING N N 17
+LEU O C SING N N 18
+LEU OT1 C SING N N 19
+LEU OT2 C SING N N 20
+LEU HT1 NH SING N N 21
+LEU HT2 NH SING N N 22
+LEU HT3 NH SING N N 23
+data_LYS
+_chem_comp.id                                    LYS 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C6 H16 N2 O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       K
+_chem_comp.three_letter_code                     LYS 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+LYS N N N 0 N N N N LYS 1
+LYS CA CA C 0 N N N CA LYS 2
+LYS C C C 0 N N N C LYS 3
+LYS O O O 0 N Y N O LYS 4
+LYS CB CB C 0 N N N CB LYS 5
+LYS CG CG C 0 N N N CG LYS 6
+LYS CD CD C 0 N N N CD LYS 7
+LYS CE CE C 0 N N N CE LYS 8
+LYS NZ NZ N 0 N N N NZ LYS 9
+LYS HA HA H 0 N N N HA LYS 10
+LYS HB1 HB1 H 0 N N N HB1 LYS 11
+LYS HB2 HB2 H 0 N N N HB2 LYS 12
+LYS HG1 HG1 H 0 N N N HG1 LYS 13
+LYS HG2 HG2 H 0 N N N HG2 LYS 14
+LYS HD1 HD1 H 0 N N N HD1 LYS 15
+LYS HD2 HD2 H 0 N N N HD2 LYS 16
+LYS HE1 HE1 H 0 N N N HE1 LYS 17
+LYS HE2 HE2 H 0 N N N HE2 LYS 18
+LYS HZ1 HZ1 H 0 N N N HZ1 LYS 19
+LYS HZ2 HZ2 H 0 N N N HZ2 LYS 20
+LYS HZ3 HZ3 H 0 N N N HZ3 LYS 21
+LYS HN HN H 0 N N N HN LYS 22
+LYS OT1 OT1 O 0 N Y N OT1 LYS 23
+LYS OT2 OT2 O 0 N Y N OT2 LYS 24
+LYS HT1 HT1 H 0 N N N HT1 LYS 25
+LYS HT2 HT2 H 0 N N N HT2 LYS 26
+LYS HT3 HT3 H 0 N N N HT3 LYS 27
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+LYS CB CA SING N N 1
+LYS CG CB SING N N 2
+LYS CD CG SING N N 3
+LYS CE CD SING N N 4
+LYS NZ CE SING N N 5
+LYS N HN SING N N 6
+LYS N CA SING N N 7
+LYS C CA SING N N 8
+LYS CA HA SING N N 9
+LYS CB HB1 SING N N 10
+LYS CB HB2 SING N N 11
+LYS CG HG1 SING N N 12
+LYS CG HG2 SING N N 13
+LYS CD HD1 SING N N 14
+LYS CD HD2 SING N N 15
+LYS CE HE1 SING N N 16
+LYS CE HE2 SING N N 17
+LYS O C SING N N 18
+LYS NZ HZ1 SING N N 19
+LYS NZ HZ2 SING N N 20
+LYS NZ HZ3 SING N N 21
+LYS OT1 C SING N N 22
+LYS OT2 C SING N N 23
+LYS HT1 NH SING N N 24
+LYS HT2 NH SING N N 25
+LYS HT3 NH SING N N 26
+data_LSN
+_chem_comp.id                                    LSN 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C6 H15 N2 O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       L
+_chem_comp.three_letter_code                     LSN 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+LSN N N N 0 N N N N LSN 1
+LSN CA CA C 0 N N N CA LSN 2
+LSN C C C 0 N N N C LSN 3
+LSN O O O 0 N Y N O LSN 4
+LSN CB CB C 0 N N N CB LSN 5
+LSN CG CG C 0 N N N CG LSN 6
+LSN CD CD C 0 N N N CD LSN 7
+LSN CE CE C 0 N N N CE LSN 8
+LSN NZ NZ N 0 N N N NZ LSN 9
+LSN HA HA H 0 N N N HA LSN 10
+LSN HB1 HB1 H 0 N N N HB1 LSN 11
+LSN HB2 HB2 H 0 N N N HB2 LSN 12
+LSN HG1 HG1 H 0 N N N HG1 LSN 13
+LSN HG2 HG2 H 0 N N N HG2 LSN 14
+LSN HD1 HD1 H 0 N N N HD1 LSN 15
+LSN HD2 HD2 H 0 N N N HD2 LSN 16
+LSN HE1 HE1 H 0 N N N HE1 LSN 17
+LSN HE2 HE2 H 0 N N N HE2 LSN 18
+LSN HZ1 HZ1 H 0 N N N HZ1 LSN 19
+LSN HZ2 HZ2 H 0 N N N HZ2 LSN 20
+LSN HN HN H 0 N N N HN LSN 21
+LSN OT1 OT1 O 0 N Y N OT1 LSN 22
+LSN OT2 OT2 O 0 N Y N OT2 LSN 23
+LSN HT1 HT1 H 0 N N N HT1 LSN 24
+LSN HT2 HT2 H 0 N N N HT2 LSN 25
+LSN HT3 HT3 H 0 N N N HT3 LSN 26
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+LSN CB CA SING N N 1
+LSN CG CB SING N N 2
+LSN CD CG SING N N 3
+LSN CE CD SING N N 4
+LSN NZ CE SING N N 5
+LSN N HN SING N N 6
+LSN N CA SING N N 7
+LSN C CA SING N N 8
+LSN CA HA SING N N 9
+LSN CB HB1 SING N N 10
+LSN CB HB2 SING N N 11
+LSN CG HG1 SING N N 12
+LSN CG HG2 SING N N 13
+LSN CD HD1 SING N N 14
+LSN CD HD2 SING N N 15
+LSN CE HE1 SING N N 16
+LSN CE HE2 SING N N 17
+LSN O C SING N N 18
+LSN NZ HZ1 SING N N 19
+LSN NZ HZ2 SING N N 20
+LSN OT1 C SING N N 21
+LSN OT2 C SING N N 22
+LSN HT1 NH SING N N 23
+LSN HT2 NH SING N N 24
+LSN HT3 NH SING N N 25
+data_MET
+_chem_comp.id                                    MET 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C5 H12 N O3 S" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       M
+_chem_comp.three_letter_code                     MET 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+MET N N N 0 N N N N MET 1
+MET CA CA C 0 N N N CA MET 2
+MET C C C 0 N N N C MET 3
+MET O O O 0 N Y N O MET 4
+MET CB CB C 0 N N N CB MET 5
+MET CG CG C 0 N N N CG MET 6
+MET SD SD S 0 N N N SD MET 7
+MET CE CE C 0 N N N CE MET 8
+MET HA HA H 0 N N N HA MET 9
+MET HB1 HB1 H 0 N N N HB1 MET 10
+MET HB2 HB2 H 0 N N N HB2 MET 11
+MET HG1 HG1 H 0 N N N HG1 MET 12
+MET HG2 HG2 H 0 N N N HG2 MET 13
+MET HE1 HE1 H 0 N N N HE1 MET 14
+MET HE2 HE2 H 0 N N N HE2 MET 15
+MET HE3 HE3 H 0 N N N HE3 MET 16
+MET HN HN H 0 N N N HN MET 17
+MET OT1 OT1 O 0 N Y N OT1 MET 18
+MET OT2 OT2 O 0 N Y N OT2 MET 19
+MET HT1 HT1 H 0 N N N HT1 MET 20
+MET HT2 HT2 H 0 N N N HT2 MET 21
+MET HT3 HT3 H 0 N N N HT3 MET 22
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+MET CB CA SING N N 1
+MET CG CB SING N N 2
+MET SD CG SING N N 3
+MET CE SD SING N N 4
+MET N HN SING N N 5
+MET N CA SING N N 6
+MET C CA SING N N 7
+MET CA HA SING N N 8
+MET CB HB1 SING N N 9
+MET CB HB2 SING N N 10
+MET CG HG1 SING N N 11
+MET CG HG2 SING N N 12
+MET CE HE1 SING N N 13
+MET CE HE2 SING N N 14
+MET CE HE3 SING N N 15
+MET O C SING N N 16
+MET OT1 C SING N N 17
+MET OT2 C SING N N 18
+MET HT1 NH SING N N 19
+MET HT2 NH SING N N 20
+MET HT3 NH SING N N 21
+data_PHE
+_chem_comp.id                                    PHE 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C9 H12 N O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       F
+_chem_comp.three_letter_code                     PHE 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+PHE N N N 0 N N N N PHE 1
+PHE CA CA C 0 N N N CA PHE 2
+PHE C C C 0 N N N C PHE 3
+PHE O O O 0 N Y N O PHE 4
+PHE CB CB C 0 N N N CB PHE 5
+PHE CG CG C 0 N N N CG PHE 6
+PHE CD1 CD1 C 0 N N N CD1 PHE 7
+PHE CE1 CE1 C 0 N N N CE1 PHE 8
+PHE CZ CZ C 0 N N N CZ PHE 9
+PHE CD2 CD2 C 0 N N N CD2 PHE 10
+PHE CE2 CE2 C 0 N N N CE2 PHE 11
+PHE HA HA H 0 N N N HA PHE 12
+PHE HB1 HB1 H 0 N N N HB1 PHE 13
+PHE HB2 HB2 H 0 N N N HB2 PHE 14
+PHE HD1 HD1 H 0 N N N HD1 PHE 15
+PHE HE1 HE1 H 0 N N N HE1 PHE 16
+PHE HZ HZ H 0 N N N HZ PHE 17
+PHE HD2 HD2 H 0 N N N HD2 PHE 18
+PHE HE2 HE2 H 0 N N N HE2 PHE 19
+PHE HN HN H 0 N N N HN PHE 20
+PHE OT1 OT1 O 0 N Y N OT1 PHE 21
+PHE OT2 OT2 O 0 N Y N OT2 PHE 22
+PHE HT1 HT1 H 0 N N N HT1 PHE 23
+PHE HT2 HT2 H 0 N N N HT2 PHE 24
+PHE HT3 HT3 H 0 N N N HT3 PHE 25
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+PHE CB CA SING N N 1
+PHE CG CB SING N N 2
+PHE CD2 CG SING N N 3
+PHE CE1 CD1 SING N N 4
+PHE CZ CE2 SING N N 5
+PHE N HN SING N N 6
+PHE N CA SING N N 7
+PHE C CA SING N N 8
+PHE CA HA SING N N 9
+PHE CB HB1 SING N N 10
+PHE CB HB2 SING N N 11
+PHE CD1 HD1 SING N N 12
+PHE CD2 HD2 SING N N 13
+PHE CE1 HE1 SING N N 14
+PHE O C SING N N 15
+PHE CD1 CG SING N N 16
+PHE CZ CE1 SING N N 17
+PHE CE2 CD2 SING N N 18
+PHE CE2 HE2 SING N N 19
+PHE CZ HZ SING N N 20
+PHE OT1 C SING N N 21
+PHE OT2 C SING N N 22
+PHE HT1 NH SING N N 23
+PHE HT2 NH SING N N 24
+PHE HT3 NH SING N N 25
+data_PRO
+_chem_comp.id                                    PRO 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C5 H10 N O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       P
+_chem_comp.three_letter_code                     PRO 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+PRO N N N 0 N N N N PRO 1
+PRO CD CD C 0 N N N CD PRO 2
+PRO CA CA C 0 N N N CA PRO 3
+PRO C C C 0 N N N C PRO 4
+PRO O O O 0 N Y N O PRO 5
+PRO CB CB C 0 N N N CB PRO 6
+PRO CG CG C 0 N N N CG PRO 7
+PRO HA HA H 0 N N N HA PRO 8
+PRO HB1 HB1 H 0 N N N HB1 PRO 9
+PRO HB2 HB2 H 0 N N N HB2 PRO 10
+PRO HG1 HG1 H 0 N N N HG1 PRO 11
+PRO HG2 HG2 H 0 N N N HG2 PRO 12
+PRO HD1 HD1 H 0 N N N HD1 PRO 13
+PRO HD2 HD2 H 0 N N N HD2 PRO 14
+PRO OT1 OT1 O 0 N Y N OT1 PRO 15
+PRO OT2 OT2 O 0 N Y N OT2 PRO 16
+PRO HT1 HT1 H 0 N N N HT1 PRO 17
+PRO HT2 HT2 H 0 N N N HT2 PRO 18
+PRO HT3 HT3 H 0 N N N HT3 PRO 19
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+PRO C CA SING N N 1
+PRO N CA SING N N 2
+PRO CA CB SING N N 3
+PRO CB CG SING N N 4
+PRO CG CD SING N N 5
+PRO N CD SING N N 6
+PRO HA CA SING N N 7
+PRO HG1 CG SING N N 8
+PRO HG2 CG SING N N 9
+PRO HD1 CD SING N N 10
+PRO HD2 CD SING N N 11
+PRO HB1 CB SING N N 12
+PRO HB2 CB SING N N 13
+PRO O C SING N N 14
+PRO OT1 C SING N N 15
+PRO OT2 C SING N N 16
+PRO HT1 NH SING N N 17
+PRO HT2 NH SING N N 18
+PRO HT3 NH SING N N 19
+data_SER
+_chem_comp.id                                    SER 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C3 H8 N O4" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       S
+_chem_comp.three_letter_code                     SER 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+SER N N N 0 N N N N SER 1
+SER CA CA C 0 N N N CA SER 2
+SER C C C 0 N N N C SER 3
+SER O O O 0 N Y N O SER 4
+SER CB CB C 0 N N N CB SER 5
+SER OG OG O 0 N N N OG SER 6
+SER HA HA H 0 N N N HA SER 7
+SER HB1 HB1 H 0 N N N HB1 SER 8
+SER HB2 HB2 H 0 N N N HB2 SER 9
+SER HG1 HG1 H 0 N N N HG1 SER 10
+SER HN HN H 0 N N N HN SER 11
+SER OT1 OT1 O 0 N Y N OT1 SER 12
+SER OT2 OT2 O 0 N Y N OT2 SER 13
+SER HT1 HT1 H 0 N N N HT1 SER 14
+SER HT2 HT2 H 0 N N N HT2 SER 15
+SER HT3 HT3 H 0 N N N HT3 SER 16
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+SER CB CA SING N N 1
+SER OG CB SING N N 2
+SER N HN SING N N 3
+SER N CA SING N N 4
+SER C CA SING N N 5
+SER CA HA SING N N 6
+SER CB HB1 SING N N 7
+SER CB HB2 SING N N 8
+SER OG HG1 SING N N 9
+SER O C SING N N 10
+SER OT1 C SING N N 11
+SER OT2 C SING N N 12
+SER HT1 NH SING N N 13
+SER HT2 NH SING N N 14
+SER HT3 NH SING N N 15
+data_THR
+_chem_comp.id                                    THR 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C4 H10 N O4" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       T
+_chem_comp.three_letter_code                     THR 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+THR N N N 0 N N N N THR 1
+THR CA CA C 0 N N N CA THR 2
+THR C C C 0 N N N C THR 3
+THR O O O 0 N Y N O THR 4
+THR CB CB C 0 N N N CB THR 5
+THR OG1 OG1 O 0 N N N OG1 THR 6
+THR CG2 CG2 C 0 N N N CG2 THR 7
+THR HA HA H 0 N N N HA THR 8
+THR HB HB H 0 N N N HB THR 9
+THR HG1 HG1 H 0 N N N HG1 THR 10
+THR HG21 HG21 H 0 N N N HG21 THR 11
+THR HG22 HG22 H 0 N N N HG22 THR 12
+THR HG23 HG23 H 0 N N N HG23 THR 13
+THR HN HN H 0 N N N HN THR 14
+THR OT1 OT1 O 0 N Y N OT1 THR 15
+THR OT2 OT2 O 0 N Y N OT2 THR 16
+THR HT1 HT1 H 0 N N N HT1 THR 17
+THR HT2 HT2 H 0 N N N HT2 THR 18
+THR HT3 HT3 H 0 N N N HT3 THR 19
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+THR CB CA SING N N 1
+THR OG1 CB SING N N 2
+THR CG2 CB SING N N 3
+THR N HN SING N N 4
+THR N CA SING N N 5
+THR C CA SING N N 6
+THR CA HA SING N N 7
+THR CB HB SING N N 8
+THR OG1 HG1 SING N N 9
+THR CG2 HG21 SING N N 10
+THR CG2 HG22 SING N N 11
+THR CG2 HG23 SING N N 12
+THR O C SING N N 13
+THR OT1 C SING N N 14
+THR OT2 C SING N N 15
+THR HT1 NH SING N N 16
+THR HT2 NH SING N N 17
+THR HT3 NH SING N N 18
+data_TRP
+_chem_comp.id                                    TRP 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C11 H13 N2 O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       W
+_chem_comp.three_letter_code                     TRP 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+TRP N N N 0 N N N N TRP 1
+TRP CA CA C 0 N N N CA TRP 2
+TRP C C C 0 N N N C TRP 3
+TRP O O O 0 N Y N O TRP 4
+TRP HA HA H 0 N N N HA TRP 5
+TRP CB CB C 0 N N N CB TRP 6
+TRP CG CG C 0 N N N CG TRP 7
+TRP CD1 CD1 C 0 N N N CD1 TRP 8
+TRP NE1 NE1 N 0 N N N NE1 TRP 9
+TRP CE2 CE2 C 0 N N N CE2 TRP 10
+TRP CD2 CD2 C 0 N N N CD2 TRP 11
+TRP CE3 CE3 C 0 N N N CE3 TRP 12
+TRP CZ3 CZ3 C 0 N N N CZ3 TRP 13
+TRP CZ2 CZ2 C 0 N N N CZ2 TRP 14
+TRP CH2 CH2 C 0 N N N CH2 TRP 15
+TRP HB1 HB1 H 0 N N N HB1 TRP 16
+TRP HB2 HB2 H 0 N N N HB2 TRP 17
+TRP HD1 HD1 H 0 N N N HD1 TRP 18
+TRP HE1 HE1 H 0 N N N HE1 TRP 19
+TRP HE3 HE3 H 0 N N N HE3 TRP 20
+TRP HZ3 HZ3 H 0 N N N HZ3 TRP 21
+TRP HZ2 HZ2 H 0 N N N HZ2 TRP 22
+TRP HH2 HH2 H 0 N N N HH2 TRP 23
+TRP HN HN H 0 N N N HN TRP 24
+TRP OT1 OT1 O 0 N Y N OT1 TRP 25
+TRP OT2 OT2 O 0 N Y N OT2 TRP 26
+TRP HT1 HT1 H 0 N N N HT1 TRP 27
+TRP HT2 HT2 H 0 N N N HT2 TRP 28
+TRP HT3 HT3 H 0 N N N HT3 TRP 29
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+TRP CB CA SING N N 1
+TRP CG CB SING N N 2
+TRP CD2 CG SING N N 3
+TRP NE1 CD1 SING N N 4
+TRP CZ2 CE2 SING N N 5
+TRP N HN SING N N 6
+TRP N CA SING N N 7
+TRP C CA SING N N 8
+TRP CZ3 CH2 SING N N 9
+TRP CD2 CE3 SING N N 10
+TRP NE1 CE2 SING N N 11
+TRP CA HA SING N N 12
+TRP CB HB1 SING N N 13
+TRP CB HB2 SING N N 14
+TRP CD1 HD1 SING N N 15
+TRP NE1 HE1 SING N N 16
+TRP CE3 HE3 SING N N 17
+TRP CZ2 HZ2 SING N N 18
+TRP CZ3 HZ3 SING N N 19
+TRP CH2 HH2 SING N N 20
+TRP O C SING N N 21
+TRP CD1 CG SING N N 22
+TRP CE2 CD2 SING N N 23
+TRP CZ3 CE3 SING N N 24
+TRP CH2 CZ2 SING N N 25
+TRP OT1 C SING N N 26
+TRP OT2 C SING N N 27
+TRP HT1 NH SING N N 28
+TRP HT2 NH SING N N 29
+TRP HT3 NH SING N N 30
+data_TYR
+_chem_comp.id                                    TYR 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C9 H12 N O4" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       Y
+_chem_comp.three_letter_code                     TYR 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+TYR N N N 0 N N N N TYR 1
+TYR CA CA C 0 N N N CA TYR 2
+TYR C C C 0 N N N C TYR 3
+TYR O O O 0 N Y N O TYR 4
+TYR HA HA H 0 N N N HA TYR 5
+TYR CB CB C 0 N N N CB TYR 6
+TYR CG CG C 0 N N N CG TYR 7
+TYR CD1 CD1 C 0 N N N CD1 TYR 8
+TYR CE1 CE1 C 0 N N N CE1 TYR 9
+TYR CZ CZ C 0 N N N CZ TYR 10
+TYR OH OH O 0 N N N OH TYR 11
+TYR CD2 CD2 C 0 N N N CD2 TYR 12
+TYR CE2 CE2 C 0 N N N CE2 TYR 13
+TYR HB1 HB1 H 0 N N N HB1 TYR 14
+TYR HB2 HB2 H 0 N N N HB2 TYR 15
+TYR HD1 HD1 H 0 N N N HD1 TYR 16
+TYR HE1 HE1 H 0 N N N HE1 TYR 17
+TYR HH HH H 0 N N N HH TYR 18
+TYR HD2 HD2 H 0 N N N HD2 TYR 19
+TYR HE2 HE2 H 0 N N N HE2 TYR 20
+TYR HN HN H 0 N N N HN TYR 21
+TYR OT1 OT1 O 0 N Y N OT1 TYR 22
+TYR OT2 OT2 O 0 N Y N OT2 TYR 23
+TYR HT1 HT1 H 0 N N N HT1 TYR 24
+TYR HT2 HT2 H 0 N N N HT2 TYR 25
+TYR HT3 HT3 H 0 N N N HT3 TYR 26
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+TYR CB CA SING N N 1
+TYR CG CB SING N N 2
+TYR CD2 CG SING N N 3
+TYR CE1 CD1 SING N N 4
+TYR CZ CE2 SING N N 5
+TYR OH CZ SING N N 6
+TYR N HN SING N N 7
+TYR N CA SING N N 8
+TYR C CA SING N N 9
+TYR CA HA SING N N 10
+TYR CB HB1 SING N N 11
+TYR CB HB2 SING N N 12
+TYR CD1 HD1 SING N N 13
+TYR CD2 HD2 SING N N 14
+TYR CE1 HE1 SING N N 15
+TYR CE2 HE2 SING N N 16
+TYR OH HH SING N N 17
+TYR O C SING N N 18
+TYR CD1 CG SING N N 19
+TYR CE1 CZ SING N N 20
+TYR CE2 CD2 SING N N 21
+TYR OT1 C SING N N 22
+TYR OT2 C SING N N 23
+TYR HT1 NH SING N N 24
+TYR HT2 NH SING N N 25
+TYR HT3 NH SING N N 26
+TYR HT1 NH SING N N 27
+TYR HT2 NH SING N N 28
+TYR HT3 NH SING N N 29
+data_VAL
+_chem_comp.id                                    VAL 
+_chem_comp.type                                  "L-PEPTIDE-LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C5 H12 N O3" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       V
+_chem_comp.three_letter_code                     VAL 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+VAL N N N 0 N N N N VAL 1
+VAL CA CA C 0 N N N CA VAL 2
+VAL C C C 0 N N N C VAL 3
+VAL O O O 0 N Y N O VAL 4
+VAL CB CB C 0 N N N CB VAL 5
+VAL CG1 CG1 C 0 N N N CG1 VAL 6
+VAL CG2 CG2 C 0 N N N CG2 VAL 7
+VAL HN HN H 0 N N N HN VAL 8
+VAL HA HA H 0 N N N HA VAL 9
+VAL HB HB H 0 N N N HB VAL 10
+VAL HG11 HG11 H 0 N N N HG11 VAL 11
+VAL HG12 HG12 H 0 N N N HG12 VAL 12
+VAL HG13 HG13 H 0 N N N HG13 VAL 13
+VAL HG21 HG21 H 0 N N N HG21 VAL 14
+VAL HG22 HG22 H 0 N N N HG22 VAL 15
+VAL HG23 HG23 H 0 N N N HG23 VAL 16
+VAL OT1 OT1 O 0 N Y N OT1 VAL 17
+VAL OT2 OT2 O 0 N Y N OT2 VAL 18
+VAL HT1 HT1 H 0 N N N HT1 VAL 19
+VAL HT2 HT2 H 0 N N N HT2 VAL 20
+VAL HT3 HT3 H 0 N N N HT3 VAL 21
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+VAL CB CA SING N N 1
+VAL CG1 CB SING N N 2
+VAL CG2 CB SING N N 3
+VAL N HN SING N N 4
+VAL N CA SING N N 5
+VAL C CA SING N N 6
+VAL CA HA SING N N 7
+VAL CB HB SING N N 8
+VAL CG1 HG11 SING N N 9
+VAL CG1 HG12 SING N N 10
+VAL CG1 HG13 SING N N 11
+VAL CG2 HG21 SING N N 12
+VAL CG2 HG22 SING N N 13
+VAL CG2 HG23 SING N N 14
+VAL O C SING N N 15
+VAL OT1 C SING N N 16
+VAL OT2 C SING N N 17
+VAL HT1 NH SING N N 18
+VAL HT2 NH SING N N 19
+VAL HT3 NH SING N N 20
+
+
+data_HOH
+_chem_comp.id                                    HOH 
+_chem_comp.type                                  "NON-POLYMER" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "H2 O" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       .
+_chem_comp.three_letter_code                     HOH 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+HOH OW OW O 0 N N N OW HOH 1
+HOH HW1 HW1 H 0 N N N HW1 HOH 2
+HOH HW2 HW2 H 0 N N N HW2 HOH 3
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+HOH OW HW1 SING N N 1
+HOH OW HW2 SING N N 2
+HOH HW1 HW2 SING N N 3
+data_TIP3
+_chem_comp.id                                    TIP3 
+_chem_comp.type                                  "NON-POLYMER" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "H2 O" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       .
+_chem_comp.three_letter_code                     TIP3 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+TIP3 OH2 OH2 O 0 N N N OH2 TIP3 1
+TIP3 H1 H1 H 0 N N N H1 TIP3 2
+TIP3 H2 H2 H 0 N N N H2 TIP3 3
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+TIP3 OH2 H1 SING N N 1
+TIP3 OH2 H2 SING N N 2
+TIP3 H1 H2 SING N N 3
+data_TP3M
+_chem_comp.id                                    TP3M 
+_chem_comp.type                                  "NON-POLYMER" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "H2 O" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       .
+_chem_comp.three_letter_code                     TP3M 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+TP3M OH2 OH2 O 0 N N N OH2 TP3M 1
+TP3M H1 H1 H 0 N N N H1 TP3M 2
+TP3M H2 H2 H 0 N N N H2 TP3M 3
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal
+TP3M OH2 H1 SING N N 1
+TP3M OH2 H2 SING N N 2
+data_SOD
+_chem_comp.id                                    SOD 
+_chem_comp.type                                  "NON-POLYMER" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "NA" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       ?
+_chem_comp.three_letter_code                     SOD 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+SOD SOD SOD NA 0 N N N SOD SOD 1
+data_MG
+_chem_comp.id                                    MG 
+_chem_comp.type                                  "NON-POLYMER" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "MG" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       ?
+_chem_comp.three_letter_code                     MG 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+MG MG MG MG 0 N N N MG MG 1
+data_POT
+_chem_comp.id                                    POT 
+_chem_comp.type                                  "NON-POLYMER" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "K" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       ?
+_chem_comp.three_letter_code                     POT 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+POT POT POT K 0 N N N POT POT 1
+data_CAL
+_chem_comp.id                                    CAL 
+_chem_comp.type                                  "NON-POLYMER" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "CA" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       ?
+_chem_comp.three_letter_code                     CAL 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+CAL CAL CAL CA 0 N N N CAL CAL 1
+data_CLA
+_chem_comp.id                                    CLA 
+_chem_comp.type                                  "NON-POLYMER" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "CA" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       ?
+_chem_comp.three_letter_code                     CLA 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+CLA CLA CLA CL 0 N N N CLA CLA 1
+data_ZN2
+_chem_comp.id                                    ZN2 
+_chem_comp.type                                  "NON-POLYMER" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "ZN" 
+_chem_comp.mon_nstd_parent_comp_id               ?
+_chem_comp.pdbx_initial_date                     2010-09-20 
+_chem_comp.pdbx_modified_date                    2010-09-20 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.one_letter_code                       ?
+_chem_comp.three_letter_code                     ZN2 
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal  
+ZN2 ZN ZN ZN 0 N N N ZN ZN2 1

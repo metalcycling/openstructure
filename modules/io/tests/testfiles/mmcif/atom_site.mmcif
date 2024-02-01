@@ -1,0 +1,197 @@
+data_1BAR
+
+# this file is also used in the mmcif_parse_models tests for a true negative
+# test, hence it is not allowed to carry atom_site.pdbx_PDB_model_num entries
+
+# this file is also used in the mmcif_mmcif_chaintype_setting test for a true
+# positive test, hence the entity category is not to be changed
+
+_pdbx_database_PDB_obs_spr.id               OBSLTE 
+_pdbx_database_PDB_obs_spr.date             2011-08-31 
+_pdbx_database_PDB_obs_spr.pdb_id           1FOO 
+_pdbx_database_PDB_obs_spr.replace_pdb_id   2BAR 
+
+loop_
+_entity.id
+_entity.type
+_entity.pdbx_description
+1 polymer 
+;              Very important information.
+;
+5 water        .
+
+_entity_poly.entity_id                      1
+_entity_poly.type                           'polypeptide(L)'
+_entity_poly.nstd_linkage                   no
+_entity_poly.nstd_monomer                   no
+_entity_poly.pdbx_seq_one_letter_code       'VTI'
+
+loop_
+_citation.id
+_citation.abstract_id_CAS
+_citation.title
+_citation.journal_volume
+_citation.journal_full
+_citation.page_first
+_citation.page_last
+_citation.pdbx_database_id_DOI  
+_citation.pdbx_database_id_PubMed
+_citation.year
+primary 58-08-2 'Very important, but we won't tell' 1 'Some Journal' 0 10 0815 0815 2011
+
+# the authors are not ordered on purpose for unit tests
+loop_
+_citation_author.citation_id
+_citation_author.ordinal
+_citation_author.name
+  primary  1  'Whiskers, P.D.'
+  primary  3  'Van Hummel, J.F.'
+  primary  2  'McCheese, B.M.'
+
+_exptl.entry_id           experiment1
+_exptl.method             'Deep-fry'
+
+_refine.entry_id              '1BAR'
+_refine.ls_d_res_high         2.0
+_refine.ls_d_res_low          1.5
+_refine.ls_R_factor_R_work    0.200 
+_refine.ls_R_factor_R_free    0.229 
+
+# biounit begin
+loop_
+_pdbx_struct_assembly.id 
+_pdbx_struct_assembly.details 
+_pdbx_struct_assembly.method_details 
+_pdbx_struct_assembly.oligomeric_details 
+_pdbx_struct_assembly.oligomeric_count 
+1 author_defined_assembly ? monomeric 1 
+2 author_defined_assembly ? monomeric 1 
+
+loop_
+_pdbx_struct_assembly_gen.assembly_id 
+_pdbx_struct_assembly_gen.oper_expression 
+_pdbx_struct_assembly_gen.asym_id_list 
+1 1 A,C,E 
+2 1 B,D,F 
+
+_pdbx_struct_oper_list.id                   1 
+_pdbx_struct_oper_list.type                 'identity operation' 
+_pdbx_struct_oper_list.name                 1_555 
+_pdbx_struct_oper_list.symmetry_operation   x,y,z 
+_pdbx_struct_oper_list.matrix[1][1]         1.0000000000 
+_pdbx_struct_oper_list.matrix[1][2]         0.0000000000 
+_pdbx_struct_oper_list.matrix[1][3]         0.0000000000 
+_pdbx_struct_oper_list.vector[1]            1.1000000000 
+_pdbx_struct_oper_list.matrix[2][1]         0.0000000000 
+_pdbx_struct_oper_list.matrix[2][2]         1.0000000000 
+_pdbx_struct_oper_list.matrix[2][3]         0.0000000000 
+_pdbx_struct_oper_list.vector[2]            0.5000000000 
+_pdbx_struct_oper_list.matrix[3][1]         0.0000000000 
+_pdbx_struct_oper_list.matrix[3][2]         0.0000000000 
+_pdbx_struct_oper_list.matrix[3][3]         1.0000000000 
+_pdbx_struct_oper_list.vector[3]            23.3000000000 
+# biounit end
+
+_struct.entry_id                   1BAR
+_struct.title                      'A Title'
+_struct.pdbx_CASP_flag             Y
+_struct.pdbx_descriptor            'ADENYLATE KINASE'
+_struct.pdbx_formula_weight        1.0
+_struct.pdbx_formula_weight_method 'Good Guess'
+_struct.pdbx_model_details         'Even better guessing'
+_struct.pdbx_model_type_details    'Guess'
+
+# do not change anything, here
+loop_
+_struct_conf.id
+_struct_conf.conf_type_id
+_struct_conf.beg_label_comp_id
+_struct_conf.beg_label_asym_id
+_struct_conf.beg_label_seq_id
+_struct_conf.end_label_comp_id
+_struct_conf.end_label_asym_id
+_struct_conf.end_label_seq_id
+_struct_conf.details
+HELX1  HELX_RH_AL_P  VAL  A   11  THR  A   12  .
+STRN1  STRN          ILE  A   13  ILE  A   13  .
+HELX1  HELX_RH_AL_P  ILE  Z   1   ILE  Z   1   .
+
+loop_
+_struct_sheet_range.sheet_id
+_struct_sheet_range.id
+_struct_sheet_range.beg_label_comp_id
+_struct_sheet_range.beg_label_asym_id
+_struct_sheet_range.beg_label_seq_id
+_struct_sheet_range.end_label_comp_id
+_struct_sheet_range.end_label_asym_id
+_struct_sheet_range.end_label_seq_id
+sheet_1 strand_a APS C 1 APS C 1
+
+loop_
+_atom_site.group_PDB
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_seq_id
+_atom_site.label_alt_id
+_atom_site.label_entity_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.occupancy
+_atom_site.B_iso_or_equiv
+_atom_site.footnote_id
+_atom_site.auth_seq_id
+_atom_site.id
+_atom_site.pdbx_PDB_ins_code
+_atom_site.auth_asym_id
+ATOM N  N   VAL  A  11  . 1  25.369  30.691  11.795  1.00  17.93  .  11   1  ? A
+ATOM C  CA  VAL  A  11  . 1  25.970  31.965  12.332  1.00  17.75  .  11   2  ? A
+ATOM C  C   VAL  A  11  . 1  25.569  32.010  13.808  1.00  17.83  .  11   3  ? A
+ATOM O  O   VAL  A  11  . 1  24.735  31.190  14.167  1.00  17.53  .  11   4  ? A
+ATOM C  CB  VAL  A  11  . 1  25.379  33.146  11.540  1.00  17.66  .  11   5  ? A
+ATOM C  CG1 VAL  A  11  . 1  25.584  33.034  10.030  1.00  18.86  .  11   6  ? A
+ATOM C  CG2 VAL  A  11  . 1  23.933  33.309  11.872  1.00  17.12  .  11   7  ? A
+ATOM N  N   THR  A  12  . 1  26.095  32.930  14.590  1.00  18.97  4  12   8  ? A
+ATOM C  CA  THR  A  12  . 1  25.734  32.995  16.032  1.00  19.80  4  12   9  ? A
+ATOM C  C   THR  A  12  . 1  24.695  34.106  16.113  1.00  20.92  4  12  10  ? A
+ATOM O  O   THR  A  12  . 1  24.869  35.118  15.421  1.00  21.84  4  12  11  ? A
+ATOM C  CB  THR  A  12  . 1  26.911  33.346  17.018  1.00  20.51  4  12  12  ? A
+ATOM O  OG1 THR  A  12  3 1  27.946  33.921  16.183  0.50  20.29  4  12  13  ? A
+ATOM O  OG1 THR  A  12  4 1  27.769  32.142  17.103  0.50  20.59  4  12  14  ? A
+ATOM C  CG2 THR  A  12  3 1  27.418  32.181  17.878  0.50  20.47  4  12  15  ? A
+ATOM C  CG2 THR  A  12  4 1  26.489  33.778  18.426  0.50  20.00  4  12  16  ? A
+ATOM N  N   ILE  A  13  . 1  23.664  33.855  16.884  1.00  22.08  .  13  17  ? A
+ATOM C  CA  ILE  A  13  . 1  22.623  34.850  17.093  1.00  23.44  .  13  18  ? A
+ATOM C  C   ILE  A  13  . 1  22.657  35.113  18.610  1.00  25.77  .  13  19  ? A
+ATOM O  O   ILE  A  13  . 1  23.123  34.250  19.406  1.00  26.28  .  13  20  ? A
+ATOM C  CB  ILE  A  13  . 1  21.236  34.463  16.492  1.00  22.67  .  13  21  ? A
+ATOM C  CG1 ILE  A  13  . 1  20.478  33.469  17.371  1.00  22.14  .  13  22  ? A
+ATOM C  CG2 ILE  A  13  . 1  21.357  33.986  15.016  1.00  21.75  .  13  23  ? A
+# - - - - data truncated for brevity - - - -
+HETATM C C1 APS  C  1  1  1  4.171  29.012   7.116  0.58  17.27  1 300  101 ? C
+HETATM C C2 APS  C  1  1  1  4.949  27.758   6.793  0.58  16.95  1 300  102 ? C
+HETATM O O3 APS  C  1  1  1  4.800  26.678   7.393  0.58  16.85  1 300  103 ? C
+HETATM N N4 APS  C  1  1  1  5.930  27.841   5.869  0.58  16.43  1 300  104 ? C
+# - - - - data truncated for brevity - - - -
+# chain to be ignored by 'restrict_chains' feature
+ATOM N  N   ILE  Z  1  . 1  23.664  33.855  16.884  1.00  22.08  .  1  17  ? Z
+ATOM C  CA  ILE  Z  1  . 1  22.623  34.850  17.093  1.00  23.44  .  1  18  ? Z
+ATOM C  C   ILE  Z  1  . 1  22.657  35.113  18.610  1.00  25.77  .  1  19  ? Z
+ATOM O  O   ILE  Z  1  . 1  23.123  34.250  19.406  1.00  26.28  .  1  20  ? Z
+ATOM C  CB  ILE  Z  1  . 1  21.236  34.463  16.492  1.00  22.67  .  1  21  ? Z
+ATOM C  CG1 ILE  Z  1  . 1  20.478  33.469  17.371  1.00  22.14  .  1  22  ? Z
+ATOM C  CG2 ILE  Z  1  . 1  21.357  33.986  15.016  1.00  21.75  .  1  23  ? Z
+# 
+# H2O
+HETATM O O    HOH O  . . 5  -5.322  10.972 9.720  0.95 7.25  . 2001 2731 ? B
+HETATM O O    HOH O  . . 5  4.148   4.008  12.383 0.64 14.61 . 2002 2732 ? B
+HETATM O O    HOH O  . . 5  -2.238  5.875  8.525  0.92 15.43 . 2003 2733 ? B
+HETATM O O    HOH O  . . 5  0.114   4.343  8.960  0.45 20.65 . 2004 2734 ? B
+HETATM O O    HOH O  . . 5  1.045   9.537  8.846  0.98 4.03  . 2005 2735 ? B
+HETATM O O    HOH O  . . 5  -0.532  11.899 9.196  1.00 4.09  . 2006 2736 ? B
+HETATM O O    HOH O  . . 5  0.936   18.270 7.581  0.97 5.52  . 2007 2737 ? B
+HETATM O O    HOH O  . . 5  -6.561  13.498 9.629  1.00 8.03  . 2008 2738 ? B
+HETATM O O    HOH O  . . 5  -11.465 18.494 11.144 0.81 14.02 . 2009 2739 ? B
+HETATM O O    HOH O  . . 5  12.795  11.508 13.991 0.90 35.55 . 2010 2740 ? B

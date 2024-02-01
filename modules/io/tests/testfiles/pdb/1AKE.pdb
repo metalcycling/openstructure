@@ -1,0 +1,31 @@
+HEADER    TRANSFERASE(PHOSPHOTRANSFERASE)         08-NOV-91   1AKE              
+TITLE     STRUCTURE OF THE COMPLEX BETWEEN ADENYLATE KINASE FROM                
+TITLE    2 ESCHERICHIA COLI AND THE INHIBITOR AP5A REFINED AT 1.9               
+TITLE    3 ANGSTROMS RESOLUTION: A MODEL FOR A CATALYTIC TRANSITION             
+TITLE    4 STATE                                                                
+COMPND    MOL_ID: 1;                                                            
+COMPND   2 MOLECULE: ADENYLATE KINASE;                                          
+COMPND   3 CHAIN: A,B;                                                         
+COMPND   4 EC: 2.7.4.3;                                                         
+COMPND   5 ENGINEERED: YES                                                      
+SOURCE    MOL_ID: 1;                                                            
+SOURCE   2 ORGANISM_SCIENTIFIC: ESCHERICHIA COLI;                               
+SOURCE   3 ORGANISM_TAXID: 562;                                                 
+SOURCE   4 EXPRESSION_SYSTEM: ESCHERICHIA COLI;                                 
+SOURCE   5 EXPRESSION_SYSTEM_TAXID: 562                                         
+KEYWDS    TRANSFERASE(PHOSPHOTRANSFERASE)                                       
+CRYST1   73.200   79.800   85.000  90.00  90.00  90.00 P 21 2 21     8          
+ORIGX1      1.000000  0.000000  0.000000        0.00000                         
+ORIGX2      0.000000  1.000000  0.000000        0.00000                         
+ORIGX3      0.000000  0.000000  1.000000        0.00000                         
+SCALE1      0.013661  0.000000  0.000000        0.00000                         
+SCALE2      0.000000  0.012531  0.000000        0.00000                         
+SCALE3      0.000000  0.000000  0.011765        0.00000                         
+MTRIX1   1 -0.995341  0.068333  0.068023       38.70362    1                    
+MTRIX2   1  0.038108  0.926860 -0.373469       47.46029    1                    
+MTRIX3   1 -0.088568 -0.369136 -0.925145       42.28705    1                    
+ATOM      1  N   MET A   1      26.981  53.977  40.085  1.00 40.83           N  
+TER    1662      GLY A 214                                                      
+ATOM   1663  N   MET B   1      12.440   6.614  -1.137  1.00 84.71           N  
+TER    3319      GLY B 214                                                      
+END                                                                     

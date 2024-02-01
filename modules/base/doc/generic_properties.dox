@@ -1,0 +1,20 @@
+namespace ost {
+/*!
+\page generic_properties generic properties
+
+Most building blocks are a GenericPropContainer, meaning that arbitrary 
+key-value pairs can be stored in them, namely:
+
+\li EntityHandle and EntityView
+\li ChainHandle and ChainView
+\li ResidueHandle and ResidueView
+\li AtomHandle and AtomView
+
+The view variants will reflect the generic properties of the handle variants.
+
+A generic property key is always a String, and a value can be one of String, 
+Real, int or bool. For each of these data types, methods to retrieve and store
+values are available both in Python and C++. For more details see the 
+documentation of GenericPropContainer.
+*/
+}

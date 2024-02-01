@@ -1,0 +1,78 @@
+data_1TPM
+# derived from 2JSP
+
+# this file is also used in the mmcif_mmcif_chaintype_setting test for a true
+# negative test, hence no entity category may be added
+
+loop_
+_atom_site.group_PDB 
+_atom_site.id 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.pdbx_PDB_model_num 
+ATOM 1     N N    . ALA A 1 1  ? 13.847  16.632  5.806  1  ALA A N    1
+ATOM 2     C CA   . ALA A 1 1  ? 14.050  15.239  5.351  1  ALA A CA   1
+ATOM 3     C C    . ALA A 1 1  ? 15.057  15.051  4.185  1  ALA A C    1
+ATOM 4     O O    . ALA A 1 1  ? 16.242  14.860  4.448  1  ALA A O    1
+ATOM 5     C CB   . ALA A 1 1  ? 12.682  14.599  5.070  1  ALA A CB   1
+ATOM 6     H H1   . ALA A 1 1  ? 14.344  17.346  5.293  1  ALA A H1   1
+ATOM 7     H HA   . ALA A 1 1  ? 14.425  14.660  6.196  1  ALA A HA   1
+ATOM 8     H HB1  . ALA A 1 1  ? 12.168  15.166  4.295  1  ALA A HB1  1
+ATOM 9     H HB2  . ALA A 1 1  ? 12.824  13.571  4.734  1  ALA A HB2  1
+ATOM 10    H HB3  . ALA A 1 1  ? 12.085  14.603  5.981  1  ALA A HB3  1
+ATOM 11    N N    . VAL B 1 2  ? 14.602  15.209  2.935  2  VAL A N    1
+ATOM 12    C CA   . VAL B 1 2  ? 15.402  15.012  1.699  2  VAL A CA   1
+ATOM 13    C C    . VAL B 1 2  ? 14.579  15.343  0.431  2  VAL A C    1
+ATOM 14    O O    . VAL B 1 2  ? 14.518  16.503  0.039  2  VAL A O    1
+ATOM 15    C CB   . VAL B 1 2  ? 16.165  13.656  1.685  2  VAL A CB   1
+ATOM 16    C CG1  . VAL B 1 2  ? 15.292  12.399  1.812  2  VAL A CG1  1
+ATOM 17    C CG2  . VAL B 1 2  ? 17.136  13.551  0.504  2  VAL A CG2  1
+ATOM 18    H H    . VAL B 1 2  ? 13.617  15.489  2.821  2  VAL A H    1
+ATOM 19    H HA   . VAL B 1 2  ? 16.285  15.650  1.689  2  VAL A HA   1
+ATOM 20    H HB   . VAL B 1 2  ? 16.859  13.653  2.526  2  VAL A HB   1
+ATOM 21    H HG11 . VAL B 1 2  ? 15.925  11.512  1.791  2  VAL A HG11 1
+ATOM 22    H HG12 . VAL B 1 2  ? 14.743  12.431  2.754  2  VAL A HG12 1
+ATOM 23    H HG13 . VAL B 1 2  ? 14.586  12.361  0.982  2  VAL A HG13 1
+ATOM 24    H HG21 . VAL B 1 2  ? 17.872  14.353  0.565  2  VAL A HG21 1
+ATOM 25    H HG22 . VAL B 1 2  ? 17.645  12.588  0.536  2  VAL A HG22 1
+ATOM 26    H HG23 . VAL B 1 2  ? 16.583  13.637  -0.431 2  VAL A HG23 1
+#
+ATOM 1     N N    . ALA A 1 1  ? 13.847  16.632  5.806  1  ALA A N    2
+ATOM 2     C CA   . ALA A 1 1  ? 14.050  15.239  5.351  1  ALA A CA   2
+ATOM 3     C C    . ALA A 1 1  ? 15.057  15.051  4.185  1  ALA A C    2
+ATOM 4     O O    . ALA A 1 1  ? 16.242  14.860  4.448  1  ALA A O    2
+ATOM 5     C CB   . ALA A 1 1  ? 12.682  14.599  5.070  1  ALA A CB   2
+ATOM 6     H H1   . ALA A 1 1  ? 14.344  17.346  5.293  1  ALA A H1   2
+ATOM 7     H HA   . ALA A 1 1  ? 14.425  14.660  6.196  1  ALA A HA   2
+ATOM 8     H HB1  . ALA A 1 1  ? 12.168  15.166  4.295  1  ALA A HB1  2
+ATOM 9     H HB2  . ALA A 1 1  ? 12.824  13.571  4.734  1  ALA A HB2  2
+ATOM 10    H HB3  . ALA A 1 1  ? 12.085  14.603  5.981  1  ALA A HB3  2
+ATOM 11    N N    . VAL B 1 2  ? 14.602  15.209  2.935  2  VAL A N    2
+ATOM 12    C CA   . VAL B 1 2  ? 15.402  15.012  1.699  2  VAL A CA   2
+ATOM 13    C C    . VAL B 1 2  ? 14.579  15.343  0.431  2  VAL A C    2
+ATOM 14    O O    . VAL B 1 2  ? 14.518  16.503  0.039  2  VAL A O    2
+ATOM 15    C CB   . VAL B 1 2  ? 16.165  13.656  1.685  2  VAL A CB   2
+ATOM 16    C CG1  . VAL B 1 2  ? 15.292  12.399  1.812  2  VAL A CG1  2
+ATOM 17    C CG2  . VAL B 1 2  ? 17.136  13.551  0.504  2  VAL A CG2  2
+ATOM 18    H H    . VAL B 1 2  ? 13.617  15.489  2.821  2  VAL A H    2
+ATOM 19    H HA   . VAL B 1 2  ? 16.285  15.650  1.689  2  VAL A HA   2
+ATOM 20    H HB   . VAL B 1 2  ? 16.859  13.653  2.526  2  VAL A HB   2
+ATOM 21    H HG11 . VAL B 1 2  ? 15.925  11.512  1.791  2  VAL A HG11 2
+ATOM 22    H HG12 . VAL B 1 2  ? 14.743  12.431  2.754  2  VAL A HG12 2
+ATOM 23    H HG13 . VAL B 1 2  ? 14.586  12.361  0.982  2  VAL A HG13 2
+ATOM 24    H HG21 . VAL B 1 2  ? 17.872  14.353  0.565  2  VAL A HG21 2
+ATOM 25    H HG22 . VAL B 1 2  ? 17.645  12.588  0.536  2  VAL A HG22 2
+ATOM 26    H HG23 . VAL B 1 2  ? 16.583  13.637  -0.431 2  VAL A HG23 2

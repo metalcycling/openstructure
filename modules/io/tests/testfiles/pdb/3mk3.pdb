@@ -1,0 +1,151 @@
+HEADER    TRANSFERASE                             14-APR-10   3MK3              
+TITLE     CRYSTAL STRUCTURE OF LUMAZINE SYNTHASE FROM SALMONELLA TYPHIMURIUM LT2
+COMPND    MOL_ID: 1;                                                            
+COMPND   2 MOLECULE: 6,7-DIMETHYL-8-RIBITYLLUMAZINE SYNTHASE;                   
+COMPND   3 CHAIN: A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U,
+COMPND   4 V, W, X, Y, Z, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f, g, h, i, 
+COMPND   5 j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y;                      
+COMPND   6 SYNONYM: DMRL SYNTHASE, LUMAZINE SYNTHASE, RIBOFLAVIN SYNTHASE BETA  
+COMPND   7 CHAIN;                                                               
+COMPND   8 EC: 2.5.1.9;                                                         
+COMPND   9 ENGINEERED: YES                                                      
+SOURCE    MOL_ID: 1;                                                            
+SOURCE   2 ORGANISM_SCIENTIFIC: SALMONELLA TYPHIMURIUM;                         
+SOURCE   3 ORGANISM_TAXID: 99287;                                               
+SOURCE   4 STRAIN: LT2;                                                         
+SOURCE   5 GENE: RIBH, STM0417;                                                 
+SOURCE   6 EXPRESSION_SYSTEM: ESCHERICHIA COLI;                                 
+SOURCE   7 EXPRESSION_SYSTEM_TAXID: 562;                                        
+SOURCE   8 EXPRESSION_SYSTEM_STRAIN: BL21-DE3;                                  
+SOURCE   9 EXPRESSION_SYSTEM_VECTOR_TYPE: PLASMID;                              
+SOURCE  10 EXPRESSION_SYSTEM_PLASMID: PET28C                                    
+KEYWDS    ICOSAHEDRAL, FLAVODOXIN LIKE FOLD, TRANSFERASE, DMRL SYNTHASE,        
+KEYWDS   2 RIBOFLAVIN BIOSYNTHESIS, DRUG TARGET                                 
+CRYST1  154.234  151.503  235.032  90.00  97.08  90.00 P 1 21 1    120          
+ORIGX1      1.000000  0.000000  0.000000        0.00000                         
+ORIGX2      0.000000  1.000000  0.000000        0.00000                         
+ORIGX3      0.000000  0.000000  1.000000        0.00000                         
+SCALE1      0.006484  0.000000  0.000805        0.00000                         
+SCALE2      0.000000  0.006601  0.000000        0.00000                         
+SCALE3      0.000000  0.000000  0.004287        0.00000
+ATOM   1102  CD1 ILE A 154      -3.235  68.978 -70.581  1.00 47.85           C  
+TER    1103      ILE A 154                                                      
+ATOM   2205  CD1 ILE B 154     -28.999  70.338 -79.474  1.00 49.63           C  
+TER    2206      ILE B 154                                                      
+ATOM   4415  CD1 ILE C 154     -30.195  66.835 -35.302  1.00 47.88           C  
+TER    4416      ILE C 154                                                      
+ATOM   4415  CD1 ILE D 154     -30.195  66.835 -35.302  1.00 47.88           C  
+TER    4416      ILE D 154                                                      
+ATOM   5518  CD1 ILE E 154      -4.113  67.008 -43.389  1.00 47.09           C  
+TER    5519      ILE E 154                                                      
+ATOM   6621  CD1 ILE F 154     -83.200  27.688 -31.252  1.00 53.93           C  
+TER    6622      ILE F 154                                                      
+ATOM   7724  CD1 ILE G 154     -76.439   8.329 -13.197  1.00 51.79           C  
+TER    7725      ILE G 154                                                      
+ATOM   8827  CD1 ILE H 154     -54.836  16.773   1.176  1.00 55.18           C  
+TER    8828      ILE H 154                                                      
+ATOM   9930  CD1 ILE I 154     -48.137  41.599  -8.149  1.00 55.78           C  
+TER    9931      ILE I 154                                                      
+ATOM  11033  CD1 ILE J 154     -65.627  48.442 -27.968  1.00 51.41           C  
+TER   11034      ILE J 154                                                      
+ATOM  12136  CD1 ILE K 154       5.807   5.275   3.172  1.00 50.61           C  
+TER   12137      ILE K 154                                                      
+ATOM  13239  CD1 ILE L 154      25.536  16.177 -12.171  1.00 48.80           C  
+TER   13240      ILE L 154                                                      
+ATOM  14342  CD1 ILE M 154      17.681  41.103 -19.604  1.00 48.34           C  
+TER   14343      ILE M 154                                                      
+ATOM  66196  N   ALA N 153      41.604  17.266 -93.631  1.00 66.64           N  
+TER 
+ATOM  17648  CD1 ILE O 154     -91.656  22.855 -71.351  1.00 59.15           C
+TER
+ATOM  17648  CD1 ILE P 154     -91.656  22.855 -71.351  1.00 59.15           C  
+TER   17649      ILE P 154                                                      
+ATOM  18751  CD1 ILE Q 154     -79.016  46.624 -67.174  1.00 50.92           C  
+TER   18752      ILE Q 154                                                      
+ATOM  19854  CD1 ILE R 154     -65.150  52.583 -89.796  1.00 52.96           C  
+TER   19855      ILE R 154                                                      
+ATOM  65109  SD  MET S   1      27.795  23.768-103.591  1.00 84.47           S  
+TER
+ATOM  22060  CD1 ILE T 154     -85.720  14.370 -96.613  1.00 52.18           C  
+TER   22061      ILE T 154                                                      
+ATOM  23163  CD1 ILE U 154      -6.007  52.663-108.346  1.00 62.22           C  
+TER   23164      ILE U 154                                                      
+ATOM  24266  CD1 ILE V 154       8.108  31.601-118.383  1.00 56.51           C  
+TER   24267      ILE V 154                                                      
+ATOM  25369  CD1 ILE W 154      -9.161  14.800-131.162  1.00 48.15           C  
+TER   25370      ILE W 154                                                      
+ATOM  26472  CD1 ILE X 154     -34.184  25.428-128.828  1.00 48.73           C  
+TER   26473      ILE X 154                                                      
+ATOM  27572  CD1 ILE Y 154     -32.066  48.697-114.764  1.00 52.13           C  
+TER   27573      ILE Y 154                                                      
+ATOM  28675  CD1 ILE Z 154     -35.378 -40.147-120.844  1.00 47.62           C  
+TER   28676      ILE Z 154
+ATOM  39721  CD1 ILE 1 154     -10.068 -32.542   0.400  1.00 51.89           C  
+TER   39722      ILE 1 154                                                      
+ATOM  40828  CD1 ILE 2 154     -29.098 -14.826   8.315  1.00 55.66           C  
+TER   40829      ILE 2 154                                                      
+ATOM  41931  CD1 ILE 3 154     -53.297 -24.101  -0.409  1.00 56.47           C  
+TER   41932      ILE 3 154                                                      
+ATOM  43034  CD1 ILE 4 154     -49.182 -47.420 -13.810  1.00 44.46           C  
+TER   43035      ILE 4 154                                                      
+ATOM  44137  CD1 ILE 5 154     -22.343 -52.821 -13.226  1.00 52.50           C  
+TER   44138      ILE 5 154                                                      
+ATOM  45244  CD1 ILE 6 154     -93.098  -9.503 -45.801  1.00 54.99           C  
+TER   45245      ILE 6 154                                                      
+ATOM  46351  CD1 ILE 7 154     -92.370 -17.906 -71.636  1.00 57.24           C  
+TER   46352      ILE 7 154                                                      
+ATOM  47454  CD1 ILE 8 154     -80.934 -42.373 -72.436  1.00 58.02           C  
+TER   47455      ILE 8 154                                                      
+ATOM  48557  CD1 ILE 9 154     -74.113 -49.291 -46.888  1.00 53.86           C  
+TER   48558      ILE 9 154                                                      
+ATOM  39721  CD1 ILE a 154     -10.068 -32.542   0.400  1.00 51.89           C  
+TER   39722      ILE a 154                                                      
+ATOM  40828  CD1 ILE b 154     -29.098 -14.826   8.315  1.00 55.66           C  
+TER   40829      ILE b 154                                                      
+ATOM  41931  CD1 ILE c 154     -53.297 -24.101  -0.409  1.00 56.47           C  
+TER   41932      ILE c 154                                                      
+ATOM  43034  CD1 ILE d 154     -49.182 -47.420 -13.810  1.00 44.46           C  
+TER   43035      ILE d 154                                                      
+ATOM  44137  CD1 ILE e 154     -22.343 -52.821 -13.226  1.00 52.50           C  
+TER   44138      ILE e 154                                                      
+ATOM  45244  CD1 ILE f 154     -93.098  -9.503 -45.801  1.00 54.99           C  
+TER   45245      ILE f 154                                                      
+ATOM  46351  CD1 ILE g 154     -92.370 -17.906 -71.636  1.00 57.24           C  
+TER   46352      ILE g 154                                                      
+ATOM  47454  CD1 ILE h 154     -80.934 -42.373 -72.436  1.00 58.02           C  
+TER   47455      ILE h 154                                                      
+ATOM  48557  CD1 ILE i 154     -74.113 -49.291 -46.888  1.00 53.86           C  
+TER   48558      ILE i 154                                                      
+ATOM  49664  CD1 ILE j 154     -81.861 -29.085 -30.310  1.00 55.79           C  
+TER   49665      ILE j 154                                                      
+ATOM  50767  CD1 ILE k 154      26.281 -24.378 -16.940  1.00 50.38           C  
+TER   50768      ILE k 154                                                      
+ATOM  51874  CD1 ILE l 154      16.263 -47.743 -26.736  1.00 50.36           C  
+TER   51875      ILE l 154                                                      
+ATOM  52977  CD1 ILE m 154      25.650 -51.336 -51.817  1.00 54.87           C  
+TER   52978      ILE m 154                                                      
+ATOM  54080  CD1 ILE n 154      41.503 -29.917 -57.810  1.00 60.70           C  
+TER   54081      ILE n 154                                                      
+ATOM  55180  CD1 ILE o 154      41.805 -13.351 -36.172  1.00 53.34           C  
+TER   55181      ILE o 154                                                      
+ATOM  56283  CD1 ILE p 154       3.757 -46.512-109.341  1.00 55.95           C  
+TER   56284      ILE p 154                                                      
+ATOM  57386  CD1 ILE q 154       1.882 -24.123-124.639  1.00 54.04           C  
+TER   57387      ILE q 154                                                      
+ATOM  58489  CD1 ILE r 154      21.919  -7.177-117.242  1.00 61.89           C  
+TER   58490      ILE r 154                                                      
+ATOM  59592  CD1 ILE s 154      36.062 -19.151 -97.219  1.00 55.60           C  
+TER   59593      ILE s 154                                                      
+ATOM  60695  CD1 ILE t 154      24.863 -43.474 -92.466  1.00 58.68           C  
+TER   60696      ILE t 154                                                      
+ATOM  61795  CD1 ILE u 154      27.291  45.344 -85.050  1.00 53.58           C  
+TER   61796      ILE u 154                                                      
+ATOM  62898  CD1 ILE v 154      29.765  48.492 -58.274  1.00 51.74           C  
+TER   62899      ILE v 154                                                      
+ATOM  64001  CD1 ILE w 154      42.009  26.318 -48.534  1.00 53.32           C  
+TER   64002      ILE w 154                                                      
+ATOM  65101  CD1 ILE x 154      47.207   9.419 -69.314  1.00 47.11           C  
+TER   65102      ILE x 154                                                      
+ATOM  66208  CD1 ILE y 154      38.103  21.257 -92.004  1.00 56.49           C  
+TER   66209      ILE y 154                                   
+END                                                                             

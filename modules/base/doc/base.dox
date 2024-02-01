@@ -1,0 +1,16 @@
+namespace ost {
+/**
+\mainpage
+
+\section overview Documentation by Topic
+
+\li \ref query "Selection Language"
+
+\section module_doc Documentation by module
+
+\li \ref module_io "IO Module"
+\li \ref module_conop "Conop Module"
+\li \ref module_seq "Seq Module"
+*/
+
+}

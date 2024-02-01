@@ -1,0 +1,7 @@
+data_singleline multi value data-item
+
+_loop
+_a.x
+_a.y
+_b.z
+1 2 3

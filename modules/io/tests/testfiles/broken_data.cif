@@ -1,0 +1,1 @@
+d lines starting with a 'd' kicked the parser into an infinite loop.

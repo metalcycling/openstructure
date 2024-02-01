@@ -1,0 +1,5 @@
+if (ENABLE_GUI)
+  add_subdirectory(src)
+  add_subdirectory(share)
+  add_subdirectory(pymod)
+endif ()

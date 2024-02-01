@@ -1,0 +1,1 @@
+configure_file(${INPUT_FILE} ${OUT_FILE} @ONLY)

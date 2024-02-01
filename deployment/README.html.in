@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+<title>Protein Model Portal - PSI SGKB</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="robots" content="noarchive" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<link rel="icon" href="share/favicon.ico" type="image/x-icon" />
+<link rel="author" title="The OpenStructure Team" href="?pid=contact" />
+</head>
+<body>
+<p style="color:gray">
+
+-----------------------------README----------------------------------------<br/>
+ This file is part of the OpenStructure project <www.openstructure.org><br/>
+<br/>
+ Copyright (C) 2008-2020 by the OpenStructure authors<br/>
+<br/>
+ This library is free software; you can redistribute it and/or modify it under<br/>
+ the terms of the GNU Lesser General Public License as published by the Free<br/>
+ Software Foundation; either version 3.0 of the License, or (at your option)<br/>
+ any later version.<br/>
+ This library is distributed in the hope that it will be useful, but WITHOUT<br/>
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS<br/>
+ FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more<br/>
+ details.<br/>
+<br/>
+ You should have received a copy of the GNU Lesser General Public License<br/>
+ along with this library; if not, write to the Free Software Foundation, Inc.,<br/>
+ 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA<br/>
+------------------------------------------------------------------------------<br/>
+</p>
+<br/>
+Thank you for using OpenStructure!<br/>
+<br/>
+This is the current Version of OpenStructure.<br/>
+Version: @OST_VERSION@<br/>
+<br/>
+This is a major release containig many bugfixes and improvements considering rendering, GUI and further <br/>
+functionality.<br/>
+<br/>
+For feedback or suggestions please contact us at <a href="http://www.openstructure.org">www.openstructure.org!</a><br/>
+<br/>
+<br/>
+The OpenStructure Authors<br/>
+
+</body>

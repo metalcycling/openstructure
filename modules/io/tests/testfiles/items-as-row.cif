@@ -1,0 +1,52 @@
+data_items-as-row
+
+_data-item1.s1 a
+_data-item1.s2 'a b c'
+_data-item1.s3
+;
+a
+b
+c
+;
+_data-item1.s4 'a'b'
+_data-item2.i1 1
+_data-item2.i2 '2'
+_data-item2.i3
+;
+3
+;
+_data-item2.i4
+4
+
+data_more-items-as-row
+
+_data-item3.f1 1.11
+_data-item3.f2 1.22
+_data-item3.f3
+;
+1.33
+;
+_data-item3.f4 1.44
+
+loop_
+_loop.s1
+_loop.s2
+_loop.s3
+_loop.s4
+1 2 3 4
+
+loop_
+_loop.s1
+_loop.s2
+_loop.s3
+_loop.s4
+1 2 3 6
+4 5 6 8
+
+_data-item4.s1 1.11
+_data-item4.s2 1.22
+_data-item4.s3
+;
+1.33
+;
+_data-item4.s4 1.44

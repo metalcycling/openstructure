@@ -1,0 +1,66 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# This file is part of the OpenStructure project <www.openstructure.org>
+#
+# Copyright (C) 2008-2020 by the OpenStructure authors
+#
+# This library is free software; you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation; either version 3.0 of the License, or (at your option)
+# any later version.
+# This library is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this library; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+#------------------------------------------------------------------------------
+
+#
+# convenience wrapper for non-gui openstructure interface 'ost'
+#
+# Self detect important directories
+if [ -h "$0" ] ; then
+  SCRIPT_NAME=`readlink "$0"`
+else
+  SCRIPT_NAME="$0"
+fi
+BIN_DIR=`dirname "$SCRIPT_NAME"`
+OST_EXEC_DIR=$(cd $BIN_DIR/../@LIBEXEC_PATH@ && pwd)
+export OST_EXEC_DIR
+
+source "$OST_EXEC_DIR/ost_config"
+
+ACTION="$1"
+OST_SCRIPT="${OST_EXEC_DIR}/ost-${ACTION}"
+
+OLDIFS=$IFS
+if test -e "${OST_SCRIPT}" ; then
+    opts=""
+    for argument in "${@:2}";do
+      if [ -n "$opts" ]; then
+        opts=$opts"#""$argument"
+      else
+        opts="$argument"
+      fi
+    done
+    IFS="#"
+    $pyexec -c "exec(open('$DNG_ROOT/@LIBDIR@/@PYTHON_MODULE_PATH@/ost/ost_startup.py').read())" "${OST_SCRIPT}" $opts
+    RC=$?
+else
+    opts=""
+    for argument in "$@";do
+      if [ -n "$opts" ]; then
+        opts=$opts"#""$argument"
+      else
+        opts="$argument"
+      fi
+    done
+    IFS="#"
+    $pyexec $interactive -c "exec(open('$DNG_ROOT/@LIBDIR@/@PYTHON_MODULE_PATH@/ost/ost_startup.py').read())" $opts
+    RC=$?
+fi
+IFS=$OLDIFS
+exit $RC

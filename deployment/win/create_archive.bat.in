@@ -1,0 +1,31 @@
+@ECHO OFF
+REM create a zip archive for deployment on windows
+REM no registry entries
+REM no PATHs will be changed except in the DNG session
+REM 
+REM Author Juergen Haas
+REM
+set inst_dir=openstructure@OST_VERSION@
+set archive_name=OpenStructureWin32
+if exist "%inst_dir%" rmdir /S /Q "%inst_dir%" 
+if exist %archive_name%.zip del %archive_name%.zip*.*
+REM dir /S %inst_dir%
+mkdir "%inst_dir%\share\openstructure\examples"
+mkdir "%inst_dir%\lib\site-packages"
+mkdir "%inst_dir%\bin"
+xcopy  /E /I /Y /EXCLUDE:exclude_file_types  ..\..\examples "%inst_dir%\share\openstructure\examples"
+xcopy  /E /I /Y /EXCLUDE:exclude_file_types ..\..\stage\share "%inst_dir%\share\"
+REM xcopy  /E /I ..\..\website\html "%inst_dir%\share\doc"
+copy  d:\programs\bin\python.exe "%inst_dir%\bin"
+copy ..\README.html "%inst_dir%" 
+copy ..\..\graphics\favicon.ico "%inst_dir%\share"
+copy dng.bat "%inst_dir%" 
+xcopy  /E /I /Y /EXCLUDE:excludes+exclude_file_types d:\programs\lib "%inst_dir%\lib"
+xcopy  /E /I /Y /EXCLUDE:excludes+exclude_file_types  ..\..\stage\lib "%inst_dir%\lib"
+xcopy /E /I /Y /EXCLUDE:excludes+exclude_file_types ..\..\stage\bin "%inst_dir%\bin"
+set PATH="c:\Program Files (x86)"\7-Zip\;%PATH%
+REM 7z a -r -t7z %archive_name% "%inst_dir%" > log
+REM if exist %archive_name%.7z copy /b 7zS.sfx + config.txt + %archive_name%.7z %archive_name%.exe
+if exist \TMTools\TMalign.exe copy /B \TMTools\TMalign.exe "%inst_dir%\bin\Release"
+if exist \TMTools\TMscore.exe copy /B \TMTools\TMscore.exe "%inst_dir%\bin\Release"
+7z a -r -tzip %archive_name% "%inst_dir%" > log

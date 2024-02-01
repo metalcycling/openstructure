@@ -1,0 +1,24 @@
+
+COMPND    MOL_ID: 1;                                                            
+COMPND   2 MOLECULE: IMMUNOGLOBULIN E;                                          
+COMPND   3 CHAIN: H, I, J, K;                                                   
+COMPND   4 FRAGMENT: FV REGION, RESIDUES 1-122;                                 
+COMPND   5 ENGINEERED: YES;                                                     
+COMPND   6 MOL_ID: 2;                                                           
+COMPND   7 MOLECULE: IMMUNOGLOBULIN E;                                          
+COMPND   8 CHAIN: L, M, N, O;                                                   
+COMPND   9 FRAGMENT: FV REGION, RESIDUES 1-110;                                 
+COMPND  10 ENGINEERED: YES                       
+
+ATOM    961  CB  ALA H 122      24.405  78.113 110.762  1.00 46.85           C  
+TER     962      ALA H 122                                                      
+ATOM   1923  CB  ALA J 122     -18.810  34.607  14.909  1.00 46.23           C  
+TER    1924      ALA J 122                                                      
+ATOM   2722  CD2 LEU L 109      61.832  51.079 106.030  1.00 43.23           C  
+TER    2723      LEU L 109                                                      
+ATOM   3521  CD2 LEU M 109       2.184  -0.589  68.108  1.00 43.23           C  
+TER    3522      LEU M 109                                                      
+ATOM   4320  CD2 LEU N 109       7.889  -2.865  19.656  1.00 43.22           C  
+TER    4321      LEU N 109                                                      
+ATOM   5113  CD2 LEU O 109      59.692  56.678  57.399  1.00 43.23           C  
+TER    5114      LEU O 109                                                      

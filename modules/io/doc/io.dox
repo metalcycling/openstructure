@@ -1,0 +1,58 @@
+namespace ost { namespace io {
+/**
+\page module_io The IO module
+
+\section io The io module
+
+The io module deals with input and output of \ref mol::EntityHandle "entities",
+\ref seq::AlignmentHandle "multiple sequence alignments" and 
+\ref ost::img::ImageHandle "map data". Importers for common file formats such as PDB, 
+SDF, FASTA, CLUSTAL W, DX and the CHARMM files are available. 
+
+
+\subsection io_loading Loading sequences, maps and entities
+
+Entities are loaded via LoadEntity() "LoadEntity()", maps with 
+\ref LoadImage "LoadImage()" and \ref LoadAlignment "LoadAlignment()" 
+loads seqence alignments. For all these functions the file format is 
+automatically deduced  fron the file extension, by probing against all the 
+\ref io_handler "IO handlers" known to the \ref IOManager "IO manager". 
+The PDB importer, for example is used for files with extension \c .pdb and 
+\c .ent. For files with other extensions, or files  without extensions, the 
+file format may be passed explicitly as the second parameter to one of these 
+functions.
+
+In addition to the generic load functions described above, PDB files can be
+loaded with LoadPDB() and LoadMultiPDB(). These functions offer a tighter
+control over the exact loading behaviour.
+
+Some of the file formats for molecules do not explicitly define bonds. The
+IO handlers for these file formats make use of the conop module to infer
+connectivity information.
+
+\subsection io_handler IO Handlers
+
+The specific logic for loading and storing data is implemented in so-called 
+IO handlers. For sequence alignments, the basic interface for the 
+IO handler is defined by the SequenceIOHandler class, wheras EntityIOHandler 
+is the base class for entity IO handlers. In addition, the module also 
+defines an interface for density map io (MapIOHandler). The IO-handler
+concept allows for a modular architecture and makes it possible to add 
+support for external IO Handlers with seamless integration into the 
+import/export API.
+
+\subsection adding_io_handler Adding an IO Handler
+
+Adding a new IO handler is fairly straight forward:
+
+\li Subclass the appropriate IO Handler (one of EntityIOHandler, MapIOHandler,
+    SequenceIOHandler).
+\li Define a factory class for your io handler.
+\li Overload the import and/or export method.
+\li Register the IO handler by calling the appropriate RegisterFactory method
+    on the IOManager singleton instance.
+
+
+*/
+
+}}

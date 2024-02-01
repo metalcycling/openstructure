@@ -1,0 +1,89 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# This file is part of the OpenStructure project <www.openstructure.org>
+#
+# Copyright (C) 2008-2020 by the OpenStructure authors
+#
+# This library is free software; you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation; either version 3.0 of the License, or (at your option)
+# any later version.
+# This library is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this library; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+#------------------------------------------------------------------------------
+# common config script
+# Authors: Marco Biasini, Andreas Schenk
+
+# Self detect important directories
+export DNG_ROOT=`cd "$BIN_DIR/..";pwd`
+export DNG_BINDIR="$DNG_ROOT/bin"
+export DNG_LIBDIR="$DNG_ROOT/@LIBDIR@"
+export DNG_INITDIR="$DNG_LIBDIR/@PYTHON_MODULE_PATH@/ost/"
+export OST_ROOT="$DNG_ROOT"
+
+export PATH="$DNG_BINDIR:${PATH}"
+export DYLD_FRAMEWORK_PATH="$DNG_LIBDIR:${DYLD_FRAMEWORK_PATH}"
+export DYLD_LIBRARY_PATH="$DNG_LIBDIR:${DYLD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="$DNG_LIBDIR:${LD_LIBRARY_PATH}"
+# set QT_PLUGIN_PATH for bundle (commented except in linux bundles)
+#export QT_PLUGIN_PATH="$BIN_DIR/plugins"
+# unset PYTHONPATH for bundle (commented except in linux bundles)
+#unset PYTHONPATH
+
+
+# retrieve absolute path to python executable
+pyexec="@Python_EXECUTABLE@"
+
+if [ ! -x "$pyexec" ]; then 
+  echo "Error: Python executable '$pyexec' not found!"
+  exit
+fi
+
+
+if [ -n "$DNG_ATTACH_VALGRIND" ]; then
+  if [ ! -x `which valgrind` ]; then 
+    echo "Error: valgrind not found!"
+    exit
+  fi
+  pyexec="`which valgrind`#--leak-check=full#$pyexec"
+fi
+
+if [ -n "$DNG_ATTACH_VALGRIND_MASSIF" ]; then
+  if [ ! -x `which valgrind` ]; then
+    echo "Error: valgrind not found!"
+    exit
+  fi
+  pyexec="`which valgrind`#--tool=massif#$pyexec"
+fi
+
+if [ -n "$DNG_PROFILE" ]; then
+  if [[ "$DNG_PROFILE" == "yep" ]]; then
+    echo "Profiling activated using yep"
+    pyexec="$pyexec#-m#yep#-v#--"
+  elif [[ "$DNG_PROFILE" == "cProfile" ]]; then
+    echo "Profiling activated using cProfile"
+    pyexec="$pyexec#-m#cProfile#-s#cumulative#--"
+  else 
+    echo "Profiling deactivated due to unknown profiler"
+  fi
+fi
+
+
+set -o noglob
+
+# decide whether to start interactively or not
+# interactive mode can be forced by setting -i as a iplt option
+interactive=""
+if [ $# == 0 ];then
+  interactive="-i"
+else
+  if [ $1 == "-i" ] ;then
+    interactive="-i"
+  fi
+fi

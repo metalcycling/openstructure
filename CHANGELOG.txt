@@ -1,0 +1,352 @@
+Changes in Release 2.6.1
+--------------------------------------------------------------------------------
+
+ * Bugfix in DockQ computation when using ost.mol.scoring
+
+
+Changes in Release 2.6.0
+--------------------------------------------------------------------------------
+
+ * Reporting of unassigned ligands in the LigandScorer.
+ * Experimental support for V3000 SDF files.
+ * Rotamer based compression in OMF file format.
+ * Chain mapping updates. Default chain mapping strategy now uses increased
+   sampling - only marginal runtime increase.
+ * The compound library now knows about SMILES strings, atom charges, and
+   contain information that a compound is obsolete (including the replacement,
+   if available). Compound libraries created by OST 1.5.0 or later can still be
+   read (SMILES will be empty, charges set to 0, no information about the
+   obsolete status of compounds, with warnings). Older files are no
+   longer supported.
+ * New FindCompounds method of CompoundLib to query compounds by SMILES
+   string, InChI code, InChI key or formula.
+ * The compound library now reads the "InChI=" part of InChI codes.
+ * Implemented ICS/IPS scores to assess oligomeric complexes.
+ * Several bug fixes and improvements.
+
+Changes in Release 2.5.0
+--------------------------------------------------------------------------------
+
+ * A default compound library is set and the rule-base processor is set as the
+   default processor when the ost module is imported. As a result, OpenStructure
+   will behave more like a script run with the `ost` command in python scripts,
+   Jupyter notebooks, ipython sessions, etc.
+ * Global chain mapping and assignment based on RMSD only are available for
+   ligand scoring (both with the action and module).
+ * Additional chain and residue properties are read from mmCIF allowing basic
+   mapping between label and author chain and residue numbers.
+ * USalign support - as binding that calls external USalign executable or
+   direct injection of macromolecules on the C++ level.
+ * Added functionality in compare-structures action: backbone only lDDT,
+   flag to disable stereochemistry checks for lDDT, TMscore (including
+   associated chain mapping) computed by USalign, make residues/atoms uniquely
+   identifiable (also considering residue number insertion codes).
+ * Read atom charges if present from PDB/mmCIF/SDF files
+ * Several bug fixes and improvements.
+
+Changes in Release 2.4.0
+--------------------------------------------------------------------------------
+
+ * Add fast and flexible lDDT implementation. The new code is purely Python
+   based, natively supports complexes and is able to score DNA/RNA. The
+   deprecated lDDT implementation remains for consistency.
+ * Add algorithms to establish one to one mappings between chains in a reference
+   structure and a model. Chain mappings can be derived by optimizing oligomeric
+   lDDT, RMSD or QS-score. 
+ * Substitution matrixes for RNA/DNA to compute alignments: seq.alg.IDENTITY and
+   seq.alg.NUC44.
+ * Add binding to DockQ (https://github.com/bjornwallner/DockQ) as well as an
+   OpenStructure specific implementation of it. Also allows to extract CAPRI
+   specific oligo scores (fnat, fnonnat, irmsd, lrmsd etc.)
+ * Reimplentation of QS-score in mol.alg.qsscore. Implements speedups and
+   heavy caching which benefits heavy enumeration approaches in chain mapping.
+ * Stereochemistry related algorithms in mol.alg.stereochemistry. Identifies 
+   clashes and non-sensible bond lengths/angles based on parameterizations from
+   CCP4 MON_LIB.
+ * Add non-polymer/small molecule ligand scoring algorithm with lDDT-PLI and
+   symmetry-corrected ligand RMSD scores that were used in CASP15.
+ * Better compression in OMF structure format.
+ * Two central scoring objects to access to all OpenStructure specific scoring
+   capabilities. Tertiary and quaternary structures and interactions, including
+   required pre-processing of model/reference (cleanup, stereochemistry checks,
+   chain mapping etc.) with mol.alg.scoring.Scorer.
+   Non-polymer/small molecule ligands with mol.alg.ligand_scoring.LigandScorer.
+ * Re-write of compare-structures action to include newly developed chain
+   mapping and scores. The old action is available as compare-structures-legacy.
+ * Add compare-ligand-structures action which computes lDDT-PLI and
+   symmetry-corrected ligand RMSD scores in protein complexes.
+ * Several minor bug fixes and improvements.
+
+Changes in Release 2.3.1
+--------------------------------------------------------------------------------
+
+ * Simplify Dockerfile - remove MSMS
+ * Enable OpenMM 7.7.0
+ * Resolve segfault in DNG observed in Python 3.9
+
+Changes in Release 2.3.0
+--------------------------------------------------------------------------------
+
+ * Add AAindex databases (Kawashima et al., 2000)
+ * Added experimental molecular structure format OMF (OpenStructure Minimal 
+   Format)
+ * Removed GUI components in containers
+ * Support to call external DSSP program has been deprecated.
+   ost.bindings.dssp.AssignDSSP still exists with the "old" interface but mimics
+   the equivalent behaviour with the OpenStructure internal secondary structure
+   and solvent accessibility algorithms.
+ * mol.alg.PDBize does not turn plain polymer chains (not marked peptide or
+   nucleotide) into ligand chains anymore
+ * Remove ENABLE_IMG flag in cmake build system - img module is always built now
+ * Several minor bug fixes and improvements.
+
+Changes in Release 2.2.0
+--------------------------------------------------------------------------------
+
+ * Introduced CreateMeanlDDTHA function to evaluate the consistency of a
+   structure with a full ensemble of structures.
+ * FindMembrane algorithm returns additional intermediate results.
+ * Detect Boost and Python using functionality provided by CMake instead of our 
+   own code. You might have to adapt CMake flags when building OpenStructure to 
+   variables specified here: 
+   https://cmake.org/cmake/help/latest/module/FindPython.html
+ * Update container base image from ubuntu:18.04 to ubuntu:20.04
+ * Several minor bug fixes and improvements.
+
+Changes in Release 2.1.0
+--------------------------------------------------------------------------------
+
+ * Use the newer Voronota implementation as default in CAD-score binding
+ * Added HHblits3 support - HHblits2 still supported but considered deprecated
+ * HMMScore: HMM-HMM alignment score as it is optimized in HHblits searches
+ * Support for the new carbohydrate-extension in the mmCIF file format
+   (https://www.wwpdb.org/documentation/carbohydrate-remediation)
+ * Several minor bug fixes and improvements.
+
+Changes in Release 2.0.0
+--------------------------------------------------------------------------------
+
+ * Port OpenStructure to Python 3 (3.6).
+ * Updated versions of dependencies
+ * Reduced amount of warnings during compilation.
+ * Removed OpenMM density plugin and out-dated bindings (3dcomb, MMalign).
+ * Several minor bug fixes and improvements.
+
+Changes in Release 1.11.0
+--------------------------------------------------------------------------------
+
+ * This is expected to be the last release supporting Python 2.
+ * Read revision version numbers from mmCIF files.
+ * Several minor bug fixes and improvements.
+
+Changes in Release 1.10.0
+--------------------------------------------------------------------------------
+
+ * Use system provided SQLite3 library.
+ * Port from Qt4 to Qt5.
+ * C++ wrapper around C++ implementation of TMalign.
+ * Database for efficient in-memory lookup of coordinates and sequences.
+ * Updated CAD score binding with change in result format, check documentation
+   for further details.
+ * Improved support for recent compilers and libraries.
+ * Removed support for USE_MESA.
+ * Bugfix of string representation of ResNum which now includes insertion code.
+ * Several minor bug fixes and improvements.
+
+Changes in Release 1.9.0
+--------------------------------------------------------------------------------
+
+ * Improved compare-structures action (chain mapping handling and documentation).
+ * Improved handling of citations read from mmCIF files (mainly for books).
+ * Several minor bug fixes and improvements.
+
+Changes in Release 1.8.0
+--------------------------------------------------------------------------------
+
+  * Introduced recipes to generate Docker and Singularity images.
+  * Moved "nonstandard" functions from ost.conop to ost.mol.alg. Mapping
+    functions CopyResidue, CopyConserved and CopyNonConserved that were
+    previousely imported from ost.conop are now to be imported from ost.mol.alg.
+  * Removed habit of changing secondary structure of entities when loading
+    from mmCIF PDB files. Before, OST would turn secondary structure 'EEH'
+    into 'ECH' to make it look nicer in DNG. Now, 'EEH' stays 'EEH'.
+  * Added Molck API to the ost.mol.alg module.
+  * Extended lDDT API in ost.mol.alg module to reproduce functionality of lddt
+    binary and fixed issues in stereo chemistry checks there.
+  * Added `actions` interface including one action to compare structures.
+  * Updated HHblits binding (minor changes for optional arguments).
+  * Added functionality to find optimal membrane position of protein.
+  * Support for recent compilers which use C++-11 by default.
+  * Several minor bug fixes, improvements, and speed-ups.
+
+Changes in Release 1.7.1
+--------------------------------------------------------------------------------
+
+  * Fixed an issue that could cause the star format parser (mmCIF, chemical
+    components dictionary) to enter an infinite loop
+  * Chemical components dictionary was extended by new chemical classes
+    introduced by PDB
+  * Fixed unit tests
+  * Improved documentation
+
+Changes in Release 1.7.0
+--------------------------------------------------------------------------------
+
+  * Removed Qt dependency for non-GUI compilation and fixed issues with recent
+    gcc and boost versions
+  * Added Quaternary Structure (QS) scoring module
+  * Fixed mmCIF parser to work with mmCIF dictionary version 5 (now with useful
+    revision data) and add r_free, r_work and entity.id to MMCifInfo
+  * Added fast accessibility and secondary structure (mimicking naccess & dssp)
+    computation (Accessibility & AssignSecStruct in mol.alg)
+  * Changed behaviour of mol.alg.Superpose with match = 'local-aln' or
+    'global-aln' which used to fail for chains without peptide bonds (e.g.
+    CA-only)
+  * Large updates for documentation
+  * Several minor bug fixes, improvements, and speed-ups
+
+Changes in Release 1.6.0
+--------------------------------------------------------------------------------
+
+  * Added code to compare structures attached to a multiple seq. aln.
+  * Incorporated Antechamber based force-field parameter generation for mm mod.
+
+Changes in Release 1.5.0
+--------------------------------------------------------------------------------
+
+  * Added binding to 3DComb (structural alignment)
+  * Added functions to predict contacts from multiple sequence alignments
+  * Added some functions to analyze MD trajectories (pairwise distance matrices,
+    pairwise distance fluctuations, RMSD matrix etc.)
+  * Support of non-orthogonal unit cells for wrapping entities
+  * Flexible implementation of HBPlus
+  * Updated dependencies (Eigen2 to Eigen3, Boost 1.47 to 1.53)
+  * Wrapper for OpenMM. This allows for direct access to molecular mechanics
+    functionality from within OST.
+  * The compoundslib now features InChI and InChIKeys (machine readable InChI
+    hash)
+  * Names of compounds are also stored in the compoundslib now
+  * Added seq.ProfileHandle class and io.LoadSequenceProfile to work with 
+    sequence profiles.
+  * Added a wrapper to HHblits.
+  * Removed levenberg_marquardt.h in img/alg
+
+Changes in Release 1.4.0
+--------------------------------------------------------------------------------
+
+  * Feasibility check set to off by default, atoms in compounds are now
+    connected by the Builder irrespective of the distance between them
+  * Speed improvement for bracketed within selections up to a factor of 20
+  * refactored and streamlined the conop interface. The builder classes
+    have been replaced by processors (HeuristicProcessor, RuleBasedProcessor)
+
+Changes In Release 1.3.3
+--------------------------------------------------------------------------------
+
+  * fix context menu/main menu for newer Qt versions 
+  * CreateEntityFromView remembers chemical type (BZDNG-430)
+  * fix gfx.PrimList.SetLineWidth
+  * Fix remote=true for MMCIF loader (BZDNG-449)
+  * made CreateViewFromAtoms more flexible (BZDNG-408)
+
+Changes In Release 1.3.2
+--------------------------------------------------------------------------------
+
+  * Fixed atom ordering in the GetFrameFromEntity() function in the 
+    structure_analysis.py module.
+  * Fix atom indices generated by CoordGroup::Filter()
+  * small tweaks to lDDT output
+  * small tweaks to molck
+  * Repaired bio unit parsing from mmCIF file/ PDBizing bio units, before
+    chains with different transformations were ignored
+  * use new remote loader written in Python to work around crash on Mountain 
+    Lion
+
+Changes In Release 1.3.1
+--------------------------------------------------------------------------------
+
+  * Export missing default argument for AligmentHandle.ToString
+  * Automatically attach entity view in SequenceFromChain
+  * Export GetMatchingBackboneViews to Python
+  * Fix compilation with boost 1.33.1
+  * Allow renumbering of single chain
+
+Changes In Release 1.3.0
+--------------------------------------------------------------------------------
+
+  * Scene background can now be set to a gradient or an image
+  * Better Handling of HSV colors
+  * Table: direct access to columns tab['x'] is also available as tab.x
+  * Table: Export to ConTeXt and HTML tables
+  * Table: Barplot interface
+  * The BLAST binding supports newer versions of BLAST
+  * Bindings for CAD score
+  * Update directory layout of OST to be more conformant with the site-package
+    system of Python: Instead of storing the modules in lib{64}/ost/ost, they
+    are now in lib{64}/python{{VERSION}}/site-packages/ost
+  * Added molck, the molecular checker. A small command-line tool to clean PDB 
+    files, e.g. remove atoms with zero occupancy, "virtual atoms", hydrogens 
+    etc.
+
+Changes In Release 1.2.3
+--------------------------------------------------------------------------------
+
+  * PDBWriter: Prevent writing of out-of-bounds atom coordinates.
+
+Changes in Release 1.2.2
+--------------------------------------------------------------------------------
+  * Fixed loop indentation in the PDBize function for bio units, leading to
+    exponential running time/ memory consumption. This problem only affected a
+    fraction of PDB entries.
+
+Changes in Release 1.2.1
+--------------------------------------------------------------------------------
+
+  * Use RPATH for linux bundles. No longer requires LD_LIBRARY_PATH to be set
+    for chemdict_tool and lddt [BZDNG-385]
+  * "install command line tools" also symlinks lddt, and chemdict_tool
+    [BZDNG-386]
+  * Fixed broken the_hammer.py example [BZDNG-387]
+  * MacOS X: Make sure to use python2.6, not python as pyexec [BZDNG-388]
+  * Fix example directory path for MacOS X bundle [BZDNG-389]
+  * PDBWriter: Insert newline after END [BZDNG-391]
+  * Added missing documentation for a few AlignmentHandle methods
+  * Workaround for naccess which was failing when directory contains dots.
+  * Fixed superposition dialog for unnamed chains
+  * Fixed byte-swapping issue for DCD trajectories
+  * Fixed FFT panel update after switching data in main viewer
+  * Added missing pdbx_struct_assembly.id export
+  * lDDT: Updated default angle and bond tolerance parameters from 8 stddev to 12 
+    stddev.
+
+Changes in Release 1.2.0 (since 1.1.0)
+--------------------------------------------------------------------------------
+
+ * added mmCIF parser to enable loading of mmCIF files. The following categories
+   are currently understood:
+   atom_site, entity, entity_poly, citation, citation_author, exptl, refine,
+   pdbx_struct_assembly, pdbx_struct_assembly_gen, pdbx_struct_oper_list,
+   struct, struct_conf, struct_sheet_range, pdbx_database_PDB_obs_spr,
+   struct_ref, struct_ref_seq, struct_ref_seq_dif
+
+ * trajectory analysis support
+
+ * better intergration with numpy
+
+ * added Smith-Waterman local align and Needleman-Wunsch global align algorithms
+
+ * static linking of C++ executables
+
+ * support for building OST library with no gfx, gui, info libraries. This leads
+   to a compact application bundle that can easily be deployed
+
+ * work around compiler bugs in gcc-4.1 enabling compilation with CentOS 5.5's
+   default compiler and libraries
+
+ * introducing the new table class, supporting all kinds of analyses on tabular
+   data, including plotting and statistical analyses.
+
+ * added stereochemical plausibility checks and support for multiple references
+   to lDDT
+
+ * new superposition dialog in DNG

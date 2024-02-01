@@ -1,0 +1,17 @@
+HEADER    HYDROLASE                               12-JUN-01   1JD2              
+TITLE     CRYSTAL STRUCTURE OF THE YEAST 20S PROTEASOME:TMC-95A                 
+TITLE    2 COMPLEX: A NON-COVALENT PROTEASOME INHIBITOR                         
+COMPND    MOL_ID: ;
+COMPND   2 MOLECULE: PROTEASOME COMPONENT Y7;                                   
+COMPND   3 CHAIN: A, V;                                                         
+COMPND   4 SYNONYM: MACROPAIN SUBUNIT Y7, PROTEINASE YSCE SUBUNIT 7,            
+COMPND   5 MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT Y7;                     
+COMPND   6 EC: 3.4.99.46;                                                       
+COMPND   7 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  
+COMPND   8 MOL_ID: 2;                                                           
+COMPND   9 MOLECULE: PROTEASOME COMPONENT Y13;                                  
+COMPND  10 CHAIN: B, W;                                                         
+COMPND  11 SYNONYM: MACROPAIN SUBUNIT Y13, PROTEINASE YSCE SUBUNIT 13,          
+COMPND  12 MULTICATALYTIC ENDOPEPTIDASE COMPLEX SUBUNIT Y13;                    
+COMPND  13 EC: 3.4.99.46;                                                       
+COMPND  14 OTHER_DETAILS: PART OF 20S SUBUNIT;                                  

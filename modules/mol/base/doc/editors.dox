@@ -1,0 +1,55 @@
+namespace ost { namespace mol {
+/**
+\page editors Editors
+
+The structure, topology and connectivity of entities is edited via editors. This 
+includes operations such as changing atom positions, connecting atoms with bonds 
+as well as adding and removing chains, residues and atoms. 
+
+
+\section xcs_editor Editor for external coordinate system
+
+The XCSEditor defines the interface for manipulating the external coordinate 
+system. The external coordinate system directly operates on atom positions in 
+euclidian space. A specific atom position can be changed with 
+XCSEditor::SetAtomPos. XCSEditor::ApplyTransform applies a transformation to all 
+atoms.
+
+\section ics_editor Editor for internal coordinate system
+
+The ICSEditor is used to manipulate the internal coordinate system that is 
+defined by bond lengths and angles. By default the internal coordinate system is 
+not calculates. However, upon requesting an ICSEditor for the first time, the
+internal coordinate system is initialized. This involves the build-up of a 
+directed-graph for the bond network as well as calculating the internal 
+coordinate matrices.
+
+The use XCSEditor and ICSEditor are mutually exlusive. This means that whenever
+a XCSEditor has pending changes, the results of using an ICSEditor is undefined
+and vice versa.
+
+\section edit_modes Edit Modes
+
+Editors support two modes: An unbuffered edit mode and a buffered edit mode. In
+the unbuffered edit mode, dependent information such as the spatial organizer 
+and the internal coordinate system (in case of the XCSEditor) are updated after 
+every change. In buffered edit mode, the updates are delayed until one of the 
+following happens:
+
+\li The last editor goes out of scope.
+\li XCSEditor::UpdateICS or ICSEditor::UpdateXCS is called explicitly.
+
+
+The editors follow the RIAA (resource allocation is initialisation) principle: 
+Whenever an editor is requested an internal reference counter is incremented. In 
+the destructor, this reference count is decremented. When the count drops to 
+zero, the dependent infomation is updated.
+
+In Python, one can not rely on the destructors being called. It is adviced to 
+always put a call to XCSEditor::UpdateICS or ICSEditor::UpdateXCS when the 
+editing is finished. Alternatively, startin from Python version 2.6, one can use 
+the <a href="http://docs.python.org/reference/compound_stmts.html#with">with</a> 
+statement to make sure the destructor are called and the dependent information
+is updated.
+*/
+}}

@@ -1,0 +1,101 @@
+Query         Test
+Match_columns 141
+No_of_seqs    253 out of 255
+Neff          9.4 
+Searched_HMMs 5
+Date          Mon Aug 31 16:45:45 2015
+Command       /import/bc2/apps/HH-suite/2.0.16-goolf-1.4.10/bin/hhblits -cpu 1 -n 1 -e 0.001 -Z 10000 -B 10000 -i /import/bc2/home/schwede/bienert/git/ost_newenv.git/modules/bindings/tests/testfiles/testali.a3m -o /scratch/tmp9E5dor/testali_cpu1_n1.hhr -d /import/bc2/home/schwede/bienert/git/ost_newenv.git/modules/bindings/tests/testfiles/hhblitsdb/hhblitsdb 
+
+ No Hit                             Prob E-value P-value  Score    SS Cols Query HMM  Template HMM
+  1 3e7b90809bd446a538f9eb1a1ca0e5 100.0 2.7E-42 6.9E-45  222.3  16.4  140    1-141     1-147 (153)
+  2 af828e69a5f2d0fd42a2a213e09eb6 100.0 1.5E-41 3.9E-44  215.7  17.2  141    1-141     1-141 (141)
+  3 9287755aa6aa27583da6be3b2408bf 100.0 3.8E-41 9.7E-44  215.1  16.5  138    1-141     2-146 (146)
+  4 e69e1ac0a4b2554df25f2c2183b0fb   0.6      64    0.16   12.6   2.6   21   93-113   176-196 (248)
+
+No 1  
+>3e7b90809bd446a538f9eb1a1ca0e551
+Probab=100.00  E-value=2.7e-42  Score=222.30  Aligned_cols=140  Identities=26%  Similarity=0.420  Sum_probs=135.4
+
+Q ss_pred             CCCHHHHHHHHHHHHHHhcCchhHHHHHHHHHHhhCccccccCCCC-CC-C----CCChhHHHHHHHHHHHHHHHHhccC
+Q Test              1 VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHF-DL-S----HGSAQVKGHGKKVADALTNAVAHVD   74 (141)
+Q Consensus         1 ~lt~~~~~~i~~sW~~v~~~~~~~g~~~f~~lf~~~P~~~~~F~~~-~~-~----~~~~~~~~h~~~v~~~l~~~i~~ld   74 (141)
+                      |||++|+++|++||+.+.++.+++|..||.+||+.+|+++.+|+.| ++ +    .+|+.|++|+.+|+++|+.+|+++|
+T Consensus         1 ~lt~~e~~~i~~sW~~v~~~~~~~g~~~f~~lF~~~P~~~~~F~~f~~~~~~~~l~~~~~~~~h~~~v~~~l~~~i~~ld   80 (153)
+T 3e7b90809bd446    1 VLSEGEWQLVLHVWAKVEADVAGHGQDILIRLFKSHPETLEKFDRFKHLKTEAEMKASEDLKKHGVTVLTALGAILKKKG   80 (153)
+T ss_pred             CcCHHHHHHHHHHHHHHHhhHHHHHHHHHHHHHHHCccHHhhCccccccCcHHHHhcCHHHHHHHHHHHHHHHHHHHhhh
+Confidence            7999999999999999998889999999999999999999999999 77 4    6999999999999999999999999
+
+
+Q ss_pred             CHHHHHHHHHHHHhhh-cCCCHHHHHHHHHHHHHHHHHhcccCCCHHHHHHHHHHHHHHHHHHHhhcC
+Q Test             75 DMPNALSALSDLHAHK-LRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR  141 (141)
+Q Consensus        75 ~~~~~l~~l~~~H~~~-~gv~~~~f~~~~~~l~~~l~~~lg~~~~~~~~~AW~~~~~~i~~~m~~~~~  141 (141)
+                      |++..+..||++|. . +||+|+||+.|+++|+++|++.+|+.||++++.||.+++++|++.|.++|+
+T Consensus        81 ~~~~~l~~lg~~H~-~~~gv~~~~f~~~~~~l~~~l~~~lg~~~t~~~~~AW~~~~~~i~~~~~~~~~  147 (153)
+T 3e7b90809bd446   81 HHEAELKPLAQSHA-TKHKIPIKYLEFISEAIIHVLHSRHPGDFGADAQGAMNKALELFRKDIAAKYK  147 (153)
+T ss_pred             hhHHHHHHHHHHHH-HHcCCCHHHHHHHHHHHHHHHHHHccccCCHHHHHHHHHHHHHHHHHHHHHHH
+Confidence            99999999999999 8 999999999999999999999999999999999999999999999999884
+
+
+No 2  
+>af828e69a5f2d0fd42a2a213e09eb64f
+Probab=100.00  E-value=1.5e-41  Score=215.69  Aligned_cols=141  Identities=100%  Similarity=1.413  Sum_probs=135.4
+
+Q ss_pred             CCCHHHHHHHHHHHHHHhcCchhHHHHHHHHHHhhCccccccCCCCCCCCCChhHHHHHHHHHHHHHHHHhccCCHHHHH
+Q Test              1 VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNAL   80 (141)
+Q Consensus         1 ~lt~~~~~~i~~sW~~v~~~~~~~g~~~f~~lf~~~P~~~~~F~~~~~~~~~~~~~~h~~~v~~~l~~~i~~ld~~~~~l   80 (141)
+                      |||++|+++|++||+.+.++.+++|..||.+||+.+|+++++|+.|+++++||+|++|+.+|+++|+.+|+++||++.++
+T Consensus         1 ~Lt~~~~~~i~~sW~~i~~~~~~~g~~~~~~lf~~~P~~~~~F~~~~~~~~~~~~~~h~~~~~~~l~~~i~~ld~~~~~~   80 (141)
+T af828e69a5f2d0    1 VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNAL   80 (141)
+T ss_pred             CcCHHHHHHHHHHHHHHHhhHHHHHHHHHHHHHHHChhHHHHcccccCCccCHHHHHHHHHHHHHHHHHHHhhccHHHHH
+Confidence            79999999999999999888899999999999999999999999986667899999999999999999999999999999
+
+
+Q ss_pred             HHHHHHHhhhcCCCHHHHHHHHHHHHHHHHHhcccCCCHHHHHHHHHHHHHHHHHHHhhcC
+Q Test             81 SALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR  141 (141)
+Q Consensus        81 ~~l~~~H~~~~gv~~~~f~~~~~~l~~~l~~~lg~~~~~~~~~AW~~~~~~i~~~m~~~~~  141 (141)
+                      ..|++.|.+++||+|+||+.++++|+.+|++.+|++||+++++||++++++|++.|.++|+
+T Consensus        81 ~~l~~~H~~~~gv~~~~f~~~~~~l~~~l~~~lg~~~~~~~~~AW~~~~~~i~~~~~~~y~  141 (141)
+T af828e69a5f2d0   81 SALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR  141 (141)
+T ss_pred             HHHHHHHHHhcCCCHHHHHHHHHHHHHHHHHHccccCCHHHHHHHHHHHHHHHHHHHHhcC
+Confidence            9999999636999999999999999999999999999999999999999999999999996
+
+
+No 3  
+>9287755aa6aa27583da6be3b2408bfcc
+Probab=100.00  E-value=3.8e-41  Score=215.11  Aligned_cols=138  Identities=45%  Similarity=0.799  Sum_probs=133.1
+
+Q ss_pred             CCCHHHHHHHHHHHHHHhcCchhHHHHHHHHHHhhCccccccCCCC-CCC-----CCChhHHHHHHHHHHHHHHHHhccC
+Q Test              1 VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHF-DLS-----HGSAQVKGHGKKVADALTNAVAHVD   74 (141)
+Q Consensus         1 ~lt~~~~~~i~~sW~~v~~~~~~~g~~~f~~lf~~~P~~~~~F~~~-~~~-----~~~~~~~~h~~~v~~~l~~~i~~ld   74 (141)
+                      +||++|+++|++||+.+.  .+++|..||.+||+.+|+++.+|+.| +++     ++|+.+++|+.+|+++|+.+|+++|
+T Consensus         2 ~Ls~~~~~~i~~sW~~v~--~~~~g~~~~~~lf~~~P~~k~~F~~~~~~~~~~~l~~~~~~~~h~~~~~~~l~~~i~~l~   79 (146)
+T 9287755aa6aa27    2 HLTPEEKSAVTALWGKVN--VDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVKAHGKKVLGAFSDGLAHLD   79 (146)
+T ss_pred             CCCHHHHHHHHHHHHHhh--hHHHHHHHHHHHHHHCHHHHHHcccccccCcHHHHhcCHHHHHHHHHHHHHHHHHHHhHh
+Confidence            699999999999999995  68999999999999999999999999 774     5899999999999999999999999
+
+
+Q ss_pred             CHHHHHHHHHHHHhhh-cCCCHHHHHHHHHHHHHHHHHhcccCCCHHHHHHHHHHHHHHHHHHHhhcC
+Q Test             75 DMPNALSALSDLHAHK-LRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR  141 (141)
+Q Consensus        75 ~~~~~l~~l~~~H~~~-~gv~~~~f~~~~~~l~~~l~~~lg~~~~~~~~~AW~~~~~~i~~~m~~~~~  141 (141)
+                      ++...+..||+.|. . +||+|+||+.++++|++++++.+|++||+++++||++++++|++.|++||+
+T Consensus        80 ~l~~~l~~lg~~H~-~~~gv~~~~~~~~~~~l~~~l~~~lg~~~~~~~~~AW~~~~~~i~~~m~~~~~  146 (146)
+T 9287755aa6aa27   80 NLKGTFATLSELHC-DKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVANALAHKYH  146 (146)
+T ss_pred             hHHHHHHHHHHHHH-HhcCCCHHHHHHHHHHHHHHHHHHccccCCHHHHHHHHHHHHHHHHHHHHhcC
+Confidence            99999999999999 8 999999999999999999999999999999999999999999999999996
+
+
+No 4  
+>e69e1ac0a4b2554df25f2c2183b0fba0
+Probab=0.56  E-value=64  Score=12.63  Aligned_cols=21  Identities=10%  Similarity=0.105  Sum_probs=13.9
+
+Q ss_pred             CCHHHHHHHHHHHHHHHHHhc
+Q Test             93 VDPVNFKLLSHCLLVTLAAHL  113 (141)
+Q Consensus        93 v~~~~f~~~~~~l~~~l~~~l  113 (141)
+                      .+|++.+.+-+.+-+.+.+..
+T Consensus       176 a~~e~i~~~~~~IR~~l~~~~  196 (248)
+T e69e1ac0a4b255  176 ATPEQAQLVHKEIRKIVKDTC  196 (248)
+T ss_pred             CCHHHHHHHHHHHHHHHHHhc
+Confidence            467777777776666665543
+
+
+Done!

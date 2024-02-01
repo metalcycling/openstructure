@@ -1,0 +1,4 @@
+ATOM      1  CA ALYS A   9      31.209  -9.896  12.154  0.62 22.96           C  
+ATOM      1  CA BLYS A   9      31.213  -9.902  12.145  0.38 24.64           C  
+TER       2      LYS A   9                                                      
+END   
