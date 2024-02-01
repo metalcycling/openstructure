@@ -195,7 +195,7 @@ void PDBReader::ParseCompndEntry (const StringRef& line, int line_num)
   } 
       //currently only these are parsed
   if (!(key.str()=="MOL_ID")&&!(key.str()=="CHAIN")){
-    LOG_INFO("reading COMPND record on line " << line_num<< "is not supported");
+    LOG_INFO("reading COMPND record on line " << line_num<< " is not supported");
     if (data_continues_) {
       skip_next_=true;
     } else {
