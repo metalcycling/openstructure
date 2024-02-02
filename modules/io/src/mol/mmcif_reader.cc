@@ -1922,9 +1922,9 @@ void MMCifReader::ParseEntityPolySeq(const std::vector<StringRef>& columns)
                                                columns[indices_[EPS_ENTITY_ID]].str(),
                                                this->GetCurrentLinenum()));
     }
+  } else {
+    entity_map[num] = columns[indices_[EPS_MON_ID]].str();
   }
-
-  entity_map[num] = columns[indices_[EPS_MON_ID]].str();
 }
 
 void MMCifReader::OnEndData()
