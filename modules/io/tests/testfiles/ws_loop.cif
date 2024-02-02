@@ -1,0 +1,9 @@
+data_loop
+
+loop_
+   _loop.s1
+   _loop.s2
+   _loop.s3
+  1 2 3
+  # comment with leading whitespaces should be skipped
+  a b c
