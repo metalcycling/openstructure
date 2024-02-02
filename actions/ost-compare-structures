@@ -80,6 +80,7 @@ ost compare-structures -m model.pdb -r reference.cif -c A:B B:A
 import argparse
 import os
 import json
+import sys
 import traceback
 import math
 
@@ -526,6 +527,15 @@ def _ParseArgs():
  
     return parser.parse_args()
 
+def _CheckCompoundLib():
+    clib = ost.conop.GetDefaultLib()
+    if not clib:
+        ost.LogError("A compound library is required for this action. "
+                     "Please refer to the OpenStructure website: "
+                     "https://openstructure.org/docs/conop/compoundlib/.")
+        sys.tracebacklimit = 0
+        raise RuntimeError("No compound library found")
+
 def _RoundOrNone(num, decimals = 3):
     """ Helper to create valid JSON output
     """
@@ -852,6 +862,7 @@ def _Process(model, reference, args, model_format, reference_format):
 def _Main():
 
     args = _ParseArgs()
+    _CheckCompoundLib()
     try:
         compute_cad = args.cad_score or args.local_cad_score
         if compute_cad and not args.residue_number_alignment:

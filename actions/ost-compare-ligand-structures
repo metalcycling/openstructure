@@ -56,6 +56,7 @@ and "unassigned_reference_ligands".
 import argparse
 import json
 import os
+import sys
 import traceback
 
 import ost
@@ -293,6 +294,16 @@ def _ParseArgs():
               "all possible mappings. A heuristic is used otherwise."))
 
     return parser.parse_args()
+
+
+def _CheckCompoundLib():
+    clib = ost.conop.GetDefaultLib()
+    if not clib:
+        ost.LogError("A compound library is required for this action. "
+                     "Please refer to the OpenStructure website: "
+                     "https://openstructure.org/docs/conop/compoundlib/.")
+        sys.tracebacklimit = 0
+        raise RuntimeError("No compound library found")
 
 
 def _GetStructureFormat(structure_path, sformat=None):
@@ -580,6 +591,7 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
 def _Main():
 
     args = _ParseArgs()
+    _CheckCompoundLib()
     ost.PushVerbosityLevel(args.verbosity)
     try:
         # Load structures
