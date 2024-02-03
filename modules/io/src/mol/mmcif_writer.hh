@@ -88,7 +88,7 @@ struct MMCifWriterEntity {
   // alignment. Contains "-" for residues that are missing in ATOMSEQ.
   // irrelevant if is_poly is false. The assumption is that aligned residues
   // exactly match with the respective position in mon_ids.
-  std::vector<std::vector<String> > asym_alns; 
+  std::map<String, std::vector<String> > asym_alns; 
 };
 
 class DLLEXPORT_OST_IO MMCifWriter : public StarWriter {

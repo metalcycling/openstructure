@@ -336,7 +336,7 @@ namespace {
     if(!skip_asym_id) {
       info.asym_ids.push_back(asym_chain_name);
     }
-    info.asym_alns.push_back(info.mon_ids);
+    info.asym_alns[asym_chain_name] = info.mon_ids;
   }
 
   // template to allow ost::mol::ResidueHandleList and ost::mol::ResidueViewList
@@ -430,8 +430,9 @@ namespace {
       info.mon_ids.insert(info.mon_ids.end(), N, "-");
       info.seq_olcs.insert(info.seq_olcs.end(), N, "-");
       info.seq_can_olcs.insert(info.seq_can_olcs.end(), N, "-");
-      for(size_t asym_idx = 0; asym_idx < info.asym_alns.size(); ++asym_idx) {
-        info.asym_alns[asym_idx].insert(info.asym_alns[asym_idx].end(), N, "-");
+      for(std::map<String, std::vector<String> >::iterator it = info.asym_alns.begin();
+          it != info.asym_alns.end(); ++it) {
+        it->second.insert(it->second.end(), N, "-");
       }
     }
 
@@ -453,7 +454,7 @@ namespace {
     if(!skip_asym_id) {
       info.asym_ids.push_back(asym_chain_name);
     }
-    info.asym_alns.push_back(aln_mon_ids);
+    info.asym_alns[asym_chain_name] = aln_mon_ids;
   }
 
   // template to allow ost::mol::ResidueHandleList and ost::mol::ResidueViewList
@@ -725,7 +726,7 @@ namespace {
   void Feed_pdbx_poly_seq_scheme(ost::io::StarWriterLoopPtr pdbx_poly_seq_scheme_ptr,
                                  const String& label_asym_id,
                                  int label_entity_id,
-                                 ost::io::MMCifWriterEntity& entity_info,
+                                 const ost::io::MMCifWriterEntity& entity_info,
                                  const T& res_list) {
 
     std::vector<ost::io::StarWriterValue> data(7);
@@ -733,8 +734,12 @@ namespace {
     data[0] = ost::io::StarWriterValue::FromString(label_asym_id);
     data[1] = ost::io::StarWriterValue::FromInt(label_entity_id);
 
-    int asym_idx = entity_info.GetAsymIdx(label_asym_id);
-    const std::vector<String>& aln = entity_info.asym_alns[asym_idx];
+    std::map<String, std::vector<String> >::const_iterator it =
+    entity_info.asym_alns.find(label_asym_id);
+    if(it == entity_info.asym_alns.end()) {
+      throw ost::io::IOException("This should never happen");
+    }
+    const std::vector<String>& aln = it->second;
     int label_seq_id = 0; // 0-based index
 
     for(auto res: res_list) {
@@ -786,8 +791,12 @@ namespace {
                       const ost::io::MMCifWriterEntity& entity_info,
                       const T& res_list) {
 
-    int asym_idx = entity_info.GetAsymIdx(label_asym_id);
-    const std::vector<String>& aln = entity_info.asym_alns[asym_idx];
+    std::map<String, std::vector<String> >::const_iterator it =
+    entity_info.asym_alns.find(label_asym_id);
+    if(it == entity_info.asym_alns.end()) {
+      throw ost::io::IOException("This should never happen");
+    }
+    const std::vector<String>& aln = it->second;
     int label_seq_id = 0; // 0-based index
     std::vector<ost::io::StarWriterValue> at_data(17);
 
@@ -976,6 +985,12 @@ namespace {
                           std::vector<ost::io::MMCifWriterEntity>& entity_info,
                           ost::io::StarWriterLoopPtr atom_site,
                           ost::io::StarWriterLoopPtr pdbx_poly_seq_scheme) {
+
+    // don't allow any predefined entity
+    if(!entity_info.empty()) {
+      throw ost::io::IOException("Cannot provide MMCifWriterEntities if ent "
+                                 "is not mmcif_conform");
+    }
 
     ChainNameGenerator chain_name_gen;
 
@@ -1194,119 +1209,99 @@ namespace {
                        ost::io::StarWriterLoopPtr atom_site,
                        ost::io::StarWriterLoopPtr pdbx_poly_seq_scheme) {
 
-    // deal with preset asym_ids in entity_info
-    // need to properly setup alignments in these cases
-    std::set<String> preprocessed_chains;
-    for(size_t ei_idx = 0; ei_idx < entity_info.size(); ++ei_idx) {
-      if(!entity_info[ei_idx].asym_ids.empty()) {
-        // Assumption that the code below fills all alignments
-        if(!entity_info[ei_idx].asym_alns.empty()) {
+    std::map<String, int> preassigned_polymer_chains;
+    if(!entity_info.empty()) {
+      // The following must be fulfilled
+      // - Only allow MMCifWriterEntity of type polymer
+      // - All chains in ent that are of type polymer must be assigned
+      //   to exactly one of these entity_info objects and must match the SEQRES
+      //   (MMCifWriterEntity::mon_ids)
+      // - All chain names that are assigned to entity_info must be valid chains
+      //   in ent
+      for(auto ei: entity_info) {
+        if(ei.type != "polymer") {
           std::stringstream ss;
-          throw ost::io::IOException("Expect alignments to be empty in "
-                                     "MMCifWriterEntity when predefining asym "
-                                     "ids");
+          ss << "All predefined MMCifWriterEntity objects must be of type ";
+          ss << "\"polymer\", got \"" << ei.type << "\"";
+          throw ost::io::IOException(ss.str());
         }
       }
-      for(auto ai: entity_info[ei_idx].asym_ids) {
-        // Plenty of checks that chain really matches with specified
-        // MMCifWriterEntity
-        if(preprocessed_chains.find(ai) != preprocessed_chains.end()) {
-          std::stringstream ss;
-          ss << "Tried to predefine entity for chain \"" << ai;
-          ss << "\" multiple times";
-          throw ost::io::IOException(ss.str());
+      auto chain_list = ent.GetChainList();
+      for(auto ch: chain_list) {
+        if(ost::mol::EntityTypeFromChainType(ch.GetType()) == "polymer") {
+          String cname = ch.GetName();
+          int entity_idx = 0;
+          for(auto ei: entity_info) {
+            for(auto ai: ei.asym_ids) {
+              if(cname == ai) {
+                if(preassigned_polymer_chains.find(cname) !=
+                   preassigned_polymer_chains.end()) {
+                  // already assigned
+                  std::stringstream ss;
+                  ss << "Found multiple MMCifWriterEntity assignments for ";
+                  ss << "chain \"" << cname << "\"";
+                  throw ost::io::IOException(ss.str());
+                }
+                auto res_list = ch.GetResidueList();
+                if(!MatchEntityResnum(res_list, ei, 0.0)) {
+                  std::stringstream ss;
+                  ss << "Cannot match pre-assigned chain \"" << cname;
+                  ss << "\" to respective entity";
+                  throw ost::io::IOException(ss.str());
+                }
+                preassigned_polymer_chains[cname] = entity_idx;
+              }
+            }
+            ++entity_idx;
+          }
+          if(preassigned_polymer_chains.find(cname) ==
+             preassigned_polymer_chains.end()) {
+            std::stringstream ss;
+            ss << "If MMCifWriterEntity is provided, all polymer chains must ";
+            ss << "assigned. No assignment for chain \"" << cname << "\"";
+            throw ost::io::IOException(ss.str());
+          }
         }
-        auto chain = ent.FindChain(ai);
-        if(!chain.IsValid()) {
-          std::stringstream ss;
-          ss << "Tried to predefine entity for chain \"" << ai;
-          ss << "\" but couldnt find that chain in provided entity";
-          throw ost::io::IOException(ss.str());
-        }
-        String type = ost::mol::EntityTypeFromChainType(chain.GetType());
-        if(type != entity_info[ei_idx].type) {
-          std::stringstream ss;
-          ss << "Expected predefined chain \"" << ai << "\" to be of type \"";
-          ss << entity_info[ei_idx].type <<"\", got \"" << type << "\"";
-          throw ost::io::IOException(ss.str());
-        }
-        if(entity_info[ei_idx].type == "polymer") {
-          String poly_type = ost::mol::EntityPolyTypeFromChainType(chain.GetType());
-          if(poly_type != entity_info[ei_idx].poly_type) {
+      }
+      for(auto ei: entity_info) {
+        for(auto ai: ei.asym_ids) {
+          auto chain = ent.FindChain(ai);
+          if(!chain.IsValid()) {
             std::stringstream ss;
-            ss << "Expected predefined chain \"" << ai << "\" to be of ";
-            ss << "poly_type \"" << entity_info[ei_idx].poly_type <<"\", got \"" << poly_type;
-            ss << "\"";
+            ss << "Chain \"" << ai << "\" has been assigned to ";
+            ss << "MMCifWriterEntity. But provided OpenStrucure entity has ";
+            ss << "no such chain"<<std::endl;
             throw ost::io::IOException(ss.str());
           }
-          auto res_list = chain.GetResidueList();
-          if(!MatchEntityResnum(res_list, entity_info[ei_idx], 0.0)) {
-            std::stringstream ss;
-            ss << "Failed to match predefined chain \"" << ai;
-            ss << "\" to respective entity";
-            throw ost::io::IOException(ss.str());
-          }
-          AddAsymResnum(ai, res_list, entity_info[ei_idx], true);
-          Feed_atom_site(atom_site, ai, ei_idx+1, entity_info[ei_idx], res_list);
-          Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, ai, ei_idx+1,
-                                    entity_info[ei_idx], res_list);
-          preprocessed_chains.insert(ai);
-        } else if(entity_info[ei_idx].type == "branched") {
-          String branch_type = ost::mol::BranchedTypeFromChainType(chain.GetType());
-          if(branch_type != entity_info[ei_idx].branch_type) {
-            std::stringstream ss;
-            ss << "Expected predefined chain \"" << ai << "\" to be of ";
-            ss << "branched_type \"" << entity_info[ei_idx].branch_type;
-            ss << "\", got \"" << branch_type << "\"";
-            throw ost::io::IOException(ss.str());
-          }
-          auto res_list = chain.GetResidueList();
-          if(!MatchEntity(res_list, entity_info[ei_idx])) {
-            std::stringstream ss;
-            ss << "Failed to match predefined chain \"" << ai;
-            ss << "\" to respective entity";
-            throw ost::io::IOException(ss.str());
-          }
-          AddAsym(ai, entity_info[ei_idx], true);
-          Feed_atom_site(atom_site, ai, ei_idx+1, entity_info[ei_idx], res_list);
-          preprocessed_chains.insert(ai);
-        } else if (entity_info[ei_idx].type == "water") {
-          auto res_list = chain.GetResidueList();
-          AddAsym(ai, entity_info[ei_idx], true);
-          Feed_atom_site(atom_site, ai, ei_idx+1, entity_info[ei_idx], res_list);
-          preprocessed_chains.insert(ai);
-        } else {
-          auto res_list = chain.GetResidueList();
-          if(!MatchEntity(res_list, entity_info[ei_idx])) {
-            std::stringstream ss;
-            ss << "Failed to match predefined chain \"" << ai;
-            ss << "\" to respective entity";
-            throw ost::io::IOException(ss.str());
-          }
-          AddAsym(ai, entity_info[ei_idx], true);
-          Feed_atom_site(atom_site, ai, ei_idx+1, entity_info[ei_idx], res_list);
-          preprocessed_chains.insert(ai);
         }
       }
     }
 
     auto chain_list = ent.GetChainList();
-    for(auto ch: chain_list) {
-      if(preprocessed_chains.find(ch.GetName()) != preprocessed_chains.end()) {
-        continue; // already done
-      }
-      auto res_list = ch.GetResidueList();
-      String chain_name = ch.GetName();
-      int entity_id = SetupEntity(chain_name,
-                                  ch.GetType(),
-                                  res_list,
-                                  true,
-                                  entity_info);
-      Feed_atom_site(atom_site, chain_name, entity_id+1, entity_info[entity_id],
-                     res_list);
-      if(entity_info[entity_id].is_poly) {
-        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, chain_name,
-                                  entity_id+1, entity_info[entity_id], res_list);
+    for(auto chain: chain_list) {
+      String cname = chain.GetName();
+      if(preassigned_polymer_chains.find(cname) !=
+         preassigned_polymer_chains.end()) {
+        auto res_list = chain.GetResidueList();
+        int entity_id = preassigned_polymer_chains[cname];
+        AddAsymResnum(cname, res_list, entity_info[entity_id], true);
+        Feed_atom_site(atom_site, cname, entity_id+1, entity_info[entity_id], res_list);
+        Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, cname, entity_id+1,
+                                  entity_info[entity_id], res_list);
+      } else {
+        // do automated matching
+        auto res_list = chain.GetResidueList();
+        int entity_id = SetupEntity(cname,
+                                    chain.GetType(),
+                                    res_list,
+                                    true,
+                                    entity_info);
+        Feed_atom_site(atom_site, cname, entity_id+1, entity_info[entity_id],
+                       res_list);
+        if(entity_info[entity_id].is_poly) {
+          Feed_pdbx_poly_seq_scheme(pdbx_poly_seq_scheme, cname,
+                                    entity_id+1, entity_info[entity_id], res_list);
+        }
       }
     }
   }
@@ -1320,20 +1315,12 @@ namespace {
                   ost::io::StarWriterLoopPtr atom_site,
                   ost::io::StarWriterLoopPtr pdbx_poly_seq_scheme) {
 
+    
+
     if(mmcif_conform) {
       ProcessEntmmCIF(ent, compound_lib, entity_info, atom_site,
                       pdbx_poly_seq_scheme);
     } else {
-      // cannot predefine asym_ids in entity_info when mmcif_conform is
-      // False. You're welcome to implement it... But its a bit awkward...
-      // I warned you...
-      for(auto ei: entity_info) {
-        if(!ei.asym_ids.empty()) {
-          throw ost::io::IOException("Predefine chains to entities not "
-                                     "supported when mmcif_conform is False");
-        }
-      }
-      // delegate to more complex ProcessEntmmCIFify
       ProcessEntmmCIFify(ent, compound_lib, entity_info, atom_site,
                          pdbx_poly_seq_scheme);
     }
