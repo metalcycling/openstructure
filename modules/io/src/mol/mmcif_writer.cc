@@ -987,6 +987,9 @@ namespace {
     std::set<String> unique_compounds;
     for(auto ent: entity_infos) {
       unique_compounds.insert(ent.mon_ids.begin(), ent.mon_ids.end());
+      for(auto het_it: ent.het) {
+        unique_compounds.insert(het_it.second.begin(), het_it.second.end());
+      }
     }
     std::vector<ost::io::StarWriterValue> comp_data(2);
     for(auto mon_id: unique_compounds) {
