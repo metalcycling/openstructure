@@ -41,6 +41,10 @@ struct MMCifWriterEntity {
 
   int GetAsymIdx(const String& asym_id) const;
 
+  void AddHet(int rnum, const String& mon_id) {
+    het[rnum].push_back(mon_id);
+  }
+
   bool operator==(const MMCifWriterEntity& rhs) const {
        return (type == rhs.type)
            && (poly_type == rhs.poly_type)
@@ -89,6 +93,9 @@ struct MMCifWriterEntity {
   // irrelevant if is_poly is false. The assumption is that aligned residues
   // exactly match with the respective position in mon_ids.
   std::map<String, std::vector<String> > asym_alns; 
+
+  // heterogeneities
+  std::map<int, std::vector<String> > het;
 };
 
 class DLLEXPORT_OST_IO MMCifWriter : public StarWriter {

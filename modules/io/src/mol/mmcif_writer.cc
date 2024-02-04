@@ -321,11 +321,27 @@ namespace {
                    const ost::io::MMCifWriterEntity& info) {
     // checks if the residue names in res_list are an exact match
     // with mon_ids in info
-    std::vector<String> mon_ids;
-    for(auto res : res_list) {
-      mon_ids.push_back(res.GetName());
+    if(res_list.size() != info.mon_ids.size()) {
+      return false;
     }
-    return mon_ids == info.mon_ids;
+
+    for(size_t i = 0; i < res_list.size(); ++i) {
+      if(res_list[i].GetName() != info.mon_ids[i]) {
+        bool hetero_match = false;
+        if(info.het.find(i+1) != info.het.end()) {
+          const std::vector<String>& het = info.het.at(i+1);
+          if(std::find(het.begin(), het.end(), res_list[i].GetName()) !=
+             het.end()) {
+            hetero_match = true;
+          }
+        }
+        if(!hetero_match) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   void AddAsym(const String& asym_chain_name,
@@ -380,6 +396,13 @@ namespace {
           ++n_beyond; // we're basically filling an unknown gap...
         } else if(info.mon_ids[num-1] == res.GetName()) {
           ++n_matches;
+        } else if(info.het.find(num) != info.het.end()) {
+          const std::vector<String>& het = info.het.at(num);
+          if(std::find(het.begin(), het.end(), res.GetName()) != het.end()) {
+            ++n_matches;
+          } else {
+            return false;
+          }
         } else {
           return false;
         }
@@ -682,6 +705,7 @@ namespace {
     desc.Add("entity_id");
     desc.Add("mon_id");
     desc.Add("num");
+    desc.Add("hetero");
     ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;    
   }
@@ -899,15 +923,29 @@ namespace {
 
   void Feed_entity_poly_seq(ost::io::StarWriterLoopPtr entity_poly_seq_ptr,
                             const std::vector<ost::io::MMCifWriterEntity>& entity_info) {
-    std::vector<ost::io::StarWriterValue> entity_poly_seq_data(3);
+    std::vector<ost::io::StarWriterValue> entity_poly_seq_data(4);
     for(size_t entity_idx = 0; entity_idx < entity_info.size(); ++entity_idx) {
       if(entity_info[entity_idx].is_poly) {
-        const std::vector<String>& mon_ids = entity_info[entity_idx].mon_ids;
+        const ost::io::MMCifWriterEntity& ei = entity_info[entity_idx];
+        const std::vector<String>& mon_ids = ei.mon_ids;
         for(size_t mon_idx = 0; mon_idx < mon_ids.size(); ++mon_idx) {
           entity_poly_seq_data[0] = ost::io::StarWriterValue::FromInt(entity_idx+1);
           entity_poly_seq_data[1] = ost::io::StarWriterValue::FromString(mon_ids[mon_idx]);
           entity_poly_seq_data[2] = ost::io::StarWriterValue::FromInt(mon_idx+1);
+          if(!ei.het.empty() && ei.het.find(mon_idx + 1) != ei.het.end()) {
+            entity_poly_seq_data[3] = ost::io::StarWriterValue::FromString("y");
+          } else {
+            entity_poly_seq_data[3] = ost::io::StarWriterValue::FromString("n");
+          }
           entity_poly_seq_ptr->AddData(entity_poly_seq_data);
+          if(!ei.het.empty() && ei.het.find(mon_idx + 1) != ei.het.end()) {
+            const std::vector<String>& het_mon_ids = ei.het.at(mon_idx + 1);
+            for(auto mon_id: het_mon_ids) {
+              entity_poly_seq_data[1] = ost::io::StarWriterValue::FromString(mon_id);
+              entity_poly_seq_ptr->AddData(entity_poly_seq_data);
+            }
+          }
+
         }
       }
     }

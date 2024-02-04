@@ -157,6 +157,7 @@ void export_mmcif_io()
 
   class_<MMCifWriterEntity>("MMCifWriterEntity", no_init)
     .def("FromPolymer", &MMCifWriterEntity::FromPolymer).staticmethod("FromPolymer")
+    .def("AddHet", &MMCifWriterEntity::AddHet, (arg("rnum"), arg("mon_id")))
     .add_property("type", &MMCifWriterEntity::type)
     .add_property("poly_type", &MMCifWriterEntity::poly_type)
     .add_property("branch_type", &MMCifWriterEntity::branch_type)
