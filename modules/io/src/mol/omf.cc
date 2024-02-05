@@ -2044,7 +2044,7 @@ namespace{
     if(name.size() > std::numeric_limits<uint8_t>::max()) {
       std::stringstream ss;
       ss << "Max name size that can be dumped is ";
-      ss << std::numeric_limits<uint8_t>::max << ". ";
+      ss << std::numeric_limits<uint8_t>::max() << ". ";
       ss << "got: "<<name<<std::endl;
       throw ost::Error(ss.str());
     }
