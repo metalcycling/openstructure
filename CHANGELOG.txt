@@ -2,6 +2,18 @@ Changes in Release 2.x
 --------------------------------------------------------------------------------
 
  * mmCIF writing support.
+ * Added a SaveSDF function (avoids having to use SaveEntity to save an SDF
+   file).
+ * Support for reading EM resolution from mmCIF files in MMCifInfo.
+ * Chemical components marked as obsoleted or reserved (which will never be
+   used in the PDB, namely DRG, INH, LIG and the range 01 - 99) can now be
+   optionally excluded from the compound library (see the -o and -r arguments
+   to the chemdict_tool).
+ * The number of symmetries explored in the ligand scoring can now be limited
+   with the max_symmetries argument. Compounds with too many symmetries will
+   be treated like they are not matching, and reported as unassigned with the
+   new 'symmetries' reason. This allows avoiding extremely long execution
+   times with some higly symmetrical ligands.
  * Several bug fixes and improvements.
 
 Changes in Release 2.6.1
