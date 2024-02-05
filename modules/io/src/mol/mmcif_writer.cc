@@ -503,6 +503,26 @@ namespace {
     for(size_t i = 0; i < entity_infos.size(); ++i) {
       if(entity_infos[i].type == "water" && type == "water") {
         AddAsym(asym_chain_name, entity_infos[i]);
+        // there could be the situation that in the chain we saw before, only
+        // HOH represented water. This chain might suddenly have DOD.
+        // We add this to the MMCifWriterEntity to correctly write the chem_comp
+        // category in the end.
+        std::set<String> water_mon_ids(entity_infos[i].mon_ids.begin(),
+                                       entity_infos[i].mon_ids.end());
+        for(auto res: res_list) {
+          water_mon_ids.insert(res.GetName());
+        }
+        entity_infos[i].mon_ids = std::vector<String>(water_mon_ids.begin(),
+                                                      water_mon_ids.end());
+        // seq and seq_can are irrelevant for water, still keep it in sync
+        std::vector<String> seq;
+        std::vector<String> seq_can;
+        for(auto mon_id: entity_infos[i].mon_ids) {
+          seq.push_back(MonIDToOLC(mon_id));
+          seq_can.push_back("?"); // It's irrelevant anyways
+        }
+        entity_infos[i].seq_olcs = seq;
+        entity_infos[i].seq_can_olcs = seq_can;
         return i;
       }
       if(entity_infos[i].type == type &&
@@ -571,9 +591,16 @@ namespace {
       }
     } else {
       if(type == "water") {
-        mon_ids.push_back("HOH");
-        seq.push_back("(HOH)");
-        seq_can.push_back("?");
+        std::set<String> water_mon_ids;
+        for(auto res: res_list) {
+          water_mon_ids.insert(res.GetName());
+        }
+        mon_ids = std::vector<String>(water_mon_ids.begin(),
+                                      water_mon_ids.end());
+        for(auto mon_id: mon_ids) {
+          seq.push_back(MonIDToOLC(mon_id));
+          seq_can.push_back("?"); // It's irrelevant anyways
+        }
       } else {
         for(auto res: res_list) {
           mon_ids.push_back(res.GetName());
