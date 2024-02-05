@@ -1,3 +1,9 @@
+Changes in Release 2.x
+--------------------------------------------------------------------------------
+
+ * mmCIF writing support.
+ * Several bug fixes and improvements.
+
 Changes in Release 2.6.1
 --------------------------------------------------------------------------------
 
