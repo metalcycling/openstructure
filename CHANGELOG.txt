@@ -13,7 +13,7 @@ Changes in Release 2.x
    with the max_symmetries argument. Compounds with too many symmetries will
    be treated like they are not matching, and reported as unassigned with the
    new 'symmetries' reason. This allows avoiding extremely long execution
-   times with some higly symmetrical ligands.
+   times with some highly symmetrical ligands.
  * Several bug fixes and improvements.
 
 Changes in Release 2.6.1
