@@ -341,6 +341,15 @@ of the annotation available.
     :type cif_chain_id: :class:`str`
     :returns: atom_site.label_entity_id as :class:`str` (empty if no mapping)
 
+  .. method:: GetEntityIdsOfType(type)
+
+    Get list of entity ids for which :attr:`MMCifEntityDesc.entity_type` equals
+    *type*
+
+    :param type: Selection criteria of returned entity ids
+    :type type: :class:`str`
+    :returns: :class:`list` of :class:`str` representing selected entity ids
+
   .. method:: AddRevision(num, date, status, major=-1, minor=-1)
 
     Add a new iteration to the revision history.
@@ -1754,11 +1763,12 @@ a mmCIF file according to `mmcif_pdbx_v50 <https://mmcif.wwpdb.org/dictionaries/
   * pdbx_seq_one_letter_code
   * pdbx_seq_one_letter_code_can
 
-* `_entity_poly_seq <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/pdbx_reference_entity_poly_seq.html>`_
+* `_entity_poly_seq <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity_poly_seq.html>`_
 
   * entity_id
   * mon_id
   * num
+  * hetero
 
 * `_pdbx_poly_seq_scheme <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/pdbx_poly_seq_scheme.html>`_
 
@@ -1769,7 +1779,6 @@ a mmCIF file according to `mmcif_pdbx_v50 <https://mmcif.wwpdb.org/dictionaries/
   * pdb_strand_id
   * pdb_seq_num
   * pdb_ins_code
-
 
 * `_chem_comp <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/chem_comp.html>`_
 
@@ -1842,7 +1851,8 @@ in the previsouly undefined locations in the SEQRES with the newly gained
 information. This is a heuristic that works in most cases but potentially
 introduces errors in entity assignment. If you want to avoid that, you
 must set your entities manually and pass a :class:`MMCifWriterEntityList`
-when calling :func:`MMCifWriter.SetStructure`.
+when calling :func:`MMCifWriter.SetStructure`. There is a dedicated
+section on that below.
 
 if *mmcif_conform* is enabled, there is pretty much everything in place
 and the previously listed mmCIF categories/attributes are written with
@@ -1920,39 +1930,89 @@ To see it all in action:
 .. code-block:: python
 
   from ost import io
-  
+  from ost import conop
+
   ent = io.LoadMMCIF("1a0s", remote=True)
-  
+
   writer = io.MMCifWriter()
-  
-  # The MMCifWriter is still an object of type StarWriter
+
+  # The MMCifWriter is still object of type StarWriter
   # I can decorate my mmCIF file with any data I want
   val = io.StarWriterValue.FromInt(42)
   data_item = io.StarWriterDataItem("_the", "answer", val)
   writer.Push(data_item)
-  
-  # pre-define mmCIF entity which is total nonsense
-  entity_info = io.MMCifWriterEntityList()
-  mon_ids = ost.StringList()
-  mon_ids.append("ALA")
-  mon_ids.append("GLU")
-  mon_ids.append("ALA")
-  lib = conop.GetDefaultLib()
-  mmcif_ent = io.MMCifWriterEntity.FromPolymer("polypeptide(L)",
-                                               mon_ids, lib)
-  entity_info.append(mmcif_ent)
-  
+
   # The actual relevant part... mmcif_conform can be set to
-  # True, as we loaded a mmCIF file
-  writer.SetStructure(ent, mmcif_conform=True,
-                      entity_info=entity_info)
-  
+  # True, as we loaded from mmCIF file
+  lib = conop.GetDefaultLib()
+  writer.SetStructure(ent, lib, mmcif_conform = True)
+
   # And write...
   writer.Write("1a0s", "1a0s.cif.gz")
+
+
+Define mmCIF entities
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+The writer provides a way to pre-define mmCIF entities. This only works if
+*mmcif_conform* is enabled and for polymer entities. The problem is that we have
+no guarantee to ever see the full SEQRES (written in entity_poly_seq category)
+only with a structure as input. As an example: gaps, i.e. missing
+residues based on residue numbers, are filled with UNK in case of a
+:class:`L_PEPTIDE_LINKING` chain. In order to retain the full SEQRES
+information, we provide a way to define these polymer entities in form of
+:class:`MMCifWriterEntity`. The provided entities must fulfill:
+
+* They must be of _entity.type "polymer"
+* All chains in input structure that are of _entity.type "polymer" must be
+  assigned to exactly one of these :class:`MMCifWriterEntity` objects and
+  must match the SEQRES (:attr:`MMCifWriterEntity.mon_ids`)
+* All chain names that are assigned to any of the :class:`MMCifWriterEntity`
+  objects must be present in input structure
+
+Here is an example with pre-defined mmCIF entities:
+
+.. code-block:: python
+
+  from ost import io
+  from ost import conop
+
+  # Read the structure and also seqres and meta information
+  ent, seqres, info = io.LoadMMCIF("1a0s", remote=True,
+                                   seqres=True, info=True)
+                                 
+  # we need the compound library at several places
+  lib = conop.GetDefaultLib()
+
+  # pre-define mmCIF entities
+  entity_info = ost.io.MMCifWriterEntityList()
+  for entity_id in info.GetEntityIdsOfType("polymer"):
+
+    # Get entity description from info object
+    entity_desc = info.GetEntityDesc(entity_id)
   
-  # The written mmCIF file will contain _the.answer and
-  # writes out the mmCIF entity we defined above in 
-  # _entity_poly. However, nothing matches that entity...
+    # interface of entity_desc is similar to MMCifWriterEntity
+    entity_poly_type = entity_desc.entity_poly_type
+    mon_ids = entity_desc.mon_ids
+    e = ost.io.MMCifWriterEntity.FromPolymer(entity_poly_type,
+                                             mon_ids, lib) 
+    entity_info.append(e)
+  
+    # search all chains assigned to the entity we just added
+    for ch in ent.chains:
+      if info.GetMMCifEntityIdTr(ch.name) == entity_id:
+        entity_info[-1].asym_ids.append(ch.name)
+
+    # deal with heterogeneities
+    for a,b in zip(entity_desc.hetero_num, entity_desc.hetero_ids):
+      entity_info[-1].AddHet(a,b)
+
+  # write mmcif file with pre-defined mmCIF entities
+  writer = io.MMCifWriter()
+  writer.SetStructure(ent, conop.GetDefaultLib(),
+                      entity_info=entity_info)
+  writer.Write("1a0s", "1a0s.cif.gz")
+
 
 .. class:: MMCifWriterEntity
 

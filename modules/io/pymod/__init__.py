@@ -483,8 +483,7 @@ def SaveMMCIF(ent, filename, compound_lib = conop.GetDefaultLib(),
                         to identify and separate mmCIF entities based on
                         :class:`ost.mol.ChemClass` of the residues in a chain.
   :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
-  :param entity_info: Advanced usage - passed as *entity_info* parameter to
-                      :func:`MMCifWriter.SetStructure`
+  :param entity_info: Advanced usage - description in :ref:`MMCif writing`
   :type filename: :class:`str`
   :type compound_lib: :class:`ost.conop.CompoundLib`
   :type data_name: :class:`str`
