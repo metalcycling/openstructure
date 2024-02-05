@@ -167,7 +167,7 @@ class Scorer:
                  molck_settings = None, cad_score_exec = None,
                  custom_mapping=None, usalign_exec = None,
                  lddt_no_stereochecks=False, n_max_naive=40320,
-                 oum=False, min_pep_length = 10, min_nuc_length = 4):
+                 oum=False, min_pep_length = 6, min_nuc_length = 4):
 
         self._target_orig = target
         self._model_orig = model

@@ -498,7 +498,7 @@ def _ParseArgs():
     parser.add_argument(
         "--min-pep-length",
         dest="min_pep_length",
-        default = 10,
+        default = 6,
         type=int,
         help=("Relevant parameter if short peptides are involved in scoring."
               "Minimum peptide length for a chain in the target structure to "
