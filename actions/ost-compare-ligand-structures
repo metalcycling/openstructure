@@ -302,7 +302,6 @@ def _CheckCompoundLib():
         ost.LogError("A compound library is required for this action. "
                      "Please refer to the OpenStructure website: "
                      "https://openstructure.org/docs/conop/compoundlib/.")
-        sys.tracebacklimit = 0
         raise RuntimeError("No compound library found")
 
 
@@ -333,8 +332,6 @@ def _LoadStructure(structure_path, sformat, fault_tolerant, bu_id):
 
     The returned structure has structure_path attached as structure name
     """
-    if not os.path.exists(structure_path):
-        raise Exception(f"file not found: {structure_path}")
 
     # increase loglevel, as we would pollute the info log with weird stuff
     ost.PushVerbosityLevel(ost.LogLevel.Error)
@@ -591,8 +588,10 @@ def _Process(model, model_ligands, reference, reference_ligands, args):
 def _Main():
 
     args = _ParseArgs()
-    _CheckCompoundLib()
     ost.PushVerbosityLevel(args.verbosity)
+    if args.verbosity < 4:
+        sys.tracebacklimit = 0
+    _CheckCompoundLib()
     try:
         # Load structures
         reference_format = _GetStructureFormat(args.reference,

@@ -578,8 +578,6 @@ def _LoadStructure(structure_path, sformat, fault_tolerant, bu_id):
 
     The returned structure has structure_path attached as structure name
     """
-    if not os.path.exists(structure_path):
-        raise Exception(f"file not found: {structure_path}")
 
     # increase loglevel, as we would pollute the info log with weird stuff
     ost.PushVerbosityLevel(ost.LogLevel.Error)
