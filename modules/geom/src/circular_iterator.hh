@@ -19,13 +19,15 @@
 #ifndef CIRCULAR_ITERATOR_HH
 #define CIRCULAR_ITERATOR_HH
 
-#include <iterator>
-
 template<typename T>
-class const_circular_iter : public std::iterator<std::bidirectional_iterator_tag,typename T::value_type>  
+class const_circular_iter
 {
-typedef typename T::const_iterator iterator;
-typedef typename T::value_type value_type;
+    using iterator = typename T::const_iterator;
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = typename T::value_type;
+    using difference_type = std::ptrdiff_t;
+    using pointer = value_type*;
+    using reference = value_type&;
 protected:
         iterator iter;
         iterator begin;
@@ -97,10 +99,15 @@ public:
 
 
 template<typename T>
-class circular_iter : public std::iterator<std::bidirectional_iterator_tag,typename T::value_type>  
+class circular_iter
 {
-typedef typename T::iterator iterator;
-typedef typename T::value_type value_type;
+    using iterator = typename T::iterator;
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = typename T::value_type;
+    using difference_type = std::ptrdiff_t;
+    using pointer = value_type*;
+    using reference = value_type&;
+
 private:
         iterator     iter;
         iterator     begin;
