@@ -897,10 +897,11 @@ def _Main():
         out["status"] = "SUCCESS"
         with open(args.output, 'w') as fh:
             json.dump(out, fh, indent=4, sort_keys=False)
-    except:
+    except Exception as exc:
         out = dict()
         out["status"] = "FAILURE"
         out["traceback"] = traceback.format_exc()
+        out["exception"] = " ".join(traceback.format_exception_only(exc))
         with open(args.output, 'w') as fh:
             json.dump(out, fh, indent=4, sort_keys=False)
         raise

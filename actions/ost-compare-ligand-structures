@@ -631,10 +631,11 @@ def _Main():
         with open(args.output, 'w') as fh:
             json.dump(out, fh, indent=4, sort_keys=False)
 
-    except Exception:
+    except Exception as exc:
         out = dict()
         out["status"] = "FAILURE"
-        out["traceback"] = traceback.format_exc()
+        out["traceback"] = traceback.format_exc(limit=1000)
+        out["exception"] = " ".join(traceback.format_exception_only(exc))
         with open(args.output, 'w') as fh:
             json.dump(out, fh, indent=4, sort_keys=False)
         raise
