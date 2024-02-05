@@ -1457,9 +1457,12 @@ MMCifWriterEntity MMCifWriterEntity::FromPolymer(const String& entity_poly_type,
     if(ent.seq_olcs.back().size() == 1) {
       ent.seq_can_olcs.push_back(ent.seq_olcs.back());
     } else {
+      char olc = '?';
       ost::conop::CompoundPtr compound = 
       compound_lib->FindCompound(mon_id, ost::conop::Compound::PDB);
-      char olc = compound->GetOneLetterCode();
+      if(compound) {
+        olc = compound->GetOneLetterCode();
+      }
       if(olc < 'A' || olc > 'Z') {
         ent.seq_can_olcs.push_back("(" + mon_id + ")");  
       } else {
