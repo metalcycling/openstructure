@@ -407,7 +407,9 @@ PDBWriter::PDBWriter(const String& filename, const IOProfile& profile):
   is_pqr_(false), profile_(profile), filename_(filename)
 {
   if (!outfile_.is_open()) {
-    throw IOException("Failed to open: " + filename);
+    throw IOException("[Errno " + std::to_string(errno) + "] " +
+                      std::string(strerror(errno)) +
+                      ": '" + filename + "'");
   }
   if (boost::iequals(".pqr", boost::filesystem::extension(filename))) {
     is_pqr_=true;

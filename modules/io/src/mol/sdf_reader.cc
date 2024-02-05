@@ -124,7 +124,9 @@ void SDFReader::ClearState(const boost::filesystem::path& loc)
     in_.push(boost::iostreams::gzip_decompressor());
   }
   in_.push(instream_);
-  if(!infile_) throw IOException("could not open "+loc.string());
+  if(!infile_) throw IOException("[Errno " + std::to_string(errno) + "] " +
+                     std::string(strerror(errno)) +
+                     ": '" + loc.string() + "'");
   curr_chain_=mol::ChainHandle();
   curr_residue_=mol::ResidueHandle();
   chain_count_=0;

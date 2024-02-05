@@ -27,10 +27,9 @@ namespace ost{ namespace io{
 
 void StarWriter::Write(const String& data_name, std::ostream& stream) {
   if(!stream) {
-    std::stringstream ss;
-    ss << "Cannot open stream: [Errno " << errno << "] "
-       << strerror(errno) << std::endl;
-    throw IOException(ss.str());
+      throw IOException("[Errno " + std::to_string(errno) + "] " +
+                        std::string(strerror(errno)) +
+                        ": <stream>");
   }
   // write data header
   stream << "data_" << data_name << std::endl;
@@ -45,10 +44,9 @@ void StarWriter::Write(const String& data_name, std::ostream& stream) {
 void StarWriter::Write(const String& data_name, const String& filename) {
   std::ofstream fstream(filename.c_str());
   if (!fstream) {
-    std::stringstream ss;
-    ss << "Cannot open " << filename << ": [Errno " << errno << "] "
-       << strerror(errno) << std::endl;
-    throw IOException(ss.str());
+      throw IOException("[Errno " + std::to_string(errno) + "] " +
+                        std::string(strerror(errno)) +
+                        ": '" + filename + "'");
   }
   boost::iostreams::filtering_stream<boost::iostreams::output> stream;
   if (boost::iequals(".gz", boost::filesystem::extension(filename))) {

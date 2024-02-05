@@ -549,9 +549,9 @@ void StarParser::ParseGlobal()
 void StarParser::Parse()
 {
   if (!file_open_) {
-    throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
-                                             "Failed to open file '" +
-                                             filename_ + "'!"));
+    throw IOException("[Errno " + std::to_string(errno) + "] " +
+                     std::string(strerror(errno)) +
+                     ": '" + filename_ + "'");
   }
   StringRef line;
   std::stringstream ss;
