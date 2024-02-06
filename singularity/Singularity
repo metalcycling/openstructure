@@ -1,5 +1,5 @@
 BootStrap: docker
-From: registry.scicore.unibas.ch/schwede/openstructure:2.6.1-jammy
+From: registry.scicore.unibas.ch/schwede/openstructure:2.7.0-jammy
 %post
 ##############################################################################
 # POST

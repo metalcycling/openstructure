@@ -1,4 +1,4 @@
-Changes in Release 2.x
+Changes in Release 2.7.0
 --------------------------------------------------------------------------------
 
  * mmCIF writing support.
@@ -20,7 +20,6 @@ Changes in Release 2.6.1
 --------------------------------------------------------------------------------
 
  * Bugfix in DockQ computation when using ost.mol.scoring
-
 
 Changes in Release 2.6.0
 --------------------------------------------------------------------------------
