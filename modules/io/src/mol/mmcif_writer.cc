@@ -684,6 +684,7 @@ namespace {
     desc.Add("auth_asym_id");
     desc.Add("id");
     desc.Add("pdbx_PDB_ins_code");
+    desc.Add("pdbx_PDB_model_num");
     ost::io::StarWriterLoopPtr sl(new ost::io::StarWriterLoop(desc));
     return sl;
   }
@@ -849,7 +850,7 @@ namespace {
     }
     const std::vector<String>& aln = it->second;
     int label_seq_id = 0; // 0-based index
-    std::vector<ost::io::StarWriterValue> at_data(17);
+    std::vector<ost::io::StarWriterValue> at_data(18);
 
     for(auto res: res_list) {
       String comp_id = res.GetName();
@@ -920,6 +921,10 @@ namespace {
         at_data[15] = ost::io::StarWriterValue::FromInt(atom_site_ptr->GetN());
         // pdbx_PDB_ins_code
         at_data[16] = ost::io::StarWriterValue::FromString(ins_code);
+        // pdbx_PDB_model_num
+        // always 1 for now, value must be updated if MMCifWriter supports
+        // writing of multiple models
+        at_data[17] = ost::io::StarWriterValue::FromInt(1);
         atom_site_ptr->AddData(at_data);
       }
       ++label_seq_id;
