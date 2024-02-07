@@ -1,15 +1,12 @@
 #include <ost/io/mol/chemdict_parser.hh>
+#include <ost/log.hh>
 
 namespace ost { namespace io {
 
 using namespace ost::conop;
   
 bool ChemdictParser::OnBeginData(const StringRef& data_name) 
-{    
-  if (data_name==StringRef("UNL",3)) {
-    compound_=CompoundPtr();
-    return false;    
-  }
+{
   compound_.reset(new Compound(data_name.str()));
   compound_->SetDialect(dialect_);
   if (last_!=data_name[0]) {
@@ -17,8 +14,7 @@ bool ChemdictParser::OnBeginData(const StringRef& data_name)
     std::cout << last_ << std::flush;
   }
   atom_map_.clear();
-  insert_=true;
-  return true; 
+  return true;
 }
 
 bool ChemdictParser::OnBeginLoop(const StarLoopDesc& header)
@@ -80,9 +76,9 @@ void ChemdictParser::OnDataRow(const StarLoopDesc& header,
     if (columns[indices_[DESC_TYPE]] == StringRef("InChI", 5)) {
       // for type InChi check prefix 'InChI='
       if (columns[indices_[DESC]].substr(0, 6) != StringRef("InChI=", 6)) {
-        std::cout << "InChI problem: compound " << compound_->GetID()
-                  << " has an InChI descriptor not starting with the "
-                     "'InChI=' prefix." << std::endl;
+        LOG_WARNING("InChI problem: compound " << compound_->GetID()
+                    << " has an InChI descriptor not starting with the "
+                    << "'InChI=' prefix.");
         return;
       }
       compound_->SetInchi(columns[indices_[DESC]].str());
@@ -113,8 +109,8 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
         if (i!=tm_.end()) {
           compound_->SetChemClass(i->second);
         } else {
-          std::cout << "unknown type '" << type << "' for compound "
-                    << compound_->GetID() << std::endl;
+          LOG_WARNING("unknown type '" << type << "' for compound "
+                      << compound_->GetID());
         }
       }
     } else if (item.GetName()==StringRef("pdbx_type", 9)) {
@@ -126,14 +122,15 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
       if (i!=xtm_.end()) {
         compound_->SetChemType(i->second);
       } else {
-        std::cout << "unknown pdbx_type '" << type << "' for compound "
-                  << compound_->GetID() << std::endl;
+        std::cout << "ERR" << std::endl;
+        LOG_WARNING("unknown pdbx_type '" << type << "' for compound "
+                    << compound_->GetID());
       }
     } else if (item.GetName()==StringRef("name", 4)) {
       compound_->SetName(item.GetValue().str());
       if (compound_->GetName()==""){
-        std::cout << "unknown compound name, chemcomp.name field empty for compound: "
-                  << compound_->GetID() << std::endl;
+        LOG_WARNING("unknown compound name, chemcomp.name field empty for "
+                    "compound: " << compound_->GetID());
       }
     } else if (item.GetName()==StringRef("formula", 7)) {
       compound_->SetFormula(item.GetValue().str());
@@ -178,11 +175,17 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
 
 void ChemdictParser::OnEndData()
 {
-  if (insert_ && compound_) {
-    if (compound_->GetAtomSpecs().empty()) {
-      compound_->AddAtom(atom_);
+  if (compound_)
+  {
+    if (compound_->GetID() != "UNL" &&
+        ! (ignore_reserved_ && IsNameReserved(compound_->GetID())) &&
+        ! (ignore_obsolete_ && compound_->GetObsolete()))
+    {
+      if (compound_->GetAtomSpecs().empty()) {
+        compound_->AddAtom(atom_);
+      }
+      lib_->AddCompound(compound_);
     }
-    lib_->AddCompound(compound_);      
   }
 }
 
@@ -250,6 +253,27 @@ void ChemdictParser::InitPDBXTypeMap()
   xtm_["HETAD"]=mol::ChemType(mol::ChemType::DRUGS);
   xtm_["HETAS"]=mol::ChemType(mol::ChemType::WATERS);
   xtm_["?"]=mol::ChemType(mol::ChemType::UNKNOWN);
+}
+
+bool ChemdictParser::IsNameReserved(const String& data_name)
+{
+  // This checks if the compound name is one of the reserved name that will
+  // never be used in the PDB. See
+  // https://www.rcsb.org/news/feature/630fee4cebdf34532a949c34
+  if ( // Check if in range 01-99
+       (data_name.length() == 2 &&
+         data_name[0] >= '0' && data_name[0] <= '9' &&
+         data_name[1] >= '0' && data_name[1] <= '9' &&
+         data_name != "00") ||
+       data_name == "DRG" ||
+       data_name == "INH" ||
+       data_name == "LIG"
+     )
+  {
+    LOG_SCRIPT("Ignoring reserved compound " << data_name);
+    return true;
+  }
+  return false;
 }
 
 }}

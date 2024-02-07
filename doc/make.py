@@ -2,7 +2,6 @@
 
 import os, sys, re
 import shutil
-from ost import settings
 from optparse import OptionParser
 import subprocess
 from sphinx.application import Sphinx
@@ -68,7 +67,7 @@ def _CollectRstDocs(outdir, dirname, fnames):
         _CreateAndCopy(img_name, outdir)
 
 def ParseArgs():
-  parser = OptionParser("usage: ost make.py [options] ")
+  parser = OptionParser("usage: python make.py [options] ")
   parser.add_option("-l","--linkcheck", action="store_true", default=False, dest="linkcheck", help="validate all external links")
   parser.add_option("-b", "--build-html", action="store_true",
                     default=False, dest="html", help="build html documentation")

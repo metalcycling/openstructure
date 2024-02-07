@@ -2044,7 +2044,7 @@ namespace{
     if(name.size() > std::numeric_limits<uint8_t>::max()) {
       std::stringstream ss;
       ss << "Max name size that can be dumped is ";
-      ss << std::numeric_limits<uint8_t>::max << ". ";
+      ss << std::numeric_limits<uint8_t>::max() << ". ";
       ss << "got: "<<name<<std::endl;
       throw ost::Error(ss.str());
     }
@@ -5398,7 +5398,7 @@ void OMF::FromStream(std::istream& stream) {
   if(version < 3) {
     std::stringstream ss;
     ss << "Old OMF versions are deprecated. Can only load versions >= 3, ";
-    ss << "got "<<version;
+    ss << "got "<< static_cast<int>(version);
     throw ost::Error(ss.str());
   }
 

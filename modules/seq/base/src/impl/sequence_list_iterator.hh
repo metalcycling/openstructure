@@ -28,12 +28,18 @@ namespace ost { namespace seq { namespace impl {
 
 /// \internal
 template <typename T, typename I>
-class TEMPLATE_EXPORT SequenceListIterator 
-  : public std::iterator<std::random_access_iterator_tag, T>{
+class TEMPLATE_EXPORT SequenceListIterator {
 public:
-  typedef T ValueType;
-  typedef I IteratorType;
-  typedef SequenceListIterator<T, I> ClassType;
+  using ValueType = T;
+  using IteratorType = I;
+  using ClassType = SequenceListIterator<T, I>;
+
+  using iterator_category = std::random_access_iterator_tag;
+  using value_type = T; // duplicate
+  using difference_type = std::ptrdiff_t;
+  using pointer = T*;
+  using reference = T&;
+
 protected:
   void UpdateVal()
   {

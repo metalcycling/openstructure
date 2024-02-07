@@ -92,7 +92,9 @@ void PDBReader::Init(const boost::filesystem::path& loc)
     in_.push(boost::iostreams::gzip_decompressor());
   }
   in_.push(instream_);
-  if(!infile_) throw IOException("could not open "+loc.string());
+  if(!infile_) throw IOException("[Errno " + std::to_string(errno) + "] " +
+                     std::string(strerror(errno)) +
+                     ": '" + loc.string() + "'");
   line_num_=0;
   if(boost::iequals(boost::filesystem::extension(loc), ".pqr")) {
     is_pqr_=true;
@@ -195,7 +197,7 @@ void PDBReader::ParseCompndEntry (const StringRef& line, int line_num)
   } 
       //currently only these are parsed
   if (!(key.str()=="MOL_ID")&&!(key.str()=="CHAIN")){
-    LOG_INFO("reading COMPND record on line " << line_num<< "is not supported");
+    LOG_INFO("reading COMPND record on line " << line_num<< " is not supported");
     if (data_continues_) {
       skip_next_=true;
     } else {

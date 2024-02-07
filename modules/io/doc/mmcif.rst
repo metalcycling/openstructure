@@ -1,22 +1,21 @@
 mmCIF File Format
---------------------------------------------------------------------------------
+================================================================================
 
 .. currentmodule:: ost.io
 
 The mmCIF file format is a container for structural entities provided by the
-PDB. Here we describe how to load those files and how to deal with information
-provided above the legacy PDB format (:class:`MMCifInfo`,
+PDB. Saving/loading happens through dedicated convenient functions
+(:func:`ost.io.LoadMMCIF`/:func:`ost.io.SaveMMCIF`). Here provide more in-depth
+information on mmCIF IO and describe how to deal with information provided above
+the legacy PDB format (:class:`MMCifInfo`,
 :class:`MMCifInfoCitation`, :class:`MMCifInfoTransOp`,
 :class:`MMCifInfoBioUnit`, :class:`MMCifInfoStructDetails`,
 :class:`MMCifInfoObsolete`, :class:`MMCifInfoStructRef`,
 :class:`MMCifInfoStructRefSeq`, :class:`MMCifInfoStructRefSeqDif`,
 :class:`MMCifInfoRevisions`, :class:`MMCifInfoEntityBranchLink`).
 
-
-Loading mmCIF Files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autofunction:: ost.io.LoadMMCIF
+Reading mmCIF files
+--------------------------------------------------------------------------------
 
 
 Categories Available
@@ -32,6 +31,8 @@ The following categories of a mmCIF file are considered by the reader:
 * ``exptl``: Goes into :class:`MMCifInfo` as :attr:`~MMCifInfo.method`.
 * ``refine``: Goes into :class:`MMCifInfo` as :attr:`~MMCifInfo.resolution`,
   :attr:`~MMCifInfo.r_free` and :attr:`~MMCifInfo.r_work`.
+* ``em_3d_reconstruction``: Goes into :class:`MMCifInfo` as
+  :attr:`~MMCifInfo.em_resolution`.
 * ``pdbx_struct_assembly``: Used for :class:`MMCifInfoBioUnit`.
 * ``pdbx_struct_assembly_gen``: Used for :class:`MMCifInfoBioUnit`.
 * ``pdbx_struct_oper_list``: Used for :class:`MMCifInfoBioUnit`.
@@ -60,7 +61,7 @@ Notes:
 * Structures in mmCIF format can have two chain names. The "new" chain name
   extracted from ``atom_site.label_asym_id`` is used to name the chains in the
   :class:`~ost.mol.EntityHandle`. The "old" (author provided) chain name is
-  extracted from ``atom_site.auth_asym_id`` for the first atom of the chain.
+  extracted from |atom_site.auth_asym_id|_ for the first atom of the chain.
   It is added as string property named "pdb_auth_chain_name" to the
   :class:`~ost.mol.ChainHandle`. The mapping is also stored in
   :class:`MMCifInfo` as :meth:`~MMCifInfo.GetMMCifPDBChainTr` and
@@ -76,21 +77,36 @@ Notes:
   we also store :class:`string properties<ost.GenericPropContainer>` on a
   per-residue level.
   For mmCIF files from the PDB, there is a unique mapping between
-  ("label_asym_id", "label_seq_id") and ("auth_asym_id", "auth_seq_id",
-  "pdbx_PDB_ins_code").
+  (``label_asym_id``, ``label_seq_id``) and (``auth_asym_id``, ``auth_seq_id``,
+  ``pdbx_PDB_ins_code``).
   The following data items are available:
 
     * ``atom_site.label_asym_id``: ``residue.chain.name``
-    * ``atom_site.label_seq_id``: ``residue.GetStringProp("resnum")``
+    * |atom_site.label_seq_id|_: ``residue.GetStringProp("resnum")``
       (this is the same as ``residue.number`` for residues in polymer chains.
       However, for ligands ``residue.number`` is unset in mmCIF, but it
       is set to 1 by openstructure.)
     * ``atom_site.label_entity_id``: ``residue.GetStringProp("entity_id")``
-    * ``atom_site.auth_asym_id``: ``residue.GetStringProp("pdb_auth_chain_name")``
+    * |atom_site.auth_asym_id|_: ``residue.GetStringProp("pdb_auth_chain_name")``
     * ``atom_site.auth_seq_id``: ``residue.GetStringProp("pdb_auth_resnum")``
     * ``atom_site.pdbx_PDB_ins_code``: ``residue.GetStringProp("pdb_auth_ins_code")``
+
+  The last two items might be missing (not empty) if the ``atom_site.auth_seq_id``
+  or ``atom_site.pdbx_PDB_ins_code`` are not present in the mmCIF file.
 * Missing values in the aforementioned data items will be denoted as ``.`` or
   ``?``.
+* Author residue numbers (``atom_site.auth_seq_id``) and insertion codes 
+  (``atom_site.pdbx_PDB_ins_code``) are optional according to the mmCIF 
+  dictionary. The data items (whole columns) can be omitted in structures where
+  the "new" residue numbers (|atom_site.label_seq_id|_) are defined (to valid
+  values). This is usually the case for polymer chains. However non-polymer and
+  water chains do not have valid "new" residue numbers. In structures 
+  containing such missing data, OST requires the presence of both "old" residue
+  numbers and insertion codes in order to identify and build residues properly.
+  It is a known limitation of the mmCIF format to allow ambiguous identifiers
+  for waters (and ligands to some extent) and so we have to require these
+  additional identifiers.
+
 
 Info Classes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -124,13 +140,26 @@ of the annotation available.
     Also available as :meth:`GetMethod`. May also be modified by
     :meth:`SetMethod`.
 
+    Some PDB entries have multiple experimental methods. This function
+    only a single one of them.
+
   .. attribute:: resolution
 
-    Stores the resolution of the crystal structure. Set to 0 if no value in
+    Stores the resolution of the crystal structure, obtained from the
+    ``refine.ls_d_res_high`` data item. Set to 0 if no value in
     loaded mmCIF file.
 
     Also available as :meth:`GetResolution`. May also be modified by
     :meth:`SetResolution`.
+
+  .. attribute:: em_resolution
+
+    Stores the resolution of the EM reconstruction, obtained from the
+    ``em_3d_reconstruction.resolution`` data item. Set to 0 if no value
+    in loaded mmCIF file.
+
+    Also available as :meth:`GetEMResolution`. May also be modified by
+    :meth:`SetEMResolution`.
 
   .. attribute:: r_free
 
@@ -266,7 +295,7 @@ of the annotation available.
 
     :param cif_chain_id: atom_site.label_asym_id
     :type cif_chain_id: :class:`str`
-    :param pdb_chain_id: atom_site.auth_asym_id
+    :param pdb_chain_id: |atom_site.auth_asym_id|_
     :type pdb_chain_id: :class:`str`
 
   .. method:: GetMMCifPDBChainTr(cif_chain_id)
@@ -276,13 +305,13 @@ of the annotation available.
 
     :param cif_chain_id: atom_site.label_asym_id
     :type cif_chain_id: :class:`str`
-    :returns: atom_site.auth_asym_id as :class:`str` (empty if no mapping)
+    :returns: |atom_site.auth_asym_id|_ as :class:`str` (empty if no mapping)
 
   .. method:: AddPDBMMCifChainTr(pdb_chain_id, cif_chain_id)
 
     Set up a translation for a certain PDB chain name to the mmCIF chain name.
 
-    :param pdb_chain_id: atom_site.auth_asym_id
+    :param pdb_chain_id: |atom_site.auth_asym_id|_
     :type pdb_chain_id: :class:`str`
     :param cif_chain_id: atom_site.label_asym_id
     :type cif_chain_id: :class:`str`
@@ -291,7 +320,7 @@ of the annotation available.
 
     Get the translation of a certain PDB chain name to the mmCIF chain name.
 
-    :param pdb_chain_id: atom_site.auth_asym_id
+    :param pdb_chain_id: |atom_site.auth_asym_id|_
     :type pdb_chain_id: :class:`str`
     :returns: atom_site.label_asym_id as :class:`str` (empty if no mapping)
 
@@ -311,6 +340,15 @@ of the annotation available.
     :param cif_chain_id: atom_site.label_asym_id
     :type cif_chain_id: :class:`str`
     :returns: atom_site.label_entity_id as :class:`str` (empty if no mapping)
+
+  .. method:: GetEntityIdsOfType(type)
+
+    Get list of entity ids for which :attr:`MMCifEntityDesc.entity_type` equals
+    *type*
+
+    :param type: Selection criteria of returned entity ids
+    :type type: :class:`str`
+    :returns: :class:`list` of :class:`str` representing selected entity ids
 
   .. method:: AddRevision(num, date, status, major=-1, minor=-1)
 
@@ -382,6 +420,14 @@ of the annotation available.
   .. method:: ConnectBranchLinks
 
     Establish all bonds stored for branched entities.
+
+  .. method:: GetEntityDesc(entity_id)
+
+    Get info of type :class:`MMCifEntityDesc` for specified *entity_id*.
+    The entity id for a chain can be fetched with :func:`GetMMCifEntityIdTr`.
+
+    :param entity_id: ID of entity
+    :type entity_id: :class:`str`
 
 .. class:: MMCifInfoCitation
 
@@ -1334,8 +1380,731 @@ of the annotation available.
 
     See :attr:`bond_order`
 
-Biounits
+
+.. class:: MMCifEntityDesc
+
+  Data collected for certain mmCIF entity
+
+  .. attribute:: type
+
+    The ost chain type which can be assigned to :class:`ost.mol.ChainHandle`
+
+    :type: :class:`ost.mol.ChainType`
+
+  .. attribute:: entity_type
+
+    value of |entity.type|_ token
+
+    :class:`str`
+
+  .. attribute:: entity_poly_type
+
+    value of ``_entity_poly.type`` token - empty string if entity is not of type
+    "polymer"
+
+    :class:`str`
+
+  .. attribute:: branched_type
+
+    value of ``_pdbx_entity_branch.type`` token - empty string if entity is not of
+    type "branched"
+
+    :type: :class:`str`
+
+  .. attribute:: details
+
+    value of ``_entity.pdbx_description`` token
+
+    :class:`str`
+
+  .. attribute:: seqres
+
+    SEQRES with gentle preprocessing - empty string if entity is not of type
+    "polymer". By default, the :class:`ost.io.MMCifReader` reads the value of the
+    ``_entity_poly.pdbx_seq_one_letter_code`` token. Copies all letters but
+    searches a :class:`ost.conop.CompoundLib` for compound names in brackets.
+    *seqres* gets an 'X' if no compound is found or the respective compound has
+    one letter code '?'. Uses the one letter code of the found compound
+    otherwise. So it's basically a canonical SEQRES with exactly one character
+    per residue.
+
+    :type: :class:`str`
+
+  .. attribute:: mon_ids
+
+    Monomer ids of all residues in a polymer - empty if entity is not of
+    type "polymer". Read from ``_entity_poly_seq`` category. If a residue is
+    heterogeneous, this list contains the monomer id that comes first in
+    the CIF file. The other variants end up in
+    :attr:`hetero_num` / :attr:`hetero_ids`.
+
+    :type: :class:`ost.base.StringList`
+
+  .. attribute:: hetero_num
+
+    Residue numbers of heterogeneous compounds - empty if entity is not
+    of type "polymer". Read from ``_entity_poly_seq`` category. If a residue is
+    heterogeneous, the monomer id that comes first in the CIF file ends up
+    in :attr:`mon_ids`. The remnant is listed here.
+    This list specifies the residue numbers for the respective monomer ids
+    in :attr:`hetero_ids`.
+
+  .. attribute:: hetero_ids
+
+    Monomer ids of heterogeneous compounds - empty if entity is not
+    of type "polymer". Read from ``_entity_poly_seq`` category. If a residue is
+    heterogeneous, the monomer id that comes first in the CIF file ends up
+    in :attr:`mon_ids`. The remnant is listed here.
+    This list specifies the monomer ids for the respective locations in
+    :attr:`hetero_num`.
+
+
+Writing mmCIF files
+--------------------------------------------------------------------------------
+
+
+Star Writer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The syntax of `mmCIF <https://mmcif.wwpdb.org/pdbx-mmcif-home-page.html>`_ is a
+subset of the
+`CIF file syntax <https://www.iucr.org/resources/cif/spec/version1.1>`_, that by
+itself is a subset of STAR file syntax. OpenStructure
+implements a simple :class:`StarWriter` that is able to write data in two ways:
+
+* **key-value**: A category name and an attribute name that is linked to a value. Example:
+
+  .. code-block:: bash
+
+    _citation.year 2024
+
+  ``_citation.year`` is called a mmCIF token. It consists of a data category
+  (``_citation``) and a data item (``year``), delimited by a "``.``".
+
+* **tabular**: Represents several values for a mmCIF token. The tokens are written in a header which is followed by the respective values. Example:
+
+  .. code-block:: bash
+    
+    loop_
+    _atom_site.group_PDB
+    _atom_site.type_symbol
+    _atom_site.label_atom_id
+    _atom_site.label_comp_id
+    _atom_site.label_asym_id
+    _atom_site.label_entity_id
+    _atom_site.label_seq_id
+    _atom_site.label_alt_id
+    _atom_site.Cartn_x
+    _atom_site.Cartn_y
+    _atom_site.Cartn_z
+    _atom_site.occupancy
+    _atom_site.B_iso_or_equiv
+    _atom_site.auth_seq_id
+    _atom_site.auth_asym_id
+    _atom_site.id
+    _atom_site.pdbx_PDB_ins_code
+    ATOM N N  SER A 0 1 . -47.333 0.941 8.834 1.00 52.56 71 P 0 ?
+    ATOM C CA SER A 0 1 . -45.849 0.731 8.796 1.00 53.56 71 P 1 ?
+    ATOM C C  SER A 0 1 . -45.191 1.608 7.714 1.00 51.61 71 P 2 ?
+    ...
+
+What follows is an example of how to use the :class:`StarWriter` and its
+associated objects. In principle thats enough to write a full mmCIF file
+but you definitely want to check out the :class:`MMCifWriter` which extends
+:class:`StarWriter` and extracts the relevant data from an OpenStructure
+:class:`ost.mol.EntityHandle`.
+
+.. code-block:: python
+
+  from ost import io
+  import math
+
+  writer = io.StarWriter()
+
+  # Add key value pair
+  value = io.StarWriterValue.FromInt(42)
+  data_item = io.StarWriterDataItem("_the", "answer", value)
+  writer.Push(data_item)
+
+  # Add tabular data
+  loop_desc = io.StarWriterLoopDesc("_math_oper")
+  loop_desc.Add("num")
+  loop_desc.Add("sqrt")
+  loop_desc.Add("square")
+  loop = io.StarWriterLoop(loop_desc)
+  for i in range(10):
+    data = list()
+    data.append(io.StarWriterValue.FromInt(i))
+    data.append(io.StarWriterValue.FromFloat(math.sqrt(i), 3))
+    data.append(io.StarWriterValue.FromInt(i*i))
+    loop.AddData(data)
+  writer.Push(loop)
+  
+  # Write this groundbreaking data into a file with name numbers.gz
+  # and yes, its directly gzipped
+  writer.Write("numbers", "numbers.gz")
+
+
+The content of the file written:
+
+.. code-block:: bash
+
+  data_numbers
+  _the.answer 42
+  #
+  loop_
+  _math_oper.num
+  _math_oper.sqrt
+  _math_oper.square
+  0 0.000 0
+  1 1.000 1
+  2 1.414 4
+  3 1.732 9
+  4 2.000 16
+  5 2.236 25
+  6 2.449 36
+  7 2.646 49
+  8 2.828 64
+  9 3.000 81
+  #
+
+.. class:: StarWriterValue
+
+  A value which is stored as string - must be constructed from static
+  constructor functions
+
+  .. method:: FromInt(int_val)
+
+    Static constructor from an integer value
+
+    :param int_val: The value
+    :type int_val: :class:`int`
+    :returns: :class:`StarWriterValue`
+
+  .. method:: FromFloat(float_val, decimals)
+    
+    Static constructor from a float value
+
+    :param float_val: The value
+    :type float_val: :class:`float`
+    :param decimals: Number decimals that get stored as internal value
+    :returns: :class:`StarWriterValue`
+
+  .. method:: FromString(string_val)
+    
+    Static constructor from a string value, stores input as is
+    with the exception of the following processing:
+
+    * set to "?" if *string_val* is an empty string (in mmCIF, "?" marks
+      "unknown" values)
+    * encapsulate string in quotes if *string_val* contains space character
+    * encapsulate string in quotes if *string_val* starts with any of the
+      following special characters: _, #, $, ', ", [, ], ;
+    * encapsulate string in quotes if *string_val* starts with any of the
+      following special strings:  "data\_" (case insensitive),
+      "save\_" (case insensitive)
+    * encapsulate string in quotes if *string_val* is equal to any of the
+      following reserved words (case insensitive): "loop\_", "stop\_", "global\_"
+
+    :param string_val: The value
+    :type string_val: :class:`str`
+    :returns: :class:`StarWriterValue`
+
+
+  .. method:: GetValue
+
+    Returns the internal string representation
+
+
+.. class:: StarWriterDataItem(category, attribute, value)
+
+  key-value data representation
+
+  :param category: The category name of the data item
+  :type category: :class:`str`
+  :param attribute: The attribute name of the data item
+  :type attribute: :class:`str`
+  :param value: The value of the data item 
+  :type value: :class:`StarWriterValue`
+
+  .. method:: GetCategory
+
+    Returns *category*
+
+  .. method:: GetAttribute
+
+    Returns *attribute*
+
+  .. method:: GetValue
+
+    Returns *value*
+
+
+.. class:: StarWriterLoopDesc(category)
+
+  Defines header for tabular data representation for the specified *category*
+
+  :param category: The category
+  :type category: :class:`str`
+
+  .. method:: GetCategory
+
+    Returns *category*
+
+  .. method:: GetSize
+
+    Returns number of added attributes
+
+  .. method:: Add(attribute)
+
+    Adds an attribute
+
+    :param attribute: The attribute
+    :type attribute: :class:`str`
+
+  .. method:: GetIndex(attribute)
+
+    Returns index for specified *attribute*, -1 if not found
+
+    :param attribute: The attribute for which the index should be returned 
+    :type attribute: :class:`str`
+
+
+.. class:: StarWriterLoop(desc)
+
+  Allows to populate :class:`StarWriterLoopDesc` with data to get a full tabular
+  data representation
+
+  :param desc: The header
+  :type desc: :class:`StarWriterLoopDesc`
+
+  .. method:: GetDesc
+
+    Returns *desc*
+
+  .. method:: GetN
+
+    Returns number of added data lists
+
+  .. method:: AddData(data_list)
+
+    Add data for each attribute in *desc*.
+
+    :param data_list: Data to be added, length must match attributes in *desc*
+    :type data_list: :class:`list` of :class:`StarWriterValue`
+
+
+.. class:: StarWriter
+
+  Can be populated with data which can then be written to a file.
+
+  .. method:: Push(star_writer_object)
+
+    Push data to be written
+
+    :param star_writer_object: Data
+    :type star_writer_object: :class:`StarWriterDataItem`/:class:`StarWriterLoop`
+
+  .. method:: Write(data_name, filename)
+
+    Writes pushed data in specified file.
+
+    :param data_name: Name of data block, i.e. the written file starts with
+                      data\_<data_name>.
+    :type data_name: :class:`str`
+    :param filename: Name of generated file - applies gzip compression in case
+                     of .gz suffix.
+    :type filename: :class:`str`
+
+
+.. _MMCif writing:
+
+mmCIF Writer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Data categories considered by the OpenStructure mmCIF writer are described in
+the following. The listed attributes are written to fulfill all dependencies in
+a mmCIF file according to `mmcif_pdbx_v50 <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Index/>`_.
+
+* `_atom_site <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/atom_site.html>`_
+
+  * group_PDB
+  * type_symbol
+  * label_atom_id
+  * label_asym_id
+  * label_entity_id
+  * label_seq_id
+  * label_alt_id
+  * Cartn_x
+  * Cartn_y
+  * Cartn_z
+  * occupancy
+  * B_iso_or_equiv
+  * auth_seq_id
+  * auth_asym_id
+  * id
+  * pdbx_PDB_ins_code
+
+
+* `_entity <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity.html>`_
+
+  * id
+  * type
+
+* `_struct_asym <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/struct_asym.html>`_
+
+  * id
+  * entity_id
+
+* `_entity_poly <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity_poly.html>`_
+
+  * entity_id
+  * type
+  * pdbx_seq_one_letter_code
+  * pdbx_seq_one_letter_code_can
+
+* `_entity_poly_seq <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity_poly_seq.html>`_
+
+  * entity_id
+  * mon_id
+  * num
+  * hetero
+
+* `_pdbx_poly_seq_scheme <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/pdbx_poly_seq_scheme.html>`_
+
+  * asym_id
+  * entity_id
+  * mon_id
+  * seq_id
+  * pdb_strand_id
+  * pdb_seq_num
+  * pdb_ins_code
+
+* `_chem_comp <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/chem_comp.html>`_
+
+  * id
+  * type
+
+* `_atom_type <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/atom_type.html>`_
+
+  * symbol
+
+* `_pdbx_entity_branch <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/pdbx_entity_branch.html>`_
+
+  * entity_id
+  * type
+
+The writer is designed to only require an OpenStructure
+:class:`ost.mol.EntityHandle`/ :class:`ost.mol.EntityView` as input but
+optionally performs preprocessing in order to separate residues of chains into
+valid mmCIF entities. This is controlled by the *mmcif_conform* flag which has
+significant impact on how chains are assigned to mmCIF entities, chain names and
+residue numbers. Ideally, the input is *mmcif_conform* which is the case
+when loading a structure from a valid mmCIF file with :func:`ost.io.LoadMMCIF`.
+
+Behaviour when *mmcif_conform* is True
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Expected properties when *mmcif_conform* is enabled:
+
+* The residues in a chain all belong to the same mmCIF molecular entity. That
+  is for example a polypeptide chain with all residues being peptide linking.
+  In mmCIF lingo: An entity of type "polymer" which is of |entity_poly|_ type
+  "polypeptide(L)" and all residues being "L-PEPTIDE LINKING". Well, some
+  glycines might be "PEPTIDE LINKING".
+  Another example might be a ligand where the chain refers to an entity of 
+  type "non-polymer" and only contains that particular ligand.
+* Each chain must have a chain type assigned (available as 
+  :func:`ost.mol.ChainHandle.GetType`) which refers to the entity type.
+  For entity type "polymer" and "branched", the chain type also encodes
+  the subtypes. If you for example have a polymer chain, not the general
+  CHAINTYPE_POLY is expected but the more finegrained polymer specific type.
+  That could be CHAINTYPE_POLY_PEPTIDE_D. This is also true for entities of
+  type "branched". There, a subtype such as CHAINTYPE_OLIGOSACCHARIDE is
+  expected.
+* The residue numbers in "polymer" chains must match the SEQRES of the
+  underlying entity with 1-based indexing. Insertion codes are not allowed
+  and raise an error.
+* Each residue must be named according to the entries in the
+  :class:`ost.conop.CompoundLib` which is provided when calling
+  :func:`MMCifWriter.SetStructure`. This is relevant for the _chem_comp
+  category. If the respective compound cannot be found, the type for that
+  compound is set to "OTHER"
+
+
+There is one quirk remaining: The assignment of
+underlying mmCIF entities. This is a challenge primarily for polymers. The
+current logic starts with an empty internal entity list and successively
+processes chains. If no match is found, a new entity gets generated and the
+SEQRES is set to what we observe in the chain residues given their residue
+numbers (i.e. the ATOMSEQ). If the first residue has residue number 10, the
+SEQRES gets prefixed by 9 elements using a default value (e.g. UNK for a 
+chain of type CHAINTYPE_POLY_PEPTIDE_D). The same is done for gaps.
+A chain is considered matching an mmCIF entity, if all of its residue names
+are an exact match at the respective location in the SEQRES. Location is 
+determined with residue numbers which follow a 1-based indexing scheme.
+However, there might be the case that one chain resolves
+more residues than another. So you may have residues at locations that are
+undefined in the current SEQRES. If the fraction of matches with undefined
+locations does not exceed 5%, we still assume an overall match and fill
+in the previsouly undefined locations in the SEQRES with the newly gained
+information. This is a heuristic that works in most cases but potentially
+introduces errors in entity assignment. If you want to avoid that, you
+must set your entities manually and pass a :class:`MMCifWriterEntityList`
+when calling :func:`MMCifWriter.SetStructure`. There is a dedicated
+section on that below.
+
+if *mmcif_conform* is enabled, there is pretty much everything in place
+and the previously listed mmCIF categories/attributes are written with
+a few special cases:
+
+* |atom_site.auth_asym_id|_: Honours the residue string property
+  "pdb_auth_chain_name" if set, uses the actual chain name otherwise. The string
+  property is set in the mmCIF reader.
+* _pdbx_poly_seq_scheme.pdb_strand_id: Same behaviour as
+  |atom_site.auth_asym_id|_
+* _atom_site.auth_seq_id: Honours the residue string property
+  "pdb_auth_resnum" if set, uses the actual residue number otherwise. The string
+  property is set in the mmCIF reader.
+* _pdbx_poly_seq_scheme.pdb_seq_num: Same behaviour as _atom_site.auth_seq_id
+* _atom_site.pdbx_PDB_ins_code: Honours the residue string property
+  "pdb_auth_ins_code" if set, uses the actual residue insertion code otherwise.
+  The string property is set in the mmCIF reader. If *mmcif_conform* is enabled,
+  the actual residue insertion code can expected to be empty though.
+* _pdbx_poly_seq_scheme.pdb_ins_code: Same behaviour as
+  _atom_site.pdbx_PDB_ins_code
+
+
+Behaviour when *mmcif_conform* is False
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+If *mmcif_conform* is not enabled, the only expectation is that residues are
+named according to the :class:`ost.conop.CompoundLib` which is provided when
+calling :func:`MMCifWriter.SetStructure`. The :class:`ost.conop.CompoundLib` is
+used to extract the respective chem classes (see :class:`ost.mol.ChemClass`).
+Residues with no entry in the :class:`ost.conop.CompoundLib` are set to
+:class:`UNKNOWN`. There will be significant preprocessing involving the split of
+chains which is purely based on these chem classes. Each chain gets split with
+the following rules:
+
+* separate chain of |entity.type|_ "non-polymer" for each residue with chem
+  class :class:`NON_POLYMER`/ :class:`UNKNOWN`
+* if any residue has chem class :class:`WATER`, all of them are collected
+  into one separate chain with |entity.type|_ "water"
+* if any residue is a saccharide, i.e. has chem class
+  :class:`SACCHARIDE`/ :class:`L_SACCHARIDE`/ :class:`D_SACCHARIDE`, all of them
+  are gathered into a single separated chain of |entity.type|_ "branched" and
+  _pdbx_entity_branch.type "oligosaccharide".
+* if any residue has chem class :class:`RNA_LINKING`, all of them are collected
+  into one separate chain of |entity.type|_ "polymer" and
+  _entity_poly.type "polyribonucleotide".
+* if any residue has chem class :class:`DNA_LINKING`, all of them are collected
+  into one separate chain of |entity.type|_ "polymer" and
+  _entity_poly.type "polydeoxyribonucleotide".
+* if any residue is peptide linking, all of them are collected into one separate
+  chain of |entity.type|_ "polymer" and _entity_poly.type
+  "polypeptide(L)"/"polypeptide(D)". We only allow the following
+  combinations of chem classes. Either
+  :class:`L_PEPTIDE_LINKING`/ :class:`PEPTIDE_LINKING` or
+  :class:`D_PEPTIDE_LINKING`/ :class:`PEPTIDE_LINKING`. Mixing
+  :class:`L_PEPTIDE_LINKING` and :class:`D_PEPTIDE_LINKING` raises an error.
+
+Chain names are generated by iterating over
+"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz", starting with
+AA, AB, AC etc. once the first cycle is through. There can therefore be as many 
+chains as needed. The mmCIF entities are built the same way as for
+*mmcif_conform* with two differences: 1) the extracted SEQRES of a chain is the
+ATOMSEQ, i.e. the exact sequence of its residues 2) entity matching happens
+through exact matches of SEQRES and is independent from residue numbers. As a
+consequence, the residue numbers written as |atom_site.label_seq_id|_ do not
+correspond anymore to the actual residue numbers but refer to the location in
+ATOMSEQ.
+
+Once split and new chain names are assigned, the rest is straightforward.
+The special cases listed above (|atom_site.auth_asym_id|_,
+_pdbx_poly_seq_scheme.pdb_strand_id, _atom_site.auth_seq_id etc.) are
+treated the same as if *mmcif_conform* was true.
+
+To see it all in action:
+
+.. code-block:: python
+
+  from ost import io
+  from ost import conop
+
+  ent = io.LoadMMCIF("1a0s", remote=True)
+
+  writer = io.MMCifWriter()
+
+  # The MMCifWriter is still object of type StarWriter
+  # I can decorate my mmCIF file with any data I want
+  val = io.StarWriterValue.FromInt(42)
+  data_item = io.StarWriterDataItem("_the", "answer", val)
+  writer.Push(data_item)
+
+  # The actual relevant part... mmcif_conform can be set to
+  # True, as we loaded from mmCIF file
+  lib = conop.GetDefaultLib()
+  writer.SetStructure(ent, lib, mmcif_conform = True)
+
+  # And write...
+  writer.Write("1a0s", "1a0s.cif.gz")
+
+
+Define mmCIF entities
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+The writer provides a way to pre-define mmCIF entities. This only works if
+*mmcif_conform* is enabled and for polymer entities. The problem is that we have
+no guarantee to ever see the full SEQRES (written in entity_poly_seq category)
+only with a structure as input. As an example: gaps, i.e. missing
+residues based on residue numbers, are filled with UNK in case of a
+:class:`L_PEPTIDE_LINKING` chain. In order to retain the full SEQRES
+information, we provide a way to define these polymer entities in form of
+:class:`MMCifWriterEntity`. The provided entities must fulfill:
+
+* They must be of _entity.type "polymer"
+* All chains in input structure that are of _entity.type "polymer" must be
+  assigned to exactly one of these :class:`MMCifWriterEntity` objects and
+  must match the SEQRES (:attr:`MMCifWriterEntity.mon_ids`)
+* All chain names that are assigned to any of the :class:`MMCifWriterEntity`
+  objects must be present in input structure
+
+Here is an example with pre-defined mmCIF entities:
+
+.. code-block:: python
+
+  from ost import io
+  from ost import conop
+
+  # Read the structure and also seqres and meta information
+  ent, seqres, info = io.LoadMMCIF("1a0s", remote=True,
+                                   seqres=True, info=True)
+                                 
+  # we need the compound library at several places
+  lib = conop.GetDefaultLib()
+
+  # pre-define mmCIF entities
+  entity_info = ost.io.MMCifWriterEntityList()
+  for entity_id in info.GetEntityIdsOfType("polymer"):
+
+    # Get entity description from info object
+    entity_desc = info.GetEntityDesc(entity_id)
+  
+    # interface of entity_desc is similar to MMCifWriterEntity
+    entity_poly_type = entity_desc.entity_poly_type
+    mon_ids = entity_desc.mon_ids
+    e = ost.io.MMCifWriterEntity.FromPolymer(entity_poly_type,
+                                             mon_ids, lib) 
+    entity_info.append(e)
+  
+    # search all chains assigned to the entity we just added
+    for ch in ent.chains:
+      if info.GetMMCifEntityIdTr(ch.name) == entity_id:
+        entity_info[-1].asym_ids.append(ch.name)
+
+    # deal with heterogeneities
+    for a,b in zip(entity_desc.hetero_num, entity_desc.hetero_ids):
+      entity_info[-1].AddHet(a,b)
+
+  # write mmcif file with pre-defined mmCIF entities
+  writer = io.MMCifWriter()
+  writer.SetStructure(ent, conop.GetDefaultLib(),
+                      entity_info=entity_info)
+  writer.Write("1a0s", "1a0s.cif.gz")
+
+
+.. class:: MMCifWriterEntity
+
+  Defines mmCIF entity which will be written in :class:`MMCifWriter`.
+  Must be created from static constructor function.
+
+  .. method:: FromPolymer(entity_poly_type, mon_ids, compound_lib)
+
+    Static constructor function for entities of type "polymer"
+
+    :param entity_poly_type: Entity poly type from restricted vocabulary for
+                             `_entity_poly.type <https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_entity_poly.type.html>`_
+    :type entity_poly_type: :class:`str`
+    :param mon_ids: Full names of all compounds defining the SEQRES of that
+                    entity
+    :type mon_ids: :class:`list` of :class:`str`
+    :param compound_lib: Components dictionary from which chem classes are
+                         fetched
+    :type compound_lib: :class:`ost.conop.CompoundLib`
+  
+  .. attribute:: type
+
+    (:class:`str`) The |entity.type|_
+   
+  .. attribute:: poly_type
+
+    (:class:`str`) The _entity_poly.type - empty string if type is not "polymer"
+
+  .. attribute:: branch_type
+
+    (:class:`str`) The _pdbx_entity_branch.type - empty string if type is not
+                   "branched"
+  
+  .. attribute:: mon_ids
+
+    (:class:`ost.StringList`) The compound names making up this entity
+
+  .. attribute:: seq_olcs
+
+    (:class:`ost.StringList`) The one letter codes for :attr:`mon_ids` which
+    will be written to ``_pdbx_seq_one_letter_code`` - invalid if type is not
+    "polymer"
+
+  .. attribute:: seq_can_olcs
+
+    (:class:`ost.StringList`) The one letter codes for :attr:`mon_ids` which
+    will be written to ``_pdbx_seq_one_letter_code_can`` - invalid if type is
+    not "polymer"
+
+  .. attribute:: asym_ids
+
+    (:class:`ost.StringList`) Asym chain names that are assigned to this entity
+
+.. class:: MMCifWriterEntityList
+
+  A list for :class:`MMCifWriterEntity`
+
+.. class:: MMCifWriter
+
+  Inherits all functionality from :class:`StarWriter` and provides functionality
+  to extract relevant mmCIF information from
+  :class:`ost.mol.EntityHandle`/ :class:`ost.mol.EntityView`
+
+  .. method:: SetStructure(ent, compound_lib, mmcif_conform=True,
+                           entity_info=list())
+
+    Extracts mmCIF categories/attributes based on the description above.
+    An object of type :class:`MMCifWriter` can only be associated with one
+    Structure. Calling this function more than once raises an error.
+
+    :param ent: The stucture to write
+    :type ent: :class:`ost.mol.EntityHandle`/ :class:`ost.mol.EntityView`
+    :param compound_lib: The compound library
+    :type compound_lib: :class:`ost.conop.CompoundLib`
+    :param mmcif_conform: Determines data extraction strategy as described above
+    :type mmcif_conform: :class:`bool`
+    :param entity_info: Predefine mmCIF entities - useful to define complete
+                        SEQRES. If given, the provided list serves as a
+                        starting point, i.e. chains in *ent* are matched to
+                        entities in *entity_info*. In case of no match, this
+                        list gets extended. Starts from empty list if not given.
+    :type entity_info: :class:`MMCifWriterEntityList`
+  
+  .. method:: GetEntities()
+
+    Returns :class:`MMCifWriterEntityList`. Useful to check after
+    :func:`SetStructure` has been called. Order in this list defines entity
+    ids in written mmCIF file with zero based indexing.
+
+
+Biounits
+--------------------------------------------------------------------------------
 
 .. _Biounits:
 
@@ -1348,8 +2117,16 @@ constructing biounits, check out :func:`ost.mol.alg.CreateBU` in the
 *ost.mol.alg* module.
 
 
-.. |exptl.method| replace:: ``exptl.method``
+.. |atom_site.label_seq_id| replace:: ``_atom_site.label_seq_id``
+.. _atom_site.label_seq_id: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_atom_site.label_seq_id.html
+.. |atom_site.auth_asym_id| replace:: ``_atom_site.auth_asym_id``
+.. _atom_site.auth_asym_id: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_atom_site.auth_asym_id.html
+.. |exptl.method| replace:: ``_exptl.method``
 .. _exptl.method: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_exptl.method.html
+.. |entity_poly| replace:: ``_entity_poly``
+.. _entity_poly: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity_poly.html
+.. |entity.type| replace:: ``_entity.type``
+.. _entity.type: https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_entity.type.html
 
 ..  LocalWords:  cas isbn pubmed asu seqres conop ConnectAll casp COMPND OBSLTE
 ..  LocalWords:  SPRSDE pdb func autofunction exptl attr pdbx oper conf spr dif

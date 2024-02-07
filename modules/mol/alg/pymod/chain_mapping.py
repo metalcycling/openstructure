@@ -599,7 +599,7 @@ class ChainMapper:
                  pep_subst_mat = seq.alg.BLOSUM62, pep_gap_open = -11,
                  pep_gap_ext = -1, nuc_subst_mat = seq.alg.NUC44,
                  nuc_gap_open = -4, nuc_gap_ext = -4,
-                 min_pep_length = 10, min_nuc_length = 4,
+                 min_pep_length = 6, min_nuc_length = 4,
                  n_max_naive = 1e8):
 
         # attributes

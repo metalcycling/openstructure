@@ -959,6 +959,22 @@ private:
 };
 typedef std::map<String, std::vector<MMCifInfoEntityBranchLink> > MMCifInfoEntityBranchLinkMap;
 
+
+/// \struct keeping track of entity information
+typedef struct {
+  mol::ChainType type;           ///< characterise entity
+  String entity_type;            ///< value of _entity.type
+  String entity_poly_type;       ///< value of _entity_poly.type
+  String branched_type;          ///< value of _pdbx_entity_branch.type
+  String details;                ///< description of this entity
+  String seqres;                 ///< chain of monomers
+  std::vector<String> mon_ids;   ///< list of monomer names from _entity_poly_seq
+  std::vector<int> hetero_num;   ///< res num of heterogeneous compounds
+  std::vector<String> hetero_ids;///< names of heterogeneous compounds
+} MMCifEntityDesc;
+typedef std::map<String, MMCifEntityDesc> MMCifEntityDescMap;
+
+
 /// \brief container class for additional information from MMCif files
 /// 
 /// \section mmcif annotation information
@@ -975,7 +991,8 @@ typedef std::map<String, std::vector<MMCifInfoEntityBranchLink> > MMCifInfoEntit
 class DLLEXPORT_OST_IO MMCifInfo {
 public:
   /// \brief Create an info object.
-  MMCifInfo(): exptl_method_(""), resolution_(0), r_free_(0), r_work_(0) { }
+  MMCifInfo(): exptl_method_(""), resolution_(0), em_resolution_(0), r_free_(0),
+    r_work_(0) { }
 
   /// \brief Add an item to the list of citations
   ///
@@ -1022,6 +1039,16 @@ public:
   ///
   /// \return experiment resolution
   Real GetResolution() const { return resolution_; }
+
+  /// \brief Set EM resolution.
+  ///
+  /// \param res EM experiment resolution
+  void SetEMResolution(Real res) { em_resolution_ = res; }
+
+  /// \brief Get EM resolution.
+  ///
+  /// \return EM experiment resolution
+  Real GetEMResolution() const { return em_resolution_; }
 
   /// \brief Set R-free value.
   ///
@@ -1201,12 +1228,22 @@ public:
   ///
   void ConnectBranchLinks();
 
+  const MMCifEntityDesc& GetEntityDesc(const String& entity_id) const;
+
+  void SetEntityDesc(const String& entity_id,
+                     const MMCifEntityDesc& entity_desc);
+
+  std::vector<String> GetEntityIds() const;
+
+  std::vector<String> GetEntityIdsOfType(const String& type) const;
+
 //protected:
 
 private:
   // members
   String exptl_method_;
   Real resolution_;
+  Real em_resolution_;
   Real r_free_;
   Real r_work_;
   MMCifInfoStructDetails struct_details_;     ///< mmCIF struct category
@@ -1216,6 +1253,7 @@ private:
   std::vector<MMCifInfoBioUnit>  biounits_;   ///< list of biounits
   std::vector<MMCifInfoTransOpPtr> transops_;
   MMCifInfoStructRefs            struct_refs_;
+  MMCifEntityDescMap entity_desc_;
   std::map<String, String> cif_2_pdb_chain_id_;
   std::map<String, String> pdb_2_cif_chain_id_;
   std::map<String, String> cif_2_entity_id_;

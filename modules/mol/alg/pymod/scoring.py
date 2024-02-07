@@ -141,12 +141,33 @@ class Scorer:
                 object into USalign to compute TM-score. Experimental feature
                 with limitations.
     :type oum: :class:`bool`
+    :param min_pep_length: Relevant parameter if short peptides are involved in
+                           scoring. Minimum peptide length for a chain in the
+                           target structure to be considered in chain mapping.
+                           The chain mapping algorithm first performs an all vs.
+                           all pairwise sequence alignment to identify \"equal\"
+                           chains within the target structure. We go for simple
+                           sequence identity there. Short sequences can be
+                           problematic as they may produce high sequence identity
+                           alignments by pure chance.
+    :type min_pep_length: :class:`int`
+    :param min_nuc_length: Relevant parameter if short nucleotides are involved
+                           in scoring. Minimum nucleotide length for a chain in
+                           the target structure to be considered in chain
+                           mapping. The chain mapping algorithm first performs
+                           an all vs. all pairwise sequence alignment to
+                           identify \"equal\" chains within the target
+                           structure. We go for simple sequence identity there.
+                           Short sequences can be problematic as they may
+                           produce high sequence identity alignments by pure
+                           chance.
+    :type min_nuc_length: :class:`int`
     """
     def __init__(self, model, target, resnum_alignments=False,
                  molck_settings = None, cad_score_exec = None,
                  custom_mapping=None, usalign_exec = None,
                  lddt_no_stereochecks=False, n_max_naive=40320,
-                 oum=False):
+                 oum=False, min_pep_length = 6, min_nuc_length = 4):
 
         self._target_orig = target
         self._model_orig = model
@@ -179,11 +200,15 @@ class Scorer:
         for ch in self._model.chains:
             if ch.GetName().strip() == "":
                 raise RuntimeError("Model chains must have valid chain names")
+            if ch.GetName().strip() == "'" or ch.GetName().strip() == '"':
+                raise RuntimeError("Model chains cannot be named with quote signs (' or \"\")")
         
         # catch targets which have empty chain names
         for ch in self._target.chains:
             if ch.GetName().strip() == "":
                 raise RuntimeError("Target chains must have valid chain names")
+            if ch.GetName().strip() == "'" or ch.GetName().strip() == '"':
+                raise RuntimeError("Target chains cannot be named with quote signs (' or \"\")")
 
         if resnum_alignments:
             # In case of resnum_alignments, we have some requirements on 
@@ -227,6 +252,8 @@ class Scorer:
         self.lddt_no_stereochecks = lddt_no_stereochecks
         self.n_max_naive = n_max_naive
         self.oum = oum
+        self.min_pep_length = min_pep_length
+        self.min_nuc_length = min_nuc_length
 
         # lazily evaluated attributes
         self._stereochecked_model = None
@@ -487,7 +514,9 @@ class Scorer:
         if self._chain_mapper is None:
             self._chain_mapper = chain_mapping.ChainMapper(self.target,
                                                            n_max_naive=1e9,
-                                                           resnum_alignments=self.resnum_alignments)
+                                                           resnum_alignments=self.resnum_alignments,
+                                                           min_pep_length=self.min_pep_length,
+                                                           min_nuc_length=self.min_nuc_length)
         return self._chain_mapper
 
     @property
@@ -1339,14 +1368,14 @@ class Scorer:
             cname = ch.GetName()
             s = ''.join([r.one_letter_code for r in ch.residues])
             s = seq.CreateSequence(ch.GetName(), s)
-            s.AttachView(target.Select(f"cname={cname}"))
+            s.AttachView(target.Select(f"cname='{cname}'"))
             trg_seqs[ch.GetName()] = s
         mdl_seqs = dict()
         for ch in model.chains:
             cname = ch.GetName()
             s = ''.join([r.one_letter_code for r in ch.residues])
             s = seq.CreateSequence(cname, s)
-            s.AttachView(model.Select(f"cname={cname}"))
+            s.AttachView(model.Select(f"cname='{cname}'"))
             mdl_seqs[ch.GetName()] = s
 
         alns = list()
@@ -1738,7 +1767,7 @@ class Scorer:
         result = {ch.GetName(): list() for ch in ent.chains}
         for ch in ent.chains:
             cname = ch.GetName()
-            sel = repr_ent.Select(f"(cname={cname} and 8 <> [cname!={cname}])")
+            sel = repr_ent.Select(f"(cname='{cname}' and 8 <> [cname!='{cname}'])")
             result[cname] = [r.GetNumber() for r in sel.residues]
         return result
 
@@ -1805,7 +1834,7 @@ class Scorer:
         # => all residues within 8A of r and within 12A of any other chain
     
         # q1 selects for everything in same chain and within 8A of r_pos
-        q1 = f"(cname={mdl_ch} and 8 <> {{{r_pos[0]},{r_pos[1]},{r_pos[2]}}})"
+        q1 = f"(cname='{mdl_ch}' and 8 <> {{{r_pos[0]},{r_pos[1]},{r_pos[2]}}})"
         # q2 selects for everything within 12A of any other chain
         q2 = f"(12 <> [cname!={mdl_ch}])"
         mdl_patch_one = self.model.CreateEmptyView()
@@ -1818,7 +1847,7 @@ class Scorer:
         # the closest residue to r is identified in any other chain, and the
         # patch is filled with residues that are within 8A of that residue and
         # within 12A of chain from r
-        sel = repr_mdl.Select(f"(cname!={mdl_ch})")
+        sel = repr_mdl.Select(f"(cname!='{mdl_ch}')")
         close_stuff = sel.FindWithin(r_pos, 8)
         min_pos = None
         min_dist = 42.0
@@ -1829,9 +1858,9 @@ class Scorer:
                 min_dist = dist
     
         # q1 selects for everything not in mdl_ch but within 8A of min_pos
-        q1 = f"(cname!={mdl_ch} and 8 <> {{{min_pos[0]},{min_pos[1]},{min_pos[2]}}})"
+        q1 = f"(cname!='{mdl_ch}' and 8 <> {{{min_pos[0]},{min_pos[1]},{min_pos[2]}}})"
         # q2 selects for everything within 12A of mdl_ch
-        q2 = f"(12 <> [cname={mdl_ch}])"
+        q2 = f"(12 <> [cname='{mdl_ch}'])"
         mdl_patch_two = self.model.CreateEmptyView()
         sel = repr_mdl.Select(" and ".join([q1, q2]))
         for r in sel.residues:
@@ -2082,8 +2111,8 @@ class Scorer:
             for ref_ch, mdl_ch in zip(ref_group, mdl_group):
                 if ref_ch is not None and mdl_ch is not None:
                     aln = ref_mdl_alns[(ref_ch, mdl_ch)]
-                    trg_view = chain_mapper.target.Select(f"cname={ref_ch}")
-                    mdl_view = mdl.Select(f"cname={mdl_ch}")
+                    trg_view = chain_mapper.target.Select(f"cname='{ref_ch}'")
+                    mdl_view = mdl.Select(f"cname='{mdl_ch}'")
                     aln.AttachView(0, trg_view)
                     aln.AttachView(1, mdl_view)
                     alns[(ref_ch, mdl_ch)] = aln

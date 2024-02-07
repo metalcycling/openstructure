@@ -92,6 +92,7 @@ void MMCifReader::ClearState()
   revision_types_.clear();
   database_PDB_rev_added_ = false;
   entity_branch_link_map_.clear();
+  entity_poly_seq_map_.clear();
 }
 
 void MMCifReader::SetRestrictChains(const String& restrict_chains)
@@ -134,12 +135,13 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
     this->TryStoreIdx(CARTN_X, "Cartn_x", header);
     this->TryStoreIdx(CARTN_Y, "Cartn_y", header);
     this->TryStoreIdx(CARTN_Z, "Cartn_z", header);
+    // optional (but warning: mandatory for waters/ligands)
+    indices_[AUTH_SEQ_ID]        = header.GetIndex("auth_seq_id");
+    indices_[PDBX_PDB_INS_CODE]  = header.GetIndex("pdbx_PDB_ins_code");
     // optional
     indices_[OCCUPANCY]          = header.GetIndex("occupancy");
     indices_[B_ISO_OR_EQUIV]     = header.GetIndex("B_iso_or_equiv");
     indices_[GROUP_PDB]          = header.GetIndex("group_PDB");
-    indices_[AUTH_SEQ_ID]        = header.GetIndex("auth_seq_id");
-    indices_[PDBX_PDB_INS_CODE]  = header.GetIndex("pdbx_PDB_ins_code");
     indices_[PDBX_PDB_MODEL_NUM] = header.GetIndex("pdbx_PDB_model_num");
     indices_[FORMAL_CHARGE]     = header.GetIndex("pdbx_formal_charge");
 
@@ -388,7 +390,22 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
     indices_[BL_ATOM_STEREO_CONFIG_2] = header.GetIndex("atom_stereo_config_2");
     indices_[BL_VALUE_ORDER] = header.GetIndex("value_order");
     cat_available = true;
- }
+ } else if(header.GetCategory() == "entity_poly_seq") {
+  category_ = ENTITY_POLY_SEQ;
+  // mandatory
+  this->TryStoreIdx(EPS_ENTITY_ID, "entity_id", header);
+  this->TryStoreIdx(EPS_MON_ID, "mon_id", header);
+  this->TryStoreIdx(EPS_NUM, "num", header);
+
+  // optional items
+  indices_[EPS_HETERO] = header.GetIndex("hetero");
+  cat_available = true;
+ } else if (header.GetCategory() == "em_3d_reconstruction") {
+    category_ = EM_3D_RECONSTRUCTION;
+    // optional items
+    indices_[EM_RESOLUTION] = header.GetIndex("resolution");
+    cat_available = true;
+  }
   category_counts_[category_]++;
   return cat_available;
 }
@@ -535,9 +552,29 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
 
   if(!curr_residue_) {
     update_residue=true;
-    subst_res_id_ = cif_chain_name +
-                    columns[indices_[AUTH_SEQ_ID]].str() +
-                    columns[indices_[PDBX_PDB_INS_CODE]].str();
+    if (indices_[AUTH_SEQ_ID] != -1 &&
+        indices_[PDBX_PDB_INS_CODE] != -1) {
+      subst_res_id_ = cif_chain_name +
+                      columns[indices_[AUTH_SEQ_ID]].str() +
+                      columns[indices_[PDBX_PDB_INS_CODE]].str();
+    } else if (!valid_res_num) {
+      // Here we didn't have valid residue number in label_seq_id (which is
+      // expected for ligands and waters). To work around that we store the
+      // author residue number information (auth_seq_id + pdbx_PDB_ins_code)
+      // in subst_res_id_. This variable is never read directly, only used
+      // indirectly to detect if we have to create a new residue.
+      // If we're here we had both missing missing value in label_seq_id,
+      // and the auth_seq_id or pdbx_PDB_ins_code were missing.
+      // There may be more elegant ways to detect that we crossed to a new
+      // residue that don't rely on auth_seq_id/pdbx_PDB_ins_code.
+      LOG_WARNING("_atom_site.label_seq_id is invalid for " <<
+        "residue '" << res_name << "' in chain '" << cif_chain_name <<
+        "' and _atom_site.auth_seq_id or _atom_site.pdbx_PDB_ins_code " <<
+        "are missing.");
+      throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
+                                           "Missing residue number information",
+                                               this->GetCurrentLinenum()));
+    }
   } else if (!valid_res_num) {
     if (indices_[AUTH_SEQ_ID] != -1 &&
         indices_[PDBX_PDB_INS_CODE] != -1) {
@@ -552,6 +589,10 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
                         columns[indices_[PDBX_PDB_INS_CODE]].str();
       }
     } else {
+      LOG_WARNING("_atom_site.label_seq_id is invalid for " <<
+        "residue '" << res_name << "' in chain '" << cif_chain_name <<
+        "' and _atom_site.auth_seq_id or _atom_site.pdbx_PDB_ins_code " <<
+        "are missing.");
       throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
                                            "Missing residue number information",
                                                this->GetCurrentLinenum()));
@@ -601,8 +642,12 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
         curr_residue_ = editor.AppendResidue(curr_chain_, res_name.str());
       }
       curr_residue_.SetStringProp("pdb_auth_chain_name", auth_chain_name);
-      curr_residue_.SetStringProp("pdb_auth_resnum", columns[indices_[AUTH_SEQ_ID]].str());
-      curr_residue_.SetStringProp("pdb_auth_ins_code", columns[indices_[PDBX_PDB_INS_CODE]].str());
+      if (indices_[AUTH_SEQ_ID] != -1) {
+        curr_residue_.SetStringProp("pdb_auth_resnum", columns[indices_[AUTH_SEQ_ID]].str());
+      }
+      if (indices_[PDBX_PDB_INS_CODE] != -1) {
+        curr_residue_.SetStringProp("pdb_auth_ins_code", columns[indices_[PDBX_PDB_INS_CODE]].str());
+      }
       curr_residue_.SetStringProp("entity_id", columns[indices_[LABEL_ENTITY_ID]].str());
       curr_residue_.SetStringProp("resnum", columns[indices_[LABEL_SEQ_ID]].str());
       warned_name_mismatch_=false;
@@ -681,15 +726,21 @@ void MMCifReader::ParseAndAddAtom(const std::vector<StringRef>& columns)
                 columns[indices_[GROUP_PDB]][0]=='H');
 }
 
-MMCifReader::MMCifEntityDescMap::iterator MMCifReader::GetEntityDescMapIterator(
+MMCifEntityDescMap::iterator MMCifReader::GetEntityDescMapIterator(
   const String& entity_id)
 {
   MMCifEntityDescMap::iterator edm_it = entity_desc_map_.find(entity_id);
   // if the entity ID is not already stored, insert it with empty values
   if (edm_it == entity_desc_map_.end()) {
     MMCifEntityDesc desc = {.type=mol::CHAINTYPE_N_CHAINTYPES,
+                            .entity_type = "",
+                            .entity_poly_type = "",
+                            .branched_type = "",
                             .details="",
-                            .seqres=""};
+                            .seqres="",
+                            .mon_ids=std::vector<String>(),
+                            .hetero_num=std::vector<int>(),
+                            .hetero_ids=std::vector<String>()};
     edm_it = entity_desc_map_.insert(entity_desc_map_.begin(),
                                      MMCifEntityDescMap::value_type(entity_id,
                                                                     desc));
@@ -709,6 +760,8 @@ void MMCifReader::ParseEntity(const std::vector<StringRef>& columns)
     if (edm_it->second.type == mol::CHAINTYPE_N_CHAINTYPES) {
       edm_it->second.type = mol::ChainTypeFromString(columns[indices_[E_TYPE]]);
     }
+    // but set entity_type anyways
+    edm_it->second.entity_type = columns[indices_[E_TYPE]].str();
   } else {
     // don't deal with entities without type
     entity_desc_map_.erase(edm_it);
@@ -729,6 +782,7 @@ void MMCifReader::ParseEntityPoly(const std::vector<StringRef>& columns)
   // store type
   if (indices_[EP_TYPE] != -1) {
     edm_it->second.type = mol::ChainTypeFromString(columns[indices_[EP_TYPE]]);
+    edm_it->second.entity_poly_type = columns[indices_[EP_TYPE]].str();
   }
 
   // store seqres
@@ -978,6 +1032,14 @@ void MMCifReader::ParseRefine(const std::vector<StringRef>& columns)
     if (col.size()!=1 || (col[0]!='?' && col[0]!='.')) {
       info_.SetRFree(this->TryGetReal(col, "refine.ls_R_factor_R_free"));
     }
+  }
+}
+
+void MMCifReader::ParseEm3DReconstruction(const std::vector<StringRef>& columns)
+{
+  StringRef col = columns[indices_[EM_RESOLUTION]];
+  if (col.size()!=1 || (col[0]!='?' && col[0]!='.')) {
+    info_.SetEMResolution(this->TryGetReal(col, "em_3d_reconstruction.resolution"));
   }
 }
 
@@ -1604,6 +1666,14 @@ void MMCifReader::OnDataRow(const StarLoopDesc& header,
     LOG_TRACE("processing pdbx_entity_branch_link entry");
     this->ParsePdbxEntityBranchLink(columns);
     break;
+  case ENTITY_POLY_SEQ:
+    LOG_TRACE("processing entity_poly_seq entry");
+    this->ParseEntityPolySeq(columns);
+    break;
+  case EM_3D_RECONSTRUCTION:
+    LOG_TRACE("processing em_3d_reconstruction entry");
+    this->ParseEm3DReconstruction(columns);
+    break;
   default:
     throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
                        "Uncatched category '"+ header.GetCategory() +"' found.",
@@ -1751,6 +1821,7 @@ void MMCifReader::ParsePdbxEntityBranch(const std::vector<StringRef>& columns)
   // store type
   if (indices_[BR_ENTITY_TYPE] != -1) {
     edm_it->second.type = mol::ChainTypeFromString(columns[indices_[EP_TYPE]]);
+    edm_it->second.branched_type = columns[indices_[EP_TYPE]].str();
   }
 }
 
@@ -1802,6 +1873,58 @@ void MMCifReader::ParsePdbxEntityBranchLink(const std::vector<StringRef>& column
 
   // add the link pair
   blm_it->second.push_back(link_pair);
+}
+
+void MMCifReader::ParseEntityPolySeq(const std::vector<StringRef>& columns)
+{
+  std::pair<bool, int> tmp = columns[indices_[EPS_NUM]].to_int();
+  if(!tmp.first) {
+    throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
+                                             "Could not cast "
+                                             "_entity_poly_seq.num to integer: "
+                                             + columns[indices_[EPS_NUM]].str(),
+                                             this->GetCurrentLinenum())); 
+  }
+  int num = tmp.second;
+
+  if(num < 1) {
+    throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
+                                             "_entity_poly_seq.num are "
+                                             "expected to be ints >= 1. Got:"
+                                             + columns[indices_[EPS_NUM]].str(),
+                                             this->GetCurrentLinenum())); 
+  }
+
+  // [] inserts new value if not present in container
+  std::map<int, String>& entity_map =
+  entity_poly_seq_map_[columns[indices_[EPS_ENTITY_ID]].str()];
+
+  if(entity_map.find(num) != entity_map.end()) {
+
+    if(indices_[EPS_HETERO] != -1 && columns[indices_[EPS_HETERO]][0] == 'y') {
+      // controlled vocabulary: "y", "yes", "n", "no"
+      // the first two mark hetereogeneous compounds
+
+      // [] inserts new value if not present
+      std::vector<std::pair<int, String> >& hetero_list =
+      entity_poly_seq_h_map_[columns[indices_[EPS_ENTITY_ID]].str()];
+
+      hetero_list.push_back(std::make_pair(num, columns[indices_[EPS_MON_ID]].str()));
+    } else {
+
+      throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
+                                               "_entity_poly_seq.num must be "
+                                               "unique in same "
+                                               "_entity_poly_seq.entity_id. "
+                                               "entity_id: " +
+                                               columns[indices_[EPS_ENTITY_ID]].str() +
+                                               ", num: " +
+                                               columns[indices_[EPS_ENTITY_ID]].str(),
+                                               this->GetCurrentLinenum()));
+    }
+  } else {
+    entity_map[num] = columns[indices_[EPS_MON_ID]].str();
+  }
 }
 
 void MMCifReader::OnEndData()
@@ -1941,6 +2064,27 @@ void MMCifReader::OnEndData()
         info_.AddRevision(num, r_it->date, "?", r_it->major, r_it->minor);
       }
     }
+  }
+
+  // conclude EntityDesc (add entity_poly_seq if present) and add to MMCifInfo
+  for(auto entity_it: entity_desc_map_) {
+    if(entity_poly_seq_map_.find(entity_it.first) != entity_poly_seq_map_.end()) {
+      int max_num = 1;
+      for(auto seqres_it: entity_poly_seq_map_[entity_it.first]) {
+        max_num = std::max(max_num, seqres_it.first);
+      }
+      entity_it.second.mon_ids.assign(max_num, "?");
+      for(auto seqres_it: entity_poly_seq_map_[entity_it.first]) {
+        entity_it.second.mon_ids[seqres_it.first-1] = seqres_it.second;
+      }
+    }
+    if(entity_poly_seq_h_map_.find(entity_it.first) != entity_poly_seq_h_map_.end()) {
+      for(auto hetero_it: entity_poly_seq_h_map_[entity_it.first]) {
+        entity_it.second.hetero_num.push_back(hetero_it.first);
+        entity_it.second.hetero_ids.push_back(hetero_it.second);
+      }
+    }
+    info_.SetEntityDesc(entity_it.first, entity_it.second);
   }
 
   LOG_INFO("imported "
