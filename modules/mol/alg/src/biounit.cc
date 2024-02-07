@@ -265,7 +265,6 @@ ost::mol::EntityHandle CreateBU(const ost::mol::EntityHandle& asu,
     // process all transformations
     for(uint t_idx = 0; t_idx < transforms[chain_intvl].size(); ++t_idx) {
       const geom::Mat4& m = transforms[chain_intvl][t_idx];
-
       // check if m is identity matrix => no transformation applied
       bool is_identity = true;
       geom::Mat4 identity_matrix = geom::Mat4::Identity();
@@ -285,16 +284,18 @@ ost::mol::EntityHandle CreateBU(const ost::mol::EntityHandle& asu,
         String au_cname = au_chains[chain_intvl][c_idx];
 
         std::stringstream bu_cname_ss;
-        if(is_identity) {
-          if(au_chain_copies.find(au_cname) != au_chain_copies.end()) {
-            std::stringstream err;
-            err<<"Try to insert copy of AU chain "<<au_cname<<" with identity ";
-            err<<"transform, i.e. copy the raw coordinates. This has already ";
-            err<<"been done for this AU chain and there can only be one.";
-            throw ost::Error(err.str());
-          }
+        if(is_identity && au_chain_copies.find(au_cname) == au_chain_copies.end()) {
           bu_cname_ss << "1." << au_cname; // 1.<au_cname> reserved for AU chain
                                            // without transformation
+                                           // at least the first of it...
+                                           // as of January 2024, there were 3
+                                           // entries (8qn6, 8x1h, 2c0x) where
+                                           // the identity transform is applied
+                                           // more than once on the same AU
+                                           // chain, effectively leading to
+                                           // chains sitting on top of each
+                                           // other... But hey, bullshit in,
+                                           // bullshit out
           au_chain_copies.insert(au_cname);
         } else {
           if(chain_counter.find(au_cname) == chain_counter.end()) {

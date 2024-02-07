@@ -57,6 +57,8 @@ results:
  * "cad_exec"
  * "usalign_exec"
  * "lddt_no_stereochecks"
+ * "min_pep_length"
+ * "min_nuc_length"
 
 The pairwise sequence alignments are computed with Needleman-Wunsch using
 BLOSUM62 (NUC44 for nucleotides). Many benchmarking scenarios preprocess the
@@ -78,10 +80,11 @@ ost compare-structures -m model.pdb -r reference.cif -c A:B B:A
 import argparse
 import os
 import json
-import time
 import sys
 import traceback
+import math
 
+import ost
 from ost import io
 from ost.mol.alg import scoring
 
@@ -139,11 +142,11 @@ def _ParseArgs():
         dest="model_biounit",
         required=False,
         default=None,
-        type=int,
+        type=str,
         help=("Only has an effect if model is in mmcif format. By default, "
               "the asymmetric unit (AU) is used for scoring. If there are "
               "biounits defined in the mmcif file, you can specify the "
-              "(0-based) index of the one which should be used."))
+              "ID (as a string) of the one which should be used."))
 
     parser.add_argument(
         "-rb",
@@ -151,11 +154,11 @@ def _ParseArgs():
         dest="reference_biounit",
         required=False,
         default=None,
-        type=int,
+        type=str,
         help=("Only has an effect if reference is in mmcif format. By default, "
               "the asymmetric unit (AU) is used for scoring. If there are "
               "biounits defined in the mmcif file, you can specify the "
-              "(0-based) index of the one which should be used."))
+              "ID (as a string) of the one which should be used."))
 
     parser.add_argument(
         "-rna",
@@ -183,17 +186,17 @@ def _ParseArgs():
         dest="dump_structures",
         default=False,
         action="store_true",
-        help=("Dump cleaned structures used to calculate all the scores as "
-              "PDB files using specified suffix. Files will be dumped to the "
-              "same location as original files."))
+        help=("Dump cleaned structures used to calculate all the scores as PDB"
+              " or mmCIF files using specified suffix. Files will be dumped to"
+              " the same location and in the same format as original files."))
 
     parser.add_argument(
         "-ds",
         "--dump-suffix",
         dest="dump_suffix",
-        default=".compare.structures.pdb",
+        default="_compare_structures",
         help=("Use this suffix to dump structures.\n"
-              "Defaults to .compare.structures.pdb."))
+              "Defaults to _compare_structures"))
 
     parser.add_argument(
         "-ft",
@@ -491,59 +494,67 @@ def _ParseArgs():
         action="store_true",
         help=("Dump additional info on model and reference residues that occur "
               "in pepnuc alignments."))
+    
+    parser.add_argument(
+        "--min-pep-length",
+        dest="min_pep_length",
+        default = 6,
+        type=int,
+        help=("Relevant parameter if short peptides are involved in scoring."
+              "Minimum peptide length for a chain in the target structure to "
+              "be considered in chain mapping. The chain mapping algorithm "
+              "first performs an all vs. all pairwise sequence alignment to "
+              "identify \"equal\" chains within the target structure. We go "
+              "for simple sequence identity there. Short sequences can be "
+              "problematic as they may produce high sequence identity "
+              "alignments by pure chance.")
+    )
+
+    parser.add_argument(
+        "--min-nuc-length",
+        dest="min_nuc_length",
+        default = 4,
+        type=int,
+        help=("Relevant parameter if short nucleotides are involved in scoring."
+              "Minimum nucleotide length for a chain in the target structure to "
+              "be considered in chain mapping. The chain mapping algorithm "
+              "first performs an all vs. all pairwise sequence alignment to "
+              "identify \"equal\" chains within the target structure. We go "
+              "for simple sequence identity there. Short sequences can be "
+              "problematic as they may produce high sequence identity "
+              "alignments by pure chance.")
+    )
  
     return parser.parse_args()
+
+def _CheckCompoundLib():
+    clib = ost.conop.GetDefaultLib()
+    if not clib:
+        ost.LogError("A compound library is required for this action. "
+                     "Please refer to the OpenStructure website: "
+                     "https://openstructure.org/docs/conop/compoundlib/.")
+        sys.tracebacklimit = 0
+        raise RuntimeError("No compound library found")
 
 def _RoundOrNone(num, decimals = 3):
     """ Helper to create valid JSON output
     """
-    if num is None:
+    if num is None or math.isnan(num) or math.isinf(num):
         return None
     return round(num, decimals)
 
-def _Rename(ent):
-    """Revert chain names to original names.
-
-    PDBize assigns chain name in order A,B,C,D... which does not allow to infer
-    the original chain name. We do a renaming here:
-    if there are two chains mapping to chain A the resulting
-    chain names will be: A and A2.
+def _AddSuffix(filename, dump_suffix):
+    """Add dump_suffix to the file name.
     """
-    new_chain_names = list()
-    chain_indices = list() # the chains where we actually change the name
-    suffix_indices = dict() # keep track of whats the current suffix index
-                            # for each original chain name
+    root, ext = os.path.splitext(filename)
+    if ext == ".gz":
+        root, ext2 = os.path.splitext(root)
+        ext = ext2 + ext
+    return root + dump_suffix + ext
 
-    for ch_idx, ch in enumerate(ent.chains):
-        if not ch.HasProp("original_name"):
-            # pdbize doesnt set this property for chain names in ['_', '-']
-            continue
-        original_name = ch.GetStringProp("original_name")
-        if original_name in new_chain_names:
-            new_name = original_name + str(suffix_indices[original_name])
-            new_chain_names.append(new_name)
-            suffix_indices[original_name] = suffix_indices[original_name] + 1
-        else:
-            new_chain_names.append(original_name)
-            suffix_indices[original_name] = 2
-        chain_indices.append(ch_idx)
-    editor = ent.EditXCS()
-    # rename to nonsense to avoid clashing chain names
-    for ch_idx in chain_indices:
-        editor.RenameChain(ent.chains[ch_idx], ent.chains[ch_idx].name+"_yolo")
-    # and do final renaming
-    for new_name, ch_idx in zip(new_chain_names, chain_indices):
-        editor.RenameChain(ent.chains[ch_idx], new_name)
-
-def _LoadStructure(structure_path, sformat=None, fault_tolerant=False,
-                   bu_idx=None):
-    """Read OST entity either from mmCIF or PDB.
-
-    The returned structure has structure_path attached as structure name
+def _GetStructureFormat(structure_path, sformat=None):
+    """Get the structure format and return it as "pdb" or "mmcif".
     """
-
-    if not os.path.exists(structure_path):
-        raise Exception(f"file not found: {structure_path}")
 
     if sformat is None:
         # Determine file format from suffix.
@@ -554,40 +565,54 @@ def _LoadStructure(structure_path, sformat=None, fault_tolerant=False,
             raise Exception(f"Could not determine format of file "
                             f"{structure_path}.")
         sformat = ext[-1].lower()
+    if sformat in ["mmcif", "cif"]:
+        return "mmcif"
+    elif sformat == "pdb":
+        return sformat
+    else:
+        raise Exception(f"Unknown/unsupported file format found for "
+                        f"file {structure_path}.")
+
+def _LoadStructure(structure_path, sformat, fault_tolerant, bu_id):
+    """Read OST entity either from mmCIF or PDB.
+
+    The returned structure has structure_path attached as structure name
+    """
 
     # increase loglevel, as we would pollute the info log with weird stuff
     ost.PushVerbosityLevel(ost.LogLevel.Error)
     # Load the structure
-    if sformat in ["mmcif", "cif"]:
-        if bu_idx is not None:
+    if sformat == "mmcif":
+        if bu_id is not None:
             cif_entity, cif_seqres, cif_info = \
             io.LoadMMCIF(structure_path, info=True, seqres=True,
                          fault_tolerant=fault_tolerant)
-            if bu_idx >= len(cif_info.biounits):
-                raise RuntimeError(f"Invalid biounit index - requested {bu_idx} "
-                                   f"must be < {len(cif_info.biounits)}.")
-            biounit = cif_info.biounits[bu_idx]
-            entity = biounit.PDBize(cif_entity, min_polymer_size=0)
-            if not entity.IsValid():
-                raise IOError(
-                    "Provided file does not contain valid entity.")
-            _Rename(entity)
+            for biounit in cif_info.biounits:
+                if biounit.id == bu_id:
+                    entity = ost.mol.alg.CreateBU(cif_entity, biounit)
+                    break
+            else:
+                raise RuntimeError(f"No biounit found with ID '{bu_id}'.")
         else:
             entity = io.LoadMMCIF(structure_path,
                                   fault_tolerant = fault_tolerant)
         if len(entity.residues) == 0:
             raise Exception(f"No residues found in file: {structure_path}")
-    elif sformat == "pdb":
+    else:
         entity = io.LoadPDB(structure_path, fault_tolerant = fault_tolerant)
         if len(entity.residues) == 0:
             raise Exception(f"No residues found in file: {structure_path}")
-    else:
-        raise Exception(f"Unknown/ unsupported file extension found for "
-                        f"file {structure_path}.")
+
     # restore old loglevel and return
     ost.PopVerbosityLevel()
     entity.SetName(structure_path)
     return entity
+
+def _DumpStructure(entity, structure_path, sformat):
+    if sformat == "mmcif":
+        io.SaveMMCIF(entity, structure_path)
+    else:
+        io.SavePDB(entity, structure_path)
 
 def _AlnToFastaStr(aln):
     """ Returns alignment as fasta formatted string
@@ -681,7 +706,7 @@ def _GetAlignedResidues(aln):
                                  "reference": ref_dct})
     return aligned_residues
 
-def _Process(model, reference, args):
+def _Process(model, reference, args, model_format, reference_format):
 
     mapping = None
     if args.chain_mapping is not None:
@@ -694,7 +719,9 @@ def _Process(model, reference, args):
                             usalign_exec = args.usalign_exec,
                             lddt_no_stereochecks = args.lddt_no_stereochecks,
                             n_max_naive = args.n_max_naive,
-                            oum = args.oum)
+                            oum = args.oum,
+                            min_pep_length = args.min_pep_length,
+                            min_nuc_length = args.min_nuc_length)
 
     ir = _GetInconsistentResidues(scorer.aln)
     if len(ir) > 0 and args.enforce_consistency:
@@ -787,6 +814,7 @@ def _Process(model, reference, args):
         out["dockq_interfaces"] = scorer.dockq_interfaces 
         out["dockq"] = [_RoundOrNone(x) for x in scorer.dockq_scores]
         out["fnat"] = [_RoundOrNone(x) for x in scorer.fnat]
+        out["fnonnat"] = [_RoundOrNone(x) for x in scorer.fnonnat]
         out["irmsd"] = [_RoundOrNone(x) for x in scorer.irmsd]
         out["lrmsd"] = [_RoundOrNone(x) for x in scorer.lrmsd]
         out["nnat"] = scorer.nnat
@@ -819,50 +847,39 @@ def _Process(model, reference, args):
         out["usalign_mapping"] = scorer.usalign_mapping
 
     if args.dump_structures:
-        try:
-            io.SavePDB(scorer.model, model.GetName() + args.dump_suffix)
-        except Exception as e:
-            if "single-letter" in str(e) and args.model_biounit is not None:
-                raise RuntimeError("Failed to dump processed model. PDB "
-                                   "format only supports single character "
-                                   "chain names. This is likely the result of "
-                                   "chain renaming when constructing a user "
-                                   "specified biounit. Dumping structures "
-                                   "fails in this case.")
-            else:
-                raise
-        try:
-            io.SavePDB(scorer.target, reference.GetName() + args.dump_suffix)
-        except Exception as e:
-            if "single-letter" in str(e) and args.reference_biounit is not None:
-                raise RuntimeError("Failed to dump processed reference. PDB "
-                                   "format only supports single character "
-                                   "chain names. This is likely the result of "
-                                   "chain renaming when constructing a user "
-                                   "specified biounit. Dumping structures "
-                                   "fails in this case.")
-            else:
-                raise
+        # Dump model
+        model_dump_filename = _AddSuffix(model.GetName(), args.dump_suffix)
+        _DumpStructure(model, model_dump_filename, model_format)
+        # Dump reference
+        reference_dump_filename = _AddSuffix(reference.GetName(), args.dump_suffix)
+        _DumpStructure(reference, reference_dump_filename, reference_format)
+
     return out
+
 
 def _Main():
 
     args = _ParseArgs()
+    _CheckCompoundLib()
     try:
         compute_cad = args.cad_score or args.local_cad_score
         if compute_cad and not args.residue_number_alignment:
             raise RuntimeError("Only support CAD score when residue numbers in "
                                "model and reference match. Use -rna flag if "
                                "this is the case.")
+        reference_format = _GetStructureFormat(args.reference,
+                                               sformat=args.reference_format)
         reference = _LoadStructure(args.reference,
-                                   sformat=args.reference_format,
-                                   bu_idx=args.reference_biounit,
+                                   sformat=reference_format,
+                                   bu_id=args.reference_biounit,
                                    fault_tolerant = args.fault_tolerant)
+        model_format = _GetStructureFormat(args.model,
+                                           sformat=args.model_format)
         model = _LoadStructure(args.model,
-                               sformat=args.model_format,
-                               bu_idx=args.model_biounit,
+                               sformat=model_format,
+                               bu_id=args.model_biounit,
                                fault_tolerant = args.fault_tolerant)
-        out = _Process(model, reference, args)
+        out = _Process(model, reference, args, model_format, reference_format)
 
         # append input arguments
         out["model"] = args.model
@@ -875,13 +892,16 @@ def _Main():
         out["cad_exec"] = args.cad_exec
         out["usalign_exec"] = args.usalign_exec
         out["lddt_no_stereochecks"] = args.lddt_no_stereochecks
+        out["min_pep_length"] = args.min_pep_length
+        out["min_nuc_length"] = args.min_nuc_length
         out["status"] = "SUCCESS"
         with open(args.output, 'w') as fh:
             json.dump(out, fh, indent=4, sort_keys=False)
-    except:
+    except Exception as exc:
         out = dict()
         out["status"] = "FAILURE"
         out["traceback"] = traceback.format_exc()
+        out["exception"] = " ".join(traceback.format_exception_only(exc))
         with open(args.output, 'w') as fh:
             json.dump(out, fh, indent=4, sort_keys=False)
         raise

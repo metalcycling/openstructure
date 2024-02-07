@@ -1495,13 +1495,12 @@ void MMalign_final(
 
     if (!full_opt) return;
 
+    if (outfmt_opt<=2)
     cout<<"# End of alignment for full complex. The following blocks list alignments for individual chains."<<endl;
 
     /* re-compute chain level alignment */
     for (i=0;i<chain1_num;i++)
     {
-        j=assign1_list[i];
-        if (j<0) continue;
         xlen=xlen_vec[i];
         seqx = new char[xlen+1];
         secx = new char[xlen+1];
@@ -1513,67 +1512,71 @@ void MMalign_final(
         NewArray(&xt, xlen, 3);
         do_rotation(xa, xt, xlen, t0, u0);
 
-        ylen=ylen_vec[j];
-        if (ylen<3)
+        for (j=0;j<chain2_num;j++)
         {
-            TMave_mat[i][j]=-1;
-            continue;
+            ylen=ylen_vec[j];
+            if (ylen<3)
+            {
+                TMave_mat[i][j]=-1;
+                continue;
+            }
+            seqy = new char[ylen+1];
+            secy = new char[ylen+1];
+            NewArray(&ya, ylen, 3);
+            copy_chain_data(ya_vec[j],seqy_vec[j],secy_vec[j],
+                ylen,ya,seqy,secy);
+        
+            /* declare variable specific to this pair of TMalign */
+            d0_out=5.0;
+            rmsd0 = 0.0;
+            Liden=0;
+            int *invmap = new int[ylen+1];
+            seqM="";
+            seqxA="";
+            seqyA="";
+            double Lnorm_ass=len_aa;
+            if (mol_vec1[i]+mol_vec2[j]>0) Lnorm_ass=len_na;
+            sequence[0]=seqxA_mat[i][j];
+            sequence[1]=seqyA_mat[i][j];
+        
+            /* entry function for structure alignment */
+            se_main(xt, ya, seqx, seqy, TM1, TM2, TM3, TM4, TM5,
+                d0_0, TM_0, d0A, d0B, d0u, d0a, d0_out, seqM, seqxA, seqyA,
+                rmsd0, L_ali, Liden, TM_ali, rmsd_ali, n_ali, n_ali8,
+                xlen, ylen, sequence, Lnorm_ass, d0_scale,
+                1, a_opt, 2, d_opt, mol_vec1[i]+mol_vec2[j], 1, invmap);
+        
+            //TM2=TM4*Lnorm_ass/xlen;
+            //TM1=TM4*Lnorm_ass/ylen;
+            //d0A=d0u;
+            //d0B=d0u;
+            TMave_mat[i][j]=TM4*Lnorm_ass;
+        
+            /* print result */
+            if (j==assign1_list[i]) output_results(xname, yname,
+                chainID_list1[i].c_str(), chainID_list2[j].c_str(),
+                xlen, ylen, t0, u0, TM1, TM2, TM3, TM4, TM5, rmsd0, d0_out,
+                seqM_mat[i][j].c_str(), seqxA_mat[i][j].c_str(),
+                seqyA_mat[i][j].c_str(), Liden, n_ali8, L_ali, TM_ali, rmsd_ali,
+                TM_0, d0_0, d0A, d0B, Lnorm_ass, d0_scale, d0a, d0u, 
+                "", outfmt_opt, ter_opt, false, split_opt, 0,
+                "", false, a_opt, false, d_opt, 0, resi_vec1, resi_vec2);
+        
+            /* clean up */
+            seqxA.clear();
+            seqM.clear();
+            seqyA.clear();
+            sequence[0].clear();
+            sequence[1].clear();
+            delete[]seqy;
+            delete[]secy;
+            DeleteArray(&ya,ylen);
+            delete[]invmap;
         }
-        seqy = new char[ylen+1];
-        secy = new char[ylen+1];
-        NewArray(&ya, ylen, 3);
-        copy_chain_data(ya_vec[j],seqy_vec[j],secy_vec[j],
-            ylen,ya,seqy,secy);
-
-        /* declare variable specific to this pair of TMalign */
-        d0_out=5.0;
-        rmsd0 = 0.0;
-        Liden=0;
-        int *invmap = new int[ylen+1];
-        seqM="";
-        seqxA="";
-        seqyA="";
-        double Lnorm_ass=len_aa;
-        if (mol_vec1[i]+mol_vec2[j]>0) Lnorm_ass=len_na;
-        sequence[0]=seqxA_mat[i][j];
-        sequence[1]=seqyA_mat[i][j];
-
-        /* entry function for structure alignment */
-        se_main(xt, ya, seqx, seqy, TM1, TM2, TM3, TM4, TM5,
-            d0_0, TM_0, d0A, d0B, d0u, d0a, d0_out, seqM, seqxA, seqyA,
-            rmsd0, L_ali, Liden, TM_ali, rmsd_ali, n_ali, n_ali8,
-            xlen, ylen, sequence, Lnorm_ass, d0_scale,
-            1, a_opt, 2, d_opt, mol_vec1[i]+mol_vec2[j], 1, invmap);
-
-        //TM2=TM4*Lnorm_ass/xlen;
-        //TM1=TM4*Lnorm_ass/ylen;
-        //d0A=d0u;
-        //d0B=d0u;
-
-        /* print result */
-        output_results(xname, yname,
-            chainID_list1[i].c_str(), chainID_list2[j].c_str(),
-            xlen, ylen, t0, u0, TM1, TM2, TM3, TM4, TM5, rmsd0, d0_out,
-            seqM_mat[i][j].c_str(), seqxA_mat[i][j].c_str(),
-            seqyA_mat[i][j].c_str(), Liden, n_ali8, L_ali, TM_ali, rmsd_ali,
-            TM_0, d0_0, d0A, d0B, Lnorm_ass, d0_scale, d0a, d0u, 
-            "", outfmt_opt, ter_opt, false, split_opt, 0,
-            "", false, a_opt, false, d_opt, 0, resi_vec1, resi_vec2);
-
-        /* clean up */
-        seqxA.clear();
-        seqM.clear();
-        seqyA.clear();
-        sequence[0].clear();
-        sequence[1].clear();
-        delete[]seqy;
-        delete[]secy;
-        DeleteArray(&ya,ylen);
         delete[]seqx;
         delete[]secx;
         DeleteArray(&xa,xlen);
         DeleteArray(&xt,xlen);
-        delete[]invmap;
     }
     sequence.clear();
     return;
@@ -1621,7 +1624,7 @@ void MMalign_iter(double & max_total_score, const int max_iter,
     int len_aa, int len_na, int chain1_num, int chain2_num, double **TMave_mat,
     vector<vector<string> >&seqxA_mat, vector<vector<string> >&seqyA_mat,
     int *assign1_list, int *assign2_list, vector<string>&sequence,
-    double d0_scale, bool fast_opt)
+    double d0_scale, bool fast_opt, map<int,int> &chainmap)
 {
     /* tmp assignment */
     double total_score;
@@ -1637,7 +1640,7 @@ void MMalign_iter(double & max_total_score, const int max_iter,
     copy_chain_assign_data(chain1_num, chain2_num, sequence_tmp,
         seqxA_mat, seqyA_mat, assign1_list, assign2_list, TMave_mat,
         seqxA_tmp, seqyA_tmp, assign1_tmp,  assign2_tmp,  TMave_tmp);
-    
+
     for (int iter=0;iter<max_iter;iter++)
     {
         total_score=MMalign_search(xa_vec, ya_vec, seqx_vec, seqy_vec,
@@ -1646,14 +1649,25 @@ void MMalign_iter(double & max_total_score, const int max_iter,
             chain1_num, chain2_num, 
             TMave_tmp, seqxA_tmp, seqyA_tmp, assign1_tmp, assign2_tmp,
             sequence, d0_scale, fast_opt);
+        if (chainmap.size())
+        {
+            int i,j;
+            for (i=0;i<chain1_num;i++) for (j=0;j<chain2_num;j++)
+                if (!chainmap.count(i) || chainmap[i]!=j) TMave_tmp[i][j]=-1;
+        }
         total_score=enhanced_greedy_search(TMave_tmp, assign1_tmp,
             assign2_tmp, chain1_num, chain2_num);
         //if (total_score<=0) PrintErrorAndQuit("ERROR! No assignable chain");
         if (total_score<=max_total_score) break;
         max_total_score=total_score;
-        copy_chain_assign_data(chain1_num, chain2_num, sequence,
-            seqxA_tmp, seqyA_tmp, assign1_tmp,  assign2_tmp,  TMave_tmp,
-            seqxA_mat, seqyA_mat, assign1_list, assign2_list, TMave_mat);
+        if (chainmap.size())
+            copy_chain_assign_data(chain1_num, chain2_num, sequence,
+                seqxA_tmp, seqyA_tmp, assign1_list, assign2_list, TMave_tmp,
+                seqxA_mat, seqyA_mat, assign1_tmp,  assign2_tmp,  TMave_mat);
+        else
+            copy_chain_assign_data(chain1_num, chain2_num, sequence,
+                seqxA_tmp, seqyA_tmp, assign1_tmp,  assign2_tmp,  TMave_tmp,
+                seqxA_mat, seqyA_mat, assign1_list, assign2_list, TMave_mat);
     }
 
     /* clean up everything */
@@ -2831,7 +2845,7 @@ void MMalign_cross(double & max_total_score, const int max_iter,
     int len_aa, int len_na, int chain1_num, int chain2_num, double **TMave_mat,
     vector<vector<string> >&seqxA_mat, vector<vector<string> >&seqyA_mat,
     int *assign1_list, int *assign2_list, vector<string>&sequence,
-    double d0_scale, bool fast_opt)
+    double d0_scale, bool fast_opt, map<int,int> &chainmap)
 {
     /* tmp assignment */
     int *assign1_tmp, *assign2_tmp;
@@ -2865,7 +2879,7 @@ void MMalign_cross(double & max_total_score, const int max_iter,
         secx_vec, secy_vec, mol_vec1, mol_vec2, xlen_vec, ylen_vec,
         xa, ya, seqx, seqy, secx, secy, len_aa, len_na, chain1_num, chain2_num,
         TMave_mat, seqxA_mat, seqyA_mat, assign1_list, assign2_list, sequence,
-        d0_scale, fast_opt);
+        d0_scale, fast_opt, chainmap);
 
     /* clean up everything */
     delete [] assign1_tmp;

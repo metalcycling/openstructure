@@ -1474,6 +1474,16 @@ from a :class:`ost.io.MMCifInfoBioUnit` or the derived
   is reserved for the original AU chain with identity transform (read: no
   transform) applied. If a certain AU chain only occurs with an actual
   transform applied, numbering starts at 2.
+  
+  .. warning::
+    There is the (rare) possibility that a AU chain that has only identity
+    transform applied is not named 1.<au_cname>.
+    As of january 2024, there are 3 pdb entries (8qn6, 8x1h, 2c0x) where
+    the same AU chain with identity transform occurs several times in the same
+    biounit. This is likely an error in the respective mmCIF files as the
+    resulting chains sit on top of each other. OST just names the FIRST
+    occurence as 1.<au_cname>.
+    
 
   :param asu: The assymetric unit
   :type asu: :class:`ost.mol.EntityHandle`

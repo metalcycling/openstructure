@@ -259,7 +259,10 @@ void Processor::ConnectResidues(mol::ResidueHandle rh,
   }
 }
 
-
+/// \brief Return the AtomHandle corresponding to AtomSpecList[ordinal]
+/// This function assumes that the State of the AtomImpl has been set to the
+/// index on the AtomSpec of the compound (see ReorderAtoms).
+/// Returns an Invalid AtomHandle if the atom is not present.
 mol::AtomHandle Processor::LocateAtom(const mol::AtomHandleList& ahl, 
                                       int ordinal) const
 {
@@ -318,7 +321,13 @@ void Processor::ConnectAtomsOfResidue(mol::ResidueHandle rh,
   }
 }
 
-
+/// \brief Reorder atoms to follow the order in the compound AtomSpecs
+///
+/// This function reorders atoms so that atom names appear in the same order as
+/// the atoms in the compound's AtomSpec. Unknown atoms (ie atoms not in the
+/// compound) are sorted to the back.
+/// Side effect: sets the State on the AtomImpl to the index of the Atom
+/// on the AtomSpecs list.
 void Processor::ReorderAtoms(mol::ResidueHandle residue, 
                              CompoundPtr compound, 
                              bool fix_element) const

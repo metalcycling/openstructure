@@ -1,0 +1,11 @@
+   # Intentinally comment with whitespaces, should not throw error
+data_data-item
+  _data-item.s1 a
+_data-item.s2 'a b c'
+_data-item.s3
+;
+a
+  b
+c
+;
+_data-item.s4 'a'b'

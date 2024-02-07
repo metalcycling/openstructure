@@ -54,6 +54,7 @@ private:
   std::ostream&      ostr_;
   int                counter_;
   std::map<long,int> atom_indices_;
+  String             filename_;
 };
 
 }}

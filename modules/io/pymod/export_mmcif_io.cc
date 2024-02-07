@@ -26,6 +26,8 @@ using namespace boost::python;
 #include <ost/io/mol/io_profile.hh>
 #include <ost/io/mol/mmcif_reader.hh>
 #include <ost/io/mol/mmcif_info.hh>
+#include <ost/io/mol/star_writer.hh>
+#include <ost/io/mol/mmcif_writer.hh>
 #include <ost/io/mmcif_str.hh>
 using namespace ost;
 using namespace ost::io;
@@ -55,6 +57,51 @@ boost::python::tuple WrapMMCifStringToEntity(const String& mmcif,
                                    std::get<2>(res));
 }
 
+String WrapEntityToMMCifStringEnt(const ost::mol::EntityHandle& ent,
+                                 const String& data_name,
+                                 ost::conop::CompoundLibPtr compound_lib,
+                                 bool mmcif_conform) {
+  return EntityToMMCifString(ent, data_name, compound_lib,
+                             mmcif_conform);
+}
+
+String WrapEntityToMMCifStringView(const ost::mol::EntityView& ent,
+                                   const String& data_name,
+                                   ost::conop::CompoundLibPtr compound_lib,
+                                   bool mmcif_conform) {
+  return EntityToMMCifString(ent, data_name, compound_lib,
+                             mmcif_conform);
+}
+
+void WrapStarLoopAddData(StarWriterLoop& sl, const boost::python::list& l) {
+  std::vector<StarWriterValue> v;
+  for (int i = 0; i < boost::python::len(l); ++i){
+    v.push_back(boost::python::extract<StarWriterValue>(l[i]));
+  }
+  sl.AddData(v);
+}
+
+void WrapStarWriterWrite(StarWriter& writer, const String& data_name,
+                         const String& filename) {
+  writer.Write(data_name, filename);
+}
+
+void WrapSetStructureHandle(MMCifWriter& writer,
+                            const ost::mol::EntityHandle& ent,
+                            ost::conop::CompoundLibPtr compound_lib,
+                            bool mmcif_conform,
+                            const std::vector<MMCifWriterEntity>& entity_info) {
+  writer.SetStructure(ent, compound_lib, mmcif_conform, entity_info);
+}
+
+void WrapSetStructureView(MMCifWriter& writer,
+                          const ost::mol::EntityView& ent,
+                          ost::conop::CompoundLibPtr compound_lib,
+                          bool mmcif_conform,
+                          const std::vector<MMCifWriterEntity>& entity_info) {
+  writer.SetStructure(ent, compound_lib, mmcif_conform, entity_info);
+}
+
 void export_mmcif_io()
 {
   class_<MMCifReader, boost::noncopyable>("MMCifReader", init<const String&, EntityHandle&, const IOProfile&>())
@@ -74,6 +121,66 @@ void export_mmcif_io()
     .add_property("info", make_function(&MMCifReader::GetInfo,
                                    return_value_policy<copy_const_reference>()))
     ;
+
+  class_<StarWriterObject, boost::noncopyable>("StarWriterObject", no_init);
+
+  class_<StarWriterValue>("StarWriterValue", no_init)
+    .def("FromInt", &StarWriterValue::FromInt, (arg("int_val"))).staticmethod("FromInt")
+    .def("FromFloat", &StarWriterValue::FromFloat, (arg("float_val"), arg("decimals"))).staticmethod("FromFloat")
+    .def("FromString", &StarWriterValue::FromString, (arg("string_val"))).staticmethod("FromString")
+    .def("GetValue", &StarWriterValue::GetValue, return_value_policy<copy_const_reference>())
+  ;
+
+  class_<StarWriterDataItem, bases<StarWriterObject> >("StarWriterDataItem", init<const String&, const String&, const StarWriterValue&>())
+    .def("GetCategory", &StarWriterDataItem::GetCategory, return_value_policy<copy_const_reference>())
+    .def("GetAttribute", &StarWriterDataItem::GetAttribute, return_value_policy<copy_const_reference>())
+    .def("GetValue", &StarWriterDataItem::GetValue, return_value_policy<copy_const_reference>())
+  ;
+
+  class_<StarWriterLoopDesc, bases<StarWriterObject> >("StarWriterLoopDesc", init<const String&>())
+    .def("GetCategory", &StarWriterLoopDesc::GetCategory, return_value_policy<copy_const_reference>())
+    .def("GetSize", &StarWriterLoopDesc::GetSize)
+    .def("Add", &StarWriterLoopDesc::Add, (arg("attribute")))
+    .def("GetIndex", &StarWriterLoopDesc::GetIndex, (arg("attribute")))
+  ;
+
+  class_<StarWriterLoop, bases<StarWriterObject> >("StarWriterLoop", init<const StarWriterLoopDesc&>())
+    .def("GetDesc", &StarWriterLoop::GetDesc, return_value_policy<reference_existing_object>())
+    .def("GetN", &StarWriterLoop::GetN)
+    .def("AddData", &WrapStarLoopAddData, (arg("data_list")))
+  ;
+
+  class_<StarWriter>("StarWriter", init<>())
+    .def("Push", &StarWriter::Push, arg("star_writer_object"))
+    .def("Write", &WrapStarWriterWrite, (arg("data_name"), arg("filename")))
+  ;
+
+  class_<MMCifWriterEntity>("MMCifWriterEntity", no_init)
+    .def("FromPolymer", &MMCifWriterEntity::FromPolymer).staticmethod("FromPolymer")
+    .def("AddHet", &MMCifWriterEntity::AddHet, (arg("rnum"), arg("mon_id")))
+    .add_property("type", &MMCifWriterEntity::type)
+    .add_property("poly_type", &MMCifWriterEntity::poly_type)
+    .add_property("branch_type", &MMCifWriterEntity::branch_type)
+    .add_property("is_poly", &MMCifWriterEntity::is_poly)
+    .add_property("mon_ids", &MMCifWriterEntity::mon_ids)
+    .add_property("seq_olcs", &MMCifWriterEntity::seq_olcs)
+    .add_property("seq_can_olcs", &MMCifWriterEntity::seq_can_olcs)
+    .add_property("asym_ids", &MMCifWriterEntity::asym_ids)
+  ;
+
+  class_<std::vector<MMCifWriterEntity> >("MMCifWriterEntityList", init<>())
+    .def(vector_indexing_suite<std::vector<MMCifWriterEntity> >())
+  ;
+
+  class_<MMCifWriter, bases<StarWriter> >("MMCifWriter", init<>())
+    .def("SetStructure", &WrapSetStructureHandle, (arg("ent"), arg("compound_lib"),
+                                                   arg("mmcif_conform")=true,
+                                                   arg("entity_info")=std::vector<MMCifWriterEntity>()))
+    .def("SetStructure", &WrapSetStructureView, (arg("ent"), arg("compound_lib"),
+                                                 arg("mmcif_conform")=true,
+                                                 arg("entity_info")=std::vector<MMCifWriterEntity>()))
+    .def("GetEntities", &MMCifWriter::GetEntities, return_value_policy<copy_const_reference>())
+  ;
 
   enum_<MMCifInfoCitation::MMCifInfoCType>("MMCifInfoCType")
     .value("Journal", MMCifInfoCitation::JOURNAL)
@@ -388,6 +495,18 @@ void export_mmcif_io()
     .def(self_ns::str(self))
   ;
 
+  class_<MMCifEntityDesc>("MMCifEntityDesc", init<>())
+   .add_property("type", &MMCifEntityDesc::type)
+   .add_property("entity_type", &MMCifEntityDesc::entity_type)
+   .add_property("entity_poly_type", &MMCifEntityDesc::entity_poly_type)
+   .add_property("branched_type", &MMCifEntityDesc::branched_type)
+   .add_property("details", &MMCifEntityDesc::details)
+   .add_property("seqres", &MMCifEntityDesc::seqres)
+   .add_property("mon_ids", &MMCifEntityDesc::mon_ids)
+   .add_property("hetero_num", &MMCifEntityDesc::hetero_num)
+   .add_property("hetero_ids", &MMCifEntityDesc::hetero_ids)
+  ;
+
   class_<MMCifInfo>("MMCifInfo", init<>())
     .def("AddCitation", &MMCifInfo::AddCitation)
     .def("GetCitations", make_function(&MMCifInfo::GetCitations,
@@ -399,6 +518,8 @@ void export_mmcif_io()
     .def("GetMethod", &MMCifInfo::GetMethod)
     .def("SetResolution", &MMCifInfo::SetResolution)
     .def("GetResolution", &MMCifInfo::GetResolution)
+    .def("SetEMResolution", &MMCifInfo::SetEMResolution)
+    .def("GetEMResolution", &MMCifInfo::GetEMResolution)
     .def("SetRFree", &MMCifInfo::SetRFree)
     .def("GetRFree", &MMCifInfo::GetRFree)
     .def("SetRWork", &MMCifInfo::SetRWork)
@@ -428,6 +549,10 @@ void export_mmcif_io()
     .def("ConnectBranchLinks", &MMCifInfo::ConnectBranchLinks)
     .def("GetEntityBranchChainNames", &WrapGetNames)
     .def("GetEntityBranchChains", &MMCifInfo::GetEntityBranchChains)
+    .def("SetEntityDesc", &MMCifInfo::SetEntityDesc)
+    .def("GetEntityDesc", &MMCifInfo::GetEntityDesc, return_value_policy<copy_const_reference>())
+    .def("GetEntityIds", &MMCifInfo::GetEntityIds)
+    .def("GetEntityIdsOfType", &MMCifInfo::GetEntityIdsOfType)
     .add_property("citations", make_function(&MMCifInfo::GetCitations,
                                    return_value_policy<copy_const_reference>()))
     .add_property("biounits", make_function(&MMCifInfo::GetBioUnits,
@@ -435,6 +560,8 @@ void export_mmcif_io()
     .add_property("method", &MMCifInfo::GetMethod, &MMCifInfo::SetMethod)
     .add_property("resolution", &MMCifInfo::GetResolution,
                   &MMCifInfo::SetResolution)
+    .add_property("em_resolution", &MMCifInfo::GetEMResolution,
+                  &MMCifInfo::SetEMResolution)
     .add_property("r_free", &MMCifInfo::GetRFree, &MMCifInfo::SetRFree)
     .add_property("r_work", &MMCifInfo::GetRWork, &MMCifInfo::SetRWork)
     .add_property("operations", make_function(&MMCifInfo::GetOperations,
@@ -451,4 +578,14 @@ void export_mmcif_io()
   def("MMCifStrToEntity", &WrapMMCifStringToEntity, (arg("pdb_string"),
                                                      arg("profile")=IOProfile(),
                                                      arg("process")=false));
+
+  def("EntityToMMCifString",  &WrapEntityToMMCifStringEnt, (arg("ent"),
+                                                            arg("data_name"),
+                                                            arg("compound_lib"),
+                                                            arg("mmcif_conform")));
+
+  def("EntityToMMCifString",  &WrapEntityToMMCifStringView, (arg("ent"),
+                                                             arg("data_name"),
+                                                             arg("compound_lib"),
+                                                             arg("mmcif_conform")));
 }

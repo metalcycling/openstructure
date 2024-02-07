@@ -171,28 +171,48 @@ namespace {
 }
 
 SDFWriter::SDFWriter(std::ostream& ostream)
-  : outfile_(), ostr_(ostream), counter_(0), atom_indices_() {
+  : outfile_(), ostr_(ostream), counter_(0), atom_indices_(), filename_("") {
 }
 
 SDFWriter::SDFWriter(const String& filename)
-  : outfile_(filename.c_str()), ostr_(outfile_), counter_(0), atom_indices_() {
+  : outfile_(filename.c_str()), ostr_(outfile_), counter_(0), atom_indices_(),
+   filename_(filename){
 }
 
 SDFWriter::SDFWriter(const boost::filesystem::path& filename): 
   outfile_(BFPathToString(filename).c_str()),
-  ostr_(outfile_), counter_(0), atom_indices_() {}
+  ostr_(outfile_), counter_(0), atom_indices_(), filename_("") {}
 
 void SDFWriter::Write(const mol::EntityView& ent) {
   if (!ostr_) {
-    throw IOException("Can't write SDF file. Bad output stream");
+    if (!filename_.empty()) {
+      throw IOException("[Errno " + std::to_string(errno) + "] " +
+                        std::string(strerror(errno)) +
+                        ": '" + filename_ + "'");
+    }
+    else {
+      throw IOException("[Errno " + std::to_string(errno) + "] " +
+                        std::string(strerror(errno)) +
+                        ": <stream>");
+    }
   }
+
   mol::EntityView non_const_view = ent;
   non_const_view.Apply(*this);
 }
 
 void SDFWriter::Write(const mol::EntityHandle& ent) {
   if (!ostr_) {
-    throw IOException("Can't write SDF file. Bad output stream");
+    if (!filename_.empty()) {
+      throw IOException("[Errno " + std::to_string(errno) + "] " +
+                        std::string(strerror(errno)) +
+                        ": '" + filename_ + "'");
+    }
+    else {
+      throw IOException("[Errno " + std::to_string(errno) + "] " +
+                        std::string(strerror(errno)) +
+                        ": <stream>");
+    }
   }
   mol::EntityView non_const_view = ent.CreateFullView();
   non_const_view.Apply(*this);
