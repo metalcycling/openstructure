@@ -24,7 +24,14 @@
 namespace ost { namespace mol { namespace impl {
 
 template <typename T>
-class pointer_it :  public std::iterator<std::forward_iterator_tag, T>{
+class pointer_it {
+
+  using iterator_category = std::forward_iterator_tag;
+  using value_type = T;
+  using difference_type = std::ptrdiff_t;
+  using pointer = T*;
+  using reference = T&;
+
 public:
   pointer_it(T* s): s_(s) { }
   

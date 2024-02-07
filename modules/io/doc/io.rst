@@ -67,8 +67,9 @@ and mmCIF files with :func:`LoadMMCIF` (this also gives you access to the
 :class:`MMCifInfo` class). It offers tighter control over the exact loading
 behaviour.
 
-
 .. autofunction:: ost.io.LoadPDB
+
+.. autofunction:: ost.io.LoadMMCIF
 
 .. function:: PDBStrToEntity(pdb_string, profile=IOProfile(), process=False)
 
@@ -94,6 +95,16 @@ behaviour.
     with open('protein.pdb') as pdb_fd:
         pdb_str = pdb.read()
         ent = io.PDBStrToEntity(pdb_str, ost.io.profiles['DEFAULT'], True)
+
+
+.. function:: LoadSDF(filename)
+
+  Load an SDF file and return an entity.
+
+  :param filename: File to be loaded
+  :type filename: :class:`str`
+
+  :rtype: :class:`~ost.mol.EntityHandle`
 
 .. function:: SDFStrToEntity(sdf_string)
 
@@ -295,6 +306,8 @@ file:
       
 .. autofunction:: ost.io.SavePDB
 
+.. autofunction:: ost.io.SaveMMCIF
+
 .. function:: EntityToPDBStr(ent, profile=IOProfile())
 
   Return entity as a string in PDB format. 
@@ -315,6 +328,15 @@ file:
   :param entity: The :class:`~ost.mol.EntityHandle` or :class:`~ost.mol.EntityView`
 
   :rtype: string.
+
+.. function:: SaveSDF(ent, filename)
+
+  Save entity to disk as an SDF file.
+
+  :param ent: The entity to be saved
+  :type  ent: :class:`~ost.mol.EntityHandle` or :class:`~ost.mol.EntityView`
+  :param filename: The filename
+  :type  filename: string
 
 .. _seq-io:
 

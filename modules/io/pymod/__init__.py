@@ -20,7 +20,6 @@ import os, tempfile, ftplib, http.client
 
 from ._ost_io import *
 from ost import mol, geom, conop, seq
-from ost import LogWarning
 
 class IOProfiles:
   def __init__(self):
@@ -161,6 +160,8 @@ def LoadPDB(filename, restrict_chains="", no_hetatms=None,
 
   :param seqres: Whether to read SEQRES records. If set to True, the loaded 
                  entity and seqres entry will be returned as a tuple.
+                 If file doesnt contain SEQRES records, the returned
+                 :class:`ost.seq.SequenceList` will be invalid.
   :type seqres: :class:`bool`
 
   :param bond_feasibility_check: Flag for :attr:`IOProfile.processor`. If
@@ -447,11 +448,6 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
       reader.info.ConnectBranchLinks()
     #else:
     #  raise IOError("File doesn't contain any entities")
-
-    # Warn about info dependency on seqres
-    if info and not reader.seqres:
-      LogWarning("MMCifInfo is incomplete when seqres=False")
-
     if seqres and info:
       return ent, reader.seqres, reader.info
     if seqres:
@@ -461,6 +457,47 @@ def LoadMMCIF(filename, fault_tolerant=None, calpha_only=None,
     return ent
   except:
     raise
+
+
+def SaveMMCIF(ent, filename, compound_lib = conop.GetDefaultLib(),
+              data_name="OST_structure", mmcif_conform = True,
+              entity_info = MMCifWriterEntityList()):
+  """
+  Save OpenStructure entity in mmCIF format
+
+  :param ent:           OpenStructure Entity to be saved
+  :param filename:      Filename - .gz suffix triggers gzip compression
+  :param compound_lib:  Compound library required when writing, uses
+                        :func:`ost.conop.GetDefaultLib` if not given
+  :param data_name:     Name of data block that will be written to
+                        mmCIF file. Typically, thats the PDB ID or some
+                        identifier.
+  :param mmcif_conform: Controls processing of structure, i.e. identification
+                        of mmCIF entities etc. before writing. Detailed
+                        description in :ref:`MMCif writing`. In short:
+                        If *mmcif_conform* is set to True, Chains in *ent* are
+                        expected to be valid mmCIF entities with residue numbers
+                        set according to underlying SEQRES. That should be the
+                        case when *ent* has been loaded with :func:`LoadMMCIF`.
+                        If *mmcif_conform* is set to False, heuristics kick in
+                        to identify and separate mmCIF entities based on
+                        :class:`ost.mol.ChemClass` of the residues in a chain.
+  :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
+  :param entity_info: Advanced usage - description in :ref:`MMCif writing`
+  :type filename: :class:`str`
+  :type compound_lib: :class:`ost.conop.CompoundLib`
+  :type data_name: :class:`str`
+  :type mmcif_conform: :class:`bool`
+  :type entity_info: :class:`MMCifWriterEntityList`
+  """
+  if compound_lib is None:
+    raise RuntimeError("Require valid compound library to write mmCIF format")
+  writer = MMCifWriter()
+  writer.SetStructure(ent, compound_lib, mmcif_conform = mmcif_conform,
+                      entity_info = entity_info)
+  writer.Write(data_name, filename)
+
+
 
 # this function uses a dirty trick: should be a member of MMCifInfoBioUnit
 # which is totally C++, but we want the method in Python... so we define it

@@ -235,7 +235,7 @@ String CompoundLib::GetOSTVersionUsed() {
     }
     assert(SQLITE_DONE==sqlite3_step(stmt));
   } else {
-    LOG_WARNING("your compound library might be outdated.");
+    LOG_ERROR(sqlite3_errmsg(db_->ptr));
     sqlite3_finalize(stmt);      
     return String();
   }
@@ -409,6 +409,16 @@ CompoundLibPtr CompoundLib::Load(const String& database, bool readonly)
     LOG_ERROR(sqlite3_errmsg(lib->db_->ptr));
     return CompoundLibPtr();
   }
+
+  // Use ost_version as proxy if the loaded library has anything to do with
+  // what we expect. We don't check for supported version here. This is done
+  // later.
+  String ost_version_used = lib->GetOSTVersionUsed();
+  if(ost_version_used == "") {
+    throw ost::Error("Could not read OST version from loaded SQLITE DB - "
+                     "no valid CompoundLib");
+  }
+
   String aq;
   sqlite3_stmt* stmt;
   // check if SMILES are available

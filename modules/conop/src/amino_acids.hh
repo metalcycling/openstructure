@@ -58,8 +58,13 @@ char DLLEXPORT_OST_CONOP ResidueNameToOneLetterCode(String rn);
 
 AminoAcid DLLEXPORT_OST_CONOP ResidueNameToAminoAcid(String rn);
 
-class AminoAcidSetIterator : public std::iterator<std::forward_iterator_tag,
-                                                  AminoAcid> {
+class AminoAcidSetIterator {
+  using iterator_category = std::forward_iterator_tag;
+  using value_type = AminoAcid;
+  using difference_type = std::ptrdiff_t;
+  using pointer = AminoAcid*;
+  using reference = AminoAcid&;
+
 public:
   AminoAcidSetIterator(unsigned int bits, int start):
     bits_(bits), curr_(start)

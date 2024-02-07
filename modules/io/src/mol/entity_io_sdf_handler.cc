@@ -103,5 +103,15 @@ mol::EntityHandle LoadSDF(const String& file_name) {
     return ent_handle;
 }
 
+void SaveSDF(const mol::EntityHandle& ent, const String& file_name) {
+  SDFWriter writer(file_name);
+  writer.Write(ent);
+}
+
+void SaveSDF(const mol::EntityView& ent, const String& file_name) {
+  SDFWriter writer(file_name);
+  writer.Write(ent);
+}
+
 }} // ns
 

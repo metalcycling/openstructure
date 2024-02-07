@@ -40,11 +40,16 @@ Details on the usage (output of ``ost compare-structures --help``):
                                 [--local-lddt] [--bb-lddt] [--bb-local-lddt]
                                 [--cad-score] [--local-cad-score]
                                 [--cad-exec CAD_EXEC]
-                                [--usalign-exec USALIGN_EXEC] [--qs-score]
-                                [--dockq] [--contact-scores] [--rigid-scores]
+                                [--usalign-exec USALIGN_EXEC]
+                                [--override-usalign-mapping] [--qs-score]
+                                [--dockq] [--ics] [--ips] [--rigid-scores]
                                 [--patch-scores] [--tm-score]
                                 [--lddt-no-stereochecks]
                                 [--n-max-naive N_MAX_NAIVE]
+                                [--dump-aligned-residues] [--dump-pepnuc-alns]
+                                [--dump-pepnuc-aligned-residues]
+                                [--min-pep-length MIN_PEP_LENGTH]
+                                [--min-nuc-length MIN_NUC_LENGTH]
 
   Evaluate model against reference 
 
@@ -104,6 +109,8 @@ Details on the usage (output of ``ost compare-structures --help``):
    * "cad_exec"
    * "usalign_exec"
    * "lddt_no_stereochecks"
+   * "min_pep_length"
+   * "min_nuc_length"
 
   The pairwise sequence alignments are computed with Needleman-Wunsch using
   BLOSUM62 (NUC44 for nucleotides). Many benchmarking scenarios preprocess the
@@ -351,6 +358,26 @@ Details on the usage (output of ``ost compare-structures --help``):
     --dump-pepnuc-aligned-residues
                           Dump additional info on model and reference residues
                           that occur in pepnuc alignments.
+    --min-pep-length MIN_PEP_LENGTH
+                          Relevant parameter if short peptides are involved in
+                          scoring.Minimum peptide length for a chain in the
+                          target structure to be considered in chain mapping.
+                          The chain mapping algorithm first performs an all vs.
+                          all pairwise sequence alignment to identify "equal"
+                          chains within the target structure. We go for simple
+                          sequence identity there. Short sequences can be
+                          problematic as they may produce high sequence identity
+                          alignments by pure chance.
+    --min-nuc-length MIN_NUC_LENGTH
+                          Relevant parameter if short nucleotides are involved
+                          in scoring.Minimum nucleotide length for a chain in
+                          the target structure to be considered in chain
+                          mapping. The chain mapping algorithm first performs an
+                          all vs. all pairwise sequence alignment to identify
+                          "equal" chains within the target structure. We go for
+                          simple sequence identity there. Short sequences can be
+                          problematic as they may produce high sequence identity
+                          alignments by pure chance.
 
 
 .. _ost compare ligand structures:

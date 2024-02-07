@@ -287,6 +287,19 @@ BOOST_AUTO_TEST_CASE(star_data_item)
   BOOST_TEST_MESSAGE("  done.");
 }
 
+BOOST_AUTO_TEST_CASE(star_ws_data_item)
+{
+  BOOST_TEST_MESSAGE("  Running star_ws_data_item tests...");
+  std::ifstream s("testfiles/ws-data-item.cif");
+  DataItemTestParser star_p(s);
+  BOOST_CHECK_NO_THROW(star_p.Parse());
+  BOOST_CHECK_EQUAL(star_p.s1, "a");
+  BOOST_CHECK_EQUAL(star_p.s2, "a b c");
+  BOOST_CHECK_EQUAL(star_p.s3, "a\n  b\nc");
+  BOOST_CHECK_EQUAL(star_p.s4, "a'b");
+  BOOST_TEST_MESSAGE("  done.");
+}
+
 BOOST_AUTO_TEST_CASE(format_diag_stream)
 {
   BOOST_TEST_MESSAGE("  Running format_diag_stream tests...");
@@ -356,6 +369,21 @@ BOOST_AUTO_TEST_CASE(star_loop)
   BOOST_CHECK_EQUAL(star_p.lines[4][0], "13");
   BOOST_CHECK_EQUAL(star_p.lines[4][1], "14");
   BOOST_CHECK_EQUAL(star_p.lines[4][2], "15");
+  BOOST_TEST_MESSAGE("  done.");
+}
+
+BOOST_AUTO_TEST_CASE(star_ws_loop)
+{
+  BOOST_TEST_MESSAGE("  Running star_ws_loop tests...");
+  std::ifstream s("testfiles/ws_loop.cif");
+  LoopTestParser star_p(s);
+  star_p.Parse();
+  BOOST_CHECK_EQUAL(star_p.lines[0][0], "1");
+  BOOST_CHECK_EQUAL(star_p.lines[0][1], "2");
+  BOOST_CHECK_EQUAL(star_p.lines[0][2], "3");
+  BOOST_CHECK_EQUAL(star_p.lines[1][0], "a");
+  BOOST_CHECK_EQUAL(star_p.lines[1][1], "b");
+  BOOST_CHECK_EQUAL(star_p.lines[1][2], "c");
   BOOST_TEST_MESSAGE("  done.");
 }
 

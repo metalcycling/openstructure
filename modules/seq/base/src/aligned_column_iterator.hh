@@ -26,8 +26,14 @@
  */
 namespace ost { namespace seq {
 
-class AlignedColumnIterator : public std::iterator<std::forward_iterator_tag,
-                                                   AlignedColumn> {
+class AlignedColumnIterator {
+
+  using iterator_category = std::forward_iterator_tag;
+  using value_type = AlignedColumn;
+  using difference_type = std::ptrdiff_t;
+  using pointer = AlignedColumn*;
+  using reference = AlignedColumn&;
+
 private:
   void UpdateVal()
   {

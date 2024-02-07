@@ -30,35 +30,50 @@
 
 
 #include <ost/io/mol/chemdict_parser.hh>
+#include <ost/log.hh>
 
 using namespace ost;
 
 void PrintUsage()
 {
-  std::cout << "usage: chemdict_tool action <compound-dict> <db> (pdb|charmm|amber|opls)" << std::endl;
+  std::cout << "usage: chemdict_tool ACTION <compound-dict> <db> [DIALECT] [OPTIONS]" << std::endl;
   std::cout << "supported actions are:" << std::endl;
   std::cout << "  create  - creates a new db " << std::endl;
   std::cout << "  update  - update existing db" << std::endl;
+  std::cout << "supported dialects are: pdb, charmm, amber, opls" << std::endl;
+  std::cout << "supported options are:" << std::endl;
+  std::cout << "  -i  - ignore compounds reserved by the PDB (01-99, DRG, INH, LIG)" << std::endl;
+  std::cout << "  -o  - ignore obsolete compounds" << std::endl;
+  std::cout << "  -v  - be more verbose" << std::endl;
 }
 
 int main(int argc, char const *argv[])
 {
-  if (argc!=4 && argc!=5) {
+  if (argc < 4) {
     PrintUsage();
     return 0;
   }
+  Logger::Instance().PushVerbosityLevel(1);
   conop::Compound::Dialect dialect=conop::Compound::PDB;
-  if (argc==5) {
-    String format=argv[4];
+  bool ignore_reserved=false;
+  bool ignore_obsolete=false;
+  for (int i = 4; i < argc; i++) {
+    String param=argv[i];
 
-    if (format=="charmm") {
+    if (param=="charmm") {
       dialect=conop::Compound::CHARMM;
-    } else if (format=="pdb") {
+    } else if (param=="pdb") {
       dialect=conop::Compound::PDB;
-    } else if (format=="opls") {
+    } else if (param=="opls") {
       dialect=conop::Compound::OPLS;
-    } else if (format=="amber") {
+    } else if (param=="amber") {
       dialect=conop::Compound::AMBER;
+    } else if (param=="-i") {
+      ignore_reserved=true;
+    } else if (param=="-o") {
+      ignore_obsolete=true;
+    } else if (param=="-v") {
+      Logger::Instance().PushVerbosityLevel(4);
     } else {
       PrintUsage();
       return 0;
@@ -75,7 +90,7 @@ int main(int argc, char const *argv[])
     filtered_istream.push(boost::iostreams::gzip_decompressor());
   }
   filtered_istream.push(istream);  
-  io::ChemdictParser cdp(filtered_istream, dialect);
+  io::ChemdictParser cdp(filtered_istream, dialect, ignore_reserved, ignore_obsolete);
   conop::CompoundLibPtr compound_lib;
   bool in_mem=false;
   if (!strncmp(argv[1], "create", 6)) {

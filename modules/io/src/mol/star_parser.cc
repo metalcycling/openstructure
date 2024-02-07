@@ -1,7 +1,7 @@
 //------------------------------------------------------------------------------
 // This file is part of the OpenStructure project <www.openstructure.org>
 //
-// Copyright (C) 2008-2020 by the OpenStructure authors
+// Copyright (C) 2008-2024 by the OpenStructure authors
 //
 // This library is free software; you can redistribute it and/or modify it under
 // the terms of the GNU Lesser General Public License as published by the Free
@@ -257,7 +257,7 @@ void StarParser::ParseLoop()
   StarLoopDesc header;
   this->ConsumeLine();
   while (this->GetLine(line)) {
-    StringRef tline=line.rtrim();
+    StringRef tline=line.trim();
     if (tline.empty()) {
       this->ConsumeLine();
       continue;
@@ -301,22 +301,29 @@ void StarParser::ParseLoop()
       this->ConsumeLine();
       continue;
     }
-    switch (tline[0]) {
-      case '#':
-        this->ConsumeLine();
-        break;
-      case ';':
+    /*
+      To deal with lines starting with whitespaces, move parsing multi-line
+      values out of the switch..case construct. Multi-line values starting
+      with ';' must not have leading whitespace(s).
+    */
+    if ( tline[0]==';') {
         if (process_rows) {
           tmp_values.push_back(String());
           this->ParseMultilineValue(tmp_values.back());
           if (tmp_values.size()==header.GetSize()) {
             this->CallOnDataRow(header, tmp_values);
             tmp_values.clear();
-          }          
+          }
         } else {
           String s;
           this->ParseMultilineValue(s, true);
         }
+        continue;
+    }
+    tline=tline.ltrim();
+    switch (tline[0]) {
+      case '#':
+        this->ConsumeLine();
         break;
       case '_':
         return;
@@ -342,7 +349,7 @@ void StarParser::ParseLoop()
         }
         this->ConsumeLine();
         break;
-    }    
+    }
   }
   if (process_rows) {
     this->OnEndLoop();    
@@ -476,6 +483,20 @@ void StarParser::ParseData()
       this->ConsumeLine();
       continue;
     }
+
+    /*
+      To deal with lines starting with whitespaces, move parsing multi-line
+      values out of the switch..case construct. Multi-line values starting
+      with ';' must not have leading whitespace(s).
+    */
+    if (tline[0]==';') {
+        if (skip) {
+          String s;
+          this->ParseMultilineValue(s, true);
+        }
+        continue;
+    }
+    tline=tline.ltrim();
     switch (tline[0]) {
       case '_':
         if (skip) {
@@ -490,12 +511,6 @@ void StarParser::ParseData()
           this->OnEndData();
           return;
         }
-      case ';':
-        if (skip) {
-          String s;
-          this->ParseMultilineValue(s, true);
-        }
-        break;
       case 'l':
         if (tline==StringRef("loop_", 5)) {
           this->ParseEndDataItemRow();
@@ -534,14 +549,14 @@ void StarParser::ParseGlobal()
 void StarParser::Parse()
 {
   if (!file_open_) {
-    throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
-                                             "Failed to open file '" +
-                                             filename_ + "'!"));
+    throw IOException("[Errno " + std::to_string(errno) + "] " +
+                     std::string(strerror(errno)) +
+                     ": '" + filename_ + "'");
   }
   StringRef line;
   std::stringstream ss;
   while (this->GetLine(line)) {
-    StringRef tline=line.rtrim();
+    StringRef tline=line.trim();
     if (tline.empty()) {
       this->ConsumeLine();
       continue;

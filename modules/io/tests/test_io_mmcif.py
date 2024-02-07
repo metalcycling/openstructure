@@ -61,6 +61,7 @@ class TestMMCifInfo(unittest.TestCase):
     i = io.MMCifInfo()
     i.SetMethod('Deep-Fry')
     i.SetResolution(2.0)
+    i.SetEMResolution(3.0)
     i.AddCitation(c)
     s.append('Bar')
     i.AddAuthorsToCitation('ID', s)
@@ -74,6 +75,7 @@ class TestMMCifInfo(unittest.TestCase):
 
     self.assertEqual(i.GetMethod(), 'Deep-Fry')
     self.assertEqual(i.GetResolution(), 2.0)
+    self.assertEqual(i.GetEMResolution(), 3.0)
 
 
   def test_mmcifinfo_biounit(self):

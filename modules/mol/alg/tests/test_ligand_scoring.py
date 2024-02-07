@@ -43,10 +43,30 @@ def _LoadEntity(filename):
 
 class TestLigandScoring(unittest.TestCase):
 
+    def setUp(self):
+        # Silence expected warnings about ignoring of ligands in binding site
+        ost.PushVerbosityLevel(ost.LogLevel.Error)
+
+    def tearDown(self):
+        ost.PopVerbosityLevel()
+
     def test_extract_ligands_mmCIF(self):
         """Test that we can extract ligands from mmCIF files.
         """
         trg = _LoadMMCIF("1r8q.cif.gz")
+        mdl = _LoadMMCIF("P84080_model_02.cif.gz")
+
+        sc = LigandScorer(mdl, trg, None, None)
+
+        self.assertEqual(len(sc.target_ligands),  7)
+        self.assertEqual(len(sc.model_ligands), 1)
+        self.assertEqual(len([r for r in sc.target.residues if r.is_ligand]), 7)
+        self.assertEqual(len([r for r in sc.model.residues if r.is_ligand]), 1)
+
+    def test_extract_ligands_PDB(self):
+        """Test that we can extract ligands from PDB files containing HET records.
+        """
+        trg = _LoadPDB("1R8Q.pdb")
         mdl = _LoadMMCIF("P84080_model_02.cif.gz")
 
         sc = LigandScorer(mdl, trg, None, None)
@@ -655,6 +675,29 @@ class TestLigandScoring(unittest.TestCase):
         self.assertAlmostEqual(sc.rmsd['00001_'][1], 6.13006878, 4)
 
 
+    def test_skip_too_many_symmetries(self):
+        """
+        Test behaviour of max_symmetries.
+        """
+        trg = _LoadMMCIF("1r8q.cif.gz")
+        mdl = _LoadMMCIF("P84080_model_02.cif.gz")
+
+        # Pass entity views
+        trg_lig = [trg.Select("cname=F")]
+        mdl_lig = [mdl.Select("rname=G3D")]
+
+        # G3D has 72 isomorphic mappings to itself.
+        # Limit to 10 to raise
+        symmetries = ligand_scoring._ComputeSymmetries(mdl_lig[0], trg_lig[0], max_symmetries=100)
+        assert len(symmetries) == 72
+        with self.assertRaises(TooManySymmetriesError):
+            ligand_scoring._ComputeSymmetries(mdl_lig[0], trg_lig[0], max_symmetries=10)
+
+        # Check the unassignment
+        sc = LigandScorer(mdl, trg, mdl_lig, trg_lig, max_symmetries=10)
+        assert "L_2" not in sc.rmsd
+        sc.unassigned_model_ligands["L_2"][1] == "symmetries"
+        sc.unassigned_target_ligands["F"][1] == "symmetries"
 
 
 if __name__ == "__main__":
