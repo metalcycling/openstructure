@@ -1,0 +1,41 @@
+package:
+  name: openstructure
+  version: 2.7
+
+source:
+  path: ../
+
+build:
+  number: 1
+  binary_relocation: true
+  script:
+    - cmake -Bbuild -G "${CMAKE_GENERATOR}" -DPREFIX="${PREFIX}" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DENABLE_MM=OFF -DCOMPILE_TMTOOLS=1 -DENABLE_GFX=OFF -DENABLE_GUI=OFF -DENABLE_INFO=OFF -DCMAKE_CXX_COMPILER_VERSION="11.4.0" -DPython_EXECUTABLE="${BUILD_PREFIX}/bin/python" -DPYTHON_MODULE_PATH="${BUILD_PREFIX}/lib/python${PY_VER}/site-packages" -DEIGEN3_INCLUDE_DIR="${BUILD_PREFIX}/include/eigen3" -DSQLITE3_LIBRARY="${BUILD_PREFIX}/lib/libsqlite3.so" -DSQLITE3_INCLUDE_DIR="${BUILD_PREFIX}/include" -DZLIB_LIBRARY="${BUILD_PREFIX}/lib/libz.so" -DZLIB_INCLUDE_DIR="${BUILD_PREFIX}/include" -DPNG_LIBRARY="${BUILD_PREFIX}/lib/libpng.so" -DPNG_INCLUDE_DIR="${BUILD_PREFIX}/include" -DFFTW_LIBRARY="${BUILD_PREFIX}/lib/libfftw3.so" -DFFTW_INCLUDE_DIR="${BUILD_PREFIX}/include" -DTIFF_LIBRARY="${BUILD_PREFIX}/lib/libtiff.so" -DTIFF_INCLUDE_DIR="${BUILD_PREFIX}/include"
+    - cmake --build build --target install -j 2
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    - python==3.9
+    - cmake
+    - make
+    - boost==1.82
+    - py-boost
+    - zlib
+    - eigen
+    - sqlite
+    - fftw
+    - libtiff
+    - libpng
+  run:
+    - python==3.9
+    - boost==1.82
+    - py-boost
+    - eigen
+    - sqlite
+    - fftw
+    - libtiff
+    - libpng
+
+about:
+  summary: Conda build system for 'openstructure'
