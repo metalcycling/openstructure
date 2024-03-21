@@ -19,7 +19,7 @@ requirements:
     - python==3.9
     - cmake
     - make
-    - boost==1.82
+    - boost
     - py-boost
     - zlib
     - eigen
@@ -29,7 +29,7 @@ requirements:
     - libpng
   run:
     - python==3.9
-    - boost==1.82
+    - boost
     - py-boost
     - eigen
     - sqlite
