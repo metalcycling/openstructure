@@ -12,36 +12,25 @@ cmake_minimum_required(VERSION 3.12.1 FATAL_ERROR)
 cmake_policy(SET CMP0060 NEW)
 
 project(OpenStructure CXX C)
-set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
-set (OST_VERSION_MAJOR 2)
-set (OST_VERSION_MINOR 7)
-set (OST_VERSION_PATCH 0)
-set (OST_VERSION_STRING ${OST_VERSION_MAJOR}.${OST_VERSION_MINOR}.${OST_VERSION_PATCH} )
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+set(OST_VERSION_MAJOR 2)
+set(OST_VERSION_MINOR 7)
+set(OST_VERSION_PATCH 0)
+set(OST_VERSION_STRING ${OST_VERSION_MAJOR}.${OST_VERSION_MINOR}.${OST_VERSION_PATCH} )
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake_support)
 include(OST)
 
-option(USE_SHADER "whether to compile with shader support"
-       OFF)
-option(USE_RPATH "embed rpath upon make install"
-       OFF)
-option(COMPILE_TMTOOLS "whether to compile the tmalign and tmscore programs"
-       OFF)
-option(PROFILE "whether to compile with profiling support"
-       OFF)       
-option(ENABLE_GUI "whether the graphical user interface should be enabled"
-       ON)
-option(ENABLE_GFX "whether graphics support should be enabled"
-       ON)
-option(OPENGLPREFERENCE_LEGACY "whether to use the OpenGL Legacy GL implementation"
-       OFF)
-option(ENABLE_INFO "whether openstructure should be compiled with support for the info library"
-       ON)
-option(USE_NUMPY "whether numpy support is added"
-      OFF)
-option(USE_DOUBLE_PRECISION "whether to compile in double precision" 
-       OFF)
-option(ENABLE_SPNAV "whether 3DConnexion devices should be supported"
-      OFF)
+option(USE_SHADER "whether to compile with shader support" OFF)
+option(USE_RPATH "embed rpath upon make install" OFF)
+option(COMPILE_TMTOOLS "whether to compile the tmalign and tmscore programs" OFF)
+option(PROFILE "whether to compile with profiling support" OFF)
+option(ENABLE_GUI "whether the graphical user interface should be enabled" ON)
+option(ENABLE_GFX "whether graphics support should be enabled" ON)
+option(OPENGLPREFERENCE_LEGACY "whether to use the OpenGL Legacy GL implementation" OFF)
+option(ENABLE_INFO "whether openstructure should be compiled with support for the info library" ON)
+option(USE_NUMPY "whether numpy support is added" OFF)
+option(USE_DOUBLE_PRECISION "whether to compile in double precision" OFF)
+option(ENABLE_SPNAV "whether 3DConnexion devices should be supported" OFF)
 option(STATIC_PROPERTY_WORKAROUND "workaround for static property bug with some boost/boost_python combinations" OFF)
 option(COMPILE_TESTS "whether unit tests should be compiled by default" OFF)
 option(ENABLE_STATIC "whether static libraries should be compiled" OFF)
@@ -60,8 +49,6 @@ endif()
 if (FORTRAN_COMPILER)
   set(CMAKE_FORTRAN_COMPILER ${FORTRAN_COMPILER})
 endif()
-
-
 
 if (PREFIX)
   set(CMAKE_INSTALL_PREFIX ${PREFIX})
@@ -117,27 +104,30 @@ if (USE_SHADER)
 else()
   set(_SHADER OFF)
 endif()
+
 if (USE_NUMPY)
   set(_NUMPY ON)
 else()
   set(_NUMPY OFF)
 endif()
+
 if (COMPILE_TMTOOLS)
   set(_TM_TOOLS ON)
 else()
   set(_TM_TOOLS OFF)
 endif()
+
 if (PROFILE)
   set(_PROFILE ON)
 else()
   set(_PROFILE OFF)
 endif()
+
 if(ENABLE_MM)
   set(_OPENMM ON)
 else()
   set(_OPENMM OFF)
 endif()
-
 
 if (UBUNTU_LAYOUT)
   set(_UBUNTU_LAYOUT ON)
@@ -188,7 +178,9 @@ if(BOOST_VERSION)
   message(STATUS "forcing boost to version ${BOOST_VERSION}")
   set(_BOOST_MIN_VERSION ${BOOST_VERSION})
 endif()
+
 setup_boost()
+
 if (WIN32)
    ADD_DEFINITIONS("-DBOOST_ALL_NO_LIB")
 endif()
@@ -213,6 +205,7 @@ else()
     set(CMAKE_C_FLAGS_DEBUG ${C_FLAGS})
   endif()
 endif()
+
 if (ENABLE_GFX)
   if (OPENGLPREFERENCE_LEGACY)
     set(OpenGL_GL_PREFERENCE LEGACY)
@@ -289,6 +282,7 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-warning-option")
 endif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+
 if(CMAKE_C_COMPILER_ID MATCHES "Clang")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-warning-option")
 endif(CMAKE_C_COMPILER_ID MATCHES "Clang")
@@ -345,6 +339,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
    set(HIDDEN_VIS_MSG 
        "\n   Hidden object visibility  (-DHIDDEN_VISIBILITY) : ${_HIDDEN_VIS}")
 endif()
+
 message(STATUS 
         "OpenStructure will be built with the following options:\n"
         "   Install Prefix                        (-DPREFIX) : ${CMAKE_INSTALL_PREFIX}\n"
